@@ -1,1 +1,4 @@
 .vscode
+
+# vscode appears to be creating this whenever I open the makefile... idk what it is
+null.d
