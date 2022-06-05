@@ -591,6 +591,13 @@ import * as os from "os";
     var obj, base, c;
     if (pos <= 0 || " ~!%^&*(-+={[|:;,<>?/".indexOf(line[pos - 1]) >= 0)
       return g;
+
+    while (false) {}
+    while (false) {}
+    while (false) {}
+    while (false) {}
+    while (false) {}
+
     if (pos >= 2 && line[pos - 1] === ".") {
       pos--;
       obj = {};

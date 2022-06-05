@@ -16,10 +16,6 @@ ifneq (@(PREFIX),)
   CFLAGS += -DCONFIG_PREFIX="\"@(PREFIX)\""
 endif
 
-ifeq (@(DEBUG),y)
-  CFLAGS += -DDEBUG
-endif
-
 DEPS = ../cutils/cutils.o
 DEPS += ../libbf/libbf.o
 DEPS += ../libregexp/libregexp.o

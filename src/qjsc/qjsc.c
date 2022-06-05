@@ -35,12 +35,7 @@
 
 #include "../cutils/cutils.h"
 #include "../quickjs-libc/quickjs-libc.h"
-
-#ifdef DEBUG
-#define debugprint(...) printf (__VA_ARGS__)
-#else
-#define debugprint(...)
-#endif
+#include "../debugprint/debugprint.h"
 
 typedef struct {
     char *name;

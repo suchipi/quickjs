@@ -8,6 +8,10 @@ CFLAGS += -Wall
 # Required to activate some builtin gnu-specific behavior, like `environ`.
 CFLAGS += -D_GNU_SOURCE 
 
+ifeq (@(DEBUG),y)
+  CFLAGS += -DDEBUG
+endif
+
 # --- Linker flags ---
 LDFLAGS =
 

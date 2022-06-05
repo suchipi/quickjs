@@ -21,8 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef LIBREGEXP_OPCODE_H
-#define LIBREGEXP_OPCODE_H
 
 #ifdef DEF
 
@@ -60,5 +58,3 @@ DEF(simple_greedy_quant, 17)
 #else
 #error DEF was not defined when libregexp-opcode.h was run.
 #endif /* DEF */
-
-#endif /* LIBREGEXP_OPCODE_H */
