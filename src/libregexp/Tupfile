@@ -1,0 +1,9 @@
+# https://gittup.org/tup/manual.html
+
+CFLAGS=
+
+ifdef ALL_UNICODE
+  CFLAGS += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
+endif
+
+: foreach *.c |> gcc -Wall -c %f -o %o $(CFLAGS) |> %B.o

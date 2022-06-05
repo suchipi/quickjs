@@ -271,5 +271,5 @@ DEF(Symbol_operatorSet, "Symbol.operatorSet")
 #endif
     
 #else
-#error DEF wasn't defined when quickjs-atom.h was run.
-#endif /* defined(DEF) */
+#error DEF was not defined when quickjs-atom.h was run.
+#endif /* DEF */

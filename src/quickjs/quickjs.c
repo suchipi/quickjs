@@ -45,7 +45,7 @@
 #include "./quickjs.h"
 #include "../libregexp/libregexp.h"
 #ifdef CONFIG_BIGNUM
-#include "../libbf/lib"
+#include "../libbf/libbf.h"
 #endif
 
 #define OPTIMIZE         1

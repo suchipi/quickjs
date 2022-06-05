@@ -1,0 +1,27 @@
+# https://gittup.org/tup/manual.html
+
+UNICODE_FILES=./downloaded/CaseFolding.txt \
+./downloaded/DerivedNormalizationProps.txt \
+./downloaded/PropList.txt \
+./downloaded/SpecialCasing.txt \
+./downloaded/CompositionExclusions.txt \
+./downloaded/ScriptExtensions.txt \
+./downloaded/UnicodeData.txt \
+./downloaded/DerivedCoreProperties.txt \
+./downloaded/NormalizationTest.txt \
+./downloaded/Scripts.txt \
+./downloaded/PropertyValueAliases.txt \
+./downloaded/emoji-data.txt
+
+: ../cutils/cutils.o unicode_gen.c |> gcc -Wall %f -o %o |> unicode_gen
+: |> ./unicode_download.sh |> $(UNICODE_FILES)
+
+: unicode_gen $(UNICODE_FILES) |> ./unicode_gen downloaded %o |> libunicode-table.h
+
+CFLAGS=
+
+ifdef ALL_UNICODE
+  CFLAGS += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
+endif
+
+: libunicode-table.h libunicode.c |> gcc -Wall -c libunicode.c -o %o $(CFLAGS) |> libunicode.o

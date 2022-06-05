@@ -56,6 +56,6 @@ DEF(prev, 1) /* go to the previous char */
 DEF(simple_greedy_quant, 17)
 
 #else
-#error DEF wasn't defined when libregexp-opcode.h was run.
+#error DEF was not defined when libregexp-opcode.h was run.
 #endif /* DEF */
 

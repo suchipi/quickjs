@@ -1,19 +1,21 @@
 #!/bin/sh
 set -e
 
-url="ftp://ftp.unicode.org/Public/14.0.0/ucd"
-emoji_url="${url}/emoji/emoji-data.txt"
+URL="ftp://ftp.unicode.org/Public/14.0.0/ucd"
 
-files="CaseFolding.txt DerivedNormalizationProps.txt PropList.txt \
-SpecialCasing.txt CompositionExclusions.txt ScriptExtensions.txt \
-UnicodeData.txt DerivedCoreProperties.txt NormalizationTest.txt Scripts.txt \
-PropertyValueAliases.txt"
+OUTDIR="downloaded"
 
-mkdir -p unicode
+wget "$URL/CaseFolding.txt" -O "$OUTDIR/CaseFolding.txt"
+wget "$URL/DerivedNormalizationProps.txt" -O "$OUTDIR/DerivedNormalizationProps.txt"
+wget "$URL/PropList.txt" -O "$OUTDIR/PropList.txt"
+wget "$URL/SpecialCasing.txt" -O "$OUTDIR/SpecialCasing.txt"
+wget "$URL/CompositionExclusions.txt" -O "$OUTDIR/CompositionExclusions.txt"
+wget "$URL/ScriptExtensions.txt" -O "$OUTDIR/ScriptExtensions.txt"
+wget "$URL/UnicodeData.txt" -O "$OUTDIR/UnicodeData.txt"
+wget "$URL/DerivedCoreProperties.txt" -O "$OUTDIR/DerivedCoreProperties.txt"
+wget "$URL/NormalizationTest.txt" -O "$OUTDIR/NormalizationTest.txt"
+wget "$URL/Scripts.txt" -O "$OUTDIR/Scripts.txt"
+wget "$URL/PropertyValueAliases.txt" -O "$OUTDIR/PropertyValueAliases.txt"
 
-for f in $files; do
-    g="${url}/${f}"
-    wget $g -O unicode/$f
-done
-    
-wget $emoji_url -O unicode/emoji-data.txt
+# The url path for this one is subtly different
+wget "$URL/emoji/emoji-data.txt" -O "$OUTDIR/emoji-data.txt"

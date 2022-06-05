@@ -1,0 +1,2 @@
+# https://gittup.org/tup/manual.html
+: foreach *.c |> gcc -Wall -c %f -o %o |> %B.o

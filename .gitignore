@@ -4,6 +4,9 @@
 null.d
 
 .obj
+.tup
+
+src/**/*.o
 
 # should really move build artifacts into their own output dir...
 

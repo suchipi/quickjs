@@ -1,0 +1,3 @@
+# https://gittup.org/tup/manual.html
+
+: *.c |> gcc -Wall -c %f -o %o -D_GNU_SOURCE |> %B.o
