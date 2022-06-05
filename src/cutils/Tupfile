@@ -1,2 +1,4 @@
 # https://gittup.org/tup/manual.html
-: foreach *.c |> gcc -Wall -c %f -o %o |> %B.o
+include_rules
+
+: foreach *.c |> !compile_c_object |> %B.o

@@ -1,6 +1,7 @@
 # https://gittup.org/tup/manual.html
+include_rules
 
-CFLAGS = -DCONFIG_VERSION="\"@(VERSION)\""
+CFLAGS += -DCONFIG_VERSION="\"@(VERSION)\""
 
 ifdef BIGNUM
   CFLAGS += -DCONFIG_BIGNUM
@@ -10,4 +11,4 @@ ifdef LTO
   CFLAGS += -DCONFIG_LTO
 endif
 
-: quickjs.c |> gcc -Wall -c %f -o %o $(CFLAGS) |> %B.o
+: quickjs.c |> !compile_c_object |> %B.o

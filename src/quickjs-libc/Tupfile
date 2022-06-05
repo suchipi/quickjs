@@ -1,3 +1,4 @@
 # https://gittup.org/tup/manual.html
+include_rules
 
-: *.c |> gcc -Wall -c %f -o %o -D_GNU_SOURCE |> %B.o
+: *.c |> !compile_c_object |> %B.o

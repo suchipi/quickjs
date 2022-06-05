@@ -1,0 +1,34 @@
+# The name of the binary to use for c compilation.
+CC = gcc
+
+# Various flags to pass to the c compiler.
+CFLAGS =
+# Show all warnings.
+CFLAGS += -Wall
+# Required to activate some builtin gnu-specific behavior, like `environ`.
+CFLAGS += -D_GNU_SOURCE 
+
+# --- Linker flags ---
+LDFLAGS =
+
+# Include source debugging info in the binaries
+LDFLAGS += -g
+# Include symbol names in executables
+LDFLAGS += -rdynamic
+
+# --- Linker flags end ---
+
+# --- Libraries to include ---
+LIBS = 
+
+# math functions and constants. <math.h>
+LIBS += -lm
+# dynamic linking. TODO: is this still needed?
+LIBS += -ldl
+# POSIX threads, for multithreading. <pthread.h>
+LIBS += -lpthread
+
+# --- Libraries to include end ---
+
+!compile_c_object = |> $(CC) -c %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |> %B.o
+!compile_c_program = |> $(CC) %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |> %B
