@@ -55,4 +55,7 @@ DEF(bne_char_pos, 5) /* pop one stack element and jump if equal to the character
 DEF(prev, 1) /* go to the previous char */
 DEF(simple_greedy_quant, 17)
 
+#else
+#error DEF wasn't defined when libregexp-opcode.h was run.
 #endif /* DEF */
+

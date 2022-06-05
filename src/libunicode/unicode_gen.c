@@ -31,7 +31,7 @@
 #include <ctype.h>
 #include <time.h>
 
-#include "cutils.h"
+#include "../cutils/cutils.h"
 
 /* define it to be able to test unicode.c */
 //#define USE_TEST
@@ -58,7 +58,7 @@
 */
 
 #ifdef USE_TEST
-#include "libunicode.c"
+#include "./libunicode.c"
 #endif
 
 #define CHARCODE_MAX 0x10ffff
@@ -154,20 +154,20 @@ char *get_line(char *buf, int buf_size, FILE *f)
 
 typedef enum {
 #define DEF(id, str) GCAT_ ## id,
-#include "unicode_gen_def.h"
+#include "./unicode_gen_def.h"
 #undef DEF
     GCAT_COUNT,
 } UnicodeGCEnum1;
 
 static const char *unicode_gc_name[] = {
 #define DEF(id, str) #id,
-#include "unicode_gen_def.h"
+#include "./unicode_gen_def.h"
 #undef DEF
 };
 
 static const char *unicode_gc_short_name[] = {
 #define DEF(id, str) str,
-#include "unicode_gen_def.h"
+#include "./unicode_gen_def.h"
 #undef DEF
 };
 
@@ -177,20 +177,20 @@ static const char *unicode_gc_short_name[] = {
 
 typedef enum {
 #define DEF(id, str) SCRIPT_ ## id,
-#include "unicode_gen_def.h"
+#include "./unicode_gen_def.h"
 #undef DEF
     SCRIPT_COUNT,
 } UnicodeScriptEnum1;
 
 static const char *unicode_script_name[] = {
 #define DEF(id, str) #id,
-#include "unicode_gen_def.h"
+#include "./unicode_gen_def.h"
 #undef DEF
 };
 
 const char *unicode_script_short_name[] = {
 #define DEF(id, str) str,
-#include "unicode_gen_def.h"
+#include "./unicode_gen_def.h"
 #undef DEF
 };
 
@@ -200,20 +200,20 @@ const char *unicode_script_short_name[] = {
 
 typedef enum {
 #define DEF(id, str) PROP_ ## id,
-#include "unicode_gen_def.h"
+#include "./unicode_gen_def.h"
 #undef DEF
     PROP_COUNT,
 } UnicodePropEnum1;
 
 static const char *unicode_prop_name[] = {
 #define DEF(id, str) #id,
-#include "unicode_gen_def.h"
+#include "./unicode_gen_def.h"
 #undef DEF
 };
 
 static const char *unicode_prop_short_name[] = {
 #define DEF(id, str) str,
-#include "unicode_gen_def.h"
+#include "./unicode_gen_def.h"
 #undef DEF
 };
 
