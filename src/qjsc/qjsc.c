@@ -36,6 +36,12 @@
 #include "../cutils/cutils.h"
 #include "../quickjs-libc/quickjs-libc.h"
 
+#ifdef DEBUG
+#define debugprint(...) printf (__VA_ARGS__)
+#else
+#define debugprint(...)
+#endif
+
 typedef struct {
     char *name;
     char *short_name;
@@ -291,6 +297,8 @@ static void compile_file(JSContext *ctx, FILE *fo,
     JSValue obj;
     size_t buf_len;
     
+    debugprint("compiling %s. c_name1: %s, module: %d\n", filename, c_name1, module);
+
     buf = js_load_file(ctx, &buf_len, filename);
     if (!buf) {
         fprintf(stderr, "Could not load '%s'\n", filename);
@@ -305,19 +313,30 @@ static void compile_file(JSContext *ctx, FILE *fo,
         eval_flags |= JS_EVAL_TYPE_MODULE;
     else
         eval_flags |= JS_EVAL_TYPE_GLOBAL;
+
+    debugprint("running JS_Eval.\n");
     obj = JS_Eval(ctx, (const char *)buf, buf_len, filename, eval_flags);
     if (JS_IsException(obj)) {
         js_std_dump_error(ctx);
         exit(1);
     }
+
+    debugprint("freeing buffer...\n");
     js_free(ctx, buf);
+
     if (c_name1) {
         pstrcpy(c_name, sizeof(c_name), c_name1);
     } else {
         get_c_name(c_name, sizeof(c_name), filename);
     }
+
+    debugprint("writing object code...\n");
     output_object_code(ctx, fo, obj, c_name, FALSE);
+
+    debugprint("freeing JS_Eval result...\n");
     JS_FreeValue(ctx, obj);
+
+    debugprint("done compiling %s.\n", filename);
 }
 
 static const char main_c_template1[] =
@@ -629,6 +648,8 @@ int main(int argc, char **argv)
     }
     outfile = fo;
     
+    debugprint("starting js runtime\n");
+
     rt = JS_NewRuntime();
     ctx = JS_NewContext(rt);
 #ifdef CONFIG_BIGNUM
@@ -643,6 +664,8 @@ int main(int argc, char **argv)
     /* loader for ES6 modules */
     JS_SetModuleLoaderFunc(rt, NULL, jsc_module_loader, NULL);
 
+    debugprint("writing file header comment and include...\n");
+
     fprintf(fo, "/* File generated automatically by the QuickJS compiler. */\n"
             "\n"
             );
@@ -656,6 +679,8 @@ int main(int argc, char **argv)
                 "\n"
                 );
     }
+
+    debugprint("compiling files...\n");
 
     for(i = optind; i < argc; i++) {
         const char *filename = argv[i];

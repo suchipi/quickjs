@@ -19,7 +19,7 @@ UNICODE_FILES=./downloaded/CaseFolding.txt \
 
 : unicode_gen $(UNICODE_FILES) |> ./unicode_gen downloaded %o |> libunicode-table.h
 
-ifdef ALL_UNICODE
+ifeq (@(ALL_UNICODE),y)
   CFLAGS += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
 endif
 

@@ -3,17 +3,21 @@ include_rules
 
 CFLAGS += -DCONFIG_VERSION="\"@(VERSION)\""
 
-ifdef BIGNUM
+ifeq (@(BIGNUM),y)
   CFLAGS += -DCONFIG_BIGNUM
 endif
 
-ifdef LTO
+ifeq (@(LTO),y)
   CFLAGS += -DCONFIG_LTO
   LDFLAGS += -flto
 endif
 
-ifdef PREFIX
+ifneq (@(PREFIX),)
   CFLAGS += -DCONFIG_PREFIX="\"@(PREFIX)\""
+endif
+
+ifeq (@(DEBUG),y)
+  CFLAGS += -DDEBUG
 endif
 
 DEPS = ../cutils/cutils.o

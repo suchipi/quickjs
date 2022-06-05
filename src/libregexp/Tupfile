@@ -1,7 +1,7 @@
 # https://gittup.org/tup/manual.html
 include_rules
 
-ifdef ALL_UNICODE
+ifeq (@(ALL_UNICODE),y)
   CFLAGS += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
 endif
 
