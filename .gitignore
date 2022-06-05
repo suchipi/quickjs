@@ -1,4 +1,7 @@
 .tup
 .vscode
 
+# vscode puts this here and idk why. annoying.
+null.d
+
 src/**/*.o
