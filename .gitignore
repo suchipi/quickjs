@@ -1,28 +1,4 @@
+.tup
 .vscode
 
-# vscode appears to be creating this whenever I open the makefile... idk what it is
-null.d
-
-.obj
-.tup
-
 src/**/*.o
-
-# should really move build artifacts into their own output dir...
-
-# generated binaries
-*.so
-*.a
-/examples/hello
-/examples/hello_module
-/examples/test_fib
-/qjs
-/qjsc
-/qjscalc
-/run-test262
-
-# generated source files
-/hello.c
-/qjscalc.c
-/repl.c
-/test_fib.c
