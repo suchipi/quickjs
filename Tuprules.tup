@@ -1,3 +1,5 @@
+# https://gittup.org/tup/manual.html
+
 # The name of the binary to use for c compilation.
 CC = gcc
 
