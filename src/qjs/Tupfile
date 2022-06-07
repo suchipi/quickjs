@@ -1,21 +1,6 @@
 # https://gittup.org/tup/manual.html
 include_rules
 
-CFLAGS += -DCONFIG_VERSION="\"@(VERSION)\""
-
-ifeq (@(BIGNUM),y)
-  CFLAGS += -DCONFIG_BIGNUM
-endif
-
-ifeq (@(LTO),y)
-  CFLAGS += -DCONFIG_LTO
-  LDFLAGS += -flto
-endif
-
-ifneq (@(PREFIX),)
-  CFLAGS += -DCONFIG_PREFIX="\"@(PREFIX)\""
-endif
-
 DEPS = ../cutils/cutils.o
 DEPS += ../libbf/libbf.o
 DEPS += ../libregexp/libregexp.o

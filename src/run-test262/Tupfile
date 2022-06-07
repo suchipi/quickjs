@@ -8,4 +8,4 @@ DEPS += ../libunicode/libunicode.o
 DEPS += ../quickjs/quickjs.o
 DEPS += ../quickjs-libc/quickjs-libc.o
 
-: qjsc.c $(DEPS) |> !compile_c_program |> qjsc
+: run-test262.c $(DEPS) |> !compile_c_program |> run-test262

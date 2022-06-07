@@ -3,38 +3,51 @@
 # The name of the binary to use for c compilation.
 CC = gcc
 
-# Various flags to pass to the c compiler.
+# --- Various flags to pass to the c compiler ---
 CFLAGS =
-# Show all warnings.
-CFLAGS += -Wall
-# Required to activate some builtin gnu-specific behavior, like `environ`.
-CFLAGS += -D_GNU_SOURCE 
+  # Show all warnings.
+  CFLAGS += -Wall
+  # Required to activate some builtin gnu-specific behavior, like `environ`.
+  CFLAGS += -D_GNU_SOURCE 
 
-ifeq (@(DEBUG),y)
-  CFLAGS += -DDEBUG
-endif
+  ifeq (@(DEBUG),y)
+    CFLAGS += -DDEBUG
+  endif
 
 # --- Linker flags ---
 LDFLAGS =
-
-# Include source debugging info in the binaries
-LDFLAGS += -g
-# Include symbol names in executables
-LDFLAGS += -rdynamic
-
-# --- Linker flags end ---
+  # Include source debugging info in the binaries
+  LDFLAGS += -g
+  # Include symbol names in executables
+  LDFLAGS += -rdynamic
 
 # --- Libraries to include ---
-LIBS = 
+LIBS =
+  # math functions and constants. <math.h>
+  LIBS += -lm
+  # dynamic linking. TODO: is this still needed?
+  LIBS += -ldl
+  # POSIX threads, for multithreading. <pthread.h>
+  LIBS += -lpthread
 
-# math functions and constants. <math.h>
-LIBS += -lm
-# dynamic linking. TODO: is this still needed?
-LIBS += -ldl
-# POSIX threads, for multithreading. <pthread.h>
-LIBS += -lpthread
+# -- preprocessor defines based on stuff in tup.config --
 
-# --- Libraries to include end ---
+CFLAGS += -DCONFIG_VERSION="\"@(VERSION)\""
+
+ifeq (@(BIGNUM),y)
+  CFLAGS += -DCONFIG_BIGNUM
+endif
+
+ifeq (@(LTO),y)
+  CFLAGS += -DCONFIG_LTO
+  LDFLAGS += -flto
+endif
+
+ifneq (@(PREFIX),)
+  CFLAGS += -DCONFIG_PREFIX="\"@(PREFIX)\""
+endif
+
+# tup macro commands
 
 !compile_c_object = |> $(CC) -c %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |> %B.o
 !compile_c_program = |> $(CC) %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |> %B
