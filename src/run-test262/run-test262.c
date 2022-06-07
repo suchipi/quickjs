@@ -1908,7 +1908,7 @@ void help(void)
 {
     printf("run-test262 version " CONFIG_VERSION "\n"
            "usage: run-test262 [options] {-f file ... | [dir_list] [index range]}\n"
-           "-h             help\n"
+           "-h, --help     help\n"
            "-a             run tests in strict and nostrict modes\n"
            "-m             print memory usage summary\n"
            "-n             use new style harness\n"
@@ -1958,7 +1958,7 @@ int main(int argc, char **argv)
         if (*arg != '-')
             break;
         optind++;
-        if (str_equal(arg, "-h")) {
+        if (str_equal(arg, "-h") || str_equal(arg, "--help")) {
             help();
         } else if (str_equal(arg, "-m")) {
             dump_memory++;
