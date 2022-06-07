@@ -1,0 +1,4 @@
+# https://gittup.org/tup/manual.html
+include_rules
+
+: bjson.c |> !compile_c_object |> %B.o

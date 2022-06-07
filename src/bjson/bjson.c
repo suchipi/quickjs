@@ -21,8 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "../src/quickjs-libc/quickjs-libc.h"
-#include "../src/cutils/cutils.h"
+#include "../quickjs-libc/quickjs-libc.h"
+#include "../cutils/cutils.h"
 
 static JSValue js_bjson_read(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
