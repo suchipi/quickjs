@@ -1,5 +1,11 @@
 # https://gittup.org/tup/manual.html
 include_rules
 
-: qjscalc.js | ../qjsc/qjsc |> ../qjsc/qjsc -fbignum -c -o %o %f |> qjscalc.c
+MAYBE_BIGNUM=
+
+ifeq (@(BIGNUM),y)
+  MAYBE_BIGNUM = -fbignum
+endif
+
+: qjscalc.js | ../qjsc/qjsc |> ../qjsc/qjsc $(MAYBE_BIGNUM) -c -o %o %f |> qjscalc.c
 : qjscalc.c |> !compile_c_object |> %B.o

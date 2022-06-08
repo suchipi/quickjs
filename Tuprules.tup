@@ -5,30 +5,30 @@ CC = gcc
 
 # --- Various flags to pass to the c compiler ---
 CFLAGS =
-  # Show all warnings.
-  CFLAGS += -Wall
-  # Required to activate some builtin gnu-specific behavior, like `environ`.
-  CFLAGS += -D_GNU_SOURCE 
+# Show all warnings.
+CFLAGS += -Wall
+# Required to activate some builtin gnu-specific behavior, like `environ`.
+CFLAGS += -D_GNU_SOURCE
 
-  ifeq (@(DEBUG),y)
-    CFLAGS += -DDEBUG
-  endif
+ifeq (@(DEBUG),y)
+  CFLAGS += -DDEBUG
+endif
 
 # --- Linker flags ---
 LDFLAGS =
-  # Include source debugging info in the binaries
-  LDFLAGS += -g
-  # Include symbol names in executables
-  LDFLAGS += -rdynamic
+# Include source debugging info in the binaries
+LDFLAGS += -g
+# Include symbol names in executables
+LDFLAGS += -rdynamic
 
 # --- Libraries to include ---
 LIBS =
-  # math functions and constants. <math.h>
-  LIBS += -lm
-  # dynamic linking. TODO: is this still needed?
-  LIBS += -ldl
-  # POSIX threads, for multithreading. <pthread.h>
-  LIBS += -lpthread
+# math functions and constants. <math.h>
+LIBS += -lm
+# dynamic linking. TODO: is this still needed?
+LIBS += -ldl
+# POSIX threads, for multithreading. <pthread.h>
+LIBS += -lpthread
 
 # -- preprocessor defines based on stuff in tup.config --
 CFLAGS += -DCONFIG_VERSION="\"@(VERSION)\""
