@@ -3,6 +3,3 @@
 
 # vscode puts this here and idk why. annoying.
 null.d
-
-src/**/*.o
-src/**/*.so
