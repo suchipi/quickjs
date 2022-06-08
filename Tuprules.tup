@@ -31,7 +31,6 @@ LIBS =
   LIBS += -lpthread
 
 # -- preprocessor defines based on stuff in tup.config --
-
 CFLAGS += -DCONFIG_VERSION="\"@(VERSION)\""
 
 ifeq (@(BIGNUM),y)
@@ -52,6 +51,8 @@ ifeq (@(ALL_UNICODE),y)
 endif
 
 # tup macro commands
+#
+# Meanings of the %-flags in these macros can be found under "%-flags" in the tup manual: https://gittup.org/tup/manual.html
 
 # compiles one or more .c files into one .o file.
 # takes 1..n inputs, has one output (the .o file).
