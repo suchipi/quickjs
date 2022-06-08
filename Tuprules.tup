@@ -47,7 +47,20 @@ ifneq (@(PREFIX),)
   CFLAGS += -DCONFIG_PREFIX="\"@(PREFIX)\""
 endif
 
+ifeq (@(ALL_UNICODE),y)
+  CFLAGS += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
+endif
+
 # tup macro commands
 
-!compile_c_object = |> $(CC) -c %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |> %B.o
-!compile_c_program = |> $(CC) %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |> %B
+# compiles one or more .c files into one .o file.
+# takes 1..n inputs, has one output (the .o file).
+!compile_c_object = |> $(CC) -c %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |>
+
+# compiles one or more .c or .o files into one executable file.
+# takes 1..n inputs, has one output (the program file).
+!compile_c_program = |> $(CC) %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |>
+
+# compiles one or more .c files into a .o file and a .so file.
+# takes 1..n inputs, has two outputs. first output is the .o, second is the .so.
+!compile_c_shared_library = |> $(CC) -c %f $(LDFLAGS) -o %1o $(CFLAGS) $(LIBS) -fpic && $(CC) -shared %1o -o %2o |>
