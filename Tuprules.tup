@@ -26,8 +26,6 @@ endif
 
 # Include source debugging info in the binaries
 LDFLAGS += -g
-# Include symbol names in executables
-LDFLAGS += -rdynamic
 
 # --- Libraries to include ---
 ifdef LIBS
@@ -44,33 +42,33 @@ LIBS += -ldl
 LIBS += -lpthread
 
 # --- Defines for the preprocessor
-ifdef DEFS
-  DEFS = @(DEFS)
+ifdef DEFINES
+  DEFINES = @(DEFINES)
 else
-  DEFS =
+  DEFINES =
 endif
 
 ifeq (@(DEBUG),y)
-  DEFS += -DDEBUG
+  DEFINES += -DDEBUG
 endif
 
-DEFS += -DCONFIG_VERSION="\"@(VERSION)\""
+DEFINES += -DCONFIG_VERSION="\"@(VERSION)\""
 
 ifeq (@(BIGNUM),y)
-  DEFS += -DCONFIG_BIGNUM
+  DEFINES += -DCONFIG_BIGNUM
 endif
 
 ifeq (@(LTO),y)
-  DEFS += -DCONFIG_LTO
+  DEFINES += -DCONFIG_LTO
   LDFLAGS += -flto
 endif
 
 ifneq (@(PREFIX),)
-  DEFS += -DCONFIG_PREFIX="\"@(PREFIX)\""
+  DEFINES += -DCONFIG_PREFIX="\"@(PREFIX)\""
 endif
 
 ifeq (@(ALL_UNICODE),y)
-  DEFS += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
+  DEFINES += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
 endif
 
 # macro commands for use in Tupfiles. you need to put `include_rules` at the top of your Tupfile to get these.
@@ -79,12 +77,12 @@ endif
 
 # compiles one or more .c files into one .o file.
 # takes 1..n inputs, has one output (the .o file).
-!compile_c_object = |> $(CC) -c %f $(LDFLAGS) -o %o $(DEFS) $(CFLAGS) $(LIBS) |>
+!compile_c_object = |> $(CC) -c %f $(LDFLAGS) -o %o $(DEFINES) $(CFLAGS) $(LIBS) |>
 
 # compiles one or more .c or .o files into one executable file.
 # takes 1..n inputs, has one output (the program file).
-!compile_c_program = |> $(CC) %f $(LDFLAGS) -o %o $(DEFS) $(CFLAGS) $(LIBS) |>
+!compile_c_program = |> $(CC) %f $(LDFLAGS) -o %o $(DEFINES) $(CFLAGS) $(LIBS) && rm -rf %o.dSYM |>
 
 # compiles one or more .c files into a .o file and a .so file.
 # takes 1..n inputs, has two outputs. first output is the .o, second is the .so.
-!compile_c_shared_library = |> $(CC) -c %f $(LDFLAGS) -o %1o $(DEFS) $(CFLAGS) $(LIBS) -fpic && $(CC) -shared %1o -o %2o |>
+!compile_c_shared_library = |> $(CC) -c %f $(LDFLAGS) -o %1o $(DEFINES) $(CFLAGS) $(LIBS) -fpic && $(CC) %f -shared %1o -o %2o |>

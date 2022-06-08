@@ -1,5 +1,7 @@
 .tup
 .vscode
 
+build
+
 # vscode puts this here and idk why. annoying.
 null.d

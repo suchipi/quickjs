@@ -4,11 +4,11 @@ else
 	VARIANT=linux
 endif
 
-all:
+all: link
 	tup --no-environ-check build-$(VARIANT)
 
-linux:
-	tup --no-environ-check build-linux
+link:
+	ln -sf build-$(VARIANT) build
 
-darwin:
-	tup --no-environ-check build-darwin
+test: link
+	./tests/run_all.sh

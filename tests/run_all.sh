@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-QJS=$(realpath ./build-default/src/qjs/qjs)
+QJS="./build/src/qjs/qjs"
 
 if [ ! -x "${QJS}" ]; then
-  echo "qjs binary not found; run tup? make sure you're running this shell script with PWD set to the repo root."
+  echo "qjs binary not found; run make? make sure you're running this shell script with PWD set to the repo root."
   exit 1
 fi
 

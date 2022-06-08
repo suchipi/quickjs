@@ -1,4 +1,4 @@
-import * as bjson from "../build-default/src/bjson/libbjson.so";
+import * as bjson from "../build/src/bjson/libbjson.so";
 
 function assert(actual, expected, message) {
     if (arguments.length == 1)

@@ -1,6 +1,13 @@
 # https://gittup.org/tup/manual.html
 include_rules
 
-CFLAGS += -DJS_SHARED_LIBRARY=1
+DEFINES += -DJS_SHARED_LIBRARY=1
 
-: bjson.c |> !compile_c_shared_library |> bjson.o libbjson.so
+DEPS = ../cutils/cutils.o
+DEPS += ../libbf/libbf.o
+DEPS += ../libregexp/libregexp.o
+DEPS += ../libunicode/libunicode.o
+DEPS += ../quickjs/quickjs.o
+DEPS += ../quickjs-libc/quickjs-libc.o
+
+: bjson.c $(DEPS) |> !compile_c_shared_library |> bjson.o libbjson.so
