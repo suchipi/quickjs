@@ -1,28 +1,41 @@
 # https://gittup.org/tup/manual.html
 
 # The name of the binary to use for c compilation.
-CC = gcc
-
-# --- Various flags to pass to the c compiler ---
-CFLAGS =
-# Show all warnings.
-CFLAGS += -Wall
-# Required to activate some builtin gnu-specific behavior, like `environ`.
-CFLAGS += -D_GNU_SOURCE
-
-ifeq (@(DEBUG),y)
-  CFLAGS += -DDEBUG
+ifdef CC
+  CC = @(CC)
+else
+  CC = cc
 endif
 
+# --- Various flags to pass to the c compiler ---
+ifdef CFLAGS
+  CFLAGS = @(CFLAGS)
+else
+  CFLAGS =
+endif
+
+# Show all warnings.
+CFLAGS += -Wall
+
 # --- Linker flags ---
-LDFLAGS =
+ifdef LDFLAGS
+  LDFLAGS = @(LDFLAGS)
+else
+  LDFLAGS =
+endif
+
 # Include source debugging info in the binaries
 LDFLAGS += -g
 # Include symbol names in executables
 LDFLAGS += -rdynamic
 
 # --- Libraries to include ---
-LIBS =
+ifdef LIBS
+  LIBS = @(LIBS)
+else
+  LIBS =
+endif
+
 # math functions and constants. <math.h>
 LIBS += -lm
 # dynamic linking. TODO: is this still needed?
@@ -30,38 +43,48 @@ LIBS += -ldl
 # POSIX threads, for multithreading. <pthread.h>
 LIBS += -lpthread
 
-# -- preprocessor defines based on stuff in tup.config --
-CFLAGS += -DCONFIG_VERSION="\"@(VERSION)\""
+# --- Defines for the preprocessor
+ifdef DEFS
+  DEFS = @(DEFS)
+else
+  DEFS =
+endif
+
+ifeq (@(DEBUG),y)
+  DEFS += -DDEBUG
+endif
+
+DEFS += -DCONFIG_VERSION="\"@(VERSION)\""
 
 ifeq (@(BIGNUM),y)
-  CFLAGS += -DCONFIG_BIGNUM
+  DEFS += -DCONFIG_BIGNUM
 endif
 
 ifeq (@(LTO),y)
-  CFLAGS += -DCONFIG_LTO
+  DEFS += -DCONFIG_LTO
   LDFLAGS += -flto
 endif
 
 ifneq (@(PREFIX),)
-  CFLAGS += -DCONFIG_PREFIX="\"@(PREFIX)\""
+  DEFS += -DCONFIG_PREFIX="\"@(PREFIX)\""
 endif
 
 ifeq (@(ALL_UNICODE),y)
-  CFLAGS += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
+  DEFS += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
 endif
 
-# tup macro commands
+# macro commands for use in Tupfiles. you need to put `include_rules` at the top of your Tupfile to get these.
 #
 # Meanings of the %-flags in these macros can be found under "%-flags" in the tup manual: https://gittup.org/tup/manual.html
 
 # compiles one or more .c files into one .o file.
 # takes 1..n inputs, has one output (the .o file).
-!compile_c_object = |> $(CC) -c %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |>
+!compile_c_object = |> $(CC) -c %f $(LDFLAGS) -o %o $(DEFS) $(CFLAGS) $(LIBS) |>
 
 # compiles one or more .c or .o files into one executable file.
 # takes 1..n inputs, has one output (the program file).
-!compile_c_program = |> $(CC) %f $(LDFLAGS) -o %o $(CFLAGS) $(LIBS) |>
+!compile_c_program = |> $(CC) %f $(LDFLAGS) -o %o $(DEFS) $(CFLAGS) $(LIBS) |>
 
 # compiles one or more .c files into a .o file and a .so file.
 # takes 1..n inputs, has two outputs. first output is the .o, second is the .so.
-!compile_c_shared_library = |> $(CC) -c %f $(LDFLAGS) -o %1o $(CFLAGS) $(LIBS) -fpic && $(CC) -shared %1o -o %2o |>
+!compile_c_shared_library = |> $(CC) -c %f $(LDFLAGS) -o %1o $(DEFS) $(CFLAGS) $(LIBS) -fpic && $(CC) -shared %1o -o %2o |>
