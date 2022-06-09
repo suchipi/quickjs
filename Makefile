@@ -1,7 +1,9 @@
-ifeq ($(shell uname -s),Darwin)
-	VARIANT=darwin
-else
-	VARIANT=linux
+ifndef VARIANT
+	ifeq ($(shell uname -s),Darwin)
+		VARIANT=darwin
+	else
+		VARIANT=linux
+	endif
 endif
 
 all: link
