@@ -1,0 +1,10 @@
+{
+  "files": ["./src/quickjs-libc/quickjs-libs.d.ts"],
+  "include": ["./**/*.js"],
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "outDir": "dist",
+    "lib": ["ES2020"]
+  }
+}
