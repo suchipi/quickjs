@@ -670,6 +670,110 @@ declare module "os" {
   /** Execute a process with the arguments args, and the provided options (if any). */
   export function exec(args: Array<string>, options?: ExecOptions): number;
 
-  // bruh the docs on this one are vague as fuck
-  export function waitpid(pid: number, options: unknown): [number, unknown];
+  /**
+   * `waitpid` Unix system call. Returns the array [ret, status]. ret contains -errno in case of error.
+   *
+   * From man waitpid(2):
+   *
+   * waitpid(): on success, returns the process ID of the child whose state has changed; if WNOHANG was specified and one or more child(ren) specified by pid exist, but have not yet changed state, then 0 is returned. On error, -1 is returned.
+   */
+  export function waitpid(pid: number, options?: number): [number, number];
+
+  /** Constant for the `options` argument of `waitpid`. */
+  export var WNOHANG: number;
+
+  /** `dup` Unix system call. */
+  export function dup(fd: number): number;
+
+  /** `dup2` Unix system call. */
+  export function dup2(oldfd: number, newfd: number): number;
+
+  /** `pipe` Unix system call. Return two handles as `[read_fd, write_fd]` or `null` in case of error. */
+  export function pipe(): null | [number, number];
+
+  /** Sleep for `delay_ms` milliseconds. */
+  export function sleep(delay_ms: number): void;
+
+  export type Timer = number & { __is: "Timer" };
+
+  /** Call the function func after delay ms. Return a handle to the timer. */
+  export function setTimeout(func: () => void, delay: number): Timer;
+
+  /** Cancel a timer. */
+  export function clearTimeout(handle: Timer): void;
+
+  /** Return a string representing the platform: "linux", "darwin", "win32" or "js". */
+  export var platform: "linux" | "darwin" | "win32" | "js";
+
+  /**
+   * Things that can be put into Worker.postMessage.
+   *
+   * NOTE: This is effectively the same stuff as supported by the structured
+   * clone algorithm, but without support for Map/Set (not supported in
+   * QuickJS yet).
+   */
+  export type StructuredClonable =
+    | string
+    | number
+    | boolean
+    | null
+    | undefined
+    | Boolean
+    | String
+    | Date
+    | RegExp
+    | ArrayBuffer
+    | Int8Array
+    | Uint8Array
+    | Uint8ClampedArray
+    | Int16Array
+    | Uint16Array
+    | Int32Array
+    | Uint32Array
+    | Float32Array
+    | Float64Array
+    | BigInt64Array
+    | BigUint64Array
+    | DataView
+    | Array<StructuredClonable>
+    | SharedArrayBuffer
+    // Map and Set not yet supported
+    // | Map<StructuredClonable, StructuredClonable>
+    // | Set<StructuredClonable>
+    | { [key: string | number]: StructuredClonable };
+
+  export class Worker {
+    /**
+     * Constructor to create a new thread (worker) with an API close to the
+     * `WebWorkers`. `moduleFilename` is a string specifying the module
+     * filename which is executed in the newly created thread. As for
+     * dynamically imported module, it is relative to the current script or
+     * module path. Threads normally don’t share any data and communicate
+     * between each other with messages. Nested workers are not supported.
+     */
+    constructor(moduleFilename: string);
+
+    /**
+     * In the created worker, Worker.parent represents the parent worker and is
+     * used to send or receive messages.
+     */
+    static parent: Worker;
+
+    /**
+     * Send a message to the corresponding worker. msg is cloned in the
+     * destination worker using an algorithm similar to the HTML structured
+     * clone algorithm. SharedArrayBuffer are shared between workers.
+     *
+     * Current limitations: Map and Set are not supported yet.
+     */
+    postMessage(msg: StructuredClonable): void;
+
+    /**
+     * Set a function which is called each time a message is received. The
+     * function is called with a single argument. It is an object with a data
+     * property containing the received message. The thread is not terminated
+     * if there is at least one non null onmessage handler.
+     */
+    onmessage: null | ((event: { data: StructuredClonable }) => void);
+  }
 }
