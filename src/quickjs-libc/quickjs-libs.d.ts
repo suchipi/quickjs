@@ -411,3 +411,265 @@ declare module "std" {
     putByte(value: number): void;
   }
 }
+
+declare module "os" {
+  /**
+   * Open a file handle. Returns a number; if positive, it's a valid file
+   * handle. If negative, it's an OS-specific error code.
+   *
+   * @param filename - The path to the file to open.
+   * @param flags - Numeric flags that set the mode to use when opening the file. See `os.O_*`
+   * @param mode - Octal access mask for a new file. Defaults to 0o666.
+   */
+  export function open(filename: string, flags: number, mode?: number): number;
+
+  /** POSIX open flag, used in {@link open}. */
+  export var O_RDONLY: number;
+
+  /** POSIX open flag, used in {@link open}. */
+  export var O_WRONLY: number;
+
+  /** POSIX open flag, used in {@link open}. */
+  export var O_RDWR: number;
+
+  /** POSIX open flag, used in {@link open}. */
+  export var O_APPEND: number;
+
+  /** POSIX open flag, used in {@link open}. */
+  export var O_CREAT: number;
+
+  /** POSIX open flag, used in {@link open}. */
+  export var O_EXCL: number;
+
+  /** POSIX open flag, used in {@link open}. */
+  export var O_TRUNC: number;
+
+  /** Windows-specific open flag: open the file in text mode. The default is binary mode. Used in {@link open}. */
+  export var O_TEXT: number;
+
+  /** Close the file handle `fd`. */
+  export function close(fd: number): void;
+
+  interface OsSeek {
+    /** Seek in the file. Use `std.SEEK_*` for `whence`. `offset` is either a number or a bigint. If `offset` is a bigint, a bigint is returned too. */
+    (fd: number, offset: number, whence: number): number;
+
+    /** Seek in the file. Use `std.SEEK_*` for `whence`. `offset` is either a number or a bigint. If `offset` is a bigint, a bigint is returned too. */
+    (fd: number, offset: BigInt, whence: number): BigInt;
+  }
+
+  /** Seek in the file. Use `std.SEEK_*` for `whence`. `offset` is either a number or a bigint. If `offset` is a bigint, a bigint is returned too. */
+  export var seek: OsSeek;
+
+  /** Read `length` bytes from the file handle `fd` to the ArrayBuffer `buffer` at byte position `offset`. Return the number of read bytes or < 0 if error. */
+  export function read(
+    fd: number,
+    buffer: ArrayBuffer,
+    offset: number,
+    length: number
+  ): number;
+
+  /** Write `length` bytes to the file handle `fd` from the ArrayBuffer `buffer` at byte position `offset`. Return the number of written bytes or < 0 if error. */
+  export function write(
+    fd: number,
+    buffer: ArrayBuffer,
+    offset: number,
+    length: number
+  ): number;
+
+  /** Return `true` if `fd` is a TTY (terminal) handle. */
+  export function isatty(fd: number): boolean;
+
+  /** Return the TTY size as `[width, height]` or `null` if not available. */
+  export function ttyGetWinSize(fd: number): null | [number, number];
+
+  /** Set the TTY in raw mode. */
+  export function ttySetRaw(fd: number): void;
+
+  /** Remove a file. Return 0 if OK or -errno. */
+  export function remove(filename: string): number;
+
+  /** Rename a file. Return 0 if OK or -errno. */
+  export function rename(oldname: string, newname: string): number;
+
+  /** Return `[str, err]` where `str` is the canonicalized absolute pathname of `path` and `err` the error code. */
+  export function realpath(path: string): [string, number];
+
+  /** Return `[str, err]` where `str` is the current working directory and `err` the error code. */
+  export function getcwd(): [string, number];
+
+  /** Change the current directory. Return 0 if OK or `-errno`. */
+  export function chdir(path: string): number;
+
+  /** Create a directory at `path`. Return 0 if OK or `-errno`. */
+  export function mkdir(path: string, mode?: number): number;
+
+  export type Stats = {
+    dev: number;
+    ino: number;
+    mode: number;
+    nlink: number;
+    uid: number;
+    gid: number;
+    rdev: number;
+    size: number;
+    blocks: number;
+    atime: number;
+    mtime: number;
+    ctime: number;
+  };
+
+  /**
+   * Return `[obj, err]` where `obj` is an object containing the file status of `path`. `err` is the error code.
+   *
+   * The following fields are defined in obj:
+   *
+   * - `dev`
+   * - `ino`
+   * - `mode`
+   * - `nlink`
+   * - `uid`
+   * - `gid`
+   * - `rdev`
+   * - `size`
+   * - `blocks`
+   * - `atime`
+   * - `mtime`
+   * - `ctime`
+   *
+   * The times are specified in milliseconds since 1970. `lstat()` is the same as `stat()` except that it returns information about the link itself.
+   */
+  export function stat(path: string): [Stats, number];
+
+  /**
+   * Return `[obj, err]` where `obj` is an object containing the file status of `path`. `err` is the error code.
+   *
+   * The following fields are defined in obj:
+   *
+   * - `dev`
+   * - `ino`
+   * - `mode`
+   * - `nlink`
+   * - `uid`
+   * - `gid`
+   * - `rdev`
+   * - `size`
+   * - `blocks`
+   * - `atime`
+   * - `mtime`
+   * - `ctime`
+   *
+   * The times are specified in milliseconds since 1970. `lstat()` is the same as `stat()` except that it returns information about the link itself.
+   */
+  export function lstat(path: string): [Stats, number];
+
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_IFMT: number;
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_IFIFO: number;
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_IFCHR: number;
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_IFDIR: number;
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_IFBLK: number;
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_IFREG: number;
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_IFSOCK: number;
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_IFLNK: number;
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_ISGID: number;
+  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  export var S_ISUID: number;
+
+  /**
+   * Change the access and modification times of the file path.
+   *
+   * The times are specified in milliseconds since 1970.
+   *
+   * Return 0 if OK or `-errno`.
+   */
+  export function utimes(path: string, atime: number, mtime: number): number;
+
+  /** Create a link at `linkpath` containing the string `target`. Return 0 if OK or `-errno`. */
+  export function symlink(target: string, linkpath: string): number;
+
+  /** Return `[str, err]` where `str` is the link target and `err` the error code. */
+  export function readlink(path: string): [string, number];
+
+  /** Return `[array, err]` where `array` is an array of strings containing the filenames of the directory `path`. `err` is the error code. */
+  export function readdir(path: string): [Array<string>, number];
+
+  /** Add a read handler to the file handle `fd`. `func` is called each time there is data pending for `fd`. A single read handler per file handle is supported. Use `func = null` to remove the handler. */
+  export function setReadHandler(fd: number, func: null | (() => void)): void;
+
+  /** Add a write handler to the file handle `fd`. `func` is called each time data can be written to `fd`. A single write handler per file handle is supported. Use `func = null` to remove the handler. */
+  export function setWriteHandler(fd: number, func: null | (() => void)): void;
+
+  /** Call the function `func` when the signal `signal` happens. Only a single handler per signal number is supported. Use `null` to set the default handler or `undefined` to ignore the signal. Signal handlers can only be defined in the main thread. */
+  export function signal(
+    signal: number,
+    func: null | undefined | (() => void)
+  ): void;
+
+  /** POSIX signal number. */
+  export var SIGINT: number;
+
+  /** POSIX signal number. */
+  export var SIGABRT: number;
+
+  /** POSIX signal number. */
+  export var SIGFPE: number;
+
+  /** POSIX signal number. */
+  export var SIGILL: number;
+
+  /** POSIX signal number. */
+  export var SIGSEGV: number;
+
+  /** POSIX signal number. */
+  export var SIGTERM: number;
+
+  /** Send the signal `sig` to the process `pid`. Use `os.SIG*` constants. */
+  export function kill(pid: number, sig: number): void;
+
+  export type ExecOptions = {
+    /** Boolean (default = true). If true, wait until the process is terminated. In this case, `exec` returns the exit code if positive or the negated signal number if the process was interrupted by a signal. If false, do not block and return the process id of the child. */
+    block?: boolean;
+
+    /** Boolean (default = true). If true, the file is searched in the `PATH` environment variable. */
+    usePath?: boolean;
+
+    /** String (default = `args[0]`). Set the file to be executed. */
+    file?: string;
+
+    /** String. If present, set the working directory of the new process. */
+    cwd?: string;
+
+    /** If present, set the handle in the child for stdin. */
+    stdin?: number;
+
+    /** If present, set the handle in the child for stdout. */
+    stdout?: number;
+
+    /** If present, set the handle in the child for stderr. */
+    stderr?: number;
+
+    /** Object. If present, set the process environment from the object key-value pairs. Otherwise use the same environment as the current process. To get the current process's environment variables as on object, use `std.getenviron()`. */
+    env?: { [key: string | number]: string | number | boolean };
+
+    /** Integer. If present, the process uid with `setuid`. */
+    uid?: number;
+
+    /** Integer. If present, the process gid with `setgid`. */
+    gid?: number;
+  };
+
+  /** Execute a process with the arguments args, and the provided options (if any). */
+  export function exec(args: Array<string>, options?: ExecOptions): number;
+
+  // bruh the docs on this one are vague as fuck
+  export function waitpid(pid: number, options: unknown): [number, unknown];
+}
