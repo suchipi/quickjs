@@ -34,12 +34,12 @@ declare module "std" {
    *
    * @param code - The code to evaluate.
    * @param options - An optional object containing the following optional properties:
-   * @property backtrace_barrier - Boolean (default = false). If true, error backtraces do not list the stack frames below the evalScript.
+   * @property backtraceBarrier - Boolean (default = false). If true, error backtraces do not list the stack frames below the evalScript.
    * @returns The result of the evaluation.
    */
   export function evalScript(
     code: string,
-    options?: { backtrace_barrier?: boolean }
+    options?: { backtraceBarrier?: boolean }
   ): any;
 
   /**
@@ -57,10 +57,13 @@ declare module "std" {
    * @param basename - If present and `filename` is a relative path, `filename` will be resolved relative to this basename.
    * @returns The result of the evaluation (module namespace object).
    */
-  export function importModule(filename: string, basename?: string): any;
+  export function importModule(
+    filename: string,
+    basename?: string
+  ): { [key: string]: any };
 
   /**
-   * Load the file `filename` and return it as a string assuming UTF-8 encoding. Return `null` in case of I/O error.
+   * Load the file `filename` and return it as a string assuming UTF-8 encoding.
    *
    * @param filename - The relative or absolute path to the file to load. Relative paths are resolved relative to the process's current working directory.
    */

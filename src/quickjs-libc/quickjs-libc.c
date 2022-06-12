@@ -465,9 +465,12 @@ static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
     if (!filename)
         return JS_EXCEPTION;
     buf = js_load_file(ctx, &buf_len, filename);
+    if (!buf) {
+        JS_ThrowError(ctx, "%s: '%s'", strerror(errno), filename);
+        JS_FreeCString(ctx, filename);
+        return JS_EXCEPTION;
+    }
     JS_FreeCString(ctx, filename);
-    if (!buf)
-        return JS_NULL;
     ret = JS_NewStringLen(ctx, (char *)buf, buf_len);
     js_free(ctx, buf);
     return ret;
@@ -780,7 +783,7 @@ static JSValue js_evalScript(JSContext *ctx, JSValueConst this_val,
     if (argc >= 2) {
         options_obj = argv[1];
         if (get_bool_option(ctx, &backtrace_barrier, options_obj,
-                            "backtrace_barrier"))
+                            "backtraceBarrier"))
             return JS_EXCEPTION;
     }
 

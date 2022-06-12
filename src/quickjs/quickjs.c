@@ -6571,14 +6571,14 @@ JSValue JS_NewError(JSContext *ctx)
     return JS_NewObjectClass(ctx, JS_CLASS_ERROR);
 }
 
-static JSValue JS_ThrowError2(JSContext *ctx, JSErrorEnum error_num,
+static JSValue JS_ThrowErrorWithProto2(JSContext *ctx, JSValue error_proto,
                               const char *fmt, va_list ap, BOOL add_backtrace)
 {
     char buf[256];
     JSValue obj, ret;
 
     vsnprintf(buf, sizeof(buf), fmt, ap);
-    obj = JS_NewObjectProtoClass(ctx, ctx->native_error_proto[error_num],
+    obj = JS_NewObjectProtoClass(ctx, error_proto,
                                  JS_CLASS_ERROR);
     if (unlikely(JS_IsException(obj))) {
         /* out of memory: throw JS_NULL to avoid recursing */
@@ -6595,7 +6595,7 @@ static JSValue JS_ThrowError2(JSContext *ctx, JSErrorEnum error_num,
     return ret;
 }
 
-static JSValue JS_ThrowError(JSContext *ctx, JSErrorEnum error_num,
+static JSValue JS_ThrowErrorWithProto(JSContext *ctx, JSValue error_proto,
                              const char *fmt, va_list ap)
 {
     JSRuntime *rt = ctx->rt;
@@ -6606,7 +6606,38 @@ static JSValue JS_ThrowError(JSContext *ctx, JSErrorEnum error_num,
     sf = rt->current_stack_frame;
     add_backtrace = !rt->in_out_of_memory &&
         (!sf || (JS_GetFunctionBytecode(sf->cur_func) == NULL));
-    return JS_ThrowError2(ctx, error_num, fmt, ap, add_backtrace);
+    return JS_ThrowErrorWithProto2(ctx, error_proto, fmt, ap, add_backtrace);
+}
+
+static JSValue JS_ThrowErrorWithEnum2(JSContext *ctx, JSErrorEnum error_num,
+                              const char *fmt, va_list ap, BOOL add_backtrace)
+{
+    JSValue proto;
+
+    proto = ctx->native_error_proto[error_num];
+
+    return JS_ThrowErrorWithProto2(ctx, proto, fmt, ap, add_backtrace);
+}
+
+static JSValue JS_ThrowErrorWithEnum(JSContext *ctx, JSErrorEnum error_num,
+                             const char *fmt, va_list ap)
+{
+    JSValue proto;
+    
+    proto = ctx->native_error_proto[error_num];
+
+    return JS_ThrowErrorWithProto(ctx, proto, fmt, ap);
+}
+
+JSValue __attribute__((format(printf, 2, 3))) JS_ThrowError(JSContext *ctx, const char *fmt, ...)
+{
+    JSValue val;
+    va_list ap;
+
+    va_start(ap, fmt);
+    val = JS_ThrowErrorWithProto(ctx, ctx->class_proto[JS_CLASS_ERROR], fmt, ap);
+    va_end(ap);
+    return val;
 }
 
 JSValue __attribute__((format(printf, 2, 3))) JS_ThrowSyntaxError(JSContext *ctx, const char *fmt, ...)
@@ -6615,7 +6646,7 @@ JSValue __attribute__((format(printf, 2, 3))) JS_ThrowSyntaxError(JSContext *ctx
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowError(ctx, JS_SYNTAX_ERROR, fmt, ap);
+    val = JS_ThrowErrorWithEnum(ctx, JS_SYNTAX_ERROR, fmt, ap);
     va_end(ap);
     return val;
 }
@@ -6626,7 +6657,7 @@ JSValue __attribute__((format(printf, 2, 3))) JS_ThrowTypeError(JSContext *ctx, 
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowError(ctx, JS_TYPE_ERROR, fmt, ap);
+    val = JS_ThrowErrorWithEnum(ctx, JS_TYPE_ERROR, fmt, ap);
     va_end(ap);
     return val;
 }
@@ -6638,7 +6669,7 @@ static int __attribute__((format(printf, 3, 4))) JS_ThrowTypeErrorOrFalse(JSCont
     if ((flags & JS_PROP_THROW) ||
         ((flags & JS_PROP_THROW_STRICT) && is_strict_mode(ctx))) {
         va_start(ap, fmt);
-        JS_ThrowError(ctx, JS_TYPE_ERROR, fmt, ap);
+        JS_ThrowErrorWithEnum(ctx, JS_TYPE_ERROR, fmt, ap);
         va_end(ap);
         return -1;
     } else {
@@ -6684,7 +6715,7 @@ JSValue __attribute__((format(printf, 2, 3))) JS_ThrowReferenceError(JSContext *
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowError(ctx, JS_REFERENCE_ERROR, fmt, ap);
+    val = JS_ThrowErrorWithEnum(ctx, JS_REFERENCE_ERROR, fmt, ap);
     va_end(ap);
     return val;
 }
@@ -6695,7 +6726,7 @@ JSValue __attribute__((format(printf, 2, 3))) JS_ThrowRangeError(JSContext *ctx,
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowError(ctx, JS_RANGE_ERROR, fmt, ap);
+    val = JS_ThrowErrorWithEnum(ctx, JS_RANGE_ERROR, fmt, ap);
     va_end(ap);
     return val;
 }
@@ -6706,7 +6737,7 @@ JSValue __attribute__((format(printf, 2, 3))) JS_ThrowInternalError(JSContext *c
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowError(ctx, JS_INTERNAL_ERROR, fmt, ap);
+    val = JS_ThrowErrorWithEnum(ctx, JS_INTERNAL_ERROR, fmt, ap);
     va_end(ap);
     return val;
 }
@@ -20283,7 +20314,7 @@ int __attribute__((format(printf, 2, 3))) js_parse_error(JSParseState *s, const 
     int backtrace_flags;
     
     va_start(ap, fmt);
-    JS_ThrowError2(ctx, JS_SYNTAX_ERROR, fmt, ap, FALSE);
+    JS_ThrowErrorWithEnum2(ctx, JS_SYNTAX_ERROR, fmt, ap, FALSE);
     va_end(ap);
     backtrace_flags = 0;
     if (s->cur_func && s->cur_func->backtrace_barrier)
@@ -47697,7 +47728,7 @@ static int __attribute__((format(printf, 2, 3))) js_throw_URIError(JSContext *ct
     va_list ap;
 
     va_start(ap, fmt);
-    JS_ThrowError(ctx, JS_URI_ERROR, fmt, ap);
+    JS_ThrowErrorWithEnum(ctx, JS_URI_ERROR, fmt, ap);
     va_end(ap);
     return -1;
 }
