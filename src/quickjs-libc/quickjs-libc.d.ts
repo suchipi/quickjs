@@ -81,51 +81,31 @@ declare module "std" {
 
   /**
    * Open a process by creating a pipe (wrapper to the libc `popen()`).
-   * Return the FILE object or `null` in case of I/O error.
-   *
-   * If `errorObj` is not undefined, set its errno property to the error code
-   * or to 0 if no error occured.
+   * Return the FILE object.
    *
    * @param command - The command line to execute. Gets passed via `/bin/sh -c`.
    * @param flags - A string containing any combination of the characters 'r', 'w', 'a', '+', and/or 'b'.
-   * @param errorObj - If present, the `errno` property on this object will be set to the error code, or to 0 if no error occured.
-   * @returns The opened FILE object or `null` in the case of I/O error.
+   * @returns The opened FILE object.
    */
-  export function popen(
-    command: string,
-    flags: string,
-    errorObj?: { errno: number }
-  ): FILE | null;
+  export function popen(command: string, flags: string): FILE;
 
   /**
    * Open a file from a file handle (wrapper to the libc `fdopen()`).
-   * Return the FILE object or `null` in case of I/O error.
-   *
-   * If `errorObj` is not undefined, set its errno property to the error code
-   * or to 0 if no error occured.
+   * Return the FILE object.
    *
    * @param fd - The file handle to open.
    * @param flags - A string containing any combination of the characters 'r', 'w', 'a', '+', and/or 'b'.
-   * @param errorObj - If present, the `errno` property on this object will be set to the error code, or to 0 if no error occured.
-   * @returns The opened FILE object or `null` in the case of I/O error.
+   * @returns The opened FILE object.
    */
-  export function fdopen(
-    fd: number,
-    flags: string,
-    errorObj?: { errno: number }
-  ): FILE | null;
+  export function fdopen(fd: number, flags: string): FILE;
 
   /**
    * Open a temporary file.
-   * Return the FILE object or `null` in case of I/O error.
+   * Return the FILE object.
    *
-   * If `errorObj` is not undefined, set its errno property to the error code
-   * or to 0 if no error occured.
-   *
-   * @param errorObj - If present, the `errno` property on this object will be set to the error code, or to 0 if no error occured.
-   * @returns The opened FILE object or `null` in the case of I/O error.
+   * @returns The opened FILE object.
    */
-  export function tmpfile(errorObj?: { errno: number }): FILE | null;
+  export function tmpfile(): FILE;
 
   /** Equivalent to `std.out.puts(str)`. */
   export function puts(str: string): void;

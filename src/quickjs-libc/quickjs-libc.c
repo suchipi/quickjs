@@ -885,13 +885,6 @@ static JSValue js_new_std_file(JSContext *ctx, FILE *f,
     return obj;
 }
 
-static void js_set_error_object(JSContext *ctx, JSValue obj, int err)
-{
-    if (!JS_IsUndefined(obj)) {
-        JS_SetPropertyStr(ctx, obj, "errno", JS_NewInt32(ctx, err));
-    }
-}
-
 static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
@@ -930,8 +923,11 @@ static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
 {
     const char *filename, *mode = NULL;
     FILE *f;
-    int err;
     
+    if (argc != 2) {
+        return JS_ThrowTypeError(ctx, "popen must be called with two arguments: 'filename' and 'flags'. Instead, it was called with %d argument(s).", argc);
+    }
+
     filename = JS_ToCString(ctx, argv[0]);
     if (!filename)
         goto fail;
@@ -944,16 +940,14 @@ static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
     }
 
     f = popen(filename, mode);
-    if (!f)
-        err = errno;
-    else
-        err = 0;
-    if (argc >= 3)
-        js_set_error_object(ctx, argv[2], err);
+    if (!f) {
+        JS_ThrowError(ctx, "%s: '%s'", strerror(errno), filename);
+        goto fail;
+    }
+
     JS_FreeCString(ctx, filename);
     JS_FreeCString(ctx, mode);
-    if (!f)
-        return JS_NULL;
+
     return js_new_std_file(ctx, f, TRUE, TRUE);
  fail:
     JS_FreeCString(ctx, filename);
@@ -966,7 +960,11 @@ static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
 {
     const char *mode;
     FILE *f;
-    int fd, err;
+    int fd;
+
+    if (argc != 2) {
+        return JS_ThrowTypeError(ctx, "fdopen must be called with two arguments: 'fd' and 'flags'. Instead, it was called with %d argument(s).", argc);
+    }
 
     if (JS_ToInt32(ctx, &fd, argv[0]))
         return JS_EXCEPTION;
@@ -979,15 +977,12 @@ static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
     }
 
     f = fdopen(fd, mode);
-    if (!f)
-        err = errno;
-    else
-        err = 0;
-    if (argc >= 3)
-        js_set_error_object(ctx, argv[2], err);
+    if (!f) {
+        JS_ThrowError(ctx, "%s", strerror(errno));
+        goto fail;
+    }
+    
     JS_FreeCString(ctx, mode);
-    if (!f)
-        return JS_NULL;
     return js_new_std_file(ctx, f, TRUE, FALSE);
  fail:
     JS_FreeCString(ctx, mode);
@@ -999,10 +994,10 @@ static JSValue js_std_tmpfile(JSContext *ctx, JSValueConst this_val,
 {
     FILE *f;
     f = tmpfile();
-    if (argc >= 1)
-        js_set_error_object(ctx, argv[0], f ? 0 : errno);
-    if (!f)
-        return JS_NULL;
+    if (!f) {
+        return JS_ThrowError(ctx, "%s", strerror(errno));
+    }
+    
     return js_new_std_file(ctx, f, TRUE, FALSE);
 }
 
