@@ -70,6 +70,7 @@ typedef sig_t sighandler_t;
 #include "../cutils/cutils.h"
 #include "../list/list.h"
 #include "./quickjs-libc.h"
+#include "../debugprint/debugprint.h"
 
 /* TODO:
    - add socket calls
@@ -1293,29 +1294,34 @@ static JSValue js_std_file_putByte(JSContext *ctx, JSValueConst this_val,
 
 /* urlGet */
 
-#define URL_GET_PROGRAM "curl -s -i"
+#define URL_GET_PROGRAM "curl -s -i -L"
 #define URL_GET_BUF_SIZE 4096
 
 static int http_get_header_line(FILE *f, char *buf, size_t buf_size,
                                 DynBuf *dbuf)
 {
-    int c;
+    int c, read = 0;
     char *p;
     
     p = buf;
     for(;;) {
         c = fgetc(f);
         if (c < 0)
-            return -1;
-        if ((p - buf) < buf_size - 1)
+            return 0 - errno;
+        read++;
+        if ((p - buf) < buf_size - 1) {
             *p++ = c;
+        } else {
+            errno = EOVERFLOW;
+            return 0 - errno;
+        }
         if (dbuf)
             dbuf_putc(dbuf, c);
         if (c == '\n')
             break;
     }
     *p = '\0';
-    return 0;
+    return read;
 }
 
 static int http_get_status(const char *buf)
@@ -1339,7 +1345,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
     DynBuf header_buf_s, *header_buf = &header_buf_s;
     char *buf; 
     size_t i, len;
-    int c, status;
+    int c, status = 0, get_header_line_result, is_redirect;
     JSValue response = JS_UNDEFINED, ret_obj;
     JSValueConst options_obj;
     FILE *f;
@@ -1381,11 +1387,16 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
         dbuf_free(&cmd_buf);
         return JS_EXCEPTION;
     }
-    //    printf("%s\n", (char *)cmd_buf.buf);
+    
+    debugprint("Running curl: %s\n", (char *)cmd_buf.buf);
+
     f = popen((char *)cmd_buf.buf, "r");
-    dbuf_free(&cmd_buf);
     if (!f) {
-        return JS_ThrowTypeError(ctx, "could not start curl");
+        JS_ThrowTypeError(ctx, "could not start curl: %s", strerror(errno));
+        dbuf_free(&cmd_buf);
+        return JS_EXCEPTION;
+    } else {
+        dbuf_free(&cmd_buf);
     }
 
     js_std_dbuf_init(ctx, data_buf);
@@ -1395,37 +1406,54 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
     if (!buf)
         goto fail;
 
+read_headers:
     /* get the HTTP status */
-    if (http_get_header_line(f, buf, URL_GET_BUF_SIZE, NULL) < 0) {
-        status = 0;
-        goto bad_header;
+    get_header_line_result = http_get_header_line(f, buf, URL_GET_BUF_SIZE, NULL);
+    if (get_header_line_result < 0) {
+        JS_ThrowTypeError(ctx, "failed to read output from curl: %s", strerror(-get_header_line_result));
+        goto fail;
     }
     status = http_get_status(buf);
-    if (!full_flag && !(status >= 200 && status <= 299)) {
-        goto bad_header;
-    }
+
+    is_redirect = 300 <= status && status <= 399;
     
     /* wait until there is an empty line */
     for(;;) {
-        if (http_get_header_line(f, buf, URL_GET_BUF_SIZE, header_buf) < 0) {
-        bad_header:
-            response = JS_NULL;
-            goto done;
+        get_header_line_result = http_get_header_line(f, buf, URL_GET_BUF_SIZE, is_redirect ? header_buf : NULL);
+        if (get_header_line_result < 0) {
+            JS_ThrowTypeError(ctx, "failed to read output from curl: %s", strerror(-get_header_line_result));
+            goto fail;
         }
         if (!strcmp(buf, "\r\n"))
             break;
     }
+
     if (dbuf_error(header_buf))
         goto fail;
-    header_buf->size -= 2; /* remove the trailing CRLF */
+
+    if (header_buf->size >= 2) {
+        header_buf->size -= 2; /* remove the trailing CRLF */
+    }
+
+    // if 3xx response code
+    if (is_redirect) {
+        debugprint("following redirect (%d)\n", status);
+        goto read_headers;
+    }
 
     /* download the data */
     for(;;) {
+        errno = 0;
         len = fread(buf, 1, URL_GET_BUF_SIZE, f);
+        if (errno != 0) {
+            JS_ThrowTypeError(ctx, "failed to read output from curl: %s", strerror(-errno));
+            goto fail;
+        }
         if (len == 0)
             break;
         dbuf_put(data_buf, (uint8_t *)buf, len);
     }
+
     if (dbuf_error(data_buf))
         goto fail;
     if (binary_flag) {
@@ -1436,7 +1464,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
     }
     if (JS_IsException(response))
         goto fail;
- done:
+ 
     js_free(ctx, buf);
     buf = NULL;
     pclose(f);
@@ -1448,20 +1476,25 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
         ret_obj = JS_NewObject(ctx);
         if (JS_IsException(ret_obj))
             goto fail;
+
         JS_DefinePropertyValueStr(ctx, ret_obj, "response",
                                   response,
                                   JS_PROP_C_W_E);
-        if (!JS_IsNull(response)) {
-            JS_DefinePropertyValueStr(ctx, ret_obj, "responseHeaders",
+
+        JS_DefinePropertyValueStr(ctx, ret_obj, "responseHeaders",
                                       JS_NewStringLen(ctx, (char *)header_buf->buf,
                                                       header_buf->size),
                                       JS_PROP_C_W_E);
-            JS_DefinePropertyValueStr(ctx, ret_obj, "status",
-                                      JS_NewInt32(ctx, status),
-                                      JS_PROP_C_W_E);
-        }
+
+        JS_DefinePropertyValueStr(ctx, ret_obj, "status",
+                                    JS_NewInt32(ctx, status),
+                                    JS_PROP_C_W_E);
     } else {
-        ret_obj = response;
+        if (!(status >= 200 && status <= 299)) {
+            ret_obj = JS_ThrowError(ctx, "HTTP response status code was %d. Url was: '%s'. To allow non-2xx status codes, pass the 'full' option to urlGet.", status, url);
+        } else {
+            ret_obj = response;
+        }
     }
     dbuf_free(header_buf);
     return ret_obj;
