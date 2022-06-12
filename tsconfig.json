@@ -1,5 +1,5 @@
 {
-  "files": ["./src/quickjs-libc/quickjs-libs.d.ts"],
+  "files": ["./src/quickjs-libc/quickjs-libc.d.ts"],
   "include": ["./**/*.js"],
   "compilerOptions": {
     "allowJs": true,
