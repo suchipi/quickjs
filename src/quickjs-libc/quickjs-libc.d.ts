@@ -71,21 +71,13 @@ declare module "std" {
 
   /**
    * Open a file (wrapper to the libc `fopen()`).
-   * Return the FILE object or `null` in case of I/O error.
-   *
-   * If `errorObj` is not undefined, set its errno property to the error code
-   * or to 0 if no error occured.
+   * Return the FILE object.
    *
    * @param filename - The relative or absolute path to the file to open. Relative paths are resolved relative to the process's current working directory.
    * @param flags - A string containing any combination of the characters 'r', 'w', 'a', '+', and/or 'b'.
-   * @param errorObj - If present, the `errno` property on this object will be set to the error code, or to 0 if no error occured.
-   * @returns The opened FILE object or `null` in the case of I/O error.
+   * @returns The opened FILE object.
    */
-  export function open(
-    filename: string,
-    flags: string,
-    errorObj?: { errno: number }
-  ): FILE | null;
+  export function open(filename: string, flags: string): FILE;
 
   /**
    * Open a process by creating a pipe (wrapper to the libc `popen()`).

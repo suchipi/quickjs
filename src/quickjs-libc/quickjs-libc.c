@@ -897,8 +897,11 @@ static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
 {
     const char *filename, *mode = NULL;
     FILE *f;
-    int err;
     
+    if (argc != 2) {
+        return JS_ThrowTypeError(ctx, "open must be called with two arguments: 'filename' and 'flags'. Instead, it was called with %d argument(s).", argc);
+    }
+
     filename = JS_ToCString(ctx, argv[0]);
     if (!filename)
         goto fail;
@@ -906,21 +909,15 @@ static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
     if (!mode)
         goto fail;
     if (mode[strspn(mode, "rwa+b")] != '\0') {
-        JS_ThrowTypeError(ctx, "invalid file mode");
+        JS_ThrowTypeError(ctx, "invalid file mode: %s", mode);
         goto fail;
     }
 
     f = fopen(filename, mode);
-    if (!f)
-        err = errno;
-    else
-        err = 0;
-    if (argc >= 3)
-        js_set_error_object(ctx, argv[2], err);
-    JS_FreeCString(ctx, filename);
-    JS_FreeCString(ctx, mode);
-    if (!f)
-        return JS_NULL;
+    if (!f) {
+        JS_ThrowError(ctx, "%s: '%s'", strerror(errno), filename);
+        goto fail;
+    }
     return js_new_std_file(ctx, f, TRUE, FALSE);
  fail:
     JS_FreeCString(ctx, filename);
