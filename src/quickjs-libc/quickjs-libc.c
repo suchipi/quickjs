@@ -432,16 +432,24 @@ static JSValue js_loadScript(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_importModule(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
-    JSValueConst specifier;
+    if (argc == 1) {
+        return JS_DynamicImportSync(ctx, argv[0]);
+    } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
+        return JS_DynamicImportSync2(ctx, argv[0], argv[1]);
+    } else {
+        return JS_ThrowTypeError(ctx, "importModule must be called with one or two arguments");
+    }
+}
 
+/* load and evaluate a file as a module */
+static JSValue js_require(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
     if (argc != 1) {
-        JS_ThrowTypeError(ctx, "importModule must be called with exactly one argument");
-        return JS_EXCEPTION;
+        return JS_ThrowTypeError(ctx, "require must be called with exactly one argument");
     }
 
-    specifier = argv[0];
-
-    return JS_DynamicImportSync(ctx, specifier);
+    return JS_DynamicImportSync(ctx, argv[0]);
 }
 
 /* load a file as a UTF-8 encoded string */
@@ -3772,12 +3780,14 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
         }
         JS_SetPropertyStr(ctx, global_obj, "scriptArgs", args);
     }
-    
+
     JS_SetPropertyStr(ctx, global_obj, "print",
                       JS_NewCFunction(ctx, js_print, "print", 1));
     JS_SetPropertyStr(ctx, global_obj, "__loadScript",
                       JS_NewCFunction(ctx, js_loadScript, "__loadScript", 1));
-    
+    JS_SetPropertyStr(ctx, global_obj, "require",
+                      JS_NewCFunction(ctx, js_require, "require", 1));
+
     JS_FreeValue(ctx, global_obj);
 }
 

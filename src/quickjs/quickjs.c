@@ -1194,6 +1194,7 @@ static void js_mark_module_def(JSRuntime *rt, JSModuleDef *m,
 static JSValue js_import_meta(JSContext *ctx);
 JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier);
 JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier);
+JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename);
 static JSValue js_dynamic_import_run(JSContext *ctx, JSValueConst basename_val, JSValueConst specifier);
 static JSValue js_dynamic_import_async_job(JSContext *ctx,
                                      int argc, JSValueConst *argv);
@@ -28300,6 +28301,18 @@ JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier)
         return basename_val;
 
     ns = js_dynamic_import_run(ctx, basename_val, specifier);
+    if (JS_IsException(ns)) {
+        return JS_EXCEPTION;
+    }
+
+    return ns;
+}
+
+JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename)
+{
+    JSValue ns;
+
+    ns = js_dynamic_import_run(ctx, basename, specifier);
     if (JS_IsException(ns)) {
         return JS_EXCEPTION;
     }

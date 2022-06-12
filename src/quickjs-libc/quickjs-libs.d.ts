@@ -53,10 +53,11 @@ declare module "std" {
   /**
    * Evaluate the file `filename` as a module. Effectively a synchronous dynamic `import()`.
    *
-   * @param filename - The relative or absolute path to the file to import. Relative paths are resolved relative to the file calling `importModule`.
+   * @param filename - The relative or absolute path to the file to import. Relative paths are resolved relative to the file calling `importModule`, or `basename` if present.
+   * @param basename - If present and `filename` is a relative path, `filename` will be resolved relative to this basename.
    * @returns The result of the evaluation (module namespace object).
    */
-  export function importModule(filename: string): any;
+  export function importModule(filename: string, basename?: string): any;
 
   /**
    * Load the file `filename` and return it as a string assuming UTF-8 encoding. Return `null` in case of I/O error.
