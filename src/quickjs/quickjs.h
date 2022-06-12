@@ -1039,6 +1039,10 @@ int JS_SetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name,
 int JS_SetModuleExportList(JSContext *ctx, JSModuleDef *m,
                            const JSCFunctionListEntry *tab, int len);
 
+/* module-related addons */
+JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier);
+JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier);
+
 #undef js_unlikely
 #undef js_force_inline
 

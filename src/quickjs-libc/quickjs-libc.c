@@ -403,7 +403,7 @@ uint8_t *js_load_file(JSContext *ctx, size_t *pbuf_len, const char *filename)
     return buf;
 }
 
-/* load and evaluate a file */
+/* load and evaluate a file as a script */
 static JSValue js_loadScript(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
@@ -426,6 +426,22 @@ static JSValue js_loadScript(JSContext *ctx, JSValueConst this_val,
     js_free(ctx, buf);
     JS_FreeCString(ctx, filename);
     return ret;
+}
+
+/* load and evaluate a file as a module */
+static JSValue js_std_importModule(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    JSValueConst specifier;
+
+    if (argc != 1) {
+        JS_ThrowTypeError(ctx, "importModule must be called with exactly one argument");
+        return JS_EXCEPTION;
+    }
+
+    specifier = argv[0];
+
+    return JS_DynamicImportSync(ctx, specifier);
 }
 
 /* load a file as a UTF-8 encoded string */
@@ -1485,6 +1501,7 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("gc", 0, js_std_gc ),
     JS_CFUNC_DEF("evalScript", 1, js_evalScript ),
     JS_CFUNC_DEF("loadScript", 1, js_loadScript ),
+    JS_CFUNC_DEF("importModule", 1, js_std_importModule ),
     JS_CFUNC_DEF("getenv", 1, js_std_getenv ),
     JS_CFUNC_DEF("setenv", 1, js_std_setenv ),
     JS_CFUNC_DEF("unsetenv", 1, js_std_unsetenv ),

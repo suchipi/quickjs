@@ -51,6 +51,14 @@ declare module "std" {
   export function loadScript(filename: string): any;
 
   /**
+   * Evaluate the file `filename` as a module. Effectively a synchronous dynamic `import()`.
+   *
+   * @param filename - The relative or absolute path to the file to import. Relative paths are resolved relative to the file calling `importModule`.
+   * @returns The result of the evaluation (module namespace object).
+   */
+  export function importModule(filename: string): any;
+
+  /**
    * Load the file `filename` and return it as a string assuming UTF-8 encoding. Return `null` in case of I/O error.
    *
    * @param filename - The relative or absolute path to the file to load. Relative paths are resolved relative to the process's current working directory.
