@@ -1056,17 +1056,21 @@ static JSValue js_std_file_close(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
     JSSTDFile *s = JS_GetOpaque2(ctx, this_val, js_std_file_class_id);
-    int err;
     if (!s)
         return JS_EXCEPTION;
     if (!s->f)
         return JS_ThrowTypeError(ctx, "invalid file handle");
-    if (s->is_popen)
-        err = js_get_errno(pclose(s->f));
-    else
-        err = js_get_errno(fclose(s->f));
+    if (s->is_popen) {
+        if (pclose(s->f) < 0) {
+            return JS_ThrowTypeError(ctx, "failed to close file: %s", strerror(errno));
+        }
+    } else {
+        if (fclose(s->f) < 0) {
+            return JS_ThrowTypeError(ctx, "failed to close file: %s", strerror(errno));
+        }
+    }
     s->f = NULL;
-    return JS_NewInt32(ctx, err);
+    return JS_UNDEFINED;
 }
 
 static JSValue js_std_file_printf(JSContext *ctx, JSValueConst this_val,
@@ -1123,9 +1127,11 @@ static JSValue js_std_file_seek(JSContext *ctx, JSValueConst this_val,
 #else
     ret = fseek(f, pos, whence);
 #endif
-    if (ret < 0)
-        ret = -errno;
-    return JS_NewInt32(ctx, ret);
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "seek failed: %s", strerror(errno));
+    }
+
+    return JS_UNDEFINED;
 }
 
 static JSValue js_std_file_eof(JSContext *ctx, JSValueConst this_val,
@@ -1135,25 +1141,6 @@ static JSValue js_std_file_eof(JSContext *ctx, JSValueConst this_val,
     if (!f)
         return JS_EXCEPTION;
     return JS_NewBool(ctx, feof(f));
-}
-
-static JSValue js_std_file_error(JSContext *ctx, JSValueConst this_val,
-                               int argc, JSValueConst *argv)
-{
-    FILE *f = js_std_file_get(ctx, this_val);
-    if (!f)
-        return JS_EXCEPTION;
-    return JS_NewBool(ctx, ferror(f));
-}
-
-static JSValue js_std_file_clearerr(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    FILE *f = js_std_file_get(ctx, this_val);
-    if (!f)
-        return JS_EXCEPTION;
-    clearerr(f);
-    return JS_UNDEFINED;
 }
 
 static JSValue js_std_file_fileno(JSContext *ctx, JSValueConst this_val,
@@ -1445,10 +1432,6 @@ read_headers:
     for(;;) {
         errno = 0;
         len = fread(buf, 1, URL_GET_BUF_SIZE, f);
-        if (errno != 0) {
-            JS_ThrowTypeError(ctx, "failed to read output from curl: %s", strerror(-errno));
-            goto fail;
-        }
         if (len == 0)
             break;
         dbuf_put(data_buf, (uint8_t *)buf, len);
@@ -1571,8 +1554,6 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
     JS_CFUNC_DEF("seek", 2, js_std_file_seek ),
     JS_CFUNC_DEF("eof", 0, js_std_file_eof ),
     JS_CFUNC_DEF("fileno", 0, js_std_file_fileno ),
-    JS_CFUNC_DEF("error", 0, js_std_file_error ),
-    JS_CFUNC_DEF("clearerr", 0, js_std_file_clearerr ),
     JS_CFUNC_MAGIC_DEF("read", 3, js_std_file_read_write, 0 ),
     JS_CFUNC_MAGIC_DEF("write", 3, js_std_file_read_write, 1 ),
     JS_CFUNC_DEF("getline", 0, js_std_file_getline ),

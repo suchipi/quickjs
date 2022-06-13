@@ -288,8 +288,8 @@ declare module "std" {
 
   /** An object representing a file handle. */
   export class FILE {
-    /** Close the file. Return 0 if OK or -errno in case of I/O error.  */
-    close(): number;
+    /** Close the file.  */
+    close(): void;
 
     /** Outputs the string with the UTF-8 encoding. */
     puts(str: string): void;
@@ -307,12 +307,12 @@ declare module "std" {
     /**
      * Seek to a given file position (whence is `std.SEEK_*`).
      *
-     * `offset` can be a number or a bigint. Return 0 if OK or `-errno` in case of I/O error.
+     * `offset` can be a number or a bigint.
      */
     seek(
       offset: number,
       whence: typeof SEEK_SET | typeof SEEK_CUR | typeof SEEK_END
-    ): number;
+    ): void;
 
     /** Return the current file position. */
     tell(): number;
@@ -325,12 +325,6 @@ declare module "std" {
 
     /** Return the associated OS handle. */
     fileno(): number;
-
-    /** Return true if there was an error. */
-    error(): boolean;
-
-    /** Clear the error indication. */
-    clearerr(): void;
 
     /** Read `length` bytes from the file to the ArrayBuffer `buffer` at byte position `position` (wrapper to the libc `fread`). */
     read(buffer: ArrayBuffer, position: number, length: number): void;
