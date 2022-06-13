@@ -116,7 +116,7 @@ declare module "std" {
   /** Equivalent to the libc sprintf(). */
   export function sprintf(fmt: string, ...args: Array<any>): void;
 
-  // This should be "in" but typescript's module stuff doesn't let use do that properly 😭
+  // This should be "in" but typescript's module stuff doesn't let us do that properly 😭
   // I'll rename it later I guess
   /** Wrapper to the libc file stdin. */
   export var in_: FILE;
