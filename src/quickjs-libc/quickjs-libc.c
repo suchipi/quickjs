@@ -841,15 +841,6 @@ static ssize_t js_get_errno(ssize_t ret)
     return ret;
 }
 
-static JSValue js_std_strerror(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
-{
-    int err;
-    if (JS_ToInt32(ctx, &err, argv[0]))
-        return JS_EXCEPTION;
-    return JS_NewString(ctx, strerror(err));
-}
-
 static JSValue js_std_parseExtJSON(JSContext *ctx, JSValueConst this_val,
                                    int argc, JSValueConst *argv)
 {
@@ -1498,23 +1489,6 @@ static JSClassDef js_std_file_class = {
     .finalizer = js_std_file_finalizer,
 }; 
 
-static const JSCFunctionListEntry js_std_error_props[] = {
-    /* various errno values */
-#define DEF(x) JS_PROP_INT32_DEF(#x, x, JS_PROP_CONFIGURABLE )
-    DEF(EINVAL),
-    DEF(EIO),
-    DEF(EACCES),
-    DEF(EEXIST),
-    DEF(ENOSPC),
-    DEF(ENOSYS),
-    DEF(EBUSY),
-    DEF(ENOENT),
-    DEF(EPERM),
-    DEF(EPIPE),
-    DEF(EBADF),
-#undef DEF
-};
-
 static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("exit", 1, js_std_exit ),
     JS_CFUNC_DEF("gc", 0, js_std_gc ),
@@ -1527,7 +1501,6 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("getenviron", 1, js_std_getenviron ),
     JS_CFUNC_DEF("urlGet", 1, js_std_urlGet ),
     JS_CFUNC_DEF("loadFile", 1, js_std_loadFile ),
-    JS_CFUNC_DEF("strerror", 1, js_std_strerror ),
     JS_CFUNC_DEF("parseExtJSON", 1, js_std_parseExtJSON ),
     
     /* FILE I/O */
@@ -1541,7 +1514,6 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_PROP_INT32_DEF("SEEK_SET", SEEK_SET, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("SEEK_CUR", SEEK_CUR, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("SEEK_END", SEEK_END, JS_PROP_CONFIGURABLE ),
-    JS_OBJECT_DEF("Error", js_std_error_props, countof(js_std_error_props), JS_PROP_CONFIGURABLE),
 };
     
 static const JSCFunctionListEntry js_std_file_proto_funcs[] = {

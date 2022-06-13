@@ -136,23 +136,6 @@ declare module "std" {
   /** Constant for {@link FILE.seek}. */
   export var SEEK_END: number;
 
-  /** Enumeration object containing the integer value of common errors. */
-  export var Error: {
-    EINVAL: number;
-    EIO: number;
-    EACCES: number;
-    EEXIST: number;
-    ENOSPC: number;
-    ENOSYS: number;
-    EBUSY: number;
-    ENOENT: number;
-    EPERM: number;
-    EPIPE: number;
-  };
-
-  /** Return a string that describes the error `errno`. */
-  export function strerror(errno: number): string;
-
   /** Manually invoke the cycle removal algorithm (garbage collector). The cycle removal algorithm is automatically started when needed, so this function is useful in case of specific memory constraints or for testing. */
   export function gc(): void;
 
