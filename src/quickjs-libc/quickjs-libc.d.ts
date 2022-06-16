@@ -116,10 +116,10 @@ declare module "std" {
   /** Equivalent to the libc sprintf(). */
   export function sprintf(fmt: string, ...args: Array<any>): void;
 
-  // This should be "in" but typescript's module stuff doesn't let us do that properly 😭
-  // I'll rename it later I guess
   /** Wrapper to the libc file stdin. */
-  export var in_: FILE;
+  var in_: FILE;
+
+  export { in_ as in };
 
   /** Wrapper to the libc file stdout. */
   export var out: FILE;
@@ -331,12 +331,11 @@ declare module "std" {
 
 declare module "os" {
   /**
-   * Open a file handle. Returns a number; if positive, it's a valid file
-   * handle. If negative, it's an OS-specific error code.
+   * Open a file handle. Returns a number; the file descriptor.
    *
    * @param filename - The path to the file to open.
    * @param flags - Numeric flags that set the mode to use when opening the file. See `os.O_*`
-   * @param mode - Octal access mask for a new file. Defaults to 0o666.
+   * @param mode - Octal access mask. Defaults to 0o666.
    */
   export function open(filename: string, flags: number, mode?: number): number;
 
@@ -364,7 +363,7 @@ declare module "os" {
   /** Windows-specific open flag: open the file in text mode. The default is binary mode. Used in {@link open}. */
   export var O_TEXT: number;
 
-  /** Close the file handle `fd`. */
+  /** Close the file with descriptor `fd`. */
   export function close(fd: number): void;
 
   interface OsSeek {
@@ -378,7 +377,7 @@ declare module "os" {
   /** Seek in the file. Use `std.SEEK_*` for `whence`. `offset` is either a number or a bigint. If `offset` is a bigint, a bigint is returned too. */
   export var seek: OsSeek;
 
-  /** Read `length` bytes from the file handle `fd` to the ArrayBuffer `buffer` at byte position `offset`. Return the number of read bytes or < 0 if error. */
+  /** Read `length` bytes from the file with descriptor `fd` to the ArrayBuffer `buffer` at byte position `offset`. Return the number of read bytes or < 0 if error. */
   export function read(
     fd: number,
     buffer: ArrayBuffer,
@@ -386,7 +385,7 @@ declare module "os" {
     length: number
   ): number;
 
-  /** Write `length` bytes to the file handle `fd` from the ArrayBuffer `buffer` at byte position `offset`. Return the number of written bytes or < 0 if error. */
+  /** Write `length` bytes to the file with descriptor `fd` from the ArrayBuffer `buffer` at byte position `offset`. Return the number of written bytes or < 0 if error. */
   export function write(
     fd: number,
     buffer: ArrayBuffer,
@@ -394,7 +393,7 @@ declare module "os" {
     length: number
   ): number;
 
-  /** Return `true` if `fd` is a TTY (terminal) handle. */
+  /** Return `true` if the file opened with descriptor `fd` is a TTY (terminal). */
   export function isatty(fd: number): boolean;
 
   /** Return the TTY size as `[width, height]` or `null` if not available. */
@@ -519,10 +518,10 @@ declare module "os" {
   /** Return `[array, err]` where `array` is an array of strings containing the filenames of the directory `path`. `err` is the error code. */
   export function readdir(path: string): [Array<string>, number];
 
-  /** Add a read handler to the file handle `fd`. `func` is called each time there is data pending for `fd`. A single read handler per file handle is supported. Use `func = null` to remove the handler. */
+  /** Add a read handler to the file with descriptor `fd`. `func` is called each time there is data pending for `fd`. A single read handler per file handle is supported. Use `func = null` to remove the handler. */
   export function setReadHandler(fd: number, func: null | (() => void)): void;
 
-  /** Add a write handler to the file handle `fd`. `func` is called each time data can be written to `fd`. A single write handler per file handle is supported. Use `func = null` to remove the handler. */
+  /** Add a write handler to the file with descriptor `fd`. `func` is called each time data can be written to `fd`. A single write handler per file handle is supported. Use `func = null` to remove the handler. */
   export function setWriteHandler(fd: number, func: null | (() => void)): void;
 
   /** Call the function `func` when the signal `signal` happens. Only a single handler per signal number is supported. Use `null` to set the default handler or `undefined` to ignore the signal. Signal handlers can only be defined in the main thread. */
@@ -565,13 +564,13 @@ declare module "os" {
     /** String. If present, set the working directory of the new process. */
     cwd?: string;
 
-    /** If present, set the handle in the child for stdin. */
+    /** If present, set the file descriptor in the child for stdin. */
     stdin?: number;
 
-    /** If present, set the handle in the child for stdout. */
+    /** If present, set the file descriptor in the child for stdout. */
     stdout?: number;
 
-    /** If present, set the handle in the child for stderr. */
+    /** If present, set the file descriptor in the child for stderr. */
     stderr?: number;
 
     /** Object. If present, set the process environment from the object key-value pairs. Otherwise use the same environment as the current process. To get the current process's environment variables as on object, use `std.getenviron()`. */

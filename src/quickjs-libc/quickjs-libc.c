@@ -1586,9 +1586,7 @@ static JSValue js_os_open(JSContext *ctx, JSValueConst this_val,
         goto fail;
     if (argc >= 3 && !JS_IsUndefined(argv[2])) {
         if (JS_ToInt32(ctx, &mode, argv[2])) {
-        fail:
-            JS_FreeCString(ctx, filename);
-            return JS_EXCEPTION;
+            goto fail;
         }
     } else {
         mode = 0666;
@@ -1598,9 +1596,15 @@ static JSValue js_os_open(JSContext *ctx, JSValueConst this_val,
     if (!(flags & O_TEXT))
         flags |= O_BINARY;
 #endif
-    ret = js_get_errno(open(filename, flags, mode));
-    JS_FreeCString(ctx, filename);
+    ret = open(filename, flags, mode);
+    if (ret < 0) {
+        JS_ThrowError(ctx, "Error occurred during open(\"%s\"). Return was: %d. errno was: %d (%s).", filename, ret, errno, strerror(errno));
+        goto fail;
+    }
     return JS_NewInt32(ctx, ret);
+fail:
+    JS_FreeCString(ctx, filename);
+    return JS_EXCEPTION;
 }
 
 static JSValue js_os_close(JSContext *ctx, JSValueConst this_val,
