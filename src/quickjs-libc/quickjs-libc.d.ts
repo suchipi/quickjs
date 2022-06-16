@@ -127,13 +127,13 @@ declare module "std" {
   /** Wrapper to the libc file stderr. */
   export var err: FILE;
 
-  /** Constant for {@link FILE.seek}. */
+  /** Constant for {@link FILE.seek}. Declares that pointer offset should be relative to the beginning of the file. See also libc `fseek()`. */
   export var SEEK_SET: number;
 
-  /** Constant for {@link FILE.seek}. */
+  /** Constant for {@link FILE.seek}. Declares that the offset should be relative to the current position of the FILE handle. See also libc `fseek()`. */
   export var SEEK_CUR: number;
 
-  /** Constant for {@link FILE.seek}. */
+  /** Constant for {@link FILE.seek}. Declares that the offset should be relative to the end of the file. See also libc `fseek()`. */
   export var SEEK_END: number;
 
   /** Manually invoke the cycle removal algorithm (garbage collector). The cycle removal algorithm is automatically started when needed, so this function is useful in case of specific memory constraints or for testing. */
