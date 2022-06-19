@@ -1119,7 +1119,7 @@ static JSValue js_std_file_seek(JSContext *ctx, JSValueConst this_val,
     ret = fseek(f, pos, whence);
 #endif
     if (ret < 0) {
-        return JS_ThrowError(ctx, "seek failed: %s", strerror(errno));
+        return JS_ThrowError(ctx, "%s", strerror(errno));
     }
 
     return JS_UNDEFINED;
@@ -1598,7 +1598,7 @@ static JSValue js_os_open(JSContext *ctx, JSValueConst this_val,
 #endif
     ret = open(filename, flags, mode);
     if (ret < 0) {
-        JS_ThrowError(ctx, "Error occurred during open(\"%s\"). Return was: %d. errno was: %d (%s).", filename, ret, errno, strerror(errno));
+        JS_ThrowError(ctx, "open('%s'): %s (errno = %d)", filename, strerror(errno), errno);
         goto fail;
     }
     return JS_NewInt32(ctx, ret);
@@ -1613,8 +1613,12 @@ static JSValue js_os_close(JSContext *ctx, JSValueConst this_val,
     int fd, ret;
     if (JS_ToInt32(ctx, &fd, argv[0]))
         return JS_EXCEPTION;
-    ret = js_get_errno(close(fd));
-    return JS_NewInt32(ctx, ret);
+    ret = close(fd);
+    if (ret == 0) {
+        return JS_UNDEFINED;
+    } else {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+    }
 }
 
 static JSValue js_os_seek(JSContext *ctx, JSValueConst this_val,
@@ -1785,7 +1789,7 @@ static JSValue js_os_remove(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
     const char *filename;
-    int ret;
+    int ret, err;
     
     filename = JS_ToCString(ctx, argv[0]);
     if (!filename)
@@ -1802,16 +1806,20 @@ static JSValue js_os_remove(JSContext *ctx, JSValueConst this_val,
 #else
     ret = remove(filename);
 #endif
-    ret = js_get_errno(ret);
+    err = errno;
     JS_FreeCString(ctx, filename);
-    return JS_NewInt32(ctx, ret);
+    if (ret == 0) {
+        return JS_UNDEFINED;
+    } else {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+    }
 }
 
 static JSValue js_os_rename(JSContext *ctx, JSValueConst this_val,
                             int argc, JSValueConst *argv)
 {
     const char *oldpath, *newpath;
-    int ret;
+    int ret, err;
     
     oldpath = JS_ToCString(ctx, argv[0]);
     if (!oldpath)
@@ -1821,10 +1829,15 @@ static JSValue js_os_rename(JSContext *ctx, JSValueConst this_val,
         JS_FreeCString(ctx, oldpath);
         return JS_EXCEPTION;
     }
-    ret = js_get_errno(rename(oldpath, newpath));
+    ret = rename(oldpath, newpath);
+    err = errno;
     JS_FreeCString(ctx, oldpath);
     JS_FreeCString(ctx, newpath);
-    return JS_NewInt32(ctx, ret);
+    if (ret == 0) {
+        return JS_UNDEFINED;
+    } else {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+    }
 }
 
 static BOOL is_main_thread(JSRuntime *rt)
@@ -2371,47 +2384,43 @@ static JSValue make_obj_error(JSContext *ctx,
     return arr;
 }
 
-static JSValue make_string_error(JSContext *ctx,
-                                 const char *buf,
-                                 int err)
-{
-    return make_obj_error(ctx, JS_NewString(ctx, buf), err);
-}
-
 /* return [cwd, errorcode] */
 static JSValue js_os_getcwd(JSContext *ctx, JSValueConst this_val,
                             int argc, JSValueConst *argv)
 {
     char buf[PATH_MAX];
-    int err;
-    
+
     if (!getcwd(buf, sizeof(buf))) {
-        buf[0] = '\0';
-        err = errno;
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
     } else {
-        err = 0;
+        return JS_NewString(ctx, buf);
     }
-    return make_string_error(ctx, buf, err);
 }
 
 static JSValue js_os_chdir(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
     const char *target;
-    int err;
+    int ret, err;
 
     target = JS_ToCString(ctx, argv[0]);
     if (!target)
         return JS_EXCEPTION;
-    err = js_get_errno(chdir(target));
+
+    ret = chdir(target);
+    err = errno;
     JS_FreeCString(ctx, target);
-    return JS_NewInt32(ctx, err);
+    if (ret == 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+    } else {
+        return JS_UNDEFINED;
+    }
 }
 
 static JSValue js_os_mkdir(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
-    int mode, ret;
+    int mode, ret, err;
     const char *path;
     
     if (argc >= 2) {
@@ -2425,56 +2434,70 @@ static JSValue js_os_mkdir(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
 #if defined(_WIN32)
     (void)mode;
-    ret = js_get_errno(mkdir(path));
+    ret = mkdir(path);
 #else
-    ret = js_get_errno(mkdir(path, mode));
+    ret = mkdir(path, mode);
 #endif
+    err = errno;
     JS_FreeCString(ctx, path);
-    return JS_NewInt32(ctx, ret);
+
+    if (ret == 0) {
+        return JS_UNDEFINED;
+    } else {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+    }
 }
 
-/* return [array, errorcode] */
 static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
     const char *path;
-    DIR *f;
-    struct dirent *d;
-    JSValue obj;
-    int err;
+    DIR *dirstream;
+    struct dirent *direntry;
+    JSValue array;
+    int err, close_ret;
     uint32_t len;
     
     path = JS_ToCString(ctx, argv[0]);
     if (!path)
         return JS_EXCEPTION;
-    obj = JS_NewArray(ctx);
-    if (JS_IsException(obj)) {
+
+    array = JS_NewArray(ctx);
+    if (JS_IsException(array)) {
         JS_FreeCString(ctx, path);
         return JS_EXCEPTION;
     }
-    f = opendir(path);
-    if (!f)
-        err = errno;
-    else
-        err = 0;
+
+    dirstream = opendir(path);
+    err = errno;
     JS_FreeCString(ctx, path);
-    if (!f)
-        goto done;
+    if (!dirstream) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+    }
+
     len = 0;
     for(;;) {
         errno = 0;
-        d = readdir(f);
-        if (!d) {
-            err = errno;
-            break;
+        direntry = readdir(dirstream);
+        if (!direntry) {
+            if (errno != 0) {
+                return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+            } else {
+                break;
+            }
         }
-        JS_DefinePropertyValueUint32(ctx, obj, len++,
-                                     JS_NewString(ctx, d->d_name),
+
+        JS_DefinePropertyValueUint32(ctx, array, len++,
+                                     JS_NewString(ctx, direntry->d_name),
                                      JS_PROP_C_W_E);
     }
-    closedir(f);
- done:
-    return make_obj_error(ctx, obj, err);
+
+    close_ret = closedir(dirstream);
+    if (close_ret != 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+    }
+
+    return array;
 }
 
 #if !defined(_WIN32)
@@ -2660,7 +2683,6 @@ static char *realpath(const char *path, char *buf)
 }
 #endif
 
-/* return [path, errorcode] */
 static JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
@@ -2672,14 +2694,13 @@ static JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
     if (!path)
         return JS_EXCEPTION;
     res = realpath(path, buf);
+    err = errno;
     JS_FreeCString(ctx, path);
     if (!res) {
-        buf[0] = '\0';
-        err = errno;
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
     } else {
-        err = 0;
+        return JS_NewString(ctx, buf);
     }
-    return make_string_error(ctx, buf, err);
 }
 
 #if !defined(_WIN32)
@@ -2703,28 +2724,27 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
     return JS_NewInt32(ctx, err);
 }
 
-/* return [path, errorcode] */
 static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
     const char *path;
     char buf[PATH_MAX];
+    ssize_t ret;
     int err;
-    ssize_t res;
     
     path = JS_ToCString(ctx, argv[0]);
     if (!path)
         return JS_EXCEPTION;
-    res = readlink(path, buf, sizeof(buf) - 1);
-    if (res < 0) {
-        buf[0] = '\0';
-        err = errno;
-    } else {
-        buf[res] = '\0';
-        err = 0;
-    }
+
+    ret = readlink(path, buf, sizeof(buf) - 1);
+    err = errno;
+
     JS_FreeCString(ctx, path);
-    return make_string_error(ctx, buf, err);
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+    } else {
+        return JS_NewString(ctx, buf);
+    }
 }
 
 static char **build_envp(JSContext *ctx, JSValueConst obj)

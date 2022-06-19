@@ -402,23 +402,23 @@ declare module "os" {
   /** Set the TTY in raw mode. */
   export function ttySetRaw(fd: number): void;
 
-  /** Remove a file. Return 0 if OK or -errno. */
-  export function remove(filename: string): number;
+  /** Remove a file. */
+  export function remove(filename: string): void;
 
-  /** Rename a file. Return 0 if OK or -errno. */
-  export function rename(oldname: string, newname: string): number;
+  /** Rename a file. */
+  export function rename(oldname: string, newname: string): void;
 
-  /** Return `[str, err]` where `str` is the canonicalized absolute pathname of `path` and `err` the error code. */
-  export function realpath(path: string): [string, number];
+  /** Return the canonicalized absolute pathname of `path`. */
+  export function realpath(path: string): string;
 
-  /** Return `[str, err]` where `str` is the current working directory and `err` the error code. */
-  export function getcwd(): [string, number];
+  /** Return the current working directory. */
+  export function getcwd(): string;
 
-  /** Change the current directory. Return 0 if OK or `-errno`. */
-  export function chdir(path: string): number;
+  /** Change the current directory. */
+  export function chdir(path: string): void;
 
-  /** Create a directory at `path`. Return 0 if OK or `-errno`. */
-  export function mkdir(path: string, mode?: number): number;
+  /** Create a directory at `path`. */
+  export function mkdir(path: string, mode?: number): void;
 
   export type Stats = {
     dev: number;
@@ -512,11 +512,11 @@ declare module "os" {
   /** Create a link at `linkpath` containing the string `target`. Return 0 if OK or `-errno`. */
   export function symlink(target: string, linkpath: string): number;
 
-  /** Return `[str, err]` where `str` is the link target and `err` the error code. */
-  export function readlink(path: string): [string, number];
+  /** Return the link target. */
+  export function readlink(path: string): string;
 
-  /** Return `[array, err]` where `array` is an array of strings containing the filenames of the directory `path`. `err` is the error code. */
-  export function readdir(path: string): [Array<string>, number];
+  /** Return an array of strings containing the filenames of the directory `path`. */
+  export function readdir(path: string): Array<string>;
 
   /** Add a read handler to the file with descriptor `fd`. `func` is called each time there is data pending for `fd`. A single read handler per file handle is supported. Use `func = null` to remove the handler. */
   export function setReadHandler(fd: number, func: null | (() => void)): void;
