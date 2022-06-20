@@ -6346,6 +6346,17 @@ JSValue JS_GetException(JSContext *ctx)
     return val;
 }
 
+void JS_AddPropertyToException(JSContext *ctx, const char *prop_name, JSValue value)
+{
+    JSValue exception;
+    JSRuntime *rt = ctx->rt;
+    exception = rt->current_exception;
+    if (JS_IsNull(exception)) {
+        return;
+    }
+    JS_DefinePropertyValueStr(ctx, exception, prop_name, value, JS_PROP_C_W_E);
+}
+
 static void dbuf_put_leb128(DynBuf *s, uint32_t v)
 {
     uint32_t a;

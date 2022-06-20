@@ -639,6 +639,7 @@ JSValue __js_printf_like(2, 3) JS_ThrowReferenceError(JSContext *ctx, const char
 JSValue __js_printf_like(2, 3) JS_ThrowRangeError(JSContext *ctx, const char *fmt, ...);
 JSValue __js_printf_like(2, 3) JS_ThrowInternalError(JSContext *ctx, const char *fmt, ...);
 JSValue JS_ThrowOutOfMemory(JSContext *ctx);
+void JS_AddPropertyToException(JSContext *ctx, const char *propName, JSValue value);
 
 void __JS_FreeValue(JSContext *ctx, JSValue v);
 static inline void JS_FreeValue(JSContext *ctx, JSValue v)

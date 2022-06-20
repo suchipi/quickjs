@@ -467,7 +467,9 @@ static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     buf = js_load_file(ctx, &buf_len, filename);
     if (!buf) {
-        JS_ThrowError(ctx, "%s: '%s'", strerror(errno), filename);
+        JS_ThrowError(ctx, "%s (errno = %d, filename = '%s')", strerror(errno), errno, filename);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
         JS_FreeCString(ctx, filename);
         return JS_EXCEPTION;
     }
@@ -893,7 +895,9 @@ static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
 
     f = fopen(filename, mode);
     if (!f) {
-        JS_ThrowError(ctx, "%s: '%s'", strerror(errno), filename);
+        JS_ThrowError(ctx, "%s (errno = %d, filename = '%s')", strerror(errno), errno, filename);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
         goto fail;
     }
     return js_new_std_file(ctx, f, TRUE, FALSE);
@@ -926,7 +930,9 @@ static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
 
     f = popen(filename, mode);
     if (!f) {
-        JS_ThrowError(ctx, "%s: '%s'", strerror(errno), filename);
+        JS_ThrowError(ctx, "%s (errno = %d, filename = '%s')", strerror(errno), errno, filename);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
         goto fail;
     }
 
@@ -963,7 +969,10 @@ static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
 
     f = fdopen(fd, mode);
     if (!f) {
-        JS_ThrowError(ctx, "%s", strerror(errno));
+        JS_ThrowError(ctx, "%s (errno = %d, fd = %d, mode = '%s')", strerror(errno), errno, fd, mode);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        JS_AddPropertyToException(ctx, "fd", JS_NewInt32(ctx, fd));
+        JS_AddPropertyToException(ctx, "mode", JS_NewString(ctx, mode));
         goto fail;
     }
     
@@ -980,7 +989,9 @@ static JSValue js_std_tmpfile(JSContext *ctx, JSValueConst this_val,
     FILE *f;
     f = tmpfile();
     if (!f) {
-        return JS_ThrowError(ctx, "%s", strerror(errno));
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     }
     
     return js_new_std_file(ctx, f, TRUE, FALSE);
@@ -1046,11 +1057,15 @@ static JSValue js_std_file_close(JSContext *ctx, JSValueConst this_val,
         return JS_ThrowTypeError(ctx, "invalid file handle");
     if (s->is_popen) {
         if (pclose(s->f) < 0) {
-            return JS_ThrowTypeError(ctx, "failed to close file: %s", strerror(errno));
+            JS_ThrowTypeError(ctx, "failed to close file: %s (errno = %d)", strerror(errno), errno);
+            JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+            return JS_EXCEPTION;
         }
     } else {
         if (fclose(s->f) < 0) {
-            return JS_ThrowTypeError(ctx, "failed to close file: %s", strerror(errno));
+            JS_ThrowTypeError(ctx, "failed to close file: %s (errno = %d)", strerror(errno), errno);
+            JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+            return JS_EXCEPTION;
         }
     }
     s->f = NULL;
@@ -1112,7 +1127,9 @@ static JSValue js_std_file_seek(JSContext *ctx, JSValueConst this_val,
     ret = fseek(f, pos, whence);
 #endif
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s", strerror(errno));
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     }
 
     return JS_UNDEFINED;
@@ -1162,7 +1179,9 @@ static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
     }
 
     if (ferror(f) != 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     }
     if (feof(f) != 0) {
         ret = 0;
@@ -1373,6 +1392,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
     f = popen((char *)cmd_buf.buf, "r");
     if (!f) {
         JS_ThrowTypeError(ctx, "could not start curl: %s", strerror(errno));
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         dbuf_free(&cmd_buf);
         return JS_EXCEPTION;
     } else {
@@ -1600,7 +1620,9 @@ static JSValue js_os_open(JSContext *ctx, JSValueConst this_val,
 #endif
     ret = open(filename, flags, mode);
     if (ret < 0) {
-        JS_ThrowError(ctx, "open('%s'): %s (errno = %d)", filename, strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d, filename = '%s')", strerror(errno), errno, filename);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
         goto fail;
     }
     return JS_NewInt32(ctx, ret);
@@ -1619,7 +1641,9 @@ static JSValue js_os_close(JSContext *ctx, JSValueConst this_val,
     if (ret == 0) {
         return JS_UNDEFINED;
     } else {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     }
 }
 
@@ -1672,7 +1696,9 @@ static JSValue js_os_read_write(JSContext *ctx, JSValueConst this_val,
         ret = read(fd, buf + pos, len);
 
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     } else {
         return JS_NewInt64(ctx, ret);
     }
@@ -2380,7 +2406,9 @@ static JSValue js_os_getcwd(JSContext *ctx, JSValueConst this_val,
     char buf[PATH_MAX];
 
     if (!getcwd(buf, sizeof(buf))) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     } else {
         return JS_NewString(ctx, buf);
     }
@@ -2400,7 +2428,9 @@ static JSValue js_os_chdir(JSContext *ctx, JSValueConst this_val,
     err = errno;
     JS_FreeCString(ctx, target);
     if (ret == 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
     } else {
         return JS_UNDEFINED;
     }
@@ -2433,7 +2463,9 @@ static JSValue js_os_mkdir(JSContext *ctx, JSValueConst this_val,
     if (ret == 0) {
         return JS_UNDEFINED;
     } else {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
     }
 }
 
@@ -2461,7 +2493,9 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
     err = errno;
     JS_FreeCString(ctx, path);
     if (!dirstream) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
     }
 
     len = 0;
@@ -2470,7 +2504,9 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
         direntry = readdir(dirstream);
         if (!direntry) {
             if (errno != 0) {
-                return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+                JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+                JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+                return JS_EXCEPTION;
             } else {
                 break;
             }
@@ -2483,7 +2519,9 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
 
     close_ret = closedir(dirstream);
     if (close_ret != 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     }
 
     return array;
@@ -2519,7 +2557,9 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
     err = errno;
     JS_FreeCString(ctx, path);
     if (res < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
     }
 
     obj = JS_NewObject(ctx);
@@ -2630,7 +2670,9 @@ static JSValue js_os_utimes(JSContext *ctx, JSValueConst this_val,
     err = errno;
     JS_FreeCString(ctx, path);
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
     } else {
         return JS_UNDEFINED;
     }
@@ -2664,7 +2706,9 @@ static JSValue js_os_sleep(JSContext *ctx, JSValueConst this_val,
     }
 #endif
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     } else {
         return JS_UNDEFINED;
     }
@@ -2696,7 +2740,9 @@ static JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
     err = errno;
     JS_FreeCString(ctx, path);
     if (!res) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
     } else {
         return JS_NewString(ctx, buf);
     }
@@ -2722,7 +2768,9 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
     JS_FreeCString(ctx, target);
     JS_FreeCString(ctx, linkpath);
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
     } else {
         return JS_UNDEFINED;
     }
@@ -2745,7 +2793,9 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
 
     JS_FreeCString(ctx, path);
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
     } else {
         return JS_NewString(ctx, buf);
     }
@@ -3078,7 +3128,9 @@ static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
 
     ret = waitpid(pid, &status, options);
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     }
 
     obj = JS_NewArray(ctx);
@@ -3100,7 +3152,9 @@ static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
     
     ret = pipe(pipe_fds);
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     }
 
     obj = JS_NewArray(ctx);
@@ -3125,7 +3179,9 @@ static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     ret = kill(pid, sig);
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     } else {
         return JS_UNDEFINED;
     }
@@ -3141,7 +3197,9 @@ static JSValue js_os_dup(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     ret = dup(fd);
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     } else {
         return JS_NewInt32(ctx, ret);
     }
@@ -3159,7 +3217,9 @@ static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     ret = dup2(fd, fd2);
     if (ret < 0) {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
     } else {
         return JS_NewInt32(ctx, ret);
     }
