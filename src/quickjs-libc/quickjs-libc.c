@@ -3118,8 +3118,12 @@ static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (JS_ToInt32(ctx, &sig, argv[1]))
         return JS_EXCEPTION;
-    ret = js_get_errno(kill(pid, sig));
-    return JS_NewInt32(ctx, ret);
+    ret = kill(pid, sig);
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+    } else {
+        return JS_UNDEFINED;
+    }
 }
 
 /* dup(fd) */
