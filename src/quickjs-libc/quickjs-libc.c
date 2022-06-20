@@ -834,13 +834,6 @@ static void js_std_file_finalizer(JSRuntime *rt, JSValue val)
     }
 }
 
-static ssize_t js_get_errno(ssize_t ret)
-{
-    if (ret == -1)
-        ret = -errno;
-    return ret;
-}
-
 static JSValue js_std_parseExtJSON(JSContext *ctx, JSValueConst this_val,
                                    int argc, JSValueConst *argv)
 {
@@ -1162,10 +1155,19 @@ static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (pos + len > size)
         return JS_ThrowRangeError(ctx, "read/write array buffer overflow");
-    if (magic)
+    if (magic) {
         ret = fwrite(buf + pos, 1, len, f);
-    else
+    } else {
         ret = fread(buf + pos, 1, len, f);
+    }
+
+    if (ferror(f) != 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+    }
+    if (feof(f) != 0) {
+        ret = 0;
+    }
+
     return JS_NewInt64(ctx, ret);
 }
 
@@ -1664,11 +1666,16 @@ static JSValue js_os_read_write(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (pos + len > size)
         return JS_ThrowRangeError(ctx, "read/write array buffer overflow");
-    if (magic)
-        ret = js_get_errno(write(fd, buf + pos, len));
+    if (magic) 
+        ret = write(fd, buf + pos, len);
     else
-        ret = js_get_errno(read(fd, buf + pos, len));
-    return JS_NewInt64(ctx, ret);
+        ret = read(fd, buf + pos, len);
+
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+    } else {
+        return JS_NewInt64(ctx, ret);
+    }
 }
 
 static JSValue js_os_isatty(JSContext *ctx, JSValueConst this_val,
@@ -2367,24 +2374,6 @@ static int js_os_poll(JSContext *ctx)
 }
 #endif /* !_WIN32 */
 
-static JSValue make_obj_error(JSContext *ctx,
-                              JSValue obj,
-                              int err)
-{
-    JSValue arr;
-    if (JS_IsException(obj))
-        return obj;
-    arr = JS_NewArray(ctx);
-    if (JS_IsException(arr))
-        return JS_EXCEPTION;
-    JS_DefinePropertyValueUint32(ctx, arr, 0, obj,
-                                 JS_PROP_C_W_E);
-    JS_DefinePropertyValueUint32(ctx, arr, 1, JS_NewInt32(ctx, err),
-                                 JS_PROP_C_W_E);
-    return arr;
-}
-
-/* return [cwd, errorcode] */
 static JSValue js_os_getcwd(JSContext *ctx, JSValueConst this_val,
                             int argc, JSValueConst *argv)
 {
@@ -2507,7 +2496,6 @@ static int64_t timespec_to_ms(const struct timespec *tv)
 }
 #endif
 
-/* return [obj, errcode] */
 static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv, int is_lstat)
 {
@@ -2522,82 +2510,84 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
 #if defined(_WIN32)
     res = stat(path, &st);
 #else
-    if (is_lstat)
+    if (is_lstat) {
         res = lstat(path, &st);
-    else
+    } else {
         res = stat(path, &st);
+    }
 #endif
+    err = errno;
     JS_FreeCString(ctx, path);
     if (res < 0) {
-        err = errno;
-        obj = JS_NULL;
-    } else {
-        err = 0;
-        obj = JS_NewObject(ctx);
-        if (JS_IsException(obj))
-            return JS_EXCEPTION;
-        JS_DefinePropertyValueStr(ctx, obj, "dev",
-                                  JS_NewInt64(ctx, st.st_dev),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "ino",
-                                  JS_NewInt64(ctx, st.st_ino),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "mode",
-                                  JS_NewInt32(ctx, st.st_mode),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "nlink",
-                                  JS_NewInt64(ctx, st.st_nlink),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "uid",
-                                  JS_NewInt64(ctx, st.st_uid),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "gid",
-                                  JS_NewInt64(ctx, st.st_gid),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "rdev",
-                                  JS_NewInt64(ctx, st.st_rdev),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "size",
-                                  JS_NewInt64(ctx, st.st_size),
-                                  JS_PROP_C_W_E);
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+    }
+
+    obj = JS_NewObject(ctx);
+    if (JS_IsException(obj))
+        return JS_EXCEPTION;
+
+    JS_DefinePropertyValueStr(ctx, obj, "dev",
+                                JS_NewInt64(ctx, st.st_dev),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "ino",
+                                JS_NewInt64(ctx, st.st_ino),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "mode",
+                                JS_NewInt32(ctx, st.st_mode),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "nlink",
+                                JS_NewInt64(ctx, st.st_nlink),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "uid",
+                                JS_NewInt64(ctx, st.st_uid),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "gid",
+                                JS_NewInt64(ctx, st.st_gid),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "rdev",
+                                JS_NewInt64(ctx, st.st_rdev),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "size",
+                                JS_NewInt64(ctx, st.st_size),
+                                JS_PROP_C_W_E);
 #if !defined(_WIN32)
-        JS_DefinePropertyValueStr(ctx, obj, "blocks",
-                                  JS_NewInt64(ctx, st.st_blocks),
-                                  JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "blocks",
+                                JS_NewInt64(ctx, st.st_blocks),
+                                JS_PROP_C_W_E);
 #endif
 #if defined(_WIN32)
-        JS_DefinePropertyValueStr(ctx, obj, "atime",
-                                  JS_NewInt64(ctx, (int64_t)st.st_atime * 1000),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "mtime",
-                                  JS_NewInt64(ctx, (int64_t)st.st_mtime * 1000),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "ctime",
-                                  JS_NewInt64(ctx, (int64_t)st.st_ctime * 1000),
-                                  JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "atime",
+                                JS_NewInt64(ctx, (int64_t)st.st_atime * 1000),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "mtime",
+                                JS_NewInt64(ctx, (int64_t)st.st_mtime * 1000),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "ctime",
+                                JS_NewInt64(ctx, (int64_t)st.st_ctime * 1000),
+                                JS_PROP_C_W_E);
 #elif defined(__APPLE__)
-        JS_DefinePropertyValueStr(ctx, obj, "atime",
-                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_atimespec)),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "mtime",
-                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_mtimespec)),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "ctime",
-                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_ctimespec)),
-                                  JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "atime",
+                                JS_NewInt64(ctx, timespec_to_ms(&st.st_atimespec)),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "mtime",
+                                JS_NewInt64(ctx, timespec_to_ms(&st.st_mtimespec)),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "ctime",
+                                JS_NewInt64(ctx, timespec_to_ms(&st.st_ctimespec)),
+                                JS_PROP_C_W_E);
 #else
-        JS_DefinePropertyValueStr(ctx, obj, "atime",
-                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_atim)),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "mtime",
-                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_mtim)),
-                                  JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, obj, "ctime",
-                                  JS_NewInt64(ctx, timespec_to_ms(&st.st_ctim)),
-                                  JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "atime",
+                                JS_NewInt64(ctx, timespec_to_ms(&st.st_atim)),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "mtime",
+                                JS_NewInt64(ctx, timespec_to_ms(&st.st_mtim)),
+                                JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "ctime",
+                                JS_NewInt64(ctx, timespec_to_ms(&st.st_ctim)),
+                                JS_PROP_C_W_E);
 #endif
-    }
-    return make_obj_error(ctx, obj, err);
+
+    return obj;
 }
 
 #if !defined(_WIN32)
@@ -2613,7 +2603,7 @@ static JSValue js_os_utimes(JSContext *ctx, JSValueConst this_val,
 {
     const char *path;
     int64_t atime, mtime;
-    int ret;
+    int ret, err;
     
     if (JS_ToInt64(ctx, &atime, argv[1]))
         return JS_EXCEPTION;
@@ -2627,18 +2617,23 @@ static JSValue js_os_utimes(JSContext *ctx, JSValueConst this_val,
         struct _utimbuf times;
         times.actime = atime / 1000;
         times.modtime = mtime / 1000;
-        ret = js_get_errno(_utime(path, &times));
+        ret = _utime(path, &times);
     }
 #else
     {
         struct timeval times[2];
         ms_to_timeval(&times[0], atime);
         ms_to_timeval(&times[1], mtime);
-        ret = js_get_errno(utimes(path, times));
+        ret = utimes(path, times);
     }
 #endif
+    err = errno;
     JS_FreeCString(ctx, path);
-    return JS_NewInt32(ctx, ret);
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+    } else {
+        return JS_UNDEFINED;
+    }
 }
 
 /* sleep(delay_ms) */
@@ -2665,10 +2660,14 @@ static JSValue js_os_sleep(JSContext *ctx, JSValueConst this_val,
 
         ts.tv_sec = delay / 1000;
         ts.tv_nsec = (delay % 1000) * 1000000;
-        ret = js_get_errno(nanosleep(&ts, NULL));
+        ret = nanosleep(&ts, NULL);
     }
 #endif
-    return JS_NewInt32(ctx, ret);
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+    } else {
+        return JS_UNDEFINED;
+    }
 }
 
 #if defined(_WIN32)
@@ -2708,7 +2707,7 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
     const char *target, *linkpath;
-    int err;
+    int ret, err;
     
     target = JS_ToCString(ctx, argv[0]);
     if (!target)
@@ -2718,10 +2717,15 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
         JS_FreeCString(ctx, target);
         return JS_EXCEPTION;
     }
-    err = js_get_errno(symlink(target, linkpath));
+    ret = symlink(target, linkpath);
+    err = errno;
     JS_FreeCString(ctx, target);
     JS_FreeCString(ctx, linkpath);
-    return JS_NewInt32(ctx, err);
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+    } else {
+        return JS_UNDEFINED;
+    }
 }
 
 static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
@@ -3074,8 +3078,7 @@ static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
 
     ret = waitpid(pid, &status, options);
     if (ret < 0) {
-        ret = -errno;
-        status = 0;
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
     }
 
     obj = JS_NewArray(ctx);
@@ -3096,8 +3099,10 @@ static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
     JSValue obj;
     
     ret = pipe(pipe_fds);
-    if (ret < 0)
-        return JS_NULL;
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+    }
+
     obj = JS_NewArray(ctx);
     if (JS_IsException(obj))
         return obj;
@@ -3134,8 +3139,12 @@ static JSValue js_os_dup(JSContext *ctx, JSValueConst this_val,
     
     if (JS_ToInt32(ctx, &fd, argv[0]))
         return JS_EXCEPTION;
-    ret = js_get_errno(dup(fd));
-    return JS_NewInt32(ctx, ret);
+    ret = dup(fd);
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+    } else {
+        return JS_NewInt32(ctx, ret);
+    }
 }
 
 /* dup2(fd) */
@@ -3148,8 +3157,12 @@ static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (JS_ToInt32(ctx, &fd2, argv[1]))
         return JS_EXCEPTION;
-    ret = js_get_errno(dup2(fd, fd2));
-    return JS_NewInt32(ctx, ret);
+    ret = dup2(fd, fd2);
+    if (ret < 0) {
+        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+    } else {
+        return JS_NewInt32(ctx, ret);
+    }
 }
 
 #endif /* !_WIN32 */

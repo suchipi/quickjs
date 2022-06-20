@@ -309,11 +309,11 @@ declare module "std" {
     /** Return the associated OS handle. */
     fileno(): number;
 
-    /** Read `length` bytes from the file to the ArrayBuffer `buffer` at byte position `position` (wrapper to the libc `fread`). */
-    read(buffer: ArrayBuffer, position: number, length: number): void;
+    /** Read `length` bytes from the file to the ArrayBuffer `buffer` at byte position `position` (wrapper to the libc `fread`). Returns the number of bytes read, or `0` if the end of the file has been reached.  */
+    read(buffer: ArrayBuffer, position: number, length: number): number;
 
-    /** Write `length` bytes from the file to the ArrayBuffer `buffer` at byte position `position` (wrapper to the libc `fwrite`). */
-    write(buffer: ArrayBuffer, position: number, length: number): void;
+    /** Write `length` bytes from the file to the ArrayBuffer `buffer` at byte position `position` (wrapper to the libc `fwrite`). Returns the number of bytes written. */
+    write(buffer: ArrayBuffer, position: number, length: number): number;
 
     /** Return the next line from the file, assuming UTF-8 encoding, excluding the trailing line feed. */
     getline(): string;
@@ -377,7 +377,7 @@ declare module "os" {
   /** Seek in the file. Use `std.SEEK_*` for `whence`. `offset` is either a number or a bigint. If `offset` is a bigint, a bigint is returned too. */
   export var seek: OsSeek;
 
-  /** Read `length` bytes from the file with descriptor `fd` to the ArrayBuffer `buffer` at byte position `offset`. Return the number of read bytes or < 0 if error. */
+  /** Read `length` bytes from the file with descriptor `fd` to the ArrayBuffer `buffer` at byte position `offset`. Return the number of read bytes. */
   export function read(
     fd: number,
     buffer: ArrayBuffer,
@@ -385,7 +385,7 @@ declare module "os" {
     length: number
   ): number;
 
-  /** Write `length` bytes to the file with descriptor `fd` from the ArrayBuffer `buffer` at byte position `offset`. Return the number of written bytes or < 0 if error. */
+  /** Write `length` bytes to the file with descriptor `fd` from the ArrayBuffer `buffer` at byte position `offset`. Return the number of written bytes. */
   export function write(
     fd: number,
     buffer: ArrayBuffer,
@@ -436,9 +436,7 @@ declare module "os" {
   };
 
   /**
-   * Return `[obj, err]` where `obj` is an object containing the file status of `path`. `err` is the error code.
-   *
-   * The following fields are defined in obj:
+   * Return a stats object with the following fields:
    *
    * - `dev`
    * - `ino`
@@ -455,12 +453,10 @@ declare module "os" {
    *
    * The times are specified in milliseconds since 1970. `lstat()` is the same as `stat()` except that it returns information about the link itself.
    */
-  export function stat(path: string): [Stats, number];
+  export function stat(path: string): Stats;
 
   /**
-   * Return `[obj, err]` where `obj` is an object containing the file status of `path`. `err` is the error code.
-   *
-   * The following fields are defined in obj:
+   * Return a stats object with the following fields:
    *
    * - `dev`
    * - `ino`
@@ -477,7 +473,7 @@ declare module "os" {
    *
    * The times are specified in milliseconds since 1970. `lstat()` is the same as `stat()` except that it returns information about the link itself.
    */
-  export function lstat(path: string): [Stats, number];
+  export function lstat(path: string): Stats;
 
   /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
   export var S_IFMT: number;
@@ -504,13 +500,11 @@ declare module "os" {
    * Change the access and modification times of the file path.
    *
    * The times are specified in milliseconds since 1970.
-   *
-   * Return 0 if OK or `-errno`.
    */
-  export function utimes(path: string, atime: number, mtime: number): number;
+  export function utimes(path: string, atime: number, mtime: number): void;
 
-  /** Create a link at `linkpath` containing the string `target`. Return 0 if OK or `-errno`. */
-  export function symlink(target: string, linkpath: string): number;
+  /** Create a link at `linkpath` containing the string `target`. */
+  export function symlink(target: string, linkpath: string): void;
 
   /** Return the link target. */
   export function readlink(path: string): string;
@@ -587,11 +581,11 @@ declare module "os" {
   export function exec(args: Array<string>, options?: ExecOptions): number;
 
   /**
-   * `waitpid` Unix system call. Returns the array [ret, status]. ret contains -errno in case of error.
+   * `waitpid` Unix system call. Returns the array [ret, status].
    *
    * From man waitpid(2):
    *
-   * waitpid(): on success, returns the process ID of the child whose state has changed; if WNOHANG was specified and one or more child(ren) specified by pid exist, but have not yet changed state, then 0 is returned. On error, -1 is returned.
+   * waitpid(): on success, returns the process ID of the child whose state has changed; if WNOHANG was specified and one or more child(ren) specified by pid exist, but have not yet changed state, then 0 is returned.
    */
   export function waitpid(pid: number, options?: number): [number, number];
 
@@ -604,7 +598,7 @@ declare module "os" {
   /** `dup2` Unix system call. */
   export function dup2(oldfd: number, newfd: number): number;
 
-  /** `pipe` Unix system call. Return two handles as `[read_fd, write_fd]` or `null` in case of error. */
+  /** `pipe` Unix system call. Return two handles as `[read_fd, write_fd]`. */
   export function pipe(): null | [number, number];
 
   /** Sleep for `delay_ms` milliseconds. */
