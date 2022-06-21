@@ -48,28 +48,23 @@ else
   DEFINES =
 endif
 
-ifeq (@(DEBUG),y)
-  DEFINES += -DDEBUG
-endif
+# whether to enable debugprint
+# DEFINES += -DDEBUG
 
-DEFINES += -DCONFIG_VERSION="\"@(VERSION)\""
+DEFINES += -DCONFIG_VERSION="\"wip\""
 
-ifeq (@(BIGNUM),y)
-  DEFINES += -DCONFIG_BIGNUM
-endif
+# whether to enable 'use math' and BigFloat
+DEFINES += -DCONFIG_BIGNUM
 
-ifeq (@(LTO),y)
-  DEFINES += -DCONFIG_LTO
-  LDFLAGS += -flto
-endif
+# link-time optimization
+DEFINES += -DCONFIG_LTO
+LDFLAGS += -flto
 
-ifneq (@(PREFIX),)
-  DEFINES += -DCONFIG_PREFIX="\"@(PREFIX)\""
-endif
+# install dir
+DEFINES += -DCONFIG_PREFIX="\"/usr/local\""
 
-ifeq (@(ALL_UNICODE),y)
-  DEFINES += -DCONFIG_ALL_UNICODE=@(ALL_UNICODE)
-endif
+# include full unicode tables
+DEFINES += -DCONFIG_ALL_UNICODE
 
 # macro commands for use in Tupfiles. you need to put `include_rules` at the top of your Tupfile to get these.
 #
