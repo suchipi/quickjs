@@ -15,7 +15,6 @@ UNICODE_FILES=./downloaded/CaseFolding.txt \
 ./downloaded/emoji-data.txt
 
 : ../cutils/cutils.o unicode_gen.c |> !compile_c_program |> unicode_gen
-: |> ./unicode_download.sh |> $(UNICODE_FILES)
 
 : unicode_gen $(UNICODE_FILES) |> ./unicode_gen downloaded %o |> libunicode-table.h
 
