@@ -8,4 +8,10 @@ DEPS += ../libunicode/libunicode.o
 DEPS += ../quickjs/quickjs.o
 DEPS += ../quickjs-libc/quickjs-libc.o
 
-: qjsc.c $(DEPS) |> !compile_c_program |> qjsc
+ifdef WIN32
+  OUTPUT = qjsc.exe
+else
+  OUTPUT = qjsc
+endif
+
+: qjsc.c $(DEPS) |> !compile_c_program |> $(OUTPUT)

@@ -36,10 +36,6 @@ endif
 
 # math functions and constants. <math.h>
 LIBS += -lm
-# dynamic linking. TODO: is this still needed?
-LIBS += -ldl
-# POSIX threads, for multithreading. <pthread.h>
-LIBS += -lpthread
 
 # --- Defines for the preprocessor
 ifdef DEFINES

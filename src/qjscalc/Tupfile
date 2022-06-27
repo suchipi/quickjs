@@ -1,11 +1,13 @@
 # https://gittup.org/tup/manual.html
 include_rules
 
-MAYBE_BIGNUM=
-
-ifeq (@(BIGNUM),y)
-  MAYBE_BIGNUM = -fbignum
+ifdef WIN32
+  QJSC = ../qjsc/qjsc.exe
+  QJSC_CMD = wine $(QJSC)
+else
+  QJSC = ../qjsc/qjsc
+  QJSC_CMD = $(QJSC)
 endif
 
-: qjscalc.js | ../qjsc/qjsc |> ../qjsc/qjsc $(MAYBE_BIGNUM) -c -o %o %f |> qjscalc.c
+: qjscalc.js | $(QJSC) |> $(QJSC_CMD) -fbignum -c -o %o %f |> qjscalc.c
 : qjscalc.c |> !compile_c_object |> %B.o

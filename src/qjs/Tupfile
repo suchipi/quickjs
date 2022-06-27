@@ -10,5 +10,10 @@ DEPS += ../quickjs-libc/quickjs-libc.o
 DEPS += ../qjscalc/qjscalc.o
 DEPS += ../repl/repl.o
 
-: qjs.c $(DEPS) |> !compile_c_program |> qjs
+ifdef WIN32
+  OUTPUT = qjs.exe
+else
+  OUTPUT = qjs
+endif
 
+: qjs.c $(DEPS) |> !compile_c_program |> $(OUTPUT)

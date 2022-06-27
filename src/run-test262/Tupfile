@@ -8,4 +8,10 @@ DEPS += ../libunicode/libunicode.o
 DEPS += ../quickjs/quickjs.o
 DEPS += ../quickjs-libc/quickjs-libc.o
 
-: run-test262.c $(DEPS) |> !compile_c_program |> run-test262
+ifdef WIN32
+  OUTPUT = run-test262.exe
+else
+  OUTPUT = run-test262
+endif
+
+: run-test262.c $(DEPS) |> !compile_c_program |> $(OUTPUT)
