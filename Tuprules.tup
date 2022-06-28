@@ -117,7 +117,7 @@ DEFINES_TARGET += -DCONFIG_ALL_UNICODE
 # compiles one or more .c or .o files into one executable file.
 # takes 1..n inputs, has one output (the program file).
 !compile_host_c_program = |> $(CC_HOST) %f $(LDFLAGS_HOST) -o %o $(DEFINES_HOST) $(CFLAGS_HOST) $(LIBS_HOST) && rm -rf %o.dSYM |>
-!compile_target_c_program = |> $(CC_TARGET) %f $(LDFLAGS_TARGET) -o %o $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) && rm -rf %o.dSYM |>
+!compile_target_c_program = |> $(CC_TARGET) -static %f $(LDFLAGS_TARGET) -o %o $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) && rm -rf %o.dSYM |>
 
 # compiles one or more .c files into a .o file and a .so file.
 # takes 1..n inputs, has two outputs. first output is the .o, second is the .so.
