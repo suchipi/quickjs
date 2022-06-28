@@ -121,5 +121,5 @@ DEFINES_TARGET += -DCONFIG_ALL_UNICODE
 
 # compiles one or more .c files into a .o file and a .so file.
 # takes 1..n inputs, has two outputs. first output is the .o, second is the .so.
-!compile_host_c_shared_library = |> $(CC_HOST) -c %f $(LDFLAGS_HOST) -o %1o $(DEFINES_HOST) $(CFLAGS_HOST) $(LIBS_HOST) -fpic && $(CC_HOST) $(LDFLAGS_HOST) $(DEFINES_HOST) $(CFLAGS_HOST) $(LIBS_HOST) %f -shared %1o -o %2o |>
-!compile_target_c_shared_library = |> $(CC_TARGET) -c %f $(LDFLAGS_TARGET) -o %1o $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) -fpic && $(CC_TARGET) $(LDFLAGS_TARGET) $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) %f -shared %1o -o %2o |>
+!compile_host_c_shared_library = |> $(CC_HOST) -c %f $(LDFLAGS_HOST) -o %1o $(DEFINES_HOST) $(CFLAGS_HOST) $(LIBS_HOST) -fpic && $(CC_HOST) %f -shared %1o -o %2o |>
+!compile_target_c_shared_library = |> $(CC_TARGET) -c %f $(LDFLAGS_TARGET) -o %1o $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) -fpic && $(CC_TARGET) %f -shared %1o -o %2o |>
