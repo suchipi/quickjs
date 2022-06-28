@@ -1,13 +1,6 @@
 # https://gittup.org/tup/manual.html
 include_rules
 
-ifdef WIN32
-  QJSC = ../qjsc/qjsc.exe
-  QJSC_CMD = wine $(QJSC)
-else
-  QJSC = ../qjsc/qjsc
-  QJSC_CMD = $(QJSC)
-endif
-
-: repl.js | $(QJSC) |> $(QJSC_CMD) -c -o %o -m %f |> repl.c
-: repl.c |> !compile_c_object |> %B.o
+: repl.js | ../qjsc/qjsc.host |> ../qjsc/qjsc.host -c -o %o -m %f |> repl.c
+: repl.c |> !compile_host_c_object |> %B.host.o
+: repl.c |> !compile_target_c_object |> %B.target.o

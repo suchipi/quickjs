@@ -1,66 +1,109 @@
 # https://gittup.org/tup/manual.html
 
-# The name of the binary to use for c compilation.
-ifdef CC
-  CC = @(CC)
+# Each of these variables has a "HOST" version and a "TARGET" version.
+# This is to support cross-compilation (which is how we build for Windows).
+# "HOST" variables are used when compiling programs/objects in the format of the host machine (where compilation is taking place).
+# "TARGET" variables are used when compiling programs/objects in the format of the target machine (where the final binaries will be run).
+
+# For most build configs, HOST and TARGET are the same; compiling linux binaries on linux machine, compiling macOS binaries on a macOS machine, etc.
+# For windows, though, we use mingw to compile a windows binary from a linux machine. In that situation, host is linux and target is windows.
+
+# The name of the binary program to use for c compilation (it should be in PATH). eg. `gcc`, `clang`, etc
+ifdef CC_HOST
+  CC_HOST = @(CC_HOST)
 else
-  CC = cc
+  CC_HOST = cc
+endif
+ifdef CC_TARGET
+  CC_TARGET = @(CC_TARGET)
+else
+  CC_TARGET = cc
 endif
 
-# --- Various flags to pass to the c compiler ---
-ifdef CFLAGS
-  CFLAGS = @(CFLAGS)
+# --- Various flags to pass to the c compiler. ---
+ifdef CFLAGS_HOST
+  CFLAGS_HOST = @(CFLAGS_HOST)
 else
-  CFLAGS =
+  CFLAGS_HOST =
+endif
+ifdef CFLAGS_TARGET
+  CFLAGS_TARGET = @(CFLAGS_TARGET)
+else
+  CFLAGS_TARGET =
 endif
 
 # Show all warnings.
-CFLAGS += -Wall
+CFLAGS_HOST += -Wall
+CFLAGS_TARGET += -Wall
 
-# --- Linker flags ---
-ifdef LDFLAGS
-  LDFLAGS = @(LDFLAGS)
+# --- Linker flags. ---
+ifdef LDFLAGS_HOST
+  LDFLAGS_HOST = @(LDFLAGS_HOST)
 else
-  LDFLAGS =
+  LDFLAGS_HOST =
+endif
+ifdef LDFLAGS_TARGET
+  LDFLAGS_TARGET = @(LDFLAGS_TARGET)
+else
+  LDFLAGS_TARGET =
 endif
 
 # Include source debugging info in the binaries
-LDFLAGS += -g
+LDFLAGS_HOST += -g
+LDFLAGS_TARGET += -g
 
-# --- Libraries to include ---
-ifdef LIBS
-  LIBS = @(LIBS)
+# --- Libraries to include. ---
+ifdef LIBS_HOST
+  LIBS_HOST = @(LIBS_HOST)
 else
-  LIBS =
+  LIBS_HOST =
+endif
+ifdef LIBS_TARGET
+  LIBS_TARGET = @(LIBS_TARGET)
+else
+  LIBS_TARGET =
 endif
 
 # math functions and constants. <math.h>
-LIBS += -lm
+LIBS_HOST += -lm
+LIBS_TARGET += -lm
 
 # --- Defines for the preprocessor
-ifdef DEFINES
-  DEFINES = @(DEFINES)
+ifdef DEFINES_HOST
+  DEFINES_HOST = @(DEFINES_HOST)
 else
-  DEFINES =
+  DEFINES_HOST =
+endif
+ifdef DEFINES_TARGET
+  DEFINES_TARGET = @(DEFINES_TARGET)
+else
+  DEFINES_TARGET =
 endif
 
 # whether to enable debugprint
-# DEFINES += -DDEBUG
+# DEFINES_HOST += -DDEBUG
+# DEFINES_TARGET += -DDEBUG
 
-DEFINES += -DCONFIG_VERSION="\"wip\""
+DEFINES_HOST += -DCONFIG_VERSION="\"wip\""
+DEFINES_TARGET += -DCONFIG_VERSION="\"wip\""
 
-# whether to enable 'use math' and BigFloat
-DEFINES += -DCONFIG_BIGNUM
+# enable 'use math' and BigFloat
+DEFINES_HOST += -DCONFIG_BIGNUM
+DEFINES_TARGET += -DCONFIG_BIGNUM
 
 # link-time optimization
-DEFINES += -DCONFIG_LTO
-LDFLAGS += -flto
+DEFINES_HOST += -DCONFIG_LTO
+DEFINES_TARGET += -DCONFIG_LTO
+LDFLAGS_HOST += -flto
+LDFLAGS_TARGET += -flto
 
 # install dir
-DEFINES += -DCONFIG_PREFIX="\"/usr/local\""
+DEFINES_HOST += -DCONFIG_PREFIX="\"/usr/local\""
+DEFINES_TARGET += -DCONFIG_PREFIX="\"/usr/local\""
 
 # include full unicode tables
-DEFINES += -DCONFIG_ALL_UNICODE
+DEFINES_HOST += -DCONFIG_ALL_UNICODE
+DEFINES_TARGET += -DCONFIG_ALL_UNICODE
 
 # macro commands for use in Tupfiles. you need to put `include_rules` at the top of your Tupfile to get these.
 #
@@ -68,12 +111,15 @@ DEFINES += -DCONFIG_ALL_UNICODE
 
 # compiles one or more .c files into one .o file.
 # takes 1..n inputs, has one output (the .o file).
-!compile_c_object = |> $(CC) -c %f $(LDFLAGS) -o %o $(DEFINES) $(CFLAGS) $(LIBS) |>
+!compile_host_c_object = |> $(CC_HOST) -c %f $(LDFLAGS_HOST) -o %o $(DEFINES_HOST) $(CFLAGS_HOST) $(LIBS_HOST) |>
+!compile_target_c_object = |> $(CC_TARGET) -c %f $(LDFLAGS_TARGET) -o %o $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) |>
 
 # compiles one or more .c or .o files into one executable file.
 # takes 1..n inputs, has one output (the program file).
-!compile_c_program = |> $(CC) %f $(LDFLAGS) -o %o $(DEFINES) $(CFLAGS) $(LIBS) && rm -rf %o.dSYM |>
+!compile_host_c_program = |> $(CC_HOST) %f $(LDFLAGS_HOST) -o %o $(DEFINES_HOST) $(CFLAGS_HOST) $(LIBS_HOST) && rm -rf %o.dSYM |>
+!compile_target_c_program = |> $(CC_TARGET) %f $(LDFLAGS_TARGET) -o %o $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) && rm -rf %o.dSYM |>
 
 # compiles one or more .c files into a .o file and a .so file.
 # takes 1..n inputs, has two outputs. first output is the .o, second is the .so.
-!compile_c_shared_library = |> $(CC) -c %f $(LDFLAGS) -o %1o $(DEFINES) $(CFLAGS) $(LIBS) -fpic && $(CC) %f -shared %1o -o %2o |>
+!compile_host_c_shared_library = |> $(CC_HOST) -c %f $(LDFLAGS_HOST) -o %1o $(DEFINES_HOST) $(CFLAGS_HOST) $(LIBS_HOST) -fpic && $(CC_HOST) $(LDFLAGS_HOST) $(DEFINES_HOST) $(CFLAGS_HOST) $(LIBS_HOST) %f -shared %1o -o %2o |>
+!compile_target_c_shared_library = |> $(CC_TARGET) -c %f $(LDFLAGS_TARGET) -o %1o $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) -fpic && $(CC_TARGET) $(LDFLAGS_TARGET) $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) %f -shared %1o -o %2o |>

@@ -14,16 +14,9 @@ UNICODE_FILES=./downloaded/CaseFolding.txt \
 ./downloaded/PropertyValueAliases.txt \
 ./downloaded/emoji-data.txt
 
-ifdef WIN32
-  UNICODE_GEN = ./unicode_gen.exe
-  UNICODE_GEN_CMD = wine $(UNICODE_GEN)
-else
-  UNICODE_GEN = ./unicode_gen
-  UNICODE_GEN_CMD = $(UNICODE_GEN)
-endif
+: ../cutils/cutils.host.o unicode_gen.c |> !compile_host_c_program |> unicode_gen.host
 
-: ../cutils/cutils.o unicode_gen.c |> !compile_c_program |> $(UNICODE_GEN)
+: unicode_gen.host $(UNICODE_FILES) |> ./unicode_gen.host downloaded %o |> libunicode-table.h
 
-: $(UNICODE_GEN) $(UNICODE_FILES) |> $(UNICODE_GEN_CMD) downloaded %o |> libunicode-table.h
-
-: libunicode.c | libunicode-table.h |> !compile_c_object |> libunicode.o
+: libunicode.c | libunicode-table.h |> !compile_host_c_object |> libunicode.host.o
+: libunicode.c | libunicode-table.h |> !compile_target_c_object |> libunicode.target.o

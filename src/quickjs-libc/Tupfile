@@ -1,4 +1,5 @@
 # https://gittup.org/tup/manual.html
 include_rules
 
-: foreach *.c |> !compile_c_object |> %B.o
+: foreach *.c |> !compile_host_c_object |> %B.host.o
+: foreach *.c |> !compile_target_c_object |> %B.target.o
