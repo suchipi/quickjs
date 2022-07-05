@@ -6,11 +6,14 @@ ifndef VARIANT
 	endif
 endif
 
-all: link
+all: link .tup
 	tup --no-environ-check build-$(VARIANT)
 
 link:
 	ln -sf build-$(VARIANT) build
+
+.tup:
+	tup init
 
 test: link
 	./tests/run_all.sh
