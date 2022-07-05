@@ -6,6 +6,8 @@ ifndef VARIANT
 	endif
 endif
 
+.PHONY: all link test
+
 all: link .tup
 	tup --no-environ-check build-$(VARIANT)
 
