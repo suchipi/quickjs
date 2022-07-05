@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-QJS="./build/src/qjs/qjs"
+QJS="./build/src/qjs/qjs.host"
 
 if [ ! -x "${QJS}" ]; then
   echo "qjs binary not found; run make? make sure you're running this shell script with PWD set to the repo root."
