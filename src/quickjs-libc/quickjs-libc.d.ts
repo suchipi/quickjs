@@ -686,4 +686,19 @@ declare module "os" {
      */
     onmessage: null | ((event: { data: StructuredClonable }) => void);
   }
+
+  /** constant for {@link access}(); test for read permission. */
+  export var R_OK: number;
+
+  /** constant for {@link access}(); test for write permission. */
+  export var W_OK: number;
+
+  /** constant for {@link access}(); test for execute (search) permission. */
+  export var X_OK: number;
+
+  /** constant for {@link access}(); test for existence of file. */
+  export var F_OK: number;
+
+  /** `access` Unix system call; checks if a file is readable, writable, executable, and/or exists (use {@link R_OK}, {@link W_OK}, {@link X_OK}, and/or {@link F_OK} for `accessMode`). Throws a descriptive error (with errno property) if the requested access is not available; otherwise, returns undefined. */
+  export function access(path: string, accessMode: number): void;
 }

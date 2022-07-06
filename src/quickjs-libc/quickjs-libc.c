@@ -3227,6 +3227,31 @@ static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
 
 #endif /* !_WIN32 */
 
+static JSValue js_os_access(JSContext *ctx, JSValueConst this_val,
+                            int argc, JSValueConst *argv)
+{
+    const char *path;
+    int amode, err, ret;
+
+    path = JS_ToCString(ctx, argv[0]);
+    if (!path)
+        return JS_EXCEPTION;
+
+    if (JS_ToInt32(ctx, &amode, argv[1]))
+        return JS_EXCEPTION;
+
+    ret = access(path, amode);
+    err = errno;
+    JS_FreeCString(ctx, path);
+    if (ret != 0) {
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
+    } else {
+        return JS_UNDEFINED;
+    }
+}
+
 #ifdef USE_WORKER
 
 /* Worker */
@@ -3764,6 +3789,12 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_CFUNC_DEF("dup", 1, js_os_dup ),
     JS_CFUNC_DEF("dup2", 2, js_os_dup2 ),
 #endif
+    JS_CFUNC_DEF("access", 2, js_os_access ),
+    /* constants for access */
+    OS_FLAG(R_OK),
+    OS_FLAG(W_OK),
+    OS_FLAG(X_OK),
+    OS_FLAG(F_OK),
 };
 
 static int js_os_init(JSContext *ctx, JSModuleDef *m)
