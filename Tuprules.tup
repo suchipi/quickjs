@@ -80,6 +80,18 @@ else
   DEFINES_TARGET =
 endif
 
+# The name of the binary program to use for creating .a archives (it should be in PATH). eg. `ar`, `llvm-ar`, etc
+ifdef AR_HOST
+  AR_HOST = @(AR_HOST)
+else
+  AR_HOST = ar
+endif
+ifdef AR_TARGET
+  AR_TARGET = @(AR_TARGET)
+else
+  AR_TARGET = ar
+endif
+
 # whether to enable debugprint
 # DEFINES_HOST += -DDEBUG
 # DEFINES_TARGET += -DDEBUG
@@ -123,3 +135,8 @@ DEFINES_TARGET += -DCONFIG_ALL_UNICODE
 # takes 1..n inputs, has two outputs. first output is the .o, second is the .so.
 !compile_host_c_shared_library = |> $(CC_HOST) -c %f $(LDFLAGS_HOST) -o %1o $(DEFINES_HOST) $(CFLAGS_HOST) $(LIBS_HOST) -fpic && $(CC_HOST) %f $(LDFLAGS_HOST) $(LIBS_HOST) -shared %1o -o %2o && rm -rf ./*.dSYM |>
 !compile_target_c_shared_library = |> $(CC_TARGET) -c %f $(LDFLAGS_TARGET) -o %1o $(DEFINES_TARGET) $(CFLAGS_TARGET) $(LIBS_TARGET) -fpic && $(CC_TARGET) %f $(LDFLAGS_TARGET) $(LIBS_TARGET) -shared %1o -o %2o && rm -rf ./*.dSYM |>
+
+# compiles one or more .o files into an .a file.
+# takes 1..n inputs, has one output (the .a file).
+!create_host_archive = |> $(AR_HOST) -rcs %o %f |>
+!create_target_archive = |> $(AR_TARGET) -rcs %o %f |>
