@@ -67,7 +67,7 @@ declare module "std" {
    *
    * @param filename - The relative or absolute path to the file to load. Relative paths are resolved relative to the process's current working directory.
    */
-  export function loadFile(filename: string): string | null;
+  export function loadFile(filename: string): string;
 
   /**
    * Open a file (wrapper to the libc `fopen()`).
