@@ -284,8 +284,11 @@ declare module "std" {
      */
     printf(fmt: string, ...args: Array<any>): void;
 
-    /** Flush the buffered file. */
+    /** Flush the buffered file. Wrapper for C `fflush`. */
     flush(): void;
+
+    /** Sync the buffered file to disk. Wrapper for C `fsync`. */
+    sync(): void;
 
     /**
      * Seek to a given file position (whence is `std.SEEK_*`).

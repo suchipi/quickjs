@@ -1091,6 +1091,16 @@ static JSValue js_std_file_flush(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+static JSValue js_std_file_sync(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
+{
+    FILE *f = js_std_file_get(ctx, this_val);
+    if (!f)
+        return JS_EXCEPTION;
+    fsync(f->_fileno);
+    return JS_UNDEFINED;
+}
+
 static JSValue js_std_file_tell(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv, int is_bigint)
 {
@@ -1543,6 +1553,7 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
     JS_CFUNC_MAGIC_DEF("puts", 1, js_std_file_puts, 1 ),
     JS_CFUNC_DEF("printf", 1, js_std_file_printf ),
     JS_CFUNC_DEF("flush", 0, js_std_file_flush ),
+    JS_CFUNC_DEF("sync", 0, js_std_file_sync ),
     JS_CFUNC_MAGIC_DEF("tell", 0, js_std_file_tell, 0 ),
     JS_CFUNC_MAGIC_DEF("tello", 0, js_std_file_tell, 1 ),
     JS_CFUNC_DEF("seek", 2, js_std_file_seek ),
