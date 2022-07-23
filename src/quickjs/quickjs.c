@@ -28332,9 +28332,10 @@ JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier)
     JSValue basename_val;
     JSValue ns;
 
-    basename_atom = JS_GetScriptOrModuleName(ctx, 0);
+    basename_atom = JS_GetScriptOrModuleName(ctx, 1);
     if (basename_atom == JS_ATOM_NULL) {
-        basename_val = JS_NewString(ctx, "./<cwd>");
+        JS_FreeAtom(ctx, basename_atom);
+        return JS_ThrowError(ctx, "Failed to identify the filename of the code calling importModule or require");
     } else {
         basename_val = JS_AtomToValue(ctx, basename_atom);
         JS_FreeAtom(ctx, basename_atom);
