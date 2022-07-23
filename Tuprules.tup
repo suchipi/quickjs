@@ -96,8 +96,8 @@ endif
 # DEFINES_HOST += -DDEBUG
 # DEFINES_TARGET += -DDEBUG
 
-DEFINES_HOST += -DCONFIG_VERSION="\"wip\""
-DEFINES_TARGET += -DCONFIG_VERSION="\"wip\""
+DEFINES_HOST += -DCONFIG_VERSION="\"suchipi-`git rev-parse --short HEAD`\""
+DEFINES_TARGET += -DCONFIG_VERSION="\"suchipi-`git rev-parse --short HEAD`\""
 
 # enable 'use math' and BigFloat
 DEFINES_HOST += -DCONFIG_BIGNUM
