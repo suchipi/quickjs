@@ -15,9 +15,6 @@ function assert(actual, expected, message) {
                 (message ? " (" + message + ")" : ""));
 }
 
-// load more elaborate version of assert if available
-try { __loadScript("test_assert.js"); } catch(e) {}
-
 /*----------------*/
 
 function test_while()
@@ -333,7 +330,7 @@ function test_try_catch7()
 function test_try_catch8()
 {
     var i, s;
-    
+
     s = "";
     for(var i in {x:1, y:2}) {
         try {
