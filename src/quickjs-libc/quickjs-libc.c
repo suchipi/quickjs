@@ -41,6 +41,7 @@
 #include <windows.h>
 #include <conio.h>
 #include <utime.h>
+#include <io.h>
 #else
 #include <dlfcn.h>
 #include <termios.h>
@@ -1094,10 +1095,19 @@ static JSValue js_std_file_flush(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_file_sync(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
+    int fd;
     FILE *f = js_std_file_get(ctx, this_val);
     if (!f)
         return JS_EXCEPTION;
-    fsync(f->_fileno);
+
+    fd = fileno(f);
+
+    #ifdef _WIN32
+    _commit(fd);
+    #else
+    fsync(fd);
+    #endif
+
     return JS_UNDEFINED;
 }
 
