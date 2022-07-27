@@ -2448,7 +2448,7 @@ static JSValue js_os_chdir(JSContext *ctx, JSValueConst this_val,
     ret = chdir(target);
     err = errno;
     JS_FreeCString(ctx, target);
-    if (ret == 0) {
+    if (ret != 0) {
         JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         return JS_EXCEPTION;
