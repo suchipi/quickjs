@@ -443,6 +443,26 @@ static JSValue js_std_importModule(JSContext *ctx, JSValueConst this_val,
     }
 }
 
+/* return the name of the calling script or module */
+static JSValue js_std_getFileNameFromStack(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv)
+{
+    int stack_levels = 0;
+    JSAtom filename;
+
+    if (argc == 1) {
+        if (JS_ToInt32(ctx, &stack_levels, argv[0]))
+            return JS_EXCEPTION;
+    }
+
+    filename = JS_GetScriptOrModuleName(ctx, stack_levels + 1);
+    if (filename == JS_ATOM_NULL) {
+        return JS_ThrowError(ctx, "Cannot determine the caller filename for the given stack level. Maybe you're using eval?");
+    } else {
+        return JS_AtomToString(ctx, filename);
+    }
+}
+
 /* load and evaluate a file as a module */
 static JSValue js_require(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
@@ -1543,6 +1563,7 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("getenviron", 1, js_std_getenviron ),
     JS_CFUNC_DEF("urlGet", 1, js_std_urlGet ),
     JS_CFUNC_DEF("loadFile", 1, js_std_loadFile ),
+    JS_CFUNC_DEF("getFileNameFromStack", 1, js_std_getFileNameFromStack ),
     JS_CFUNC_DEF("parseExtJSON", 1, js_std_parseExtJSON ),
 
     /* FILE I/O */

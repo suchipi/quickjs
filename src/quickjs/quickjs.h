@@ -901,9 +901,7 @@ JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj);
    returns a module. */
 int JS_ResolveModule(JSContext *ctx, JSValueConst obj);
 
-/* only exported for os.Worker() */
 JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels);
-/* only exported for os.Worker() */
 JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
                           const char *filename);
 

@@ -70,6 +70,15 @@ declare module "std" {
   export function loadFile(filename: string): string;
 
   /**
+   * Read the script of module filename from an active stack frame, then return it as a string.
+   * 
+   * If there isn't a valid filename for the specified stack frame, an error will be thrown.
+   * 
+   * @param stackLevels - How many levels up the stack to search for a filename. Defaults to 0, which uses the current stack frame.
+   */
+  export function getFileNameFromStack(stackLevels: number): string;
+
+  /**
    * Open a file (wrapper to the libc `fopen()`).
    * Return the FILE object.
    *
