@@ -629,9 +629,25 @@ JSModuleDef *js_module_loader(JSContext *ctx,
 
         buf = js_load_file(ctx, &buf_len, module_name);
         if (!buf) {
-            JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
-                                   module_name);
-            return NULL;
+            // try adding .js to the end and see if that works
+            char *name_with_js_extension = js_malloc(ctx, strlen(module_name) + 3);
+            sprintf(name_with_js_extension, "%s.js", module_name);
+            buf = js_load_file(ctx, &buf_len, name_with_js_extension);
+            js_free(ctx, name_with_js_extension);
+
+            if (!buf) {
+                // try adding /index.js to the end and see if that works
+                char *name_with_index_js = js_malloc(ctx, strlen(module_name) + 9);
+                sprintf(name_with_index_js, "%s/index.js", module_name);
+                buf = js_load_file(ctx, &buf_len, name_with_index_js);
+                js_free(ctx, name_with_index_js);
+
+                if (!buf) {
+                    JS_ThrowReferenceError(ctx, "could not load module filename '%s'. We also tried '%s.js' and '%s/index.js', but those didn't work either.",
+                                           module_name, module_name, module_name);
+                    return NULL;
+                }
+            }
         }
 
         /* compile the module */
