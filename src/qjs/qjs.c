@@ -482,7 +482,7 @@ int main(int argc, char **argv)
     }
 
     /* loader for ES6 modules */
-    JS_SetModuleLoaderFunc(rt, NULL, js_module_loader, NULL);
+    JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
 
     if (dump_unhandled_promise_rejection) {
         JS_SetHostPromiseRejectionTracker(rt, js_std_promise_rejection_tracker,

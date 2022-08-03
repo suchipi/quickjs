@@ -657,7 +657,7 @@ int main(int argc, char **argv)
 #endif
 
     /* loader for ES6 modules */
-    JS_SetModuleLoaderFunc(rt, NULL, jsc_module_loader, NULL);
+    JS_SetModuleLoaderFunc(rt, js_module_normalize_name, jsc_module_loader, NULL);
 
     debugprint("writing file header comment and include...\n");
 
@@ -749,7 +749,7 @@ int main(int argc, char **argv)
 
         /* add the module loader if necessary */
         if (feature_bitmap & (1 << FE_MODULE_LOADER)) {
-            fprintf(fo, "  JS_SetModuleLoaderFunc(rt, NULL, js_module_loader, NULL);\n");
+            fprintf(fo, "  JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);\n");
         }
 
         fprintf(fo,

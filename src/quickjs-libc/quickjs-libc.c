@@ -629,25 +629,9 @@ JSModuleDef *js_module_loader(JSContext *ctx,
 
         buf = js_load_file(ctx, &buf_len, module_name);
         if (!buf) {
-            // try adding .js to the end and see if that works
-            char *name_with_js_extension = js_malloc(ctx, strlen(module_name) + 3);
-            sprintf(name_with_js_extension, "%s.js", module_name);
-            buf = js_load_file(ctx, &buf_len, name_with_js_extension);
-            js_free(ctx, name_with_js_extension);
-
-            if (!buf) {
-                // try adding /index.js to the end and see if that works
-                char *name_with_index_js = js_malloc(ctx, strlen(module_name) + 9);
-                sprintf(name_with_index_js, "%s/index.js", module_name);
-                buf = js_load_file(ctx, &buf_len, name_with_index_js);
-                js_free(ctx, name_with_index_js);
-
-                if (!buf) {
-                    JS_ThrowReferenceError(ctx, "could not load module filename '%s'. We also tried '%s.js' and '%s/index.js', but those didn't work either.",
-                                           module_name, module_name, module_name);
-                    return NULL;
-                }
-            }
+            JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
+                                   module_name);
+            return NULL;
         }
 
         /* compile the module */
@@ -663,6 +647,118 @@ JSModuleDef *js_module_loader(JSContext *ctx,
         JS_FreeValue(ctx, func_val);
     }
     return m;
+}
+
+static const char *DOT_JS = ".js";
+static const char *SLASH_INDEX_DOT_JS = "/index.js";
+
+static BOOL is_accessible_file(const char *path)
+{
+    struct stat st;
+
+    if (stat(path, &st) != 0) {
+        return FALSE;
+    }
+
+    if (st.st_mode & S_IFDIR) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+char *js_module_normalize_name(JSContext *ctx,
+                               const char *base_name,
+                               const char *name, void *opaque)
+{
+    // here starts stuff copied from js_default_module_normalize_name
+
+    char *filename, *p;
+    const char *r;
+    int len;
+
+    if (name[0] != '.') {
+        /* if no initial dot, the module name is not modified */
+        return js_strdup(ctx, name);
+    }
+
+    p = strrchr(base_name, '/');
+    if (p)
+        len = p - base_name;
+    else
+        len = 0;
+
+    filename = js_malloc(ctx, len + strlen(name) + 1 + 1);
+    if (!filename)
+        return NULL;
+    memcpy(filename, base_name, len);
+    filename[len] = '\0';
+
+    /* we only normalize the leading '..' or '.' */
+    r = name;
+    for(;;) {
+        if (r[0] == '.' && r[1] == '/') {
+            r += 2;
+        } else if (r[0] == '.' && r[1] == '.' && r[2] == '/') {
+            /* remove the last path element of filename, except if "."
+               or ".." */
+            if (filename[0] == '\0')
+                break;
+            p = strrchr(filename, '/');
+            if (!p)
+                p = filename;
+            else
+                p++;
+            if (!strcmp(p, ".") || !strcmp(p, ".."))
+                break;
+            if (p > filename)
+                p--;
+            *p = '\0';
+            r += 3;
+        } else {
+            break;
+        }
+    }
+    if (filename[0] != '\0')
+        strcat(filename, "/");
+    strcat(filename, r);
+
+    // here ends stuff copied from js_default_module_normalize_name
+
+    if (is_accessible_file(filename)) {
+        debugprint("import resolved via literal filename: %s\n", filename);
+        return filename;
+    } else {
+        char *filename_with_added_js_extension;
+
+        filename_with_added_js_extension = js_malloc(ctx, strlen(filename) + strlen(DOT_JS));
+        sprintf(filename_with_added_js_extension, "%s%s", filename, DOT_JS);
+
+        if (is_accessible_file(filename_with_added_js_extension)) {
+            debugprint("import resolved via implicit js extension: %s\n", filename);
+            js_free(ctx, filename);
+            return filename_with_added_js_extension;
+        } else {
+            char *filename_with_added_index_dot_js;
+
+            js_free(ctx, filename_with_added_js_extension);
+            filename_with_added_index_dot_js = js_malloc(ctx, strlen(filename) + strlen(SLASH_INDEX_DOT_JS));
+            sprintf(filename_with_added_index_dot_js, "%s%s", filename, SLASH_INDEX_DOT_JS);
+
+            if (is_accessible_file(filename_with_added_index_dot_js)) {
+                debugprint("import resolved via implicit /index.js: %s\n", filename);
+                js_free(ctx, filename);
+                return filename_with_added_index_dot_js;
+            } else {
+                // Can't find this thing anywhere; maybe it doesn't exist?
+                // Use the originally-specified filename to make error messages
+                // clearer
+                debugprint("import failed to resolve: %s\n", filename);
+                js_free(ctx, filename_with_added_index_dot_js);
+                return filename;
+            }
+        }
+    }
 }
 
 static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
@@ -3472,7 +3568,7 @@ static void *worker_func(void *opaque)
     }
     js_std_init_handlers(rt);
 
-    JS_SetModuleLoaderFunc(rt, NULL, js_module_loader, NULL);
+    JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
 
     /* set the pipe to communicate with the parent */
     ts = JS_GetRuntimeOpaque(rt);
