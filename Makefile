@@ -6,24 +6,33 @@ ifndef VARIANT
 	endif
 endif
 
-.PHONY: all link test
+.PHONY: all tup test update-buildscripts link-build-to-variant link-build-to-root
 
-all: link .tup
+# Targets to be invoked directly
+
+all: link-build-to-root
+	rm -f ./build && ln -sf . build && ./buildscripts/build-$(VARIANT).sh
+
+tup: link-build-to-variant .tup
 	tup --no-environ-check build-$(VARIANT)
 
-link:
-	ln -sf build-$(VARIANT) build
+test: link-build-to-variant
+	./tests/run_all.sh
+
+update-buildscripts: .tup
+	rm -rf buildscripts/*.sh && \
+	  tup generate --config ./configs/darwin.config ./buildscripts/build-darwin.sh && \
+		tup generate --config ./configs/linux.config ./buildscripts/build-linux.sh && \
+		tup generate --config ./configs/windows.config ./buildscripts/build-windows.sh
+
+# Targets you probably won't invoke directly
+
+link-build-to-variant:
+	rm -f ./build && ln -sf build-$(VARIANT) build
+
+link-build-to-root:
+	rm -f ./build && ln -sf . build
 
 .tup:
 	tup init
 
-test: link
-	./tests/run_all.sh
-
-# If you can't use fuse or are having trouble getting it working,
-# you can use this instead of 'all'.
-#
-# Do note, though, that this will build *everything* each run, rather than only
-# the changed stuff.
-all-nofuse: link
-	tup generate --config configs/$(VARIANT).config build.sh && ./build.sh
