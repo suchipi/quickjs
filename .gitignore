@@ -8,3 +8,13 @@ null.d
 
 build-*/*
 !build-*/tup.config
+
+# These files are created when building without tup (via stuff in the buildscripts folder).
+src/**/*.o
+src/**/*.host
+src/**/*.target
+src/**/*.a
+src/**/*.so
+src/libunicode/libunicode-table.h
+src/qjscalc/qjscalc.c
+src/repl/repl.c
