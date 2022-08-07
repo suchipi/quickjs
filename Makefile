@@ -22,11 +22,10 @@ test: link-build-to-variant
 update-buildscripts: .tup
 	rm -rf buildscripts/*.sh && \
 	  tup generate --config ./configs/darwin.config ./buildscripts/build-darwin.sh && \
+		tup generate --config ./configs/darwin-arm.config ./buildscripts/build-darwin-arm.sh && \
 		tup generate --config ./configs/linux.config ./buildscripts/build-linux.sh && \
 		tup generate --config ./configs/windows.config ./buildscripts/build-windows.sh && \
-		sed -i 's/sh -e/sh -ex/' ./buildscripts/build-darwin.sh && \
-		sed -i 's/sh -e/sh -ex/' ./buildscripts/build-linux.sh && \
-		sed -i 's/sh -e/sh -ex/' ./buildscripts/build-windows.sh
+		sed -i 's/sh -e/sh -ex/' ./buildscripts/build-*.sh
 
 # Targets you probably won't invoke directly
 

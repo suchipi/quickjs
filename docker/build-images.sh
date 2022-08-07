@@ -9,3 +9,4 @@ cd docker
 docker build -t suchipi/quickjs-build:linux -f ./Dockerfile.build-linux .
 docker build -t suchipi/quickjs-build:windows -f ./Dockerfile.build-windows .
 docker build -t suchipi/quickjs-build:darwin -f ./Dockerfile.build-darwin .
+docker build -t suchipi/quickjs-build:darwin-arm -f ./Dockerfile.build-darwin-arm .

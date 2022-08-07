@@ -31,7 +31,7 @@ There are also probably some other miscellaneous changes I forgot.
 
 # Compiling
 
-The repo has stuff set up to compile quickjs binaries for Linux, macOS, or Windows. Compilation takes place via Docker.
+The repo has stuff set up to compile quickjs binaries for Linux, macOS, iOS, or Windows. Compilation takes place via Docker.
 
 The project has no external dependencies outside this repo, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes, such as FreeBSD. OS-specific configs for the build process live in the `configs` folder, and symlinks in the `build-<os-name>` folders point to those configs in order to link them into the build system. Read about "variants" in the [tup manual](https://gittup.org/tup/manual.html) for more info.
 
@@ -39,7 +39,7 @@ The project has no external dependencies outside this repo, and all of the code 
 
 - Clone the repo and cd to its folder
 - Run `./docker/build-images.sh`
-- Run either `./docker/run-image.sh linux`, `./docker/run-image.sh windows`, or `./docker/run-image.sh darwin`, depending on what binaries you want to create. `darwin` means macOS.
+- Run either `./docker/run-image.sh linux`, `./docker/run-image.sh windows`, `./docker/run-image.sh darwin`, or `./docker/run-image.sh darwin-arm` depending on what binaries you want to create (`darwin` means macOS x64, `darwin-arm` means macOS ARM and iOS).
 - You will now be in a shell inside a docker container. Run `make`.
 - Assuming everything compiled correctly, you can now exit the docker container shell by pressing Ctrl+D.
 - Build artifacts will be present within the `build` folder (which is a symlink). The directory structure inside that folder mirrors the structure at the repo root. The most notable artifacts are:

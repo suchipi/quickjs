@@ -1,0 +1,8 @@
+# Dockerfile for: suchipi/quickjs-build:darwin-arm
+#
+# This dockerfile creates an image with an environment suitable for compiling
+# the "darwin-arm" variant in, via `make`.
+
+FROM suchipi/quickjs-build:darwin
+
+ENV VARIANT darwin-arm

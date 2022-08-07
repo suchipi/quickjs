@@ -11,9 +11,6 @@ fi
 echo "test_bignum.js..."
 "${QJS}" --bignum ./tests/test_bignum.js
 
-echo "test_bjson.js..."
-"${QJS}" ./tests/test_bjson.js
-
 echo "test_builtin.js..."
 "${QJS}" ./tests/test_builtin.js
 
