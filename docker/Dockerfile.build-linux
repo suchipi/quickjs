@@ -1,0 +1,20 @@
+# Dockerfile for: suchipi/quickjs-build:linux
+#
+# This dockerfile creates an image with an environment suitable for compiling
+# the "linux" variant in, via `make`.
+
+FROM ubuntu:22.04
+
+RUN apt-get update && \
+  apt-get install -y \
+    build-essential \
+    git
+
+# Make normal user
+RUN groupadd -g 1000 user
+RUN useradd -m -s /bin/bash -u 1000 -g 1000 user
+USER user
+
+# The intent is that you volume-mount the repo into /opt/quickjs.
+WORKDIR /opt/quickjs
+CMD bash

@@ -1,0 +1,16 @@
+# Dockerfile for: suchipi/quickjs-build:windows
+#
+# This dockerfile creates an image with an environment suitable for compiling
+# the "windows" variant in, via `make`.
+
+FROM suchipi/quickjs-build:linux
+
+USER root
+
+RUN apt-get update && \
+  apt-get install -y \
+    gcc-mingw-w64-x86-64
+
+USER user
+
+ENV VARIANT windows
