@@ -7,12 +7,15 @@ FROM ubuntu:22.04
 
 RUN apt-get update && \
   apt-get install -y \
+    sudo \
     build-essential \
     git
 
 # Make normal user
 RUN groupadd -g 1000 user
 RUN useradd -m -s /bin/bash -u 1000 -g 1000 user
+RUN echo "user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
 USER user
 
 # The intent is that you volume-mount the repo into /opt/quickjs.

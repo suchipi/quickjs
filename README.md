@@ -31,45 +31,21 @@ There are also probably some other miscellaneous changes I forgot.
 
 # Compiling
 
-The repo has stuff set up to compile quickjs for Linux, macOS, or Windows. Windows compilation is done via cross-compilation from a Linux host, using mingw.
+The repo has stuff set up to compile quickjs binaries for Linux, macOS, or Windows. Compilation takes place via Docker.
 
 The project has no external dependencies outside this repo, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes, such as FreeBSD. OS-specific configs for the build process live in the `configs` folder, and symlinks in the `build-<os-name>` folders point to those configs in order to link them into the build system. Read about "variants" in the [tup manual](https://gittup.org/tup/manual.html) for more info.
 
-## Compilation Instructions (to make Linux binaries)
+## Compilation Instructions
 
-- On a Linux machine:
-  - Clone the repo and cd to its folder
-  - Run `make`
-  - Build artifacts will be present within the `build` folder. The directory structure inside that folder mirrors the structure at the repo root. The most notable artifacts are:
-    - `./build/src/archive/quickjs.target.a` - A C library you can link against which contains everything from `quickjs` and `quickjs-libc`.
-    - `./build/src/qjs/qjs.target` - the `qjs` command-line interpreter and repl
-    - `./build/src/qjsc/qjsc.target` - the `qjsc` command-line tool which can compile JS code into C programs containing the bytecode for that JS. Can be used to distribute utilities written in JavaScript as statically-linked binaries.
-  - The binaries will be compiled for the processor architecture of the host machine where they were compiled (eg amd64).
-
-## Compilation Instructions (to make macOS binaries)
-
-- On a macOS machine:
-  - Clone the repo and cd to its folder
-  - Run `make`
-  - Build artifacts will be present within the `build` folder. The directory structure inside that folder mirrors the structure at the repo root. The most notable artifacts are:
-    - `./build/src/archive/quickjs.target.a` - A C library you can link against which contains everything from `quickjs` and `quickjs-libc`.
-    - `./build/src/qjs/qjs.target` - the `qjs` command-line interpreter and repl
-    - `./build/src/qjsc/qjsc.target` - the `qjsc` command-line tool which can compile JS code into C programs containing the bytecode for that JS. Can be used to distribute utilities written in JavaScript as statically-linked binaries.
-  - The binaries will be compiled for the processor architecture of the host machine where they were compiled (eg amd64).
-
-> Currently, the only way to make an arm64 macOS binary is by building on an arm64 macOS machine. But in the future, I hope to add a build variant for making an arm64 macOS binary on an amd64 macOS machine.
-
-## Compilation Instructions (for Windows)
-
-- On a machine running Ubuntu:
-  - Install the package `gcc-mingw-w64-x86-64` with apt
-  - Clone the repo and cd to its folder
-  - Run `env VARIANT=windows make`
-  - Build artifacts will be present within the `build` folder. The directory structure inside that folder mirrors the structure at the repo root. The most notable artifacts are:
-    - `./build/src/archive/quickjs.target.a` - A C library you can link against which contains everything from `quickjs` and `quickjs-libc`.
-    - `./build/src/qjs/qjs.target` - the `qjs` command-line interpreter and repl
-    - `./build/src/qjsc/qjsc.target` - the `qjsc` command-line tool which can compile JS code into C programs containing the bytecode for that JS. Can be used to distribute utilities written in JavaScript as statically-linked binaries.
-  - The binaries will be compiled for the `x86_64` processor architecture.
+- Clone the repo and cd to its folder
+- Run `./docker/build-images.sh`
+- Run either `./docker/run-image.sh linux`, `./docker/run-image.sh windows`, or `./docker/run-image.sh darwin`, depending on what binaries you want to create. `darwin` means macOS.
+- You will now be in a shell inside a docker container. Run `make`.
+- Assuming everything compiled correctly, you can now exit the docker container shell by pressing Ctrl+D.
+- Build artifacts will be present within the `build` folder (which is a symlink). The directory structure inside that folder mirrors the structure at the repo root. The most notable artifacts are:
+  - `./build/src/archive/quickjs.target.a` - A C library you can link against which contains everything from `quickjs` and `quickjs-libc`.
+  - `./build/src/qjs/qjs.target` - the `qjs` command-line interpreter and repl
+  - `./build/src/qjsc/qjsc.target` - the `qjsc` command-line tool which can compile JS code into C programs containing the bytecode for that JS. Can be used to distribute utilities written in JavaScript as statically-linked binaries.
 
 ## Updating buildscripts
 
@@ -86,3 +62,4 @@ This does mean, though, that if any of the tup-related files are changed (`Tupru
   - On macOS you can get tup with either [Homebrew](https://brew.sh/) or [MacPorts](https://www.macports.org/). I recommend MacPorts as in my personal experience, it is more stable, has better UX, and has more fine-grained package versions available.
 - Clone the repo and cd to its folder
 - Run `make update-buildscripts`
+  - If you run into an error about `.o` files existing that aren't supposed to exist, run `git clean -dfX src` to remove them.

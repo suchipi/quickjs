@@ -1,12 +1,13 @@
 # https://gittup.org/tup/manual.html
 
 # Each of these variables has a "HOST" version and a "TARGET" version.
-# This is to support cross-compilation (which is how we build for Windows).
+# This is to support cross-compilation (which is how we build for Windows/macOS).
 # "HOST" variables are used when compiling programs/objects in the format of the host machine (where compilation is taking place).
 # "TARGET" variables are used when compiling programs/objects in the format of the target machine (where the final binaries will be run).
 
-# For most build configs, HOST and TARGET are the same; compiling linux binaries on linux machine, compiling macOS binaries on a macOS machine, etc.
-# For windows, though, we use mingw to compile a windows binary from a linux machine. In that situation, host is linux and target is windows.
+# For linux, HOST and TARGET are the same.
+# For windows, we use mingw to cross-compile for windows from linux, so HOST is linux and TARGET is windows.
+# For macOS, we use osxcross to cross-compile for macOS from linux, so HOST is linux and TARGET is macOS.
 
 # The name of the binary program to use for c compilation (it should be in PATH). eg. `gcc`, `clang`, etc
 ifdef CC_HOST
@@ -104,10 +105,14 @@ DEFINES_HOST += -DCONFIG_BIGNUM
 DEFINES_TARGET += -DCONFIG_BIGNUM
 
 # link-time optimization
-DEFINES_HOST += -DCONFIG_LTO
-DEFINES_TARGET += -DCONFIG_LTO
-LDFLAGS_HOST += -flto
-LDFLAGS_TARGET += -flto
+ifeq (@(LTO_HOST),y)
+  DEFINES_HOST += -DCONFIG_LTO
+  LDFLAGS_HOST += -flto
+endif
+ifeq (@(LTO_TARGET),y)
+  DEFINES_TARGET += -DCONFIG_LTO
+  LDFLAGS_TARGET += -flto
+endif
 
 # install dir
 DEFINES_HOST += -DCONFIG_PREFIX="\"/usr/local\""

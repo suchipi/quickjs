@@ -1,4 +1,4 @@
-#! /bin/sh -e
+#! /bin/sh -ex
 export tup_vardict="/home/suchipi/Code/quickjs/tup-generate.vardict"
 cd "src/cutils"
 (gcc -c cutils.c -rdynamic -g -flto -o cutils.host.o -D_GNU_SOURCE -D__linux__ -DCONFIG_VERSION="\"suchipi-`git rev-parse --short HEAD`\"" -DCONFIG_BIGNUM -DCONFIG_LTO -DCONFIG_PREFIX="\"/usr/local\"" -DCONFIG_ALL_UNICODE  -Wall -ldl -lpthread -lm)

@@ -6,7 +6,7 @@ ifndef VARIANT
 	endif
 endif
 
-.PHONY: all tup test update-buildscripts link-build-to-variant link-build-to-root
+.PHONY: all tup test update-buildscripts clean link-build-to-variant link-build-to-root
 
 # Targets to be invoked directly
 
@@ -23,9 +23,15 @@ update-buildscripts: .tup
 	rm -rf buildscripts/*.sh && \
 	  tup generate --config ./configs/darwin.config ./buildscripts/build-darwin.sh && \
 		tup generate --config ./configs/linux.config ./buildscripts/build-linux.sh && \
-		tup generate --config ./configs/windows.config ./buildscripts/build-windows.sh
+		tup generate --config ./configs/windows.config ./buildscripts/build-windows.sh && \
+		sed -i 's/sh -e/sh -ex/' ./buildscripts/build-darwin.sh && \
+		sed -i 's/sh -e/sh -ex/' ./buildscripts/build-linux.sh && \
+		sed -i 's/sh -e/sh -ex/' ./buildscripts/build-windows.sh
 
 # Targets you probably won't invoke directly
+
+clean:
+	git clean -dfX
 
 link-build-to-variant:
 	rm -f ./build && ln -sf build-$(VARIANT) build
@@ -35,4 +41,3 @@ link-build-to-root:
 
 .tup:
 	tup init
-
