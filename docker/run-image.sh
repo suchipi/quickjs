@@ -7,4 +7,4 @@ fi
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
-docker run --rm -it -v ${REPO_ROOT}:/opt/quickjs suchipi/quickjs-build:$1
+docker run --rm -it -v ${REPO_ROOT}:/opt/quickjs suchipi/quickjs-build:$1 "${@:2}"
