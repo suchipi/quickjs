@@ -1,7 +1,7 @@
-# Dockerfile for: suchipi/quickjs-build:darwin
+# Dockerfile for: suchipi/quickjs-build:darwin-from-linux
 #
 # This dockerfile creates an image with an environment suitable for compiling
-# the "darwin" variant in, via `make`.
+# the "darwin-from-linux" variant in, via `make`.
 
 FROM --platform=$BUILDPLATFORM crazymax/osxcross:11.3-r7-ubuntu AS osxcross
 

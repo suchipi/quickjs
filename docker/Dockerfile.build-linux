@@ -1,7 +1,7 @@
-# Dockerfile for: suchipi/quickjs-build:linux
+# Dockerfile for: suchipi/quickjs-build:linux-from-linux
 #
 # This dockerfile creates an image with an environment suitable for compiling
-# the "linux" variant in, via `make`.
+# the "linux-from-linux" variant in, via `make`.
 
 FROM ubuntu:20.04
 

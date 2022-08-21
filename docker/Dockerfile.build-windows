@@ -1,7 +1,7 @@
-# Dockerfile for: suchipi/quickjs-build:windows
+# Dockerfile for: suchipi/quickjs-build:windows-from-linux
 #
 # This dockerfile creates an image with an environment suitable for compiling
-# the "windows" variant in, via `make`.
+# the "windows-from-linux" variant in, via `make`.
 
 FROM suchipi/quickjs-build:linux
 
