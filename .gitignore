@@ -20,3 +20,5 @@ src/qjscalc/qjscalc.c
 src/repl/repl.c
 
 tup-generate.vardict
+
+docker/artifacts/*

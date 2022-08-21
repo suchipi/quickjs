@@ -71,3 +71,7 @@ This does mean, though, that if any of the tup-related files are changed (`Tupru
 - Clone the repo and cd to its folder
 - Run `make update-buildscripts`
   - If you run into an error about `.o` files existing that aren't supposed to exist, run `git clean -dfX src` to remove them.
+
+## Notes
+
+The tests aren't working right now; I really haven't touched them yet, so they're still expecting the old APIs for std/os.

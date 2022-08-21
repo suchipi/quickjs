@@ -21,4 +21,4 @@ RUN apt-get update && \
 
 USER user
 
-ENV VARIANT darwin
+ENV VARIANT darwin-from-linux

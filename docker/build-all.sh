@@ -6,7 +6,9 @@ cd $(git rev-parse --show-toplevel)
 
 ./docker/build-images.sh
 
-for VARIANT in darwin darwin-arm linux windows; do
+rm -rf ./docker/artifacts/*
+
+for VARIANT in darwin-from-linux darwin-arm-from-linux linux-from-linux windows-from-linux; do
   mkdir -p ./docker/artifacts/$VARIANT
   ./docker/run-image.sh $VARIANT bash -c 'make && mv ./src/**/*.{target,target.*} ./docker/artifacts/'"$VARIANT"
 done

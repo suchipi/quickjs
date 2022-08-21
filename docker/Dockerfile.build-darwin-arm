@@ -5,4 +5,4 @@
 
 FROM suchipi/quickjs-build:darwin
 
-ENV VARIANT darwin-arm
+ENV VARIANT darwin-arm-from-linux
