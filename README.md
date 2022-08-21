@@ -6,6 +6,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 
 - APIs in `std` and `os` no longer return errno anywhere; instead, Error objects are thrown. `errno` is available as a property on the thrown Error objects.
 - In places where APIs in `std` or `os` would return null on failure, now an error will be thrown instead.
+- Error messages from `std` and `os` include information in the message such as the path to the file that couldn't be loaded. This info is also available as properties on the Error object.
 - A TypeScript `.d.ts` file is provided for all APIs.
 - Synchronous import functions added (`require`, or the more flexible `std.importModule`).
   - Both of these functions provide the same module record object you would get via dynamic (async) import.
@@ -17,15 +18,22 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 
 ## Changes to `quickjs`:
 
-- Additional hooks are exposed that allow importing modules synchronously or asynchronously:
+- Additional functions are exposed that allow importing modules synchronously or asynchronously:
   - `JS_DynamicImportAsync`
   - `JS_DynamicImportSync`
   - `JS_DynamicImportSync2` (additional arg for specifying basename that the import specifier is relative to)
+- Additional error-related functions added:
+  - `JS_ThrowError`
+  - `JS_AddPropertyToException`
 
 ## Changes to project organization
 
 - Stuff is reorganized into separate folders under `src`.
 - `tup` is used to organize the build system, instead of everything being in a big Makefile. But you don't _need_ tup to build; only to update the build scripts (which are commited in git).
+- macOS binaries are now cross-compiled from Linux
+- we now compile ARM macOS binaries as well
+  - These should work on both M1/M2/etc macbooks as well as on jailbroken iPhones/iPads
+- Line endings have been made consistent and trailing whitespace has been removed
 
 There are also probably some other miscellaneous changes I forgot.
 
