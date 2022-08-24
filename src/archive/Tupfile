@@ -7,6 +7,7 @@ DEPS_HOST += ../libregexp/libregexp.host.o
 DEPS_HOST += ../libunicode/libunicode.host.o
 DEPS_HOST += ../quickjs/quickjs.host.o
 DEPS_HOST += ../quickjs-libc/quickjs-libc.host.o
+DEPS_HOST += ../inspect/inspect.host.o
 
 DEPS_TARGET = ../cutils/cutils.target.o
 DEPS_TARGET += ../libbf/libbf.target.o
@@ -14,6 +15,7 @@ DEPS_TARGET += ../libregexp/libregexp.target.o
 DEPS_TARGET += ../libunicode/libunicode.target.o
 DEPS_TARGET += ../quickjs/quickjs.target.o
 DEPS_TARGET += ../quickjs-libc/quickjs-libc.target.o
+DEPS_TARGET += ../inspect/inspect.target.o
 
 : $(DEPS_HOST) |> !create_host_archive |> quickjs.host.a
 : $(DEPS_TARGET) |> !create_target_archive |> quickjs.target.a

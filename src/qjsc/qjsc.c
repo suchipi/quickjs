@@ -729,6 +729,9 @@ int main(int argc, char **argv)
                     "  }\n",
                     e->short_name, e->short_name, e->name);
         }
+
+        fprintf(fo, "  js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);\n");
+
         for(i = 0; i < cname_list.count; i++) {
             namelist_entry_t *e = &cname_list.array[i];
             if (e->flags) {

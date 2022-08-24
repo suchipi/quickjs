@@ -1,0 +1,6 @@
+# https://gittup.org/tup/manual.html
+include_rules
+
+: inspect.js | ../qjsc/qjsc.host |> ../qjsc/qjsc.host -c -o %o -m %f |> inspect.c
+: inspect.c |> !compile_host_c_object |> %B.host.o
+: inspect.c |> !compile_target_c_object |> %B.target.o

@@ -898,33 +898,6 @@ import * as os from "os";
   var hex_mode = false;
   var eval_mode = "std";
 
-  function number_to_string(a, radix) {
-    var s;
-    if (!isFinite(a)) {
-      /* NaN, Infinite */
-      return a.toString();
-    } else {
-      if (a == 0) {
-        if (1 / a < 0) s = "-0";
-        else s = "0";
-      } else {
-        if (radix == 16 && a === Math.floor(a)) {
-          var s;
-          if (a < 0) {
-            a = -a;
-            s = "-";
-          } else {
-            s = "";
-          }
-          s += "0x" + a.toString(16);
-        } else {
-          s = a.toString();
-        }
-      }
-      return s;
-    }
-  }
-
   function bigfloat_to_string(a, radix) {
     var s;
     if (!BigFloat.isFinite(a)) {
@@ -968,102 +941,20 @@ import * as os from "os";
     }
   }
 
-  function bigint_to_string(a, radix) {
-    var s;
-    if (radix == 16) {
-      var s;
-      if (a < 0) {
-        a = -a;
-        s = "-";
-      } else {
-        s = "";
-      }
-      s += "0x" + a.toString(16);
-    } else {
-      s = a.toString();
-    }
-    if (eval_mode === "std") s += "n";
-    return s;
-  }
-
   function print(a) {
-    var stack = [];
-
-    function print_rec(a) {
-      var n, i, keys, key, type, s;
-
-      type = typeof a;
-      if (type === "object") {
-        if (a === null) {
-          std.puts(a);
-        } else if (stack.indexOf(a) >= 0) {
-          std.puts("[circular]");
-        } else if (
-          has_jscalc &&
-          (a instanceof Fraction ||
-            a instanceof Complex ||
-            a instanceof Mod ||
-            a instanceof Polynomial ||
-            a instanceof PolyMod ||
-            a instanceof RationalFunction ||
-            a instanceof Series)
-        ) {
-          std.puts(a.toString());
-        } else {
-          stack.push(a);
-          if (Array.isArray(a)) {
-            n = a.length;
-            std.puts("[ ");
-            for (i = 0; i < n; i++) {
-              if (i !== 0) std.puts(", ");
-              if (i in a) {
-                print_rec(a[i]);
-              } else {
-                std.puts("<empty>");
-              }
-              if (i > 20) {
-                std.puts("...");
-                break;
-              }
-            }
-            std.puts(" ]");
-          } else if (Object.__getClass(a) === "RegExp") {
-            std.puts(a.toString());
-          } else {
-            keys = Object.keys(a);
-            n = keys.length;
-            std.puts("{ ");
-            for (i = 0; i < n; i++) {
-              if (i !== 0) std.puts(", ");
-              key = keys[i];
-              std.puts(key, ": ");
-              print_rec(a[key]);
-            }
-            std.puts(" }");
-          }
-          stack.pop(a);
-        }
-      } else if (type === "string") {
-        s = a.__quote();
-        if (s.length > 79) s = s.substring(0, 75) + '..."';
-        std.puts(s);
-      } else if (type === "number") {
-        std.puts(number_to_string(a, hex_mode ? 16 : 10));
-      } else if (type === "bigint") {
-        std.puts(bigint_to_string(a, hex_mode ? 16 : 10));
-      } else if (type === "bigfloat") {
+    switch (typeof a) {
+      case "bigfloat": {
         std.puts(bigfloat_to_string(a, hex_mode ? 16 : 10));
-      } else if (type === "bigdecimal") {
+        break;
+      }
+      case "bigdecimal": {
         std.puts(a.toString() + "m");
-      } else if (type === "symbol") {
-        std.puts(String(a));
-      } else if (type === "function") {
-        std.puts("function " + a.name + "()");
-      } else {
-        std.puts(a);
+        break;
+      }
+      default: {
+        std.puts(inspect(a, { colours: true, indent: "  " }));
       }
     }
-    print_rec(a);
   }
 
   function extract_directive(a) {

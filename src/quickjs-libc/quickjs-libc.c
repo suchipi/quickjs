@@ -73,6 +73,9 @@ typedef sig_t sighandler_t;
 #include "./quickjs-libc.h"
 #include "../debugprint/debugprint.h"
 
+extern const uint8_t qjsc_inspect[];
+extern const uint32_t qjsc_inspect_size;
+
 /* TODO:
    - add socket calls
 */
@@ -4111,9 +4114,18 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     /* XXX: should these global definitions be enumerable? */
     global_obj = JS_GetGlobalObject(ctx);
 
+    // Creates 'inspect' global
+    js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
+
     console = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, console, "log",
                       JS_NewCFunction(ctx, js_print, "log", 1));
+    JS_SetPropertyStr(ctx, console, "info",
+                      JS_NewCFunction(ctx, js_print, "info", 1));
+    JS_SetPropertyStr(ctx, console, "warn",
+                      JS_NewCFunction(ctx, js_print, "warn", 1));
+    JS_SetPropertyStr(ctx, console, "error",
+                      JS_NewCFunction(ctx, js_print, "error", 1));
     JS_SetPropertyStr(ctx, global_obj, "console", console);
 
     /* same methods as the mozilla JS shell */

@@ -7,6 +7,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - APIs in `std` and `os` no longer return errno anywhere; instead, Error objects are thrown. `errno` is available as a property on the thrown Error objects.
 - In places where APIs in `std` or `os` would return null on failure, now an error will be thrown instead.
 - Error messages from `std` and `os` include information in the message such as the path to the file that couldn't be loaded. This info is also available as properties on the Error object.
+- A builtin `inspect` function is added, which pretty-prints any JS value as a string.
 - A TypeScript `.d.ts` file is provided for all APIs.
 - Synchronous import functions added (`require`, or the more flexible `std.importModule`).
   - Both of these functions provide the same module record object you would get via dynamic (async) import.

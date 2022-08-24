@@ -18,6 +18,7 @@ src/**/*.so
 src/libunicode/libunicode-table.h
 src/qjscalc/qjscalc.c
 src/repl/repl.c
+src/inspect/inspect.c
 
 tup-generate.vardict
 
