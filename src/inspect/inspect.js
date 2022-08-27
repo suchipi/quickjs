@@ -1,4 +1,4 @@
-/** npm: @suchipi/print@2.1.0. License: ISC */
+/** npm: @suchipi/print@2.2.0. License: ISC */
 
 /*
 Copyright (c) 2016-2022, John Gardner
@@ -282,7 +282,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
       (typeof SharedArrayBuffer === "function" &&
         value instanceof SharedArrayBuffer);
     let isArrayLike = false;
-    let props = tooDeep || Object.getOwnPropertyNames(value);
+
+    let props = tooDeep ? null : Object.getOwnPropertyNames(value);
 
     try {
       isArrayLike = Symbol.iterator in value && Number(value.length) >= 0;
@@ -338,6 +339,32 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
             ? str
             : Date.prototype.toISOString.call(value)) +
           off
+      );
+    }
+
+    // Error objects
+    else if (
+      typeof value === "object" &&
+      value != null &&
+      typeof value.name === "string" &&
+      typeof value.message === "string" &&
+      typeof value.constructor === "function" &&
+      /Error$/.test(value.constructor.name)
+    ) {
+      const stackHeader = `${value.name}: ${value.message}\n`;
+
+      let stack = value.stack || "";
+
+      if (stack.startsWith(stackHeader)) {
+        stack = stack.slice(stackHeader.length);
+      }
+
+      linesBefore.push(
+        stackHeader +
+          stack
+            .split("\n")
+            .map((stackLine) => stackLine.replace(/^\s+/, indent))
+            .join("\n")
       );
     }
 
@@ -427,7 +454,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
       const { length } = entries;
 
       // Filter out indexed properties, provided they're genuine
-      if (!isArrayBuffer) {
+      if (!isArrayBuffer && Array.isArray(props)) {
         props = props.filter((x) => +x !== ~~x || +x < 0 || x > length - 1);
       }
 
