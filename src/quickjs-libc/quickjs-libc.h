@@ -33,6 +33,9 @@
 extern "C" {
 #endif
 
+extern const uint8_t qjsc_inspect[];
+extern const uint32_t qjsc_inspect_size;
+
 JSModuleDef *js_init_module_std(JSContext *ctx, const char *module_name);
 JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name);
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv);

@@ -73,9 +73,6 @@ typedef sig_t sighandler_t;
 #include "./quickjs-libc.h"
 #include "../debugprint/debugprint.h"
 
-extern const uint8_t qjsc_inspect[];
-extern const uint32_t qjsc_inspect_size;
-
 /* TODO:
    - add socket calls
 */
