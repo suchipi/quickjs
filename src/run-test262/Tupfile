@@ -15,7 +15,7 @@ DEPS_TARGET += ../libregexp/libregexp.target.o
 DEPS_TARGET += ../libunicode/libunicode.target.o
 DEPS_TARGET += ../quickjs/quickjs.target.o
 DEPS_TARGET += ../quickjs-libc/quickjs-libc.target.o
-DEPS_TARGET += ../inspect/inspect.host.o
+DEPS_TARGET += ../inspect/inspect.target.o
 
 : run-test262.c $(DEPS_HOST) |> !compile_host_c_program |> run-test262.host
 : run-test262.c $(DEPS_TARGET) |> !compile_target_c_program |> run-test262.target
