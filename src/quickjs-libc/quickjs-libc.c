@@ -2756,6 +2756,25 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
 #endif
     err = errno;
     if (res < 0) {
+        if (!is_lstat && lstat(path, &st) == 0 && (st.st_mode & S_IFLNK)) {
+            // If stat failed but lstat didn't, that means the link itself
+            // is fine, but what it points to has a problem. We can surface
+            // this information more clearly by including what the link
+            // points to in the error message.
+
+            char linkpath[PATH_MAX];
+            if (readlink(path, linkpath, sizeof(linkpath) - 1) != -1) {
+                JS_ThrowError(ctx, "%s (errno = %d, path = %s, linkpath = %s)", strerror(err), err, path, linkpath);
+                JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+                JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
+                JS_AddPropertyToException(ctx, "linkpath", JS_NewString(ctx, linkpath));
+
+                JS_FreeCString(ctx, path);
+
+                return JS_EXCEPTION;
+            }
+        }
+
         JS_ThrowError(ctx, "%s (errno = %d, path = %s)", strerror(err), err, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
