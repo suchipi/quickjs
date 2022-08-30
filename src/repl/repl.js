@@ -1142,7 +1142,7 @@ import * as os from "os";
       if (eval_mode === "math") expr = '"use math"; void 0;' + expr;
       var now = new Date().getTime();
       /* eval as a script */
-      result = std.evalScript(expr, { backtrace_barrier: true });
+      result = std.evalScript(expr, { backtraceBarrier: true });
       eval_time = new Date().getTime() - now;
       std.puts(colors[styles.result]);
       print(result);
