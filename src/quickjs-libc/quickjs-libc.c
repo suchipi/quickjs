@@ -2756,6 +2756,7 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
 #endif
     err = errno;
     if (res < 0) {
+#if !defined(_WIN32)
         if (!is_lstat && lstat(path, &st) == 0 && (st.st_mode & S_IFLNK)) {
             // If stat failed but lstat didn't, that means the link itself
             // is fine, but what it points to has a problem. We can surface
@@ -2774,6 +2775,7 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
                 return JS_EXCEPTION;
             }
         }
+#endif
 
         JS_ThrowError(ctx, "%s (errno = %d, path = %s)", strerror(err), err, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
