@@ -2764,7 +2764,13 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
             // points to in the error message.
 
             char linkpath[PATH_MAX];
-            if (readlink(path, linkpath, sizeof(linkpath) - 1) != -1) {
+            int ret = readlink(path, linkpath, sizeof(linkpath) - 1);
+
+            if (ret >= 0) {
+                if (ret < PATH_MAX) {
+                    linkpath[ret] = '\0';
+                }
+
                 JS_ThrowError(ctx, "%s (errno = %d, path = %s, linkpath = %s)", strerror(err), err, path, linkpath);
                 JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
                 JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
@@ -3041,6 +3047,10 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
 
         return JS_EXCEPTION;
     } else {
+        if (ret < PATH_MAX) {
+            buf[ret] = '\0';
+        }
+
         JS_FreeCString(ctx, path);
         return JS_NewString(ctx, buf);
     }
