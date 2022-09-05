@@ -2757,7 +2757,7 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
     err = errno;
     if (res < 0) {
 #if !defined(_WIN32)
-        if (!is_lstat && lstat(path, &st) == 0 && (st.st_mode & S_IFLNK)) {
+        if (!is_lstat && lstat(path, &st) == 0 && ((st.st_mode & S_IFMT) == S_IFLNK)) {
             // If stat failed but lstat didn't, that means the link itself
             // is fine, but what it points to has a problem. We can surface
             // this information more clearly by including what the link
