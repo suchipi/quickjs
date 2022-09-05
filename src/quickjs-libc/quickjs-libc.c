@@ -1327,7 +1327,7 @@ static JSValue js_std_file_fileno(JSContext *ctx, JSValueConst this_val,
 }
 
 static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
-                                      int argc, JSValueConst *argv, int magic)
+                                      int argc, JSValueConst *argv, int is_write)
 {
     FILE *f = js_std_file_get(ctx, this_val);
     uint64_t pos, len;
@@ -1345,7 +1345,7 @@ static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (pos + len > size)
         return JS_ThrowRangeError(ctx, "read/write array buffer overflow");
-    if (magic) {
+    if (is_write) {
         ret = fwrite(buf + pos, 1, len, f);
     } else {
         ret = fread(buf + pos, 1, len, f);
