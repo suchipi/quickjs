@@ -336,8 +336,14 @@ declare module "std" {
     /** Write `length` bytes from the ArrayBuffer `buffer` at byte position `position` into the file (wrapper to the libc `fwrite`). Returns the number of bytes written. */
     write(buffer: ArrayBuffer, position: number, length: number): number;
 
-    /** Return the next line from the file, assuming UTF-8 encoding, excluding the trailing line feed. */
-    getline(): string;
+    /**
+     * Return the next line from the file, assuming UTF-8 encoding, excluding the trailing line feed or EOF.
+     *
+     * If the end of the file has been reached, then `null` will be returned instead of a string.
+     *
+     * Note: Although the trailing line feed has been removed, a carriage return (`\r`) may still be present.
+     */
+    getline(): string | null;
 
     /** Read `maxSize` bytes from the file and return them as a string assuming UTF-8 encoding. If `maxSize` is not present, the file is read up its end. */
     readAsString(maxSize?: number): string;
