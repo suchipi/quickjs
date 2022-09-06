@@ -30,6 +30,71 @@ declare var console: {
   info: typeof print;
 };
 
+/** An object representing a file handle. */
+declare interface FILE {
+  /** Close the file.  */
+  close(): void;
+
+  /** Outputs the string with the UTF-8 encoding. */
+  puts(str: string): void;
+
+  /**
+   * Formatted printf.
+   *
+   * The same formats as the standard C library `printf` are supported. Integer format types (e.g. `%d`) truncate the Numbers or BigInts to 32 bits. Use the `l` modifier (e.g. `%ld`) to truncate to 64 bits.
+   */
+  printf(fmt: string, ...args: Array<any>): void;
+
+  /** Flush the buffered file. Wrapper for C `fflush`. */
+  flush(): void;
+
+  /** Sync the buffered file to disk. Wrapper for C `fsync`. */
+  sync(): void;
+
+  /**
+   * Seek to a given file position (whence is `std.SEEK_*`).
+   *
+   * `offset` can be a number or a bigint.
+   */
+  seek(offset: number, whence: number): void;
+
+  /** Return the current file position. */
+  tell(): number;
+
+  /** Return the current file position as a bigint. */
+  tello(): BigInt;
+
+  /** Return true if end of file. */
+  eof(): boolean;
+
+  /** Return the associated OS handle. */
+  fileno(): number;
+
+  /** Read `length` bytes from the file to the ArrayBuffer `buffer` at byte position `position` (wrapper to the libc `fread`). Returns the number of bytes read, or `0` if the end of the file has been reached.  */
+  read(buffer: ArrayBuffer, position: number, length: number): number;
+
+  /** Write `length` bytes from the ArrayBuffer `buffer` at byte position `position` into the file (wrapper to the libc `fwrite`). Returns the number of bytes written. */
+  write(buffer: ArrayBuffer, position: number, length: number): number;
+
+  /**
+   * Return the next line from the file, assuming UTF-8 encoding, excluding the trailing line feed or EOF.
+   *
+   * If the end of the file has been reached, then `null` will be returned instead of a string.
+   *
+   * Note: Although the trailing line feed has been removed, a carriage return (`\r`) may still be present.
+   */
+  getline(): string | null;
+
+  /** Read `maxSize` bytes from the file and return them as a string assuming UTF-8 encoding. If `maxSize` is not present, the file is read up its end. */
+  readAsString(maxSize?: number): string;
+
+  /** Return the next byte from the file. Return -1 if the end of file is reached. */
+  getByte(): number;
+
+  /** Write one byte to the file. */
+  putByte(value: number): void;
+}
+
 declare module "std" {
   /**
    * Exit the process with the provided status code.
@@ -286,74 +351,6 @@ declare module "std" {
    * - octal (0o prefix) and hexadecimal (0x prefix) numbers
    */
   export function parseExtJSON(str: string): any;
-
-  /** An object representing a file handle. */
-  export class FILE {
-    /** Close the file.  */
-    close(): void;
-
-    /** Outputs the string with the UTF-8 encoding. */
-    puts(str: string): void;
-
-    /**
-     * Formatted printf.
-     *
-     * The same formats as the standard C library `printf` are supported. Integer format types (e.g. `%d`) truncate the Numbers or BigInts to 32 bits. Use the `l` modifier (e.g. `%ld`) to truncate to 64 bits.
-     */
-    printf(fmt: string, ...args: Array<any>): void;
-
-    /** Flush the buffered file. Wrapper for C `fflush`. */
-    flush(): void;
-
-    /** Sync the buffered file to disk. Wrapper for C `fsync`. */
-    sync(): void;
-
-    /**
-     * Seek to a given file position (whence is `std.SEEK_*`).
-     *
-     * `offset` can be a number or a bigint.
-     */
-    seek(
-      offset: number,
-      whence: typeof SEEK_SET | typeof SEEK_CUR | typeof SEEK_END
-    ): void;
-
-    /** Return the current file position. */
-    tell(): number;
-
-    /** Return the current file position as a bigint. */
-    tello(): BigInt;
-
-    /** Return true if end of file. */
-    eof(): boolean;
-
-    /** Return the associated OS handle. */
-    fileno(): number;
-
-    /** Read `length` bytes from the file to the ArrayBuffer `buffer` at byte position `position` (wrapper to the libc `fread`). Returns the number of bytes read, or `0` if the end of the file has been reached.  */
-    read(buffer: ArrayBuffer, position: number, length: number): number;
-
-    /** Write `length` bytes from the ArrayBuffer `buffer` at byte position `position` into the file (wrapper to the libc `fwrite`). Returns the number of bytes written. */
-    write(buffer: ArrayBuffer, position: number, length: number): number;
-
-    /**
-     * Return the next line from the file, assuming UTF-8 encoding, excluding the trailing line feed or EOF.
-     *
-     * If the end of the file has been reached, then `null` will be returned instead of a string.
-     *
-     * Note: Although the trailing line feed has been removed, a carriage return (`\r`) may still be present.
-     */
-    getline(): string | null;
-
-    /** Read `maxSize` bytes from the file and return them as a string assuming UTF-8 encoding. If `maxSize` is not present, the file is read up its end. */
-    readAsString(maxSize?: number): string;
-
-    /** Return the next byte from the file. Return -1 if the end of file is reached. */
-    getByte(): number;
-
-    /** Write one byte to the file. */
-    putByte(value: number): void;
-  }
 }
 
 declare module "os" {
