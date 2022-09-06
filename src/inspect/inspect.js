@@ -2,7 +2,7 @@
 
 /*
 Copyright (c) 2016-2022, John Gardner
-Copyright (c) 2022 Lily Scott
+Copyright (c) 2022 Lily Skye
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
