@@ -1460,8 +1460,15 @@ static JSValue js_std_file_putByte(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (JS_ToInt32(ctx, &c, argv[0]))
         return JS_EXCEPTION;
+    errno = 0;
     c = fputc(c, f);
-    return JS_NewInt32(ctx, c);
+    if (c == EOF) {
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+
+        return JS_EXCEPTION;
+    }
+    return JS_UNDEFINED;
 }
 
 /* urlGet */
