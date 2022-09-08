@@ -1732,6 +1732,8 @@ static const JSCFunctionListEntry js_std_funcs[] = {
 };
 
 static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
+    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "FILE", JS_PROP_CONFIGURABLE ),
+
     JS_CFUNC_DEF("close", 0, js_std_file_close ),
     JS_CFUNC_MAGIC_DEF("puts", 1, js_std_file_puts, 1 ),
     JS_CFUNC_DEF("printf", 1, js_std_file_printf ),

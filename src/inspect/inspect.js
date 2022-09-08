@@ -1,4 +1,4 @@
-/** npm: @suchipi/print@2.2.0. License: ISC */
+/** npm: @suchipi/print@2.3.0. License: ISC */
 
 /*
 Copyright (c) 2016-2022, John Gardner
@@ -320,6 +320,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
       }
     }
 
+    if (type === "" && typeof value[Symbol.toStringTag] === "string") {
+      type = value[Symbol.toStringTag];
+    }
+
     if (!tooDeep) {
       if (Object.isFrozen(value)) {
         linesBefore.push(frozen + "Frozen" + off);
@@ -349,7 +353,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
       typeof value.name === "string" &&
       typeof value.message === "string" &&
       typeof value.constructor === "function" &&
-      /Error$/.test(value.constructor.name)
+      typeof value.constructor.name === "string" &&
+      value.constructor.name.endsWith("Error")
     ) {
       const stackHeader = `${value.name}: ${value.message}\n`;
 

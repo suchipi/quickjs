@@ -1,4 +1,4 @@
-/** npm: @suchipi/print@2.2.0. License: ISC */
+/** npm: @suchipi/print@2.3.0. License: ISC */
 
 /*
 Copyright (c) 2016-2022, John Gardner
