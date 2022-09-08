@@ -1007,6 +1007,17 @@ static JSValue js_new_std_file(JSContext *ctx, FILE *f,
     return obj;
 }
 
+static JSValue js_std_isFILE(JSContext *ctx, JSValueConst this_val,
+                           int argc, JSValueConst *argv)
+{
+    JSSTDFile *s = JS_GetOpaque(argv[0], js_std_file_class_id);
+    if (s == NULL) {
+        return JS_FALSE;
+    } else {
+        return JS_TRUE;
+    }
+}
+
 static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
@@ -1707,6 +1718,7 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("parseExtJSON", 1, js_std_parseExtJSON ),
 
     /* FILE I/O */
+    JS_CFUNC_DEF("isFILE", 1, js_std_isFILE ),
     JS_CFUNC_DEF("open", 2, js_std_open ),
     JS_CFUNC_DEF("popen", 2, js_std_popen ),
     JS_CFUNC_DEF("fdopen", 2, js_std_fdopen ),

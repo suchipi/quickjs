@@ -153,6 +153,14 @@ declare module "std" {
   export function getFileNameFromStack(stackLevels: number): string;
 
   /**
+   * Return a boolean indicating whether the provided value is a FILE object.
+   *
+   * @param value - The value to check.
+   * @returns Whether the value was a `FILE` or not.
+   */
+  export function isFILE(value: any): boolean;
+
+  /**
    * Open a file (wrapper to the libc `fopen()`).
    * Return the FILE object.
    *

@@ -16,6 +16,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
 - `os.access` function added (wrapper for libc `access`).
 - `FILE.prototype.sync` method added (wrapper for `fsync`).
+- `std.isFILE` function added (returns whether the provided object is a `FILE` (via `js_std_file_class_id`)).
 
 ## Changes to `quickjs`:
 
