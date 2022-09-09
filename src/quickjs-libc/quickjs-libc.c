@@ -1023,6 +1023,7 @@ static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
 {
     const char *filename, *mode = NULL;
     FILE *f;
+    JSValue ret;
 
     if (argc != 2) {
         return JS_ThrowTypeError(ctx, "open must be called with two arguments: 'filename' and 'flags'. Instead, it was called with %d argument(s).", argc);
@@ -1058,10 +1059,13 @@ static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
 
+    ret = js_new_std_file(ctx, f, TRUE, FALSE);
+    JS_SetPropertyStr(ctx, ret, "target", JS_NewString(ctx, filename));
+
     JS_FreeCString(ctx, filename);
     JS_FreeCString(ctx, mode);
 
-    return js_new_std_file(ctx, f, TRUE, FALSE);
+    return ret;
 }
 
 static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
@@ -1069,6 +1073,7 @@ static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
 {
     const char *filename, *mode = NULL;
     FILE *f;
+    JSValue ret;
 
     if (argc != 2) {
         return JS_ThrowTypeError(ctx, "popen must be called with two arguments: 'filename' and 'flags'. Instead, it was called with %d argument(s).", argc);
@@ -1103,10 +1108,13 @@ static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
 
+    ret = js_new_std_file(ctx, f, TRUE, FALSE);
+    JS_SetPropertyStr(ctx, ret, "target", JS_NewString(ctx, filename));
+
     JS_FreeCString(ctx, filename);
     JS_FreeCString(ctx, mode);
 
-    return js_new_std_file(ctx, f, TRUE, TRUE);
+    return ret;
 }
 
 static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
@@ -1115,6 +1123,7 @@ static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
     const char *mode;
     FILE *f;
     int fd;
+    JSValue ret;
 
     if (argc != 2) {
         return JS_ThrowTypeError(ctx, "fdopen must be called with two arguments: 'fd' and 'flags'. Instead, it was called with %d argument(s).", argc);
@@ -1145,13 +1154,18 @@ static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
     }
 
     JS_FreeCString(ctx, mode);
-    return js_new_std_file(ctx, f, TRUE, FALSE);
+
+    ret = js_new_std_file(ctx, f, TRUE, FALSE);
+    JS_SetPropertyStr(ctx, ret, "target", JS_NewInt32(ctx, fd));
+    return ret;
 }
 
 static JSValue js_std_tmpfile(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
     FILE *f;
+    JSValue ret;
+
     f = tmpfile();
     if (!f) {
         JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
@@ -1159,7 +1173,9 @@ static JSValue js_std_tmpfile(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
 
-    return js_new_std_file(ctx, f, TRUE, FALSE);
+    ret = js_new_std_file(ctx, f, TRUE, FALSE);
+    JS_SetPropertyStr(ctx, ret, "target", JS_NewString(ctx, "tmpfile"));
+    return ret;
 }
 
 static JSValue js_std_sprintf(JSContext *ctx, JSValueConst this_val,
@@ -1756,6 +1772,9 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
 static int js_std_init(JSContext *ctx, JSModuleDef *m)
 {
     JSValue proto;
+    JSValue stdin_FILE;
+    JSValue stdout_FILE;
+    JSValue stderr_FILE;
 
     /* FILE class */
     /* the class ID is created once */
@@ -1769,9 +1788,19 @@ static int js_std_init(JSContext *ctx, JSModuleDef *m)
 
     JS_SetModuleExportList(ctx, m, js_std_funcs,
                            countof(js_std_funcs));
-    JS_SetModuleExport(ctx, m, "in", js_new_std_file(ctx, stdin, FALSE, FALSE));
-    JS_SetModuleExport(ctx, m, "out", js_new_std_file(ctx, stdout, FALSE, FALSE));
-    JS_SetModuleExport(ctx, m, "err", js_new_std_file(ctx, stderr, FALSE, FALSE));
+
+    stdin_FILE = js_new_std_file(ctx, stdin, FALSE, FALSE);
+    JS_SetPropertyStr(ctx, stdin_FILE, "target", JS_NewString(ctx, "stdin"));
+    JS_SetModuleExport(ctx, m, "in", stdin_FILE);
+
+    stdout_FILE = js_new_std_file(ctx, stdout, FALSE, FALSE);
+    JS_SetPropertyStr(ctx, stdout_FILE, "target", JS_NewString(ctx, "stdout"));
+    JS_SetModuleExport(ctx, m, "out", stdout_FILE);
+
+    stderr_FILE = js_new_std_file(ctx, stderr, FALSE, FALSE);
+    JS_SetPropertyStr(ctx, stderr_FILE, "target", JS_NewString(ctx, "stderr"));
+    JS_SetModuleExport(ctx, m, "err", stderr_FILE);
+
     return 0;
 }
 
