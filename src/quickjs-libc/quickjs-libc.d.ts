@@ -643,6 +643,24 @@ declare module "os" {
 
   /** Constant for the `options` argument of `waitpid`. */
   export var WNOHANG: number;
+  /** Constant for the `options` argument of `waitpid`. */
+  export var WUNTRACED: number;
+
+  /** Function to be used to interpret the 'status' return value of `waitpid`. */
+  export function WEXITSTATUS(status: number): number;
+  /** Function to be used to interpret the 'status' return value of `waitpid`. */
+  export function WTERMSIG(status: number): number;
+  /** Function to be used to interpret the 'status' return value of `waitpid`. */
+  export function WSTOPSIG(status: number): number;
+
+  /** Function to be used to interpret the 'status' return value of `waitpid`. */
+  export function WIFEXITED(status: number): boolean;
+  /** Function to be used to interpret the 'status' return value of `waitpid`. */
+  export function WIFSIGNALED(status: number): boolean;
+  /** Function to be used to interpret the 'status' return value of `waitpid`. */
+  export function WIFSTOPPED(status: number): boolean;
+  /** Function to be used to interpret the 'status' return value of `waitpid`. */
+  export function WIFCONTINUED(status: number): boolean;
 
   /** `dup` Unix system call. */
   export function dup(fd: number): number;

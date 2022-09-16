@@ -3448,6 +3448,94 @@ static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
     return obj;
 }
 
+/* WEXITSTATUS(status) -> number */
+static JSValue js_os_WEXITSTATUS(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    int status;
+
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+
+    return JS_NewInt32(ctx, WEXITSTATUS(status));
+}
+
+/* WTERMSIG(status) -> number */
+static JSValue js_os_WTERMSIG(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    int status;
+
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+
+    return JS_NewInt32(ctx, WTERMSIG(status));
+}
+
+/* WSTOPSIG(status) -> number */
+static JSValue js_os_WSTOPSIG(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    int status;
+
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+
+    return JS_NewInt32(ctx, WSTOPSIG(status));
+}
+
+/* WIFEXITED(status) -> boolean */
+static JSValue js_os_WIFEXITED(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    int status;
+
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+
+    return JS_NewBool(ctx, WIFEXITED(status));
+}
+
+/* WIFSIGNALED(status) -> boolean */
+static JSValue js_os_WIFSIGNALED(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    int status;
+
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+
+    return JS_NewBool(ctx, WIFSIGNALED(status));
+}
+
+/* WIFSTOPPED(status) -> boolean */
+static JSValue js_os_WIFSTOPPED(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    int status;
+
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+
+    return JS_NewBool(ctx, WIFSTOPPED(status));
+}
+
+/* WIFCONTINUED(status) -> boolean */
+static JSValue js_os_WIFCONTINUED(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    int status;
+
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+
+#ifdef WIFCONTINUED
+    return JS_NewBool(ctx, WIFCONTINUED(status));
+#else
+    return JS_ThrowError(ctx, "WIFCONTINUED is not available on this platform");
+#endif
+}
+
 /* pipe() -> [read_fd, write_fd] or null if error */
 static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
@@ -4095,7 +4183,18 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_CFUNC_DEF("readlink", 1, js_os_readlink ),
     JS_CFUNC_DEF("exec", 1, js_os_exec ),
     JS_CFUNC_DEF("waitpid", 2, js_os_waitpid ),
+
     OS_FLAG(WNOHANG),
+    OS_FLAG(WUNTRACED),
+
+    JS_CFUNC_DEF("WEXITSTATUS", 1, js_os_WEXITSTATUS ),
+    JS_CFUNC_DEF("WTERMSIG", 1, js_os_WTERMSIG ),
+    JS_CFUNC_DEF("WSTOPSIG", 1, js_os_WSTOPSIG ),
+    JS_CFUNC_DEF("WIFEXITED", 1, js_os_WIFEXITED ),
+    JS_CFUNC_DEF("WIFSIGNALED", 1, js_os_WIFSIGNALED ),
+    JS_CFUNC_DEF("WIFSTOPPED", 1, js_os_WIFSTOPPED ),
+    JS_CFUNC_DEF("WIFCONTINUED", 1, js_os_WIFCONTINUED ),
+
     JS_CFUNC_DEF("pipe", 0, js_os_pipe ),
     JS_CFUNC_DEF("kill", 2, js_os_kill ),
     JS_CFUNC_DEF("dup", 1, js_os_dup ),

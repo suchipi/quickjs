@@ -17,6 +17,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `os.access` function added (wrapper for libc `access`).
 - `FILE.prototype.sync` method added (wrapper for `fsync`).
 - `std.isFILE` function added (returns whether the provided object is a `FILE` (via `js_std_file_class_id`)).
+- `os.{WUNTRACED,WEXITSTATUS,WTERMSIG,WSTOPSIG,WIFEXITED,WIFSIGNALED,WIFSTOPPED,WIFCONTINUED}` added, for working with `os.waitpid`.
 
 ## Changes to `quickjs`:
 
@@ -43,7 +44,7 @@ There are also probably some other miscellaneous changes I forgot.
 
 The repo has stuff set up to compile quickjs binaries for Linux, macOS, iOS, or Windows. Compilation takes place via Docker.
 
-The project has no external dependencies outside this repo, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes, such as FreeBSD. OS-specific configs for the build process live in the `configs` folder, and symlinks in the `build-<os-name>` folders point to those configs in order to link them into the build system. Read about "variants" in the [tup manual](https://gittup.org/tup/manual.html) for more info.
+The project has no external dependencies outside this repo except pthreads, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes, such as FreeBSD. OS-specific configs for the build process live in the `configs` folder, and symlinks in the `build-<os-name>` folders point to those configs in order to link them into the build system. Read about "variants" in the [tup manual](https://gittup.org/tup/manual.html) for more info.
 
 ## Compilation Instructions
 
