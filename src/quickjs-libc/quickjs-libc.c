@@ -3423,13 +3423,16 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
 static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
-    int pid, status, options, ret;
+    int pid, status, options = 0, ret;
     JSValue obj;
 
     if (JS_ToInt32(ctx, &pid, argv[0]))
         return JS_EXCEPTION;
-    if (JS_ToInt32(ctx, &options, argv[1]))
-        return JS_EXCEPTION;
+
+    if (argc > 1) {
+        if (JS_ToInt32(ctx, &options, argv[1]))
+            return JS_EXCEPTION;
+    }
 
     ret = waitpid(pid, &status, options);
     if (ret < 0) {
