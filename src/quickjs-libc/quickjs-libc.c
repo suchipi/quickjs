@@ -715,21 +715,25 @@ JSModuleDef *js_module_loader(JSContext *ctx,
     return m;
 }
 
-static const char *DOT_JS = ".js";
-static const char *SLASH_INDEX_DOT_JS = "/index.js";
+static const char *SLASH_INDEX = "/index";
 
 static BOOL is_accessible_file(const char *path)
 {
+    debugprint("checking for file: %s...", path);
+
     struct stat st;
 
     if (stat(path, &st) != 0) {
+        debugprint(" doesn't exist\n");
         return FALSE;
     }
 
     if (st.st_mode & S_IFDIR) {
+        debugprint(" exists, but it's a directory\n");
         return FALSE;
     }
 
+    debugprint(" exists\n");
     return TRUE;
 }
 
@@ -795,35 +799,90 @@ char *js_module_normalize_name(JSContext *ctx,
         debugprint("import resolved via literal filename: %s\n", filename);
         return filename;
     } else {
-        char *filename_with_added_js_extension;
+        JSValue global, require, search_extensions;
 
-        filename_with_added_js_extension = js_malloc(ctx, strlen(filename) + strlen(DOT_JS));
-        sprintf(filename_with_added_js_extension, "%s%s", filename, DOT_JS);
+        global = JS_GetGlobalObject(ctx);
+        require = JS_GetPropertyStr(ctx, global, "require");
+        search_extensions = JS_GetPropertyStr(ctx, require, "searchExtensions");
+        JS_FreeValue(ctx, require);
+        JS_FreeValue(ctx, global);
 
-        if (is_accessible_file(filename_with_added_js_extension)) {
-            debugprint("import resolved via implicit js extension: %s\n", filename);
-            js_free(ctx, filename);
-            return filename_with_added_js_extension;
-        } else {
-            char *filename_with_added_index_dot_js;
+        if (JS_IsArray(ctx, search_extensions) == TRUE) {
+            uint32_t len = 0;
+            JSValue length_val = JS_GetPropertyStr(ctx, search_extensions, "length");
+            if (JS_IsNumber(length_val)) {
+                if (JS_ToUint32(ctx, &len, length_val) != 0) {
+                    JS_FreeValue(ctx, length_val);
+                    JS_FreeValue(ctx, search_extensions);
+                    return NULL;
+                }
+            }
+            JS_FreeValue(ctx, length_val);
 
-            js_free(ctx, filename_with_added_js_extension);
-            filename_with_added_index_dot_js = js_malloc(ctx, strlen(filename) + strlen(SLASH_INDEX_DOT_JS));
-            sprintf(filename_with_added_index_dot_js, "%s%s", filename, SLASH_INDEX_DOT_JS);
+            for (uint32_t i = 0; i < len; i++) {
+                JSValue extension_val;
+                const char *extension;
+                char *filename_with_added_extension;
+                char *filename_with_added_index_dot_extension;
 
-            if (is_accessible_file(filename_with_added_index_dot_js)) {
-                debugprint("import resolved via implicit /index.js: %s\n", filename);
-                js_free(ctx, filename);
-                return filename_with_added_index_dot_js;
-            } else {
-                // Can't find this thing anywhere; maybe it doesn't exist?
-                // Use the originally-specified filename to make error messages
-                // clearer
-                debugprint("import failed to resolve: %s\n", filename);
-                js_free(ctx, filename_with_added_index_dot_js);
-                return filename;
+                extension_val = JS_GetPropertyUint32(ctx, search_extensions, i);
+                if (JS_IsException(extension_val)) {
+                    JS_FreeValue(ctx, search_extensions);
+                    return NULL;
+                }
+
+                if (!JS_IsString(extension_val)) {
+                    JS_ThrowError(ctx, "require.searchExtensions contained a non-string");
+                    JS_FreeValue(ctx, extension_val);
+                    JS_FreeValue(ctx, search_extensions);
+                    return NULL;
+                }
+
+                extension = JS_ToCString(ctx, extension_val);
+                JS_FreeValue(ctx, extension_val);
+
+                filename_with_added_extension = js_malloc(ctx, strlen(filename) + strlen(extension));
+                if (!filename_with_added_extension) {
+                    JS_FreeValue(ctx, search_extensions);
+                    return NULL;
+                }
+
+                sprintf(filename_with_added_extension, "%s%s", filename, extension);
+
+                if (is_accessible_file(filename_with_added_extension)) {
+                    debugprint("import resolved via implicit %s extension: %s\n", extension, filename);
+                    JS_FreeValue(ctx, search_extensions);
+                    js_free(ctx, filename);
+                    return filename_with_added_extension;
+                } else {
+                    js_free(ctx, filename_with_added_extension);
+                }
+
+                filename_with_added_index_dot_extension = js_malloc(ctx, strlen(filename) + strlen(SLASH_INDEX) + strlen(extension));
+                if (!filename_with_added_index_dot_extension) {
+                    JS_FreeValue(ctx, search_extensions);
+                    return NULL;
+                }
+
+                sprintf(filename_with_added_index_dot_extension, "%s%s%s", filename, SLASH_INDEX, extension);
+
+                if (is_accessible_file(filename_with_added_index_dot_extension)) {
+                    debugprint("import resolved via implicit /index%s: %s\n", extension, filename);
+                    JS_FreeValue(ctx, search_extensions);
+                    js_free(ctx, filename);
+                    return filename_with_added_index_dot_extension;
+                } else {
+                    js_free(ctx, filename_with_added_index_dot_extension);
+                }
             }
         }
+        JS_FreeValue(ctx, search_extensions);
+
+        // Can't find this thing anywhere; maybe it doesn't exist?
+        // Use the originally-specified filename to make error messages
+        // clearer
+        debugprint("import failed to resolve: %s\n", filename);
+        return filename;
     }
 }
 
@@ -4352,7 +4411,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val,
 
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
-    JSValue global_obj, console, args, require;
+    JSValue global_obj, console, args, require, search_extensions;
     int i;
 
     /* XXX: should these global definitions be enumerable? */
@@ -4386,6 +4445,11 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 
     require = JS_NewCFunction(ctx, js_require, "require", 1);
     JS_SetPropertyStr(ctx, require, "loaders", JS_NewObject(ctx));
+
+    search_extensions = JS_NewArray(ctx);
+    JS_DefinePropertyValueUint32(ctx, search_extensions, 0, JS_NewString(ctx, ".js"), JS_PROP_C_W_E);
+
+    JS_SetPropertyStr(ctx, require, "searchExtensions", search_extensions);
 
     JS_SetPropertyStr(ctx, global_obj, "require", require);
 
