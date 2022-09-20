@@ -14,6 +14,8 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
   - The `require` function is not fully CommonJS-compliant; stuff like `require.main` and `require.resolve` are not present.
 - `.js` extensions can now be omitted from import specifiers; they're optional.
 - If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
+- You can specify additional implicit import specifier extensions by adding to the `require.searchExtensions` array.
+- You can transform any file prior to evaluating it as a module by adding a function to the `require.loaders` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
 - `os.access` function added (wrapper for libc `access`).
 - `FILE.prototype.sync` method added (wrapper for `fsync`).
 - `std.isFILE` function added (returns whether the provided object is a `FILE` (via `js_std_file_class_id`)).
