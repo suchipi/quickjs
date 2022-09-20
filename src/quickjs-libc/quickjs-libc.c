@@ -617,6 +617,15 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
     return 0;
 }
 
+/* including the leading dot */
+static const char *get_extension(const char *filename) {
+    const char *dot = strrchr(filename, '.');
+    if (!dot || dot == filename) {
+        return "";
+    }
+    return dot;
+}
+
 JSModuleDef *js_module_loader(JSContext *ctx,
                               const char *module_name, void *opaque)
 {
@@ -625,21 +634,76 @@ JSModuleDef *js_module_loader(JSContext *ctx,
     if (has_suffix(module_name, ".so")) {
         m = js_module_loader_so(ctx, module_name);
     } else {
-        size_t buf_len;
-        uint8_t *buf;
-        JSValue func_val;
+        const char* ext;
+        JSValue global, require, loaders, user_loader, func_val;
+        
+        ext = get_extension(module_name);
+        user_loader = JS_UNDEFINED;
 
-        buf = js_load_file(ctx, &buf_len, module_name);
-        if (!buf) {
-            JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
-                                   module_name);
-            return NULL;
+        global = JS_GetGlobalObject(ctx);
+        require = JS_GetPropertyStr(ctx, global, "require");
+        loaders = JS_GetPropertyStr(ctx, require, "loaders");
+        if (JS_IsObject(loaders)) {
+            JSValue loader = JS_GetPropertyStr(ctx, loaders, ext);
+            if (JS_IsFunction(ctx, loader)) {
+                user_loader = loader;
+            }
+        }
+        JS_FreeValue(ctx, loaders);
+        JS_FreeValue(ctx, require);
+        JS_FreeValue(ctx, global);
+
+        if (!JS_IsUndefined(user_loader)) {
+            JSValue result_val, module_name_val;
+            JSValue argv[1];
+
+            module_name_val = JS_NewString(ctx, module_name);
+            if (JS_IsException(module_name_val)) {
+                JS_FreeValue(ctx, module_name_val);
+                JS_FreeValue(ctx, user_loader);
+                return NULL;
+            }
+
+            argv[0] = module_name_val;
+            result_val = JS_Call(ctx, user_loader, JS_NULL, 1, argv);
+            JS_FreeValue(ctx, module_name_val);
+            JS_FreeValue(ctx, user_loader);
+
+            if (JS_IsException(result_val)) {
+                return NULL;
+            } else if (!JS_IsString(result_val)) {
+                JS_ThrowTypeError(ctx, "require.loaders[\"%s\"] returned non-string", ext);
+                JS_FreeValue(ctx, result_val);
+                return NULL;
+            } else {
+                const char *result;
+                result = JS_ToCString(ctx, result_val);
+                
+                /* compile the module */
+                func_val = JS_Eval(ctx, result, strlen(result), module_name,
+                                JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+                
+                JS_FreeValue(ctx, result_val);
+            }
+        } else {
+            size_t buf_len;
+            uint8_t *buf;
+
+            buf = js_load_file(ctx, &buf_len, module_name);
+            if (!buf) {
+                JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
+                                    module_name);
+                return NULL;
+            }
+
+            /* compile the module */
+            func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name,
+                            JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+            
+            js_free(ctx, buf);
         }
 
-        /* compile the module */
-        func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name,
-                           JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-        js_free(ctx, buf);
+        
         if (JS_IsException(func_val))
             return NULL;
         /* XXX: could propagate the exception */
@@ -4288,7 +4352,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val,
 
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
-    JSValue global_obj, console, args;
+    JSValue global_obj, console, args, require;
     int i;
 
     /* XXX: should these global definitions be enumerable? */
@@ -4319,8 +4383,11 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 
     JS_SetPropertyStr(ctx, global_obj, "print",
                       JS_NewCFunction(ctx, js_print, "print", 1));
-    JS_SetPropertyStr(ctx, global_obj, "require",
-                      JS_NewCFunction(ctx, js_require, "require", 1));
+
+    require = JS_NewCFunction(ctx, js_require, "require", 1);
+    JS_SetPropertyStr(ctx, require, "loaders", JS_NewObject(ctx));
+
+    JS_SetPropertyStr(ctx, global_obj, "require", require);
 
     JS_FreeValue(ctx, global_obj);
 }
