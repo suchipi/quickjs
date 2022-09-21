@@ -636,7 +636,7 @@ JSModuleDef *js_module_loader(JSContext *ctx,
     } else {
         const char* ext;
         JSValue global, require, loaders, user_loader, func_val;
-        
+
         ext = get_extension(module_name);
         user_loader = JS_UNDEFINED;
 
@@ -678,11 +678,11 @@ JSModuleDef *js_module_loader(JSContext *ctx,
             } else {
                 const char *result;
                 result = JS_ToCString(ctx, result_val);
-                
+
                 /* compile the module */
                 func_val = JS_Eval(ctx, result, strlen(result), module_name,
                                 JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-                
+
                 JS_FreeValue(ctx, result_val);
             }
         } else {
@@ -699,11 +699,11 @@ JSModuleDef *js_module_loader(JSContext *ctx,
             /* compile the module */
             func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name,
                             JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-            
+
             js_free(ctx, buf);
         }
 
-        
+
         if (JS_IsException(func_val))
             return NULL;
         /* XXX: could propagate the exception */
@@ -4390,28 +4390,60 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
 /**********************************************************/
 
 static JSValue js_print(JSContext *ctx, JSValueConst this_val,
-                              int argc, JSValueConst *argv)
+                        int argc, JSValueConst *argv, int magic)
 {
     int i;
     const char *str;
     size_t len;
+    FILE *out;
+
+    if (magic == 1) {
+        out = stdout;
+    } else if (magic == 2) {
+        out = stderr;
+    } else {
+        return JS_ThrowInternalError(ctx, "js_print called with incorrect 'magic' value. This is a bug in quickjs-libc.");
+    }
 
     for(i = 0; i < argc; i++) {
-        if (i != 0)
-            putchar(' ');
+        if (i != 0) {
+            putc(' ', out);
+        }
         str = JS_ToCStringLen(ctx, &len, argv[i]);
         if (!str)
             return JS_EXCEPTION;
-        fwrite(str, 1, len, stdout);
+        fwrite(str, 1, len, out);
         JS_FreeCString(ctx, str);
     }
-    putchar('\n');
+    putc('\n', out);
     return JS_UNDEFINED;
+}
+
+static JSValue js_Module_hasInstance(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv)
+{
+    JSValue target;
+    JSClassID class_id;
+
+    if (argc < 1) {
+        return JS_FALSE;
+    }
+
+    target = argv[0];
+
+    class_id = JS_VALUE_GET_CLASS_ID(target);
+
+    if (class_id == JS_CLASS_MODULE_NS) {
+        return JS_TRUE;
+    } else {
+        return JS_FALSE;
+    }
 }
 
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
-    JSValue global_obj, console, args, require, search_extensions;
+    JSValue global_obj, console, args, require, module, search_extensions,
+            compilers, Symbol, hasInstance;
     int i;
 
     /* XXX: should these global definitions be enumerable? */
@@ -4422,16 +4454,20 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 
     console = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, console, "log",
-                      JS_NewCFunction(ctx, js_print, "log", 1));
+                      JS_NewCFunctionMagic(ctx, js_print, "log", 1,
+                                           JS_CFUNC_generic_magic, 1));
     JS_SetPropertyStr(ctx, console, "info",
-                      JS_NewCFunction(ctx, js_print, "info", 1));
+                      JS_NewCFunctionMagic(ctx, js_print, "info", 1,
+                                           JS_CFUNC_generic_magic, 1));
     JS_SetPropertyStr(ctx, console, "warn",
-                      JS_NewCFunction(ctx, js_print, "warn", 1));
+                      JS_NewCFunctionMagic(ctx, js_print, "warn", 1,
+                                           JS_CFUNC_generic_magic, 2));
     JS_SetPropertyStr(ctx, console, "error",
-                      JS_NewCFunction(ctx, js_print, "error", 1));
+                      JS_NewCFunctionMagic(ctx, js_print, "error", 1,
+                                           JS_CFUNC_generic_magic, 2));
     JS_SetPropertyStr(ctx, global_obj, "console", console);
 
-    /* same methods as the mozilla JS shell */
+    /* scriptArgs and print are the same as in the mozilla JS shell */
     if (argc >= 0) {
         args = JS_NewArray(ctx);
         for(i = 0; i < argc; i++) {
@@ -4441,17 +4477,34 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     }
 
     JS_SetPropertyStr(ctx, global_obj, "print",
-                      JS_NewCFunction(ctx, js_print, "print", 1));
+                      JS_NewCFunctionMagic(ctx, js_print, "print", 1,
+                                           JS_CFUNC_generic_magic, 1));
 
     require = JS_NewCFunction(ctx, js_require, "require", 1);
-    JS_SetPropertyStr(ctx, require, "loaders", JS_NewObject(ctx));
+    JS_SetPropertyStr(ctx, global_obj, "require", require);
+
+    module = JS_NewObject(ctx);
+
+    Symbol = JS_GetPropertyStr(ctx, global_obj, "Symbol");
+    hasInstance = JS_GetPropertyStr(ctx, Symbol, "hasInstance");
+
+    JS_SetPropertyValue(ctx, module, hasInstance,
+                        JS_NewCFunction(ctx, js_Module_hasInstance,
+                                        "hasInstance", 1), 0);
+
+    JS_FreeValue(ctx, hasInstance);
+    JS_FreeValue(ctx, Symbol);
 
     search_extensions = JS_NewArray(ctx);
-    JS_DefinePropertyValueUint32(ctx, search_extensions, 0, JS_NewString(ctx, ".js"), JS_PROP_C_W_E);
+    JS_DefinePropertyValueUint32(ctx, search_extensions, 0,
+                                 JS_NewString(ctx, ".js"), JS_PROP_C_W_E);
 
-    JS_SetPropertyStr(ctx, require, "searchExtensions", search_extensions);
+    JS_SetPropertyStr(ctx, module, "searchExtensions", search_extensions);
 
-    JS_SetPropertyStr(ctx, global_obj, "require", require);
+    compilers = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, module, "compilers", compilers);
+
+    JS_SetPropertyStr(ctx, global_obj, "Module", module);
 
     JS_FreeValue(ctx, global_obj);
 }
