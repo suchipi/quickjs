@@ -635,39 +635,39 @@ JSModuleDef *js_module_loader(JSContext *ctx,
         m = js_module_loader_so(ctx, module_name);
     } else {
         const char* ext;
-        JSValue global, require, loaders, user_loader, func_val;
+        JSValue global, Module, compilers, user_compiler, func_val;
 
         ext = get_extension(module_name);
-        user_loader = JS_UNDEFINED;
+        user_compiler = JS_UNDEFINED;
 
         global = JS_GetGlobalObject(ctx);
-        require = JS_GetPropertyStr(ctx, global, "require");
-        loaders = JS_GetPropertyStr(ctx, require, "loaders");
-        if (JS_IsObject(loaders)) {
-            JSValue loader = JS_GetPropertyStr(ctx, loaders, ext);
+        Module = JS_GetPropertyStr(ctx, global, "Module");
+        compilers = JS_GetPropertyStr(ctx, Module, "compilers");
+        if (JS_IsObject(compilers)) {
+            JSValue loader = JS_GetPropertyStr(ctx, compilers, ext);
             if (JS_IsFunction(ctx, loader)) {
-                user_loader = loader;
+                user_compiler = loader;
             }
         }
-        JS_FreeValue(ctx, loaders);
-        JS_FreeValue(ctx, require);
+        JS_FreeValue(ctx, compilers);
+        JS_FreeValue(ctx, Module);
         JS_FreeValue(ctx, global);
 
-        if (!JS_IsUndefined(user_loader)) {
+        if (!JS_IsUndefined(user_compiler)) {
             JSValue result_val, module_name_val;
             JSValue argv[1];
 
             module_name_val = JS_NewString(ctx, module_name);
             if (JS_IsException(module_name_val)) {
                 JS_FreeValue(ctx, module_name_val);
-                JS_FreeValue(ctx, user_loader);
+                JS_FreeValue(ctx, user_compiler);
                 return NULL;
             }
 
             argv[0] = module_name_val;
-            result_val = JS_Call(ctx, user_loader, JS_NULL, 1, argv);
+            result_val = JS_Call(ctx, user_compiler, JS_NULL, 1, argv);
             JS_FreeValue(ctx, module_name_val);
-            JS_FreeValue(ctx, user_loader);
+            JS_FreeValue(ctx, user_compiler);
 
             if (JS_IsException(result_val)) {
                 return NULL;
@@ -799,12 +799,12 @@ char *js_module_normalize_name(JSContext *ctx,
         debugprint("import resolved via literal filename: %s\n", filename);
         return filename;
     } else {
-        JSValue global, require, search_extensions;
+        JSValue global, Module, search_extensions;
 
         global = JS_GetGlobalObject(ctx);
-        require = JS_GetPropertyStr(ctx, global, "require");
-        search_extensions = JS_GetPropertyStr(ctx, require, "searchExtensions");
-        JS_FreeValue(ctx, require);
+        Module = JS_GetPropertyStr(ctx, global, "Module");
+        search_extensions = JS_GetPropertyStr(ctx, Module, "searchExtensions");
+        JS_FreeValue(ctx, Module);
         JS_FreeValue(ctx, global);
 
         if (JS_IsArray(ctx, search_extensions) == TRUE) {
