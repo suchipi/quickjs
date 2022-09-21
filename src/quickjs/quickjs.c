@@ -42,7 +42,9 @@
 
 #include "../cutils/cutils.h"
 #include "../list/list.h"
+#define QUICKJS_H_SKIP_SYMBOL_ATOMS 1
 #include "./quickjs.h"
+#undef QUICKJS_H_SKIP_SYMBOL_ATOMS
 #include "../libregexp/libregexp.h"
 #ifdef CONFIG_BIGNUM
 #include "../libbf/libbf.h"

@@ -1044,6 +1044,31 @@ JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier);
 JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier);
 JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename);
 
+#ifndef QUICKJS_H_SKIP_SYMBOL_ATOMS
+// atoms for well-known symbols. must match order in quickjs-atom.h.
+// we duplicate this so that quickjs.h can be distributed without quickjs-atom.h.
+enum {
+    __JS_ATOM_NULL = JS_ATOM_NULL,
+    JS_ATOM_Symbol_toPrimitive,
+    JS_ATOM_Symbol_iterator,
+    JS_ATOM_Symbol_match,
+    JS_ATOM_Symbol_matchAll,
+    JS_ATOM_Symbol_replace,
+    JS_ATOM_Symbol_search,
+    JS_ATOM_Symbol_split,
+    JS_ATOM_Symbol_toStringTag,
+    JS_ATOM_Symbol_isConcatSpreadable,
+    JS_ATOM_Symbol_hasInstance,
+    JS_ATOM_Symbol_species,
+    JS_ATOM_Symbol_unscopables,
+    JS_ATOM_Symbol_asyncIterator,
+#ifdef CONFIG_BIGNUM
+    JS_ATOM_Symbol_operatorSet,
+#endif
+    JS_ATOM_END,
+};
+#endif
+
 #undef js_unlikely
 #undef js_force_inline
 
