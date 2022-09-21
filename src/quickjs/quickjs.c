@@ -1211,8 +1211,6 @@ static JSValue js_promise_resolve(JSContext *ctx, JSValueConst this_val,
 static int js_string_compare(JSContext *ctx,
                              const JSString *p1, const JSString *p2);
 static JSValue JS_ToNumber(JSContext *ctx, JSValueConst val);
-static int JS_SetPropertyValue(JSContext *ctx, JSValueConst this_obj,
-                               JSValue prop, JSValue val, int flags);
 static int JS_NumberIsInteger(JSContext *ctx, JSValueConst val);
 static BOOL JS_NumberIsNegativeOrMinusZero(JSContext *ctx, JSValueConst val);
 static JSValue JS_ToNumberFree(JSContext *ctx, JSValue val);
@@ -8689,7 +8687,7 @@ retry:
 }
 
 /* flags can be JS_PROP_THROW or JS_PROP_THROW_STRICT */
-static int JS_SetPropertyValue(JSContext *ctx, JSValueConst this_obj,
+int JS_SetPropertyValue(JSContext *ctx, JSValueConst this_obj,
                                JSValue prop, JSValue val, int flags)
 {
     if (likely(JS_VALUE_GET_TAG(this_obj) == JS_TAG_OBJECT &&

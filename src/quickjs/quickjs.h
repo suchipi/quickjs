@@ -749,6 +749,9 @@ int JS_SetPropertyInt64(JSContext *ctx, JSValueConst this_obj,
                         int64_t idx, JSValue val);
 int JS_SetPropertyStr(JSContext *ctx, JSValueConst this_obj,
                       const char *prop, JSValue val);
+/* flags can be JS_PROP_THROW or JS_PROP_THROW_STRICT */
+int JS_SetPropertyValue(JSContext *ctx, JSValueConst this_obj,
+                        JSValue prop, JSValue val, int flags);
 int JS_HasProperty(JSContext *ctx, JSValueConst this_obj, JSAtom prop);
 int JS_IsExtensible(JSContext *ctx, JSValueConst obj);
 int JS_PreventExtensions(JSContext *ctx, JSValueConst obj);
