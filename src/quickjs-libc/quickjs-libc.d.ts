@@ -914,7 +914,7 @@ declare class Module {
    * See the doc comment on {@link require} for more information.
    *
    * NOTE: If you add a new extension to this array, you will likely also want
-   * to add to {@link Module.loaders}.
+   * to add to {@link Module.compilers}.
    */
   static searchExtensions: Array<string>;
 
@@ -938,7 +938,7 @@ declare class Module {
    * ```js
    * import * as std from "std";
    *
-   * Module.loaders[".txt"] = (filename) => {
+   * Module.compilers[".txt"] = (filename) => {
    *   const content = std.loadFile(filename);
    *   return `export default ${JSON.stringify(content)}`;
    * }
@@ -955,7 +955,9 @@ declare class Module {
    * NOTE: When adding to this object, you may also wish to add to
    * {@link Module.searchExtensions}.
    */
-  static loaders: { [extensionWithDot: string]: (filename: string) => string };
+  static compilers: {
+    [extensionWithDot: string]: (filename: string) => string;
+  };
 }
 
 /**
