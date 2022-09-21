@@ -256,7 +256,7 @@ static inline JS_BOOL JS_VALUE_IS_NAN(JSValue v)
 #define JS_UNDEFINED JS_MKVAL(JS_TAG_UNDEFINED, 0)
 #define JS_FALSE     JS_MKVAL(JS_TAG_BOOL, 0)
 #define JS_TRUE      JS_MKVAL(JS_TAG_BOOL, 1)
-#define JS_EXCEPTION JS_MKVAL(JS_TAG_EXCEPTION, 0)
+#define JS_EXCEPTION JS_MKVAL(JS_TAG_EXCEPTION, 0) /* indicates that a value was thrown. */
 #define JS_UNINITIALIZED JS_MKVAL(JS_TAG_UNINITIALIZED, 0)
 
 /* flags for object properties */
