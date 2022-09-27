@@ -512,6 +512,8 @@ int main(int argc, char **argv)
     int module;
     OutputTypeEnum output_type;
     size_t stack_size;
+    BOOL did_set_stack_size = FALSE;
+
 #ifdef CONFIG_BIGNUM
     BOOL bignum_ext = FALSE;
 #endif
@@ -612,6 +614,7 @@ int main(int argc, char **argv)
             c_ident_prefix = optarg;
             break;
         case 'S':
+            did_set_stack_size = TRUE;
             stack_size = (size_t)strtod(optarg, NULL);
             break;
         default:
@@ -750,7 +753,7 @@ int main(int argc, char **argv)
 
         fputs(main_c_template1, fo);
 
-        if (stack_size != 0) {
+        if (did_set_stack_size) {
             fprintf(fo, "  JS_SetMaxStackSize(rt, %u);\n",
                     (unsigned int)stack_size);
         }
