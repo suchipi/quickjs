@@ -1,0 +1,22 @@
+# https://gittup.org/tup/manual.html
+include_rules
+
+DEPS_HOST = ../cutils/cutils.host.o
+DEPS_HOST += ../libbf/libbf.host.o
+DEPS_HOST += ../libregexp/libregexp.host.o
+DEPS_HOST += ../libunicode/libunicode.host.o
+DEPS_HOST += ../quickjs/quickjs.host.o
+DEPS_HOST += ../quickjs-libc/quickjs-libc.host.o
+DEPS_HOST += ../inspect/inspect.host.o
+
+DEPS_TARGET = ../cutils/cutils.target.o
+DEPS_TARGET += ../libbf/libbf.target.o
+DEPS_TARGET += ../libregexp/libregexp.target.o
+DEPS_TARGET += ../libunicode/libunicode.target.o
+DEPS_TARGET += ../quickjs/quickjs.target.o
+DEPS_TARGET += ../quickjs-libc/quickjs-libc.target.o
+DEPS_TARGET += ../inspect/inspect.target.o
+
+: loop.js | ../qjsc/qjsc.host |> ../qjsc/qjsc.host -c -o %o -m %f |> loop.c
+: main.c loop.c $(DEPS_HOST) |> !compile_host_c_program |> test.host
+: main.c loop.c $(DEPS_TARGET) |> !compile_target_c_program |> test.target
