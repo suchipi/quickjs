@@ -1,0 +1,7 @@
+# https://gittup.org/tup/manual.html
+include_rules
+
+include ./deps.tup
+
+: $(DEPS_HOST) |> !create_host_archive |> quickjs-core.host.a
+: $(DEPS_TARGET) |> !create_target_archive |> quickjs-core.target.a

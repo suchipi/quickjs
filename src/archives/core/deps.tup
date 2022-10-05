@@ -1,0 +1,15 @@
+# https://gittup.org/tup/manual.html
+
+# Only the quickjs engine and its dependencies.
+
+DEPS_HOST += $(TUP_CWD)/../../cutils/cutils.host.o
+DEPS_HOST += $(TUP_CWD)/../../libbf/libbf.host.o
+DEPS_HOST += $(TUP_CWD)/../../libregexp/libregexp.host.o
+DEPS_HOST += $(TUP_CWD)/../../libunicode/libunicode.host.o
+DEPS_HOST += $(TUP_CWD)/../../quickjs/quickjs.host.o
+
+DEPS_TARGET += $(TUP_CWD)/../../cutils/cutils.target.o
+DEPS_TARGET += $(TUP_CWD)/../../libbf/libbf.target.o
+DEPS_TARGET += $(TUP_CWD)/../../libregexp/libregexp.target.o
+DEPS_TARGET += $(TUP_CWD)/../../libunicode/libunicode.target.o
+DEPS_TARGET += $(TUP_CWD)/../../quickjs/quickjs.target.o

@@ -1,24 +1,12 @@
 # https://gittup.org/tup/manual.html
 include_rules
 
-DEPS_HOST = ../cutils/cutils.host.o
-DEPS_HOST += ../libbf/libbf.host.o
-DEPS_HOST += ../libregexp/libregexp.host.o
-DEPS_HOST += ../libunicode/libunicode.host.o
-DEPS_HOST += ../quickjs/quickjs.host.o
-DEPS_HOST += ../quickjs-libc/quickjs-libc.host.o
+include ../archives/full/deps.tup
+
 DEPS_HOST += ../qjscalc/qjscalc.host.o
-DEPS_HOST += ../inspect/inspect.host.o
 DEPS_HOST += ../repl/repl.host.o
 
-DEPS_TARGET = ../cutils/cutils.target.o
-DEPS_TARGET += ../libbf/libbf.target.o
-DEPS_TARGET += ../libregexp/libregexp.target.o
-DEPS_TARGET += ../libunicode/libunicode.target.o
-DEPS_TARGET += ../quickjs/quickjs.target.o
-DEPS_TARGET += ../quickjs-libc/quickjs-libc.target.o
 DEPS_TARGET += ../qjscalc/qjscalc.target.o
-DEPS_TARGET += ../inspect/inspect.target.o
 DEPS_TARGET += ../repl/repl.target.o
 
 : qjs.c $(DEPS_HOST) |> !compile_host_c_program |> qjs.host
