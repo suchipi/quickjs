@@ -3,7 +3,7 @@
 # This dockerfile creates an image with an environment suitable for compiling
 # the "windows-from-linux" variant in, via `make`.
 
-FROM suchipi/quickjs-build:linux
+FROM suchipi/quickjs-build:linux-from-linux
 
 USER root
 
