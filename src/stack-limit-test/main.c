@@ -46,7 +46,7 @@ int main(int argc, char **argv)
   } else {
     double max_stack_size = strtod(argv[1], NULL);
 
-    printf("max_stack_size: (double)%f, (size_t)%lu\n", max_stack_size, (size_t)max_stack_size);
+    printf("max_stack_size: (double)%f, (size_t)%zu\n", max_stack_size, (size_t)max_stack_size);
 
     JS_SetMaxStackSize(rt, max_stack_size);
   }
