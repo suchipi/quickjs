@@ -19,6 +19,8 @@ src/libunicode/libunicode-table.h
 src/qjscalc/qjscalc.c
 src/repl/repl.c
 src/inspect/inspect.c
+src/sample-program/sum.c
+src/stack-limit-test/loop.c
 
 tup-generate.vardict
 
