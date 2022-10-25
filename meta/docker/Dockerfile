@@ -1,0 +1,34 @@
+# Dockerfile for: suchipi/quickjs-builder
+FROM --platform=$BUILDPLATFORM crazymax/osxcross:11.3-r7-ubuntu AS osxcross
+
+FROM ubuntu:20.04
+
+COPY --from=osxcross /osxcross /osxcross
+
+RUN apt-get update && \
+  apt-get install -y \
+    sudo \
+    build-essential \
+    git \
+    gcc-mingw-w64-x86-64 \
+    clang \
+    lld \
+    libc6-dev
+
+
+ARG UID=1000
+ARG GID=1000
+
+# Make normal user
+RUN groupadd -g $GID user || true
+RUN useradd -m -s /bin/bash -u $UID -g $GID user
+RUN echo "user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+USER user
+
+ENV PATH="/osxcross/bin:$PATH"
+ENV LD_LIBRARY_PATH="/osxcross/lib:$LD_LIBRARY_PATH"
+
+# The intent is that you volume-mount the repo into /opt/quickjs.
+WORKDIR /opt/quickjs
+CMD /opt/quickjs/meta/docker/cmd.sh

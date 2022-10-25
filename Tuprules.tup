@@ -10,88 +10,40 @@
 # For macOS, we use osxcross to cross-compile for macOS from linux, so HOST is linux and TARGET is macOS.
 
 # The name of the binary program to use for c compilation (it should be in PATH). eg. `gcc`, `clang`, etc
-ifdef CC_HOST
-  CC_HOST = @(CC_HOST)
-else
-  CC_HOST = cc
-endif
-ifdef CC_TARGET
-  CC_TARGET = @(CC_TARGET)
-else
-  CC_TARGET = cc
-endif
+import CC_HOST=cc
+import CC_TARGET=cc
+
+# The name of the binary program to use for creating .a archives (it should be in PATH). eg. `ar`, `llvm-ar`, etc
+import AR_HOST=ar
+import AR_TARGET=ar
 
 # --- Various flags to pass to the c compiler. ---
-ifdef CFLAGS_HOST
-  CFLAGS_HOST = @(CFLAGS_HOST)
-else
-  CFLAGS_HOST =
-endif
-ifdef CFLAGS_TARGET
-  CFLAGS_TARGET = @(CFLAGS_TARGET)
-else
-  CFLAGS_TARGET =
-endif
+import CFLAGS_HOST=
+import CFLAGS_TARGET=
 
 # Show all warnings.
 CFLAGS_HOST += -Wall
 CFLAGS_TARGET += -Wall
 
 # --- Linker flags. ---
-ifdef LDFLAGS_HOST
-  LDFLAGS_HOST = @(LDFLAGS_HOST)
-else
-  LDFLAGS_HOST =
-endif
-ifdef LDFLAGS_TARGET
-  LDFLAGS_TARGET = @(LDFLAGS_TARGET)
-else
-  LDFLAGS_TARGET =
-endif
+import LDFLAGS_HOST=
+import LDFLAGS_TARGET=
 
 # Include source debugging info in the binaries
 LDFLAGS_HOST += -g
 LDFLAGS_TARGET += -g
 
 # --- Libraries to include. ---
-ifdef LIBS_HOST
-  LIBS_HOST = @(LIBS_HOST)
-else
-  LIBS_HOST =
-endif
-ifdef LIBS_TARGET
-  LIBS_TARGET = @(LIBS_TARGET)
-else
-  LIBS_TARGET =
-endif
+import LIBS_HOST=
+import LIBS_TARGET=
 
 # math functions and constants. <math.h>
 LIBS_HOST += -lm
 LIBS_TARGET += -lm
 
 # --- Defines for the preprocessor
-ifdef DEFINES_HOST
-  DEFINES_HOST = @(DEFINES_HOST)
-else
-  DEFINES_HOST =
-endif
-ifdef DEFINES_TARGET
-  DEFINES_TARGET = @(DEFINES_TARGET)
-else
-  DEFINES_TARGET =
-endif
-
-# The name of the binary program to use for creating .a archives (it should be in PATH). eg. `ar`, `llvm-ar`, etc
-ifdef AR_HOST
-  AR_HOST = @(AR_HOST)
-else
-  AR_HOST = ar
-endif
-ifdef AR_TARGET
-  AR_TARGET = @(AR_TARGET)
-else
-  AR_TARGET = ar
-endif
+import DEFINES_HOST=
+import DEFINES_TARGET=
 
 # whether to enable debugprint
 # DEFINES_HOST += -DDEBUG
@@ -109,11 +61,14 @@ DEFINES_HOST += -DCONFIG_BIGNUM
 DEFINES_TARGET += -DCONFIG_BIGNUM
 
 # link-time optimization
-ifeq (@(LTO_HOST),y)
+import LTO_HOST=n
+import LTO_TARGET=n
+
+ifeq ($(LTO_HOST),y)
   DEFINES_HOST += -DCONFIG_LTO
   LDFLAGS_HOST += -flto
 endif
-ifeq (@(LTO_TARGET),y)
+ifeq ($(LTO_TARGET),y)
   DEFINES_TARGET += -DCONFIG_LTO
   LDFLAGS_TARGET += -flto
 endif

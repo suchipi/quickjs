@@ -1,8 +1,6 @@
 .tup
 .vscode
 
-build
-
 # vscode puts this here and idk why. annoying.
 null.d
 
@@ -24,4 +22,4 @@ src/stack-limit-test/loop.c
 
 tup-generate.vardict
 
-docker/artifacts/*
+meta/docker/artifacts/*

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+unset CC_HOST
+unset CC_TARGET
+unset AR_HOST
+unset AR_TARGET
+unset CFLAGS_HOST
+unset CFLAGS_TARGET
+unset LDFLAGS_HOST
+unset LDFLAGS_TARGET
+unset LIBS_HOST
+unset LIBS_TARGET
+unset DEFINES_HOST
+unset DEFINES_TARGET
+unset LTO_HOST
+unset LTO_TARGET

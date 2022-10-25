@@ -47,36 +47,40 @@ There are also probably some other miscellaneous changes I forgot.
 
 The repo has stuff set up to compile quickjs binaries for Linux, macOS, iOS, or Windows. Compilation takes place via Docker.
 
-The project has no external dependencies outside this repo except pthreads, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes, such as FreeBSD. OS-specific configs for the build process live in the `configs` folder, and symlinks in the `build-<os-name>` folders point to those configs in order to link them into the build system. Read about "variants" in the [tup manual](https://gittup.org/tup/manual.html) for more info.
+The project has no external dependencies outside this repo except pthreads, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes, such as FreeBSD. OS-specific configuration is done by way of environment variables, found in the `meta/envs` folder.
 
 ## Compilation Instructions
 
+To compile just for your own linux or macOS machine:
+
 - Clone the repo and cd to its folder
-- Run `./docker/build-images.sh`
-- Run either `./docker/run-image.sh linux`, `./docker/run-image.sh windows`, `./docker/run-image.sh darwin`, or `./docker/run-image.sh darwin-arm` depending on what binaries you want to create (`darwin` means macOS x64, `darwin-arm` means macOS ARM and iOS).
-- You will now be in a shell inside a docker container. Run `make`.
-- Assuming everything compiled correctly, you can now exit the docker container shell by pressing Ctrl+D.
-- Build artifacts will be present within the `build` folder (which is a symlink). The directory structure inside that folder mirrors the structure at the repo root. The most notable artifacts are:
-  - `./build/src/archive/quickjs.target.a` - A C library you can link against which contains everything from `quickjs` and `quickjs-libc`.
-  - `./build/src/qjs/qjs.target` - the `qjs` command-line interpreter and repl
-  - `./build/src/qjsc/qjsc.target` - the `qjsc` command-line tool which can compile JS code into C programs containing the bytecode for that JS. Can be used to distribute utilities written in JavaScript as statically-linked binaries.
+- Run `meta/build.sh`
+- Build artifacts will be next to their sources, in folders under `src`.
+
+Or, to compile for all platforms (using Docker):
+
+- Clone the repo and cd to its folder
+- Run `meta/docker/build-all.sh`
+- Build artifacts will be in `meta/artifacts`
 
 ## Updating buildscripts
 
 This repo's build requirements and commands are organized using `tup`, an alternative to make. It makes organizing things in a modular way easier and its config files are (in my opinion) a bit clearer to read.
 
-But, `tup` relies on FUSE, which is inconvenient to use in some cases, such as on macOS or in CI. Additionally, the specific version of `tup` I use isn't readily available in some OS package managers.
+But, `tup` relies on FUSE, which is inconvenient to use in some cases, such as on macOS or in CI. Additionally, the specific version of `tup` I use (tup v0.7.11-95-g4e9f5b32) isn't readily available in OS package managers.
 
-So, even though I use tup for development, I also provide a build method that can work without tup. Tup has the ability to generate normal `.sh` scripts which can be run in an environment where tup isn't installed. Tup does this by walking the tree of tup-related files in the repo, identifying what depends on what, and then outputting the list of commands that it would run, in the order that it would run them, if the repo had just been freshly cloned. The generated scripts are checked into git, in the `buildscripts` folder. This makes things more convenient for people who will not be working on this repo very much and just want to compile it.
+So, even though I use tup for development, I also provide a build method that can work without tup. Tup has the ability to generate normal `.sh` scripts which can be run in an environment where tup isn't installed. Tup does this by walking the tree of tup-related files in the repo, identifying what depends on what, and then outputting the list of commands that it would run, in the order that it would run them, if the repo had just been freshly cloned. The generated scripts are checked into git, in the `meta/buildscripts` folder. This makes things more convenient for people who will not be working on this repo very much and just want to compile it.
 
-This does mean, though, that if any of the tup-related files are changed (`Tuprules.tup`, variant `.config` files, or `Tupfile`s), the buildscripts need to be updated to match what tup itself would do. To update the buildscripts:
+This does mean, though, that if any tup-related files (`Tuprules.tup` or `Tupfile`s) are changed/added/removed, the buildscripts need to be updated to match what tup itself would do.
 
-- Install [`tup`](https://gittup.org/tup/) 0.7.11.
-  - On Linux, you can download [a tar.gz from the tup website](https://gittup.org/tup/releases/tup-v0.7.11.tar.gz) and put the `tup` binary somewhere in your `PATH`. I recommend `~/.local/bin`.
-  - On macOS you can get tup with either [Homebrew](https://brew.sh/) or [MacPorts](https://www.macports.org/). I recommend MacPorts as in my personal experience, it is more stable, has better UX, and has more fine-grained package versions available.
-- Clone the repo and cd to its folder
-- Run `make update-buildscripts`
-  - If you run into an error about `.o` files existing that aren't supposed to exist, run `git clean -dfX src` to remove them.
+`meta/build.sh` either runs tup or runs a generated buildscript, depending on if `tup` is present in PATH. It's worth noting that the generated buildscripts *always* build everything, whereas running `tup` would only build the things that have changed on disk. So `tup` is nicer when iterating on stuff, but if you don't care, it's easier to use the generated buildscripts.
+
+Anyway, in the event that you change, add, or remove tup-related files, here's what you should do to update the buildscripts:
+
+- Compile and install [`tup`](https://gittup.org/tup/) from [this specific commit on github](https://github.com/gittup/tup/tree/4e9f5b328f43fbfbdff88da7b4520efb1f1a5263)
+- Run `meta/update-buildscripts.sh`
+
+I recognize that depending on a weird specific commit of tup instead of a tagged version is not ideal. I do this because I need the `import` feature of tup in order to use environment variables to specify OS-specific configuration, and `import` doesn't seem to work in the latest tagged version (v0.7.11). I previously used tup's "variants" feature to define OS-specific info instead, but things got really messy...
 
 ## Notes
 
