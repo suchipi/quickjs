@@ -97,6 +97,10 @@ endif
 # DEFINES_HOST += -DDEBUG
 # DEFINES_TARGET += -DDEBUG
 
+# garbage collection debugging info
+# DEFINES_HOST += -DDUMP_GC=1 -DDUMP_GC_FREE=1
+# DEFINES_TARGET += -DDUMP_GC=1 -DDUMP_GC_FREE=1
+
 DEFINES_HOST += -DCONFIG_VERSION="\"suchipi-`git rev-parse --short HEAD`\""
 DEFINES_TARGET += -DCONFIG_VERSION="\"suchipi-`git rev-parse --short HEAD`\""
 
