@@ -32,8 +32,8 @@ int main(int argc, char **argv)
   JSRuntime *rt;
   JSContext *ctx;
 
-  if (argc != 2) {
-    printf("You must provide a single positional argument (the max stack size, or NONE to skip calling JS_SetMaxStackSize).\n");
+  if (argc != 3) {
+    printf("You must provide two positional arguments: the max stack size (or NONE to skip calling JS_SetMaxStackSize), and the memory limit (or NONE to skip calling JS_SetMemoryLimit).\n");
     return 1;
   }
 
@@ -49,6 +49,16 @@ int main(int argc, char **argv)
     printf("max_stack_size: (double)%f, (size_t)%zu\n", max_stack_size, (size_t)max_stack_size);
 
     JS_SetMaxStackSize(rt, max_stack_size);
+  }
+
+  if (!strcmp(argv[2], "NONE")) {
+    printf("skipping JS_SetMemoryLimit call\n");
+  } else {
+    double memory_limit = strtod(argv[1], NULL);
+
+    printf("memory_limit: (double)%f, (size_t)%zu\n", memory_limit, (size_t)memory_limit);
+
+    JS_SetMemoryLimit(rt, memory_limit);
   }
 
   JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
