@@ -4,7 +4,7 @@
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
-    "outDir": "dist",
+    "noEmit": true,
     "lib": ["ES2020"],
     "strictNullChecks": true
   }
