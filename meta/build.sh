@@ -19,6 +19,14 @@ echo "TARGET: $TARGET"
 if command -v tup &> /dev/null; then
   echo "tup detected; using tup"
 
+  ACTIVE_TUP_VERSION=$(tup -v)
+  DESIRED_TUP_VERSION="tup v0.7.11-95-g4e9f5b32"
+
+  if [[ "$ACTIVE_TUP_VERSION" != "$DESIRED_TUP_VERSION" ]]; then
+    echo "Incorrect tup version; wanted $DESIRED_TUP_VERSION but got $ACTIVE_TUP_VERSION"
+    exit 1
+  fi
+
   ENV_BEFORE=$(env | sort)
   source "meta/envs/host/$HOST.env"
   source "meta/envs/target/$TARGET.env"
