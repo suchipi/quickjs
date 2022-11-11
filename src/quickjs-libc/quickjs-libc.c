@@ -636,6 +636,8 @@ JSModuleDef *js_module_loader(JSContext *ctx,
     } else {
         const char* ext;
         JSValue global, Module, compilers, user_compiler, func_val;
+        size_t buf_len;
+        uint8_t *buf;
 
         ext = get_extension(module_name);
         user_compiler = JS_UNDEFINED;
@@ -644,28 +646,44 @@ JSModuleDef *js_module_loader(JSContext *ctx,
         Module = JS_GetPropertyStr(ctx, global, "Module");
         compilers = JS_GetPropertyStr(ctx, Module, "compilers");
         if (JS_IsObject(compilers)) {
-            JSValue loader = JS_GetPropertyStr(ctx, compilers, ext);
-            if (JS_IsFunction(ctx, loader)) {
-                user_compiler = loader;
+            JSValue compiler = JS_GetPropertyStr(ctx, compilers, ext);
+            if (JS_IsFunction(ctx, compiler)) {
+                user_compiler = compiler;
             }
         }
         JS_FreeValue(ctx, compilers);
         JS_FreeValue(ctx, Module);
         JS_FreeValue(ctx, global);
 
+        buf = js_load_file(ctx, &buf_len, module_name);
+        if (!buf) {
+            JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
+                                module_name);
+            return NULL;
+        }
+
         if (!JS_IsUndefined(user_compiler)) {
-            JSValue result_val, module_name_val;
-            JSValue argv[1];
+            JSValue module_name_val, buf_val, result_val;
+            JSValue argv[2];
 
             module_name_val = JS_NewString(ctx, module_name);
             if (JS_IsException(module_name_val)) {
-                JS_FreeValue(ctx, module_name_val);
                 JS_FreeValue(ctx, user_compiler);
                 return NULL;
             }
 
+            buf_val = JS_NewStringLen(ctx, buf, buf_len);
+            if (JS_IsException(buf_val)) {
+                JS_FreeValue(ctx, user_compiler);
+                JS_FreeValue(ctx, module_name_val);
+                return NULL;
+            }
+
             argv[0] = module_name_val;
-            result_val = JS_Call(ctx, user_compiler, JS_NULL, 1, argv);
+            argv[1] = buf_val;
+
+            result_val = JS_Call(ctx, user_compiler, JS_NULL, 2, argv);
+            JS_FreeValue(ctx, buf_val);
             JS_FreeValue(ctx, module_name_val);
             JS_FreeValue(ctx, user_compiler);
 
@@ -676,8 +694,7 @@ JSModuleDef *js_module_loader(JSContext *ctx,
                 JS_FreeValue(ctx, result_val);
                 return NULL;
             } else {
-                const char *result;
-                result = JS_ToCString(ctx, result_val);
+                const char *result = JS_ToCString(ctx, result_val);
 
                 /* compile the module */
                 func_val = JS_Eval(ctx, result, strlen(result), module_name,
@@ -686,23 +703,12 @@ JSModuleDef *js_module_loader(JSContext *ctx,
                 JS_FreeValue(ctx, result_val);
             }
         } else {
-            size_t buf_len;
-            uint8_t *buf;
-
-            buf = js_load_file(ctx, &buf_len, module_name);
-            if (!buf) {
-                JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
-                                    module_name);
-                return NULL;
-            }
-
             /* compile the module */
             func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name,
                             JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-
-            js_free(ctx, buf);
         }
 
+        js_free(ctx, buf);
 
         if (JS_IsException(func_val))
             return NULL;

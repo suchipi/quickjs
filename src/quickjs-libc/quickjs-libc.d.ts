@@ -924,10 +924,13 @@ declare class Module {
    *
    * The key for each property in this object should be a file extension
    * string with a leading dot, eg `".jsx"`. The value for each property should
-   * be a function which receives the filepath to a module, and should
-   * synchronously load that file, then return a string containing JavaScript
-   * code that corresponds to that module. In many cases, these functions will
-   * compile the contents of the file from one format into JavaScript.
+   * be a function which receives (1) the filepath to a module, and (2) that
+   * file's content as a UTF-8 string, and the function should return a string
+   * containing JavaScript code that corresponds to that module. In most cases,
+   * these functions will compile the contents of the file from one format into JavaScript.
+   * 
+   * The function does not have to use the second 'content' argument it
+   * receives (ie. when loading binary files).
    *
    * By adding to this object, you can make it possible to import non-js
    * filetypes; compile-to-JS languages like JSX, TypeScript, and CoffeeScript
@@ -938,8 +941,7 @@ declare class Module {
    * ```js
    * import * as std from "std";
    *
-   * Module.compilers[".txt"] = (filename) => {
-   *   const content = std.loadFile(filename);
+   * Module.compilers[".txt"] = (filename, content) => {
    *   return `export default ${JSON.stringify(content)}`;
    * }
    * ```
@@ -956,7 +958,7 @@ declare class Module {
    * {@link Module.searchExtensions}.
    */
   static compilers: {
-    [extensionWithDot: string]: (filename: string) => string;
+    [extensionWithDot: string]: (filename: string, content: string) => string;
   };
 }
 
