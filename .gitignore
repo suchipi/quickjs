@@ -6,8 +6,8 @@ node_modules
 # vscode puts this here and idk why. annoying.
 null.d
 
-build-*/*
-!build-*/tup.config
+build
+build.ninja
 
 # These files are created when building without tup (via stuff in the buildscripts folder).
 src/**/*.o

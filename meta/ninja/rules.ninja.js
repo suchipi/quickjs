@@ -30,3 +30,9 @@ rule("create_target_archive", {
   command: `$AR_TARGET -rcs $out $in`,
   description: "AR_TARGET $out",
 });
+
+// use qjsc to make a .c file containing a byte array of bytecode for a .js file
+rule("qjsc", {
+  command: [builddir("qjsc.host"), `-c -o $out -m $in`],
+  description: "QJSC $out",
+});
