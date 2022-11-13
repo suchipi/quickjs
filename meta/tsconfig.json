@@ -1,0 +1,11 @@
+{
+  "files": ["../node_modules/@suchipi/shinobi/globals.d.ts"],
+  "include": ["./**/*.ninja.js"],
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "lib": ["ES2020"],
+    "strictNullChecks": true
+  }
+}
