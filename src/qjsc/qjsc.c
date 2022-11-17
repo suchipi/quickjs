@@ -33,9 +33,9 @@
 #include <sys/wait.h>
 #endif
 
-#include "../cutils/cutils.h"
-#include "../quickjs-libc/quickjs-libc.h"
-#include "../debugprint/debugprint.h"
+#include "cutils.h"
+#include "quickjs-libc.h"
+#include "debugprint.h"
 
 // Stub out inspect, which quickjs-libc depends on, but which we can't rely
 // on in qjsc, because inspect is built with qjsc

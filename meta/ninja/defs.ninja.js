@@ -1,6 +1,25 @@
+const path = require("path");
+
+const headerFiles = glob("**/*.h", {
+  cwd: path.resolve(__dirname, "../.."),
+});
+
+const dirsWithHeaderFiles = Array.from(
+  new Set(headerFiles.map((file) => path.dirname(file)))
+);
+
 for (const suffix of ["HOST", "TARGET"]) {
   // Show all warnings.
   declareOrAppend(`CFLAGS_${suffix}`, "-Wall");
+
+  // Add include for build dir (for generated header)
+  declareOrAppend(`CFLAGS_${suffix}`, "-I" + builddir());
+
+  // Add includes for all dirs with header files
+  declareOrAppend(
+    `CFLAGS_${suffix}`,
+    dirsWithHeaderFiles.map((dir) => "-I" + dir).join(" ")
+  );
 
   // Include source debugging info in the binaries
   declareOrAppend(`LDFLAGS_${suffix}`, "-g");

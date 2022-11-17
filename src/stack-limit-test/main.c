@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "../quickjs-libc/quickjs-libc.h"
+#include "quickjs-libc.h"
 
 extern const uint32_t qjsc_loop_size;
 extern const uint8_t qjsc_loop[];

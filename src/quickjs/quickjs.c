@@ -40,12 +40,12 @@
 #include <malloc_np.h>
 #endif
 
-#include "../cutils/cutils.h"
-#include "../list/list.h"
-#include "./quickjs.h"
-#include "../libregexp/libregexp.h"
+#include "cutils.h"
+#include "list.h"
+#include "quickjs.h"
+#include "libregexp.h"
 #ifdef CONFIG_BIGNUM
-#include "../libbf/libbf.h"
+#include "libbf.h"
 #endif
 
 #define OPTIMIZE         1
