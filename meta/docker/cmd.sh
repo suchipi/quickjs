@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
-shopt -s globstar
 
 git config --global --add safe.directory /opt/quickjs
+meta/clean.sh
 
-for BUILD_SCRIPT in meta/buildscripts/*-from-linux.sh; do
-    BUILD_SCRIPT_NAME=$(basename "$BUILD_SCRIPT")
-    NAME_WITHOUT_SH=${BUILD_SCRIPT_NAME/.sh/}
+mkdir -p build
 
-    PARTS=(${NAME_WITHOUT_SH/-from-/ })
-    export HOST=${PARTS[1]}
-    export TARGET=${PARTS[0]}
+echo "----"
+echo "---- Building linux ----"
+echo "----"
+env BUILDDIR=build/linux HOST=linux TARGET=linux meta/build.sh
 
-    TARGET_WITHOUT_CROSS=${TARGET/cross-/}
+echo "----"
+echo "---- Building darwin (arm) ----"
+echo "----"
+env BUILDDIR=build/darwin-arm HOST=linux TARGET=cross-darwin-arm meta/build.sh
 
-    echo "----"
-    echo "---- Building $TARGET_WITHOUT_CROSS (${BUILD_SCRIPT}) ----"
-    echo "----"
+echo "----"
+echo "---- Building darwin (x86) ----"
+echo "----"
+env BUILDDIR=build/darwin-x86 HOST=linux TARGET=cross-darwin-x86 meta/build.sh
 
-    meta/clean.sh
-    "$BUILD_SCRIPT"
-
-    ARTIFACT_DIR="meta/artifacts/$TARGET_WITHOUT_CROSS"
-    mkdir -p "$ARTIFACT_DIR"
-    mv ./src/**/*.{target,target.*} "$ARTIFACT_DIR/"
-done
+echo "----"
+echo "---- Building windows ----"
+echo "----"
+env BUILDDIR=build/windows HOST=linux TARGET=cross-windows meta/build.sh
