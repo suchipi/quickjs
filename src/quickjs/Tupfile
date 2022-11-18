@@ -1,5 +1,0 @@
-# https://gittup.org/tup/manual.html
-include_rules
-
-: quickjs.c |> !compile_host_c_object |> %B.host.o
-: quickjs.c |> !compile_target_c_object |> %B.target.o
