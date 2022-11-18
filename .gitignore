@@ -1,27 +1,4 @@
+.DS_Store
 node_modules
-
-.tup
-.vscode
-
-# vscode puts this here and idk why. annoying.
-null.d
-
 build
 build.ninja
-
-# These files are created when building without tup (via stuff in the buildscripts folder).
-src/**/*.o
-src/**/*.host
-src/**/*.target
-src/**/*.a
-src/**/*.so
-src/libunicode/libunicode-table.h
-src/qjscalc/qjscalc.c
-src/repl/repl.c
-src/inspect/inspect.c
-src/sample-program/sum.c
-src/stack-limit-test/loop.c
-
-tup-generate.vardict
-
-meta/docker/artifacts/*
