@@ -1,13 +1,23 @@
-build(builddir("loop.c"), "qjsc", [rel("loop.js")], [builddir("qjsc.host")]);
+const { deps_host, deps_target } = require("../archives/full.ninja");
 
-build(builddir("stack-limit-test.host"), "compile_host_c_program", [
-  rel("main.c"),
-  builddir("loop.c"),
-  builddir("quickjs-full.host.a"),
-]);
+build({
+  output: builddir("loop.c"),
+  rule: "qjsc",
+  inputs: [rel("loop.js")],
+  implicitInputs: [builddir("qjsc.host")],
+  ruleVariables: {
+    qjsc_args: `-c -m`,
+  },
+});
 
-build(builddir("stack-limit-test.target"), "compile_target_c_program", [
-  rel("main.c"),
-  builddir("loop.c"),
-  builddir("quickjs-full.target.a"),
-]);
+build({
+  output: builddir("stack-limit-test.host"),
+  rule: "compile_host_c_program",
+  inputs: [rel("main.c"), builddir("loop.c"), ...deps_host],
+});
+
+build({
+  output: builddir("stack-limit-test.target"),
+  rule: "compile_target_c_program",
+  inputs: [rel("main.c"), builddir("loop.c"), ...deps_target],
+});

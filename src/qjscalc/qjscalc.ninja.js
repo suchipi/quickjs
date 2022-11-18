@@ -1,19 +1,21 @@
-rule("qjsc_for_qjscalc", {
-  command: [builddir("qjsc.host"), `-fbignum -c -o $out $in`],
-  description: `QJSC (CALC) $out`,
+build({
+  output: builddir("qjscalc.c"),
+  rule: "qjsc",
+  inputs: [rel("qjscalc.js")],
+  implicitInputs: [builddir("qjsc.host")],
+  ruleVariables: {
+    qjsc_args: `-fbignum -c`,
+  },
 });
 
-build(
-  builddir("qjscalc.c"),
-  "qjsc_for_qjscalc",
-  [rel("qjscalc.js")],
-  [builddir("qjsc.host")]
-);
+build({
+  output: builddir("qjscalc.host.o"),
+  rule: "compile_host_c_object",
+  inputs: [builddir("qjscalc.c")],
+});
 
-build(builddir("qjscalc.host.o"), "compile_host_c_object", [
-  builddir("qjscalc.c"),
-]);
-
-build(builddir("qjscalc.target.o"), "compile_target_c_object", [
-  builddir("qjscalc.c"),
-]);
+build({
+  output: builddir("qjscalc.target.o"),
+  rule: "compile_target_c_object",
+  inputs: [builddir("qjscalc.c")],
+});

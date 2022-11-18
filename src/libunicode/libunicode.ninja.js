@@ -1,17 +1,18 @@
-build(builddir("unicode_gen.host"), "compile_host_c_program", [
-  builddir("cutils.host.o"),
-  rel("unicode_gen.c"),
-]);
+build({
+  output: builddir("unicode_gen.host"),
+  rule: "compile_host_c_program",
+  inputs: [builddir("cutils.host.o"), rel("unicode_gen.c")],
+});
 
 rule("unicode_gen", {
   command: [builddir("unicode_gen.host"), "$in", "$out"],
 });
 
-build(
-  builddir("libunicode-table.h"),
-  "unicode_gen",
-  [rel("downloaded")],
-  [
+build({
+  output: builddir("libunicode-table.h"),
+  rule: "unicode_gen",
+  inputs: [rel("downloaded")],
+  implicitInputs: [
     builddir("unicode_gen.host"),
 
     rel("./downloaded/CaseFolding.txt"),
@@ -26,18 +27,18 @@ build(
     rel("./downloaded/Scripts.txt"),
     rel("./downloaded/PropertyValueAliases.txt"),
     rel("./downloaded/emoji-data.txt"),
-  ]
-);
+  ],
+});
 
-build(
-  builddir("libunicode.host.o"),
-  "compile_host_c_object",
-  [rel("libunicode.c")],
-  [builddir("libunicode-table.h")]
-);
-build(
-  builddir("libunicode.target.o"),
-  "compile_target_c_object",
-  [rel("libunicode.c")],
-  [builddir("libunicode-table.h")]
-);
+build({
+  output: builddir("libunicode.host.o"),
+  rule: "compile_host_c_object",
+  inputs: [rel("libunicode.c")],
+  implicitInputs: [builddir("libunicode-table.h")],
+});
+build({
+  output: builddir("libunicode.target.o"),
+  rule: "compile_target_c_object",
+  inputs: [rel("libunicode.c")],
+  implicitInputs: [builddir("libunicode-table.h")],
+});

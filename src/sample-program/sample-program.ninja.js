@@ -1,11 +1,23 @@
-build(builddir("sum.c"), "qjsc", [rel("sum.js")], [builddir("qjsc.host")]);
+const { deps_host, deps_target } = require("../archives/full.ninja");
 
-build(builddir("sum.host"), "compile_host_c_program", [
-  builddir("sum.c"),
-  builddir("quickjs-full.host.a"),
-]);
+build({
+  output: builddir("sum.c"),
+  rule: "qjsc",
+  inputs: [rel("sum.js")],
+  implicitInputs: [builddir("qjsc.host")],
+  ruleVariables: {
+    qjsc_args: `-e -m`,
+  },
+});
 
-build(builddir("sum.target"), "compile_target_c_program", [
-  builddir("sum.c"),
-  builddir("quickjs-full.target.a"),
-]);
+build({
+  output: builddir("sum.host"),
+  rule: "compile_host_c_program",
+  inputs: [builddir("sum.c"), ...deps_host],
+});
+
+build({
+  output: builddir("sum.target"),
+  rule: "compile_target_c_program",
+  inputs: [builddir("sum.c"), ...deps_target],
+});

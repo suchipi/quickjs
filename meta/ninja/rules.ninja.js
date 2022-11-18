@@ -33,6 +33,6 @@ rule("create_target_archive", {
 
 // use qjsc to make a .c file containing a byte array of bytecode for a .js file
 rule("qjsc", {
-  command: [builddir("qjsc.host"), `-c -o $out -m $in`],
+  command: [builddir("qjsc.host"), `$qjsc_args -o $out $in`],
   description: "QJSC $out",
 });

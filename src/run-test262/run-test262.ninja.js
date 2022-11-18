@@ -1,9 +1,13 @@
-build(builddir("run-test262.host"), "compile_host_c_program", [
-  rel("run-test262.c"),
-  builddir("quickjs-full.host.a"),
-]);
+const { deps_host, deps_target } = require("../archives/full.ninja");
 
-build(builddir("run-test262.target"), "compile_target_c_program", [
-  rel("run-test262.c"),
-  builddir("quickjs-full.target.a"),
-]);
+build({
+  output: builddir("run-test262.host"),
+  rule: "compile_host_c_program",
+  inputs: [rel("run-test262.c"), ...deps_host],
+});
+
+build({
+  output: builddir("run-test262.target"),
+  rule: "compile_target_c_program",
+  inputs: [rel("run-test262.c"), ...deps_target],
+});

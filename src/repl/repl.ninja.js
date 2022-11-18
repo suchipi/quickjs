@@ -1,7 +1,21 @@
-build(builddir("repl.c"), "qjsc", [rel("repl.js")], [builddir("qjsc.host")]);
+build({
+  output: builddir("repl.c"),
+  rule: "qjsc",
+  inputs: [rel("repl.js")],
+  implicitInputs: [builddir("qjsc.host")],
+  ruleVariables: {
+    qjsc_args: `-c -m`,
+  },
+});
 
-build(builddir("repl.host.o"), "compile_host_c_object", [builddir("repl.c")]);
+build({
+  output: builddir("repl.host.o"),
+  rule: "compile_host_c_object",
+  inputs: [builddir("repl.c")],
+});
 
-build(builddir("repl.target.o"), "compile_target_c_object", [
-  builddir("repl.c"),
-]);
+build({
+  output: builddir("repl.target.o"),
+  rule: "compile_target_c_object",
+  inputs: [builddir("repl.c")],
+});

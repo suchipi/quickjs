@@ -1,11 +1,13 @@
-build(builddir("qjsc.host"), "compile_host_c_program", [
-  rel("qjsc.c"),
-  builddir("quickjs-core.host.a"),
-  builddir("quickjs-libc.host.o"),
-]);
+const { deps_host, deps_target } = require("../archives/core.ninja");
 
-build(builddir("qjsc.target"), "compile_target_c_program", [
-  rel("qjsc.c"),
-  builddir("quickjs-core.target.a"),
-  builddir("quickjs-libc.target.o"),
-]);
+build({
+  output: builddir("qjsc.host"),
+  rule: "compile_host_c_program",
+  inputs: [rel("qjsc.c"), ...deps_host, builddir("quickjs-libc.host.o")],
+});
+
+build({
+  output: builddir("qjsc.target"),
+  rule: "compile_target_c_program",
+  inputs: [rel("qjsc.c"), ...deps_target, builddir("quickjs-libc.target.o")],
+});
