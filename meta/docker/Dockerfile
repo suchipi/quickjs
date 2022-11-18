@@ -1,8 +1,10 @@
 # Dockerfile for: suchipi/quickjs-builder
+FROM node:18-bullseye as node
 FROM --platform=$BUILDPLATFORM crazymax/osxcross:11.3-r7-ubuntu AS osxcross
 
 FROM ubuntu:20.04
 
+COPY --from=node /usr/local /usr/local
 COPY --from=osxcross /osxcross /osxcross
 
 RUN apt-get update && \
@@ -13,8 +15,8 @@ RUN apt-get update && \
     gcc-mingw-w64-x86-64 \
     clang \
     lld \
-    libc6-dev
-
+    libc6-dev \
+    ninja-build
 
 ARG UID=1000
 ARG GID=1000
