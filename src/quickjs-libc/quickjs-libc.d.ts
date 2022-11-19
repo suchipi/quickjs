@@ -56,7 +56,7 @@ declare interface FILE {
   close(): void;
 
   /** Outputs the string with the UTF-8 encoding. */
-  puts(str: string): void;
+  puts(...strings: Array<string>): void;
 
   /**
    * Formatted printf.
@@ -219,7 +219,7 @@ declare module "std" {
   export function tmpfile(): FILE;
 
   /** Equivalent to `std.out.puts(str)`. */
-  export function puts(str: string): void;
+  export function puts(...strings: Array<string>): void;
 
   /** Equivalent to `std.out.printf(fmt, ...args)` */
   export function printf(fmt: string, ...args: Array<any>): void;
@@ -928,7 +928,7 @@ declare class Module {
    * file's content as a UTF-8 string, and the function should return a string
    * containing JavaScript code that corresponds to that module. In most cases,
    * these functions will compile the contents of the file from one format into JavaScript.
-   * 
+   *
    * The function does not have to use the second 'content' argument it
    * receives (ie. when loading binary files).
    *
