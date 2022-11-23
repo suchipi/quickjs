@@ -10,12 +10,12 @@ build({
 
 build({
   output: builddir("qjscalc.host.o"),
-  rule: "compile_host_c_object",
+  rule: "cc_host",
   inputs: [builddir("qjscalc.c")],
 });
 
 build({
   output: builddir("qjscalc.target.o"),
-  rule: "compile_target_c_object",
+  rule: "cc_target",
   inputs: [builddir("qjscalc.c")],
 });

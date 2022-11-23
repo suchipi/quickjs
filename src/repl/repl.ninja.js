@@ -10,12 +10,12 @@ build({
 
 build({
   output: builddir("repl.host.o"),
-  rule: "compile_host_c_object",
+  rule: "cc_host",
   inputs: [builddir("repl.c")],
 });
 
 build({
   output: builddir("repl.target.o"),
-  rule: "compile_target_c_object",
+  rule: "cc_target",
   inputs: [builddir("repl.c")],
 });

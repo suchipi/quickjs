@@ -1,7 +1,13 @@
 build({
+  output: builddir("unicode_gen.host.o"),
+  rule: "cc_host",
+  inputs: [rel("unicode_gen.c")],
+});
+
+build({
   output: builddir("unicode_gen.host"),
-  rule: "compile_host_c_program",
-  inputs: [builddir("cutils.host.o"), rel("unicode_gen.c")],
+  rule: "link_host",
+  inputs: [builddir("cutils.host.o"), builddir("unicode_gen.host.o")],
 });
 
 rule("unicode_gen", {
@@ -32,13 +38,13 @@ build({
 
 build({
   output: builddir("libunicode.host.o"),
-  rule: "compile_host_c_object",
+  rule: "cc_host",
   inputs: [rel("libunicode.c")],
   implicitInputs: [builddir("libunicode-table.h")],
 });
 build({
   output: builddir("libunicode.target.o"),
-  rule: "compile_target_c_object",
+  rule: "cc_target",
   inputs: [rel("libunicode.c")],
   implicitInputs: [builddir("libunicode-table.h")],
 });

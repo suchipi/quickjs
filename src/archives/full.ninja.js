@@ -14,13 +14,13 @@ const deps_target = [
 
 build({
   output: builddir("quickjs-full.host.a"),
-  rule: "create_host_archive",
+  rule: "ar_host",
   inputs: deps_host,
 });
 
 build({
   output: builddir("quickjs-full.target.a"),
-  rule: "create_target_archive",
+  rule: "ar_target",
   inputs: deps_target,
 });
 

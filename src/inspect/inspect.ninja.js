@@ -10,11 +10,11 @@ build({
 
 build({
   output: builddir("inspect.host.o"),
-  rule: "compile_host_c_object",
+  rule: "cc_host",
   inputs: [builddir("inspect.c")],
 });
 build({
   output: builddir("inspect.target.o"),
-  rule: "compile_target_c_object",
+  rule: "cc_target",
   inputs: [builddir("inspect.c")],
 });

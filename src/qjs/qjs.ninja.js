@@ -1,11 +1,23 @@
 const { deps_host, deps_target } = require("../archives/full.ninja");
 
 build({
+  output: builddir("qjs.host.o"),
+  rule: "cc_host",
+  inputs: [rel("qjs.c")],
+});
+
+build({
+  output: builddir("qjs.target.o"),
+  rule: "cc_target",
+  inputs: [rel("qjs.c")],
+});
+
+build({
   output: builddir("qjs.host"),
-  rule: "compile_host_c_program",
+  rule: "link_host",
   inputs: [
-    rel("qjs.c"),
     ...deps_host,
+    builddir("qjs.host.o"),
     builddir("qjscalc.host.o"),
     builddir("repl.host.o"),
   ],
@@ -13,10 +25,10 @@ build({
 
 build({
   output: builddir("qjs.target"),
-  rule: "compile_target_c_program",
+  rule: "link_target",
   inputs: [
-    rel("qjs.c"),
     ...deps_target,
+    builddir("qjs.target.o"),
     builddir("qjscalc.target.o"),
     builddir("repl.target.o"),
   ],
