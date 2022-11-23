@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-QJS="./build/qjs.host"
+QJS="./build/qjs.target"
 
 if [ ! -x "${QJS}" ]; then
   echo "qjs binary not found; run meta/build.sh? make sure you're running this shell script with PWD set to the repo root."
