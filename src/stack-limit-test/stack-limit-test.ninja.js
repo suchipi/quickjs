@@ -2,7 +2,7 @@ const { deps_host, deps_target } = require("../archives/full.ninja");
 
 // loop.js
 
-build({
+const loop_c = build({
   output: builddir("stack-limit-test/loop.c"),
   rule: "qjsc",
   inputs: [rel("loop.js")],
@@ -12,27 +12,27 @@ build({
   },
 });
 
-build({
+const loop_host_o = build({
   output: builddir("stack-limit-test/loop.host.o"),
   rule: "cc_host",
-  inputs: [builddir("stack-limit-test/loop.c")],
+  inputs: [loop_c],
 });
 
-build({
+const loop_target_o = build({
   output: builddir("stack-limit-test/loop.target.o"),
   rule: "cc_target",
-  inputs: [builddir("stack-limit-test/loop.c")],
+  inputs: [loop_c],
 });
 
 // main.c
 
-build({
+const main_host_o = build({
   output: builddir("stack-limit-test/main.host.o"),
   rule: "cc_host",
   inputs: [rel("main.c")],
 });
 
-build({
+const main_target_o = build({
   output: builddir("stack-limit-test/main.target.o"),
   rule: "cc_target",
   inputs: [rel("main.c")],
@@ -43,19 +43,11 @@ build({
 build({
   output: builddir("stack-limit-test.host"),
   rule: "link_host",
-  inputs: [
-    builddir("stack-limit-test/main.host.o"),
-    builddir("stack-limit-test/loop.host.o"),
-    ...deps_host,
-  ],
+  inputs: [main_host_o, loop_host_o, ...deps_host],
 });
 
 build({
   output: builddir("stack-limit-test.target"),
   rule: "link_target",
-  inputs: [
-    builddir("stack-limit-test/main.target.o"),
-    builddir("stack-limit-test/loop.target.o"),
-    ...deps_target,
-  ],
+  inputs: [main_target_o, loop_target_o, ...deps_target],
 });

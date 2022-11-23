@@ -1,6 +1,6 @@
 const { deps_host, deps_target } = require("../archives/full.ninja");
 
-build({
+const sum_c = build({
   output: builddir("sum.c"),
   rule: "qjsc",
   inputs: [rel("sum.js")],
@@ -10,26 +10,26 @@ build({
   },
 });
 
-build({
+const sum_host_o = build({
   output: builddir("sum.host.o"),
   rule: "cc_host",
-  inputs: [builddir("sum.c")],
+  inputs: [sum_c],
 });
 
-build({
+const sum_target_o = build({
   output: builddir("sum.target.o"),
   rule: "cc_target",
-  inputs: [builddir("sum.c")],
+  inputs: [sum_c],
 });
 
 build({
   output: builddir("sum.host"),
   rule: "link_host",
-  inputs: [builddir("sum.host.o"), ...deps_host],
+  inputs: [sum_host_o, ...deps_host],
 });
 
 build({
   output: builddir("sum.target"),
   rule: "link_target",
-  inputs: [builddir("sum.target.o"), ...deps_target],
+  inputs: [sum_target_o, ...deps_target],
 });

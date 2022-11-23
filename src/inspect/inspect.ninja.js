@@ -1,4 +1,4 @@
-build({
+const inspect_c = build({
   output: builddir("inspect.c"),
   rule: "qjsc",
   inputs: [rel("inspect.js")],
@@ -11,10 +11,10 @@ build({
 build({
   output: builddir("inspect.host.o"),
   rule: "cc_host",
-  inputs: [builddir("inspect.c")],
+  inputs: [inspect_c],
 });
 build({
   output: builddir("inspect.target.o"),
   rule: "cc_target",
-  inputs: [builddir("inspect.c")],
+  inputs: [inspect_c],
 });

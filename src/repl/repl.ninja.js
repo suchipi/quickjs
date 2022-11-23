@@ -1,4 +1,4 @@
-build({
+const repl_c = build({
   output: builddir("repl.c"),
   rule: "qjsc",
   inputs: [rel("repl.js")],
@@ -11,11 +11,11 @@ build({
 build({
   output: builddir("repl.host.o"),
   rule: "cc_host",
-  inputs: [builddir("repl.c")],
+  inputs: [repl_c],
 });
 
 build({
   output: builddir("repl.target.o"),
   rule: "cc_target",
-  inputs: [builddir("repl.c")],
+  inputs: [repl_c],
 });
