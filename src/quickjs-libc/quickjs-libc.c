@@ -659,6 +659,9 @@ JSModuleDef *js_module_loader(JSContext *ctx,
         if (!buf) {
             JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
                                 module_name);
+            if (!JS_IsUndefined(user_compiler)) {
+                JS_FreeValue(ctx, user_compiler);
+            }
             return NULL;
         }
 
