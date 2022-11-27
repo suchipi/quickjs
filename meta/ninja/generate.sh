@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-shopt -s globstar
 
 if [[ "${HOST:-}" == "" ]]; then
   echo "You must define the HOST env var"
@@ -18,5 +17,5 @@ npx shinobi \
   "meta/ninja/envs/target/$TARGET.ninja.js" \
   meta/ninja/defs.ninja.js \
   meta/ninja/rules.ninja.js \
-  src/**/*.ninja.js \
+  "$@" \
 > build.ninja
