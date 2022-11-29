@@ -1,11 +1,11 @@
 // compiles one or more .c files into one .o file.
 // takes 1..n inputs, has one output (the .o file).
 rule("cc_host", {
-  command: `$CC_HOST -c $in -o $out $DEFINES_HOST $CFLAGS_HOST`,
+  command: `$CC_HOST -c $in -o $out $DEFINES_HOST $CFLAGS_HOST $cc_args`,
   description: "CC_HOST $out",
 });
 rule("cc_target", {
-  command: `$CC_TARGET -c $in -o $out $DEFINES_TARGET $CFLAGS_TARGET`,
+  command: `$CC_TARGET -c $in -o $out $DEFINES_TARGET $CFLAGS_TARGET $cc_args`,
   description: "CC_TARGET $out",
 });
 
