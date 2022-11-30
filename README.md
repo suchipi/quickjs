@@ -2,6 +2,19 @@
 
 Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following changes:
 
+## New binary: `qjsbootstrap`:
+
+Appending some JS code to the end of this binary changes it into a binary that executes that JS code:
+
+```sh
+$ cp qjsbootstrap my-program
+$ echo 'console.log("hello!")' >> my-program
+$ ./my-program
+hello!
+```
+
+You can use this to create distributable binaries that run JS code without needing to use qjsc or a C compiler.
+
 ## Changes to `quickjs-libc`:
 
 - APIs in `std` and `os` no longer return errno anywhere; instead, Error objects are thrown. `errno` is available as a property on the thrown Error objects.
