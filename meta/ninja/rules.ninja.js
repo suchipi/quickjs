@@ -13,11 +13,11 @@ rule("cc_target", {
 // takes 1..n inputs, has one output (the program file).
 rule("link_host", {
   command: `$CC_HOST $in $LDFLAGS_HOST -o $out $LIBS_HOST && rm -rf $out.dSYM`,
-  description: "CC_PROG_HOST $out",
+  description: "LINK_HOST $out",
 });
 rule("link_target", {
   command: `$CC_TARGET $in $LDFLAGS_TARGET -o $out $LIBS_TARGET && rm -rf $out.dSYM`,
-  description: "CC_PROG_TARGET $out",
+  description: "LINK_TARGET $out",
 });
 
 // compiles one or more .o files into an .a file.
