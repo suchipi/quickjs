@@ -1,7 +1,7 @@
 // This is just a simple example demonstrating how to use qjsbootstrap.
 // This file is built with the following command:
 //
-// cat build/qjsbootstrap.target src/qjsbootstrap/is-stdin-a-tty.js > build/is-stdin-a-tty.target
+// cat build/qjsbootstrap.target src/qjsbootstrap/is-stdin-a-tty.js > build/is-stdin-a-tty.target && chmod +x build/is-stdin-a-tty.target
 
 // TODO: would be nice if this ran as a module... then we could use import instead of require
 //
