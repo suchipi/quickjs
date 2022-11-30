@@ -36,24 +36,11 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   return ctx;
 }
 
-// We put the size in a struct so the compiler doesn't optimize it in such a
-// way that it changes file size when BOOTSTRAP_BIN_SIZE changes size.
-typedef struct SizeWrapper {
-  uint8_t start_indicator[6];
-  uint64_t size;
-  uint8_t end_indicator[6];
-} SizeWrapper;
+const uint64_t bootstrap_bin_size = BOOTSTRAP_BIN_SIZE;
 
-#define BYTESEQ 0xFF, 0xFE, 0x0B, 0xA5, 0xED
-
-const SizeWrapper size_wrapper = {
-  // Start indicator
-  { BYTESEQ, 0xAA },
-  // base bootstrap binary size
-  BOOTSTRAP_BIN_SIZE,
-  // End indicator
-  { BYTESEQ, 0xBB },
-};
+#ifndef off_t
+#define off_t long long
+#endif
 
 static off_t get_file_size(char *filename)
 {
@@ -108,7 +95,7 @@ int main(int argc, char **argv)
   off_t appended_code_len;
   char *appended_code;
 
-  base_len = size_wrapper.size;
+  base_len = bootstrap_bin_size;
   file_len = get_file_size(argv[0]);
 
   if (file_len == 0) {
@@ -137,6 +124,7 @@ int main(int argc, char **argv)
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
 
+  // TODO: would be nice to run it as a module instead of a script
   result = JS_Eval(ctx, appended_code, appended_code_len, argv[0], 0);
   if (JS_IsException(result)) {
     const char *err_str = JS_ToCString(ctx, JS_GetException(ctx));
