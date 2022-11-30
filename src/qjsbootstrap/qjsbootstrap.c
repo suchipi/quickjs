@@ -37,7 +37,7 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
 }
 
 // We put the size in a struct so the compiler doesn't optimize it in such a
-// way that it changes file size when BOOTSTRAP_STUB_SIZE changes size.
+// way that it changes file size when BOOTSTRAP_BIN_SIZE changes size.
 typedef struct SizeWrapper {
   uint8_t start_indicator[6];
   uint64_t size;
@@ -49,8 +49,8 @@ typedef struct SizeWrapper {
 const SizeWrapper size_wrapper = {
   // Start indicator
   { BYTESEQ, 0xAA },
-  // stub size
-  BOOTSTRAP_STUB_SIZE,
+  // base bootstrap binary size
+  BOOTSTRAP_BIN_SIZE,
   // End indicator
   { BYTESEQ, 0xBB },
 };
@@ -103,12 +103,12 @@ int main(int argc, char **argv)
   JSRuntime *rt;
   JSContext *ctx;
   JSValue result;
-  off_t stub_len;
+  off_t base_len;
   off_t file_len;
   off_t appended_code_len;
   char *appended_code;
 
-  stub_len = size_wrapper.size;
+  base_len = size_wrapper.size;
   file_len = get_file_size(argv[0]);
 
   if (file_len == 0) {
@@ -116,14 +116,14 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  appended_code_len = file_len - stub_len;
+  appended_code_len = file_len - base_len;
 
   if (appended_code_len == 0) {
     printf("append UTF-8 encoded JavaScript to the end of this binary to change this binary into a program that executes that JavaScript code\n");
     return 0;
   }
 
-  appended_code = read_section(argv[0], stub_len, appended_code_len);
+  appended_code = read_section(argv[0], base_len, appended_code_len);
   if (appended_code == NULL) {
     printf("failed to read appended code: %s\n", strerror(errno));
     return 1;

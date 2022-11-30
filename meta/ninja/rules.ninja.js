@@ -36,3 +36,9 @@ rule("qjsc", {
   command: [builddir("qjsc.host"), `$qjsc_args -o $out $in`],
   description: "QJSC $out",
 });
+
+// copy a file from one place to another
+rule("copy", {
+  command: `cp $in $out`,
+  description: "COPY $out",
+});
