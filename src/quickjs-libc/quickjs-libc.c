@@ -465,13 +465,118 @@ static JSValue js_std_getFileNameFromStack(JSContext *ctx, JSValueConst this_val
 
 /* load and evaluate a file as a module */
 static JSValue js_require(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
+                          int argc, JSValueConst *argv)
 {
     if (argc != 1) {
         return JS_ThrowTypeError(ctx, "require must be called with exactly one argument");
     }
 
     return JS_DynamicImportSync(ctx, argv[0]);
+}
+
+/* resolve the path to a module, using the current caller as the basename */
+static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv)
+{
+    JSAtom basename_atom;
+    const char *basename;
+    JSValue name_val;
+    const char *name;
+    const char *normalized;
+    JSValue normalized_value;
+
+    if (argc != 1) {
+        return JS_ThrowTypeError(ctx, "require.resolve must be called with exactly one argument");
+    }
+
+    basename_atom = JS_GetScriptOrModuleName(ctx, 1);
+    if (basename_atom == JS_ATOM_NULL) {
+        JS_FreeAtom(ctx, basename_atom);
+        return JS_ThrowError(ctx, "Failed to identify the filename of the code calling require.resolve");
+    } else {
+        basename = JS_AtomToCString(ctx, basename_atom);
+    }
+    
+    name_val = JS_ToString(ctx, argv[0]);
+    if (JS_IsException(name_val)) {
+        JS_FreeAtom(ctx, basename_atom);
+        JS_FreeCString(ctx, basename);
+        return name_val;
+    }
+
+    name = JS_ToCString(ctx, name_val);
+
+    normalized = js_module_normalize_name(ctx, basename, name, NULL);
+
+    if (normalized == NULL) {
+        JS_FreeAtom(ctx, basename_atom);
+        JS_FreeCString(ctx, basename);
+        JS_FreeValue(ctx, name_val);
+        
+        return JS_ThrowError(ctx, "Failed to normalize module name");
+    }
+
+    normalized_value = JS_NewString(ctx, normalized);
+    // normalized_value could be exception here, but the handling for exception
+    // case and non-exception case is the same (free stuff and return
+    // normalized_value), so we don't have handling using JS_IsException
+
+    JS_FreeAtom(ctx, basename_atom);
+    JS_FreeCString(ctx, basename);
+    JS_FreeValue(ctx, name_val);
+
+    return normalized_value;
+}
+
+/* resolve the absolute path to a module */
+static JSValue js_std_resolveModule(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
+{
+    if (argc == 1) {
+        return js_require_resolve(ctx, this_val, argc, argv);
+    } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
+        JSValue name_val;
+        JSValue basename_val;
+        const char *basename;
+        const char *name;
+        const char *normalized;
+        JSValue normalized_value;
+
+        name_val = JS_ToString(ctx, argv[0]);
+        if (JS_IsException(name_val)) {
+            return name_val;
+        }
+
+        basename_val = JS_ToString(ctx, argv[1]);
+        if (JS_IsException(basename_val)) {
+            JS_FreeValue(ctx, name_val);
+            return basename_val;
+        }
+
+        name = JS_ToCString(ctx, name_val);
+        basename = JS_ToCString(ctx, basename_val);
+
+        normalized = js_module_normalize_name(ctx, basename, name, NULL);
+
+        if (normalized == NULL) {
+            JS_FreeValue(ctx, name_val);
+            JS_FreeValue(ctx, basename_val);
+            
+            return JS_ThrowError(ctx, "Failed to normalize module name");
+        }
+
+        normalized_value = JS_NewString(ctx, normalized);
+        // normalized_value could be exception here, but the handling for exception
+        // case and non-exception case is the same (free stuff and return
+        // normalized_value), so we don't have handling using JS_IsException
+
+        JS_FreeValue(ctx, name_val);
+        JS_FreeValue(ctx, basename_val);
+
+        return normalized_value;
+    } else {
+        return JS_ThrowTypeError(ctx, "resolveModule must be called with one or two arguments");
+    }
 }
 
 /* load a file as a UTF-8 encoded string */
@@ -1855,7 +1960,8 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("gc", 0, js_std_gc ),
     JS_CFUNC_DEF("evalScript", 1, js_evalScript ),
     JS_CFUNC_DEF("loadScript", 1, js_loadScript ),
-    JS_CFUNC_DEF("importModule", 1, js_std_importModule ),
+    JS_CFUNC_DEF("importModule", 2, js_std_importModule ),
+    JS_CFUNC_DEF("resolveModule", 2, js_std_resolveModule ),
     JS_CFUNC_DEF("getenv", 1, js_std_getenv ),
     JS_CFUNC_DEF("setenv", 1, js_std_setenv ),
     JS_CFUNC_DEF("unsetenv", 1, js_std_unsetenv ),
@@ -4451,8 +4557,8 @@ static JSValue js_Module_hasInstance(JSContext *ctx, JSValueConst this_val,
 
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
-    JSValue global_obj, console, args, require, module, search_extensions,
-            compilers, Symbol, hasInstance;
+    JSValue global_obj, console, args, require, require_resolve, module,
+            search_extensions, compilers, Symbol, hasInstance;
     int i;
 
     /* XXX: should these global definitions be enumerable? */
@@ -4490,6 +4596,9 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
                                            JS_CFUNC_generic_magic, 1));
 
     require = JS_NewCFunction(ctx, js_require, "require", 1);
+    require_resolve = JS_NewCFunction(ctx, js_require_resolve, "require.resolve", 1);
+    JS_SetPropertyStr(ctx, require, "resolve", require_resolve);
+
     JS_SetPropertyStr(ctx, global_obj, "require", require);
 
     module = JS_NewObject(ctx);
