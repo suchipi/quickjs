@@ -85,11 +85,41 @@ static char *read_section(char *filename, off_t offset, off_t len)
   return data;
 }
 
+static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
+                    const char *filename, int eval_flags)
+{
+  JSValue val;
+  int ret;
+
+  if ((eval_flags & JS_EVAL_TYPE_MASK) == JS_EVAL_TYPE_MODULE) {
+    /* for the modules, we compile then run to be able to set
+        import.meta */
+    val = JS_Eval(ctx, buf, buf_len, filename,
+                  eval_flags | JS_EVAL_FLAG_COMPILE_ONLY);
+    if (!JS_IsException(val)) {
+        js_module_set_import_meta(ctx, val, TRUE, TRUE);
+        val = JS_EvalFunction(ctx, val);
+    }
+  } else {
+    val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
+  }
+
+  if (JS_IsException(val)) {
+    js_std_dump_error(ctx);
+    ret = 1;
+  } else {
+    ret = 0;
+  }
+
+  JS_FreeValue(ctx, val);
+  return ret;
+}
+
+
 int main(int argc, char **argv)
 {
   JSRuntime *rt;
   JSContext *ctx;
-  JSValue result;
   off_t base_len;
   off_t file_len;
   off_t appended_code_len;
@@ -124,13 +154,7 @@ int main(int argc, char **argv)
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
 
-  // TODO: would be nice to run it as a module instead of a script
-  result = JS_Eval(ctx, appended_code, appended_code_len, argv[0], 0);
-  if (JS_IsException(result)) {
-    const char *err_str = JS_ToCString(ctx, JS_GetException(ctx));
-    fputs(err_str, stderr);
-    fputs("\n", stderr);
-    js_free(ctx, err_str);
+  if (eval_buf(ctx, appended_code, appended_code_len, argv[0], JS_EVAL_TYPE_MODULE)) {
     return 1;
   }
 
