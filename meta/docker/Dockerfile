@@ -1,8 +1,8 @@
 # Dockerfile for: suchipi/quickjs-builder
-FROM node:18-bullseye as node
-FROM --platform=$BUILDPLATFORM crazymax/osxcross:11.3-r7-ubuntu AS osxcross
+FROM --platform=linux/amd64 node:18-bullseye as node
+FROM --platform=linux/amd64 crazymax/osxcross:11.3-r7-ubuntu AS osxcross
 
-FROM ubuntu:20.04
+FROM --platform=linux/amd64 ubuntu:20.04
 
 COPY --from=node /usr/local /usr/local
 COPY --from=osxcross /osxcross /osxcross
