@@ -13,7 +13,7 @@ $ ./my-program
 hello!
 ```
 
-You can use this to create distributable binaries that run JS code without needing to use qjsc or a C compiler.
+You can use this to create distributable binaries that run JS code without needing to use qjsc or a C compiler. Instructions [here](https://github.com/suchipi/quickjs/tree/main/src/qjsbootstrap).
 
 ## Changes to `quickjs-libc`:
 
@@ -52,6 +52,8 @@ You can use this to create distributable binaries that run JS code without needi
 - macOS binaries are now cross-compiled from Linux
 - we now compile ARM macOS binaries as well
   - These should work on both M1/M2/etc macbooks as well as on jailbroken iPhones/iPads
+- we compile aarch64 (arm 64) binaries for linux, too
+  - these are statically linked, so should work on a raspi/etc, in theory. maybe android, too
 - Line endings have been made consistent and trailing whitespace has been removed
 
 There are also probably some other miscellaneous changes I forgot.
@@ -71,7 +73,7 @@ To compile just for your own linux or macOS machine:
 - Make sure you have both [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) installed. I use Ninja 1.10.1 and Node.js 18.12.1, but it should work with most versions of both of those.
 - Clone the repo and cd to its folder
 - Run `meta/build.sh`
-- Build artifacts will be placed in the `build` folder. You're probably most interested in `qjs.target`, `qjsc.target`, `quickjs-core.target.a`, and `quickjs-full.target.a`.
+- Build artifacts will be placed in the `build` folder. You're probably most interested in stuff in the `build/bin` and `build/lib` folders.
 
 Or, to compile for all platforms (using Docker):
 
