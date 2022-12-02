@@ -9,3 +9,4 @@ declare(
   "CFLAGS_TARGET",
   "-funsigned-char -Wno-unused-command-line-argument -fPIC"
 );
+declareOrAppend("CFLAGS_TARGET", "-O0"); // to ensure that qjsbootstrap binary size is predictable
