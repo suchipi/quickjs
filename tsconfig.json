@@ -6,6 +6,7 @@
     "checkJs": true,
     "noEmit": true,
     "lib": ["ES2020"],
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "types": []
   }
 }
