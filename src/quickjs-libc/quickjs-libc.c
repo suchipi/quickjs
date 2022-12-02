@@ -780,7 +780,8 @@ JSModuleDef *js_module_loader(JSContext *ctx,
                 return NULL;
             }
 
-            buf_val = JS_NewStringLen(ctx, buf, buf_len);
+            // Intentionally recasting uint8_t to char
+            buf_val = JS_NewStringLen(ctx, (const char *)(void *)buf, buf_len);
             if (JS_IsException(buf_val)) {
                 JS_FreeValue(ctx, user_compiler);
                 JS_FreeValue(ctx, module_name_val);
