@@ -12,6 +12,7 @@ const unicode_gen_host = build({
 
 rule("unicode_gen", {
   command: [unicode_gen_host, "$in", "$out"],
+  description: "UNICODE_GEN $out",
 });
 
 const libunicode_table_h = build({

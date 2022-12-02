@@ -9,24 +9,24 @@ mkdir -p build
 echo "----"
 echo "---- Building linux (amd64) ----"
 echo "----"
-env BUILDDIR=build/linux HOST=linux TARGET=linux meta/build.sh
+env BUILDDIR=build/linux-amd64 HOST=linux TARGET=linux meta/build.sh
 
 echo "----"
-echo "---- Building linux (arm) ----"
+echo "---- Building linux (aarch64) ----"
 echo "----"
-env BUILDDIR=build/linux-arm HOST=linux TARGET=cross-linux-arm meta/build.sh
+env SKIP_NPM_INSTALL=1 BUILDDIR=build/linux-aarch64 HOST=linux TARGET=cross-linux-aarch64 meta/build.sh
 
 echo "----"
 echo "---- Building darwin (x86_64) ----"
 echo "----"
-env BUILDDIR=build/darwin-x86 HOST=linux TARGET=cross-darwin-x86 meta/build.sh
+env SKIP_NPM_INSTALL=1 BUILDDIR=build/darwin-x86_64 HOST=linux TARGET=cross-darwin-x86_64 meta/build.sh
 
 echo "----"
-echo "---- Building darwin (arm) ----"
+echo "---- Building darwin (arm64) ----"
 echo "----"
-env BUILDDIR=build/darwin-arm HOST=linux TARGET=cross-darwin-arm meta/build.sh
+env SKIP_NPM_INSTALL=1 BUILDDIR=build/darwin-arm64 HOST=linux TARGET=cross-darwin-arm64 meta/build.sh
 
 echo "----"
-echo "---- Building windows ----"
+echo "---- Building windows (x86_64) ----"
 echo "----"
-env BUILDDIR=build/windows HOST=linux TARGET=cross-windows meta/build.sh
+env SKIP_NPM_INSTALL=1 BUILDDIR=build/windows-x86_64 HOST=linux TARGET=cross-windows-x86_64 meta/build.sh

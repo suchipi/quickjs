@@ -4,29 +4,29 @@ const qjsc_host_o = build({
   inputs: [rel("qjsc.c")],
 });
 
+build({
+  output: builddir("intermediate/qjsc.host"),
+  rule: "link_host",
+  inputs: [
+    qjsc_host_o,
+    builddir("intermediate/quickjs-libc.host.o"),
+    builddir("intermediate/quickjs-core.host.a"),
+  ],
+});
+
 const qjsc_target_o = build({
   output: builddir("intermediate/qjsc.target.o"),
   rule: "cc_target",
   inputs: [rel("qjsc.c")],
 });
 
-build({
-  output: builddir("intermediate/qjsc.host"),
-  rule: "link_host",
-  inputs: [
-    builddir("intermediate/quickjs-core.host.a"),
-    qjsc_host_o,
-    builddir("intermediate/quickjs-libc.host.o"),
-  ],
-});
-
 const qjsc_target = build({
   output: builddir("intermediate/qjsc.target"),
   rule: "link_target",
   inputs: [
-    builddir("intermediate/quickjs-core.target.a"),
     qjsc_target_o,
     builddir("intermediate/quickjs-libc.target.o"),
+    builddir("intermediate/quickjs-core.target.a"),
   ],
 });
 

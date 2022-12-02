@@ -17,6 +17,9 @@ fi
 echo "HOST: $HOST"
 echo "TARGET: $TARGET"
 
-npm install
+if [[ "${SKIP_NPM_INSTALL:-}" == "" ]]; then
+  npm install
+fi
+
 meta/ninja/generate.sh src/**/*.ninja.js
 ninja

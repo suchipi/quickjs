@@ -16,8 +16,8 @@ const qjsbootstrap_zero_target = build({
   output: builddir("intermediate/qjsbootstrap-zero.target"),
   rule: "link_target",
   inputs: [
-    builddir("intermediate/quickjs-full.target.a"),
     qjsbootstrap_zero_target_o,
+    builddir("intermediate/quickjs-full.target.a"),
   ],
 });
 
@@ -38,8 +38,8 @@ const qjsbootstrap_fill_target = build({
   output: builddir("intermediate/qjsbootstrap-fill.target"),
   rule: "link_target",
   inputs: [
-    builddir("intermediate/quickjs-full.target.a"),
     qjsbootstrap_fill_target_o,
+    builddir("intermediate/quickjs-full.target.a"),
   ],
 });
 
