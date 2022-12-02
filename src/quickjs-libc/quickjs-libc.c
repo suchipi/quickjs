@@ -611,17 +611,13 @@ typedef JSModuleDef *(JSInitModuleFunc)(JSContext *ctx,
                                         const char *module_name);
 
 
+static JSModuleDef *js_module_loader_so(JSContext *ctx,
+                                        const char *module_name)
+{
 #if defined(_WIN32)
-static JSModuleDef *js_module_loader_so(JSContext *ctx,
-                                        const char *module_name)
-{
-    JS_ThrowReferenceError(ctx, "shared library modules are not supported yet");
+    JS_ThrowReferenceError(ctx, "shared library modules are not supported on windows");
     return NULL;
-}
-#else
-static JSModuleDef *js_module_loader_so(JSContext *ctx,
-                                        const char *module_name)
-{
+#elif defined(CONFIG_SHARED_LIBRARY_MODULES)
     JSModuleDef *m;
     void *hd;
     JSInitModuleFunc *init;
@@ -666,8 +662,11 @@ static JSModuleDef *js_module_loader_so(JSContext *ctx,
         return NULL;
     }
     return m;
+#else
+    JS_ThrowReferenceError(ctx, "shared library modules are not supported in this version of quickjs");
+    return NULL;
+#endif /* _WIN32 or CONFIG_SHARED_LIBRARY_MODULES */
 }
-#endif /* !_WIN32 */
 
 int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
                               JS_BOOL use_realpath, JS_BOOL is_main)
