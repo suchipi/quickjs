@@ -1,5 +1,10 @@
 const path = require("path");
 
+// DOTEXE is the suffix for binaries which should end with .exe on windows
+if (getVar("DOTEXE") == null) {
+  declare("DOTEXE", "");
+}
+
 const headerFiles = glob("**/*.h", {
   cwd: path.resolve(__dirname, "../.."),
 });

@@ -44,14 +44,14 @@ const qjsbootstrap_fill_target = build({
 });
 
 const qjsbootstrap = build({
-  output: builddir("bin/qjsbootstrap"),
+  output: builddir("bin/qjsbootstrap$DOTEXE"),
   rule: "copy",
   inputs: [qjsbootstrap_fill_target],
 });
 
 if (env.QUICKJS_EXTRAS === "1") {
   const is_stdin_a_tty = build({
-    output: builddir("extras/is-stdin-a-tty"),
+    output: builddir("extras/is-stdin-a-tty$DOTEXE"),
     rule: "combine_into_executable",
     inputs: [qjsbootstrap, rel("is-stdin-a-tty.js")],
   });

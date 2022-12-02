@@ -16,7 +16,7 @@ if (env.QUICKJS_EXTRAS === "1") {
   });
 
   build({
-    output: builddir("extras/sample-program/sum"),
+    output: builddir("extras/sample-program/sum$DOTEXE"),
     rule: "link_target",
     inputs: [sum_target_o, builddir("intermediate/quickjs-full.target.a")],
   });
