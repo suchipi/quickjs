@@ -6,6 +6,6 @@ declare("AR_TARGET", "x86_64-w64-mingw32-gcc-ar");
 declare("DEFINES_TARGET", "-D_GNU_SOURCE -D__USE_MINGW_ANSI_STDIO -D_WIN32");
 declare("LIBS_TARGET", "-lpthread");
 // statically-linked so that it doesn't depend on libwinpthread-1.dll
-declare("CFLAGS_TARGET", "-static");
+declare("LDFLAGS_TARGET", "-static");
 
 declare("DOTEXE", ".exe");
