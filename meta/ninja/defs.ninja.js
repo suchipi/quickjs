@@ -12,8 +12,8 @@ for (const suffix of ["HOST", "TARGET"]) {
   // Show all warnings.
   declareOrAppend(`CFLAGS_${suffix}`, "-Wall");
 
-  // Add include for build dir (for generated header)
-  declareOrAppend(`CFLAGS_${suffix}`, "-I" + builddir());
+  // Add include for build dir intermediates (for generated headers)
+  declareOrAppend(`CFLAGS_${suffix}`, "-I" + builddir("intermediate"));
 
   // Add includes for all dirs with header files
   declareOrAppend(

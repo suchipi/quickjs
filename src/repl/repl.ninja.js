@@ -1,21 +1,21 @@
 const repl_c = build({
-  output: builddir("repl.c"),
+  output: builddir("intermediate/repl.c"),
   rule: "qjsc",
   inputs: [rel("repl.js")],
-  implicitInputs: [builddir("qjsc.host")],
+  implicitInputs: [builddir("intermediate/qjsc.host")],
   ruleVariables: {
     qjsc_args: `-c -m`,
   },
 });
 
 build({
-  output: builddir("repl.host.o"),
+  output: builddir("intermediate/repl.host.o"),
   rule: "cc_host",
   inputs: [repl_c],
 });
 
 build({
-  output: builddir("repl.target.o"),
+  output: builddir("intermediate/repl.target.o"),
   rule: "cc_target",
   inputs: [repl_c],
 });

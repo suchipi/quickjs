@@ -1,25 +1,23 @@
 if (env.QUICKJS_EXTRAS === "1") {
-  const { deps_target } = require("../archives/full.ninja");
-
   const sum_c = build({
-    output: builddir("sum.c"),
+    output: builddir("intermediate/sample-program/sum.c"),
     rule: "qjsc",
     inputs: [rel("sum.js")],
-    implicitInputs: [builddir("qjsc.host")],
+    implicitInputs: [builddir("intermediate/qjsc.host")],
     ruleVariables: {
       qjsc_args: `-e -m`,
     },
   });
 
   const sum_target_o = build({
-    output: builddir("sum.target.o"),
+    output: builddir("intermediate/sample-program/sum.target.o"),
     rule: "cc_target",
     inputs: [sum_c],
   });
 
   build({
-    output: builddir("sum.target"),
+    output: builddir("extras/sample-program/sum"),
     rule: "link_target",
-    inputs: [sum_target_o, ...deps_target],
+    inputs: [sum_target_o, builddir("intermediate/quickjs-full.target.a")],
   });
 }

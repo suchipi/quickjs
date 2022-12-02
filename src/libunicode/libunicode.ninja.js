@@ -1,13 +1,13 @@
 const unicode_gen_host_o = build({
-  output: builddir("unicode_gen.host.o"),
+  output: builddir("intermediate/unicode_gen.host.o"),
   rule: "cc_host",
   inputs: [rel("unicode_gen.c")],
 });
 
 const unicode_gen_host = build({
-  output: builddir("unicode_gen.host"),
+  output: builddir("intermediate/unicode_gen.host"),
   rule: "link_host",
-  inputs: [builddir("cutils.host.o"), unicode_gen_host_o],
+  inputs: [builddir("intermediate/cutils.host.o"), unicode_gen_host_o],
 });
 
 rule("unicode_gen", {
@@ -15,7 +15,7 @@ rule("unicode_gen", {
 });
 
 const libunicode_table_h = build({
-  output: builddir("libunicode-table.h"),
+  output: builddir("intermediate/libunicode-table.h"),
   rule: "unicode_gen",
   inputs: [rel("downloaded")],
   implicitInputs: [
@@ -37,13 +37,13 @@ const libunicode_table_h = build({
 });
 
 build({
-  output: builddir("libunicode.host.o"),
+  output: builddir("intermediate/libunicode.host.o"),
   rule: "cc_host",
   inputs: [rel("libunicode.c")],
   implicitInputs: [libunicode_table_h],
 });
 build({
-  output: builddir("libunicode.target.o"),
+  output: builddir("intermediate/libunicode.target.o"),
   rule: "cc_target",
   inputs: [rel("libunicode.c")],
   implicitInputs: [libunicode_table_h],

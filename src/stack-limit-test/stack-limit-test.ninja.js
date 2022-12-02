@@ -1,20 +1,18 @@
 if (env.QUICKJS_EXTRAS === "1") {
-  const { deps_target } = require("../archives/full.ninja");
-
   // loop.js
 
   const loop_c = build({
-    output: builddir("stack-limit-test/loop.c"),
+    output: builddir("intermediate/stack-limit-test/loop.c"),
     rule: "qjsc",
     inputs: [rel("loop.js")],
-    implicitInputs: [builddir("qjsc.host")],
+    implicitInputs: [builddir("intermediate/qjsc.host")],
     ruleVariables: {
       qjsc_args: `-c -m`,
     },
   });
 
   const loop_target_o = build({
-    output: builddir("stack-limit-test/loop.target.o"),
+    output: builddir("intermediate/stack-limit-test/loop.target.o"),
     rule: "cc_target",
     inputs: [loop_c],
   });
@@ -22,7 +20,7 @@ if (env.QUICKJS_EXTRAS === "1") {
   // main.c
 
   const main_target_o = build({
-    output: builddir("stack-limit-test/main.target.o"),
+    output: builddir("intermediate/stack-limit-test/main.target.o"),
     rule: "cc_target",
     inputs: [rel("main.c")],
   });
@@ -30,8 +28,12 @@ if (env.QUICKJS_EXTRAS === "1") {
   // program
 
   build({
-    output: builddir("stack-limit-test.target"),
+    output: builddir("extras/stack-limit-test"),
     rule: "link_target",
-    inputs: [main_target_o, loop_target_o, ...deps_target],
+    inputs: [
+      main_target_o,
+      loop_target_o,
+      builddir("intermediate/quickjs-full.target.a"),
+    ],
   });
 }
