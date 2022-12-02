@@ -7,19 +7,24 @@ meta/clean.sh
 mkdir -p build
 
 echo "----"
-echo "---- Building linux ----"
+echo "---- Building linux (amd64) ----"
 echo "----"
 env BUILDDIR=build/linux HOST=linux TARGET=linux meta/build.sh
+
+echo "----"
+echo "---- Building linux (arm) ----"
+echo "----"
+env BUILDDIR=build/linux-arm HOST=linux TARGET=cross-linux-arm meta/build.sh
+
+echo "----"
+echo "---- Building darwin (x86_64) ----"
+echo "----"
+env BUILDDIR=build/darwin-x86 HOST=linux TARGET=cross-darwin-x86 meta/build.sh
 
 echo "----"
 echo "---- Building darwin (arm) ----"
 echo "----"
 env BUILDDIR=build/darwin-arm HOST=linux TARGET=cross-darwin-arm meta/build.sh
-
-echo "----"
-echo "---- Building darwin (x86) ----"
-echo "----"
-env BUILDDIR=build/darwin-x86 HOST=linux TARGET=cross-darwin-x86 meta/build.sh
 
 echo "----"
 echo "---- Building windows ----"

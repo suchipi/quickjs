@@ -13,6 +13,7 @@ RUN apt-get update && \
     build-essential \
     git \
     gcc-mingw-w64-x86-64 \
+    gcc-9-aarch64-linux-gnu \
     clang \
     lld \
     libc6-dev \
