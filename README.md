@@ -62,7 +62,7 @@ There are also probably some other miscellaneous changes I forgot.
 
 The repo has stuff set up to compile quickjs binaries for Linux, macOS, iOS, or Windows. Compilation takes place via Docker.
 
-QuickJS itself has no external dependencies outside this repo except pthreads, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes, such as FreeBSD. OS-specific configuration is done by way of config files found in the `meta/ninja/env` folder.
+QuickJS itself has no external dependencies outside this repo except pthreads, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes. OS-specific configuration is done by way of config files found in the `meta/ninja/env` folder.
 
 If you don't want to use Docker, you'll need to install [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) in order to compile. I use Ninja 1.10.1 and Node.js 18.12.1, but it should work with most versions of both of those.
 
