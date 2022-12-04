@@ -56,7 +56,14 @@ typedef sig_t sighandler_t;
 #endif
 #endif /* __APPLE__ */
 
+#if defined(__FreeBSD__)
+extern char **environ;
+
+typedef void (*sighandler_t)(int);
+sighandler_t signal(int signum, sighandler_t handler);
 #endif
+
+#endif /* _WIN32 else */
 
 #if !defined(_WIN32)
 /* enable the os.Worker API. IT relies on POSIX threads */
