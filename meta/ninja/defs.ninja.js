@@ -26,11 +26,18 @@ for (const suffix of ["HOST", "TARGET"]) {
     dirsWithHeaderFiles.map((dir) => "-I" + dir).join(" ")
   );
 
+  // disable all compiler optimizations, to ensure that qjsbootstrap binary
+  // size is predictable. TODO: only do this for qjsbootstrap itself
+  declareOrAppend("CFLAGS_HOST", "-O0");
+
   // Include source debugging info in the binaries
   declareOrAppend(`LDFLAGS_${suffix}`, "-g");
 
   // math functions and constants. <math.h>
   declareOrAppend(`LIBS_${suffix}`, "-lm");
+
+  // multithreading. <pthread.h>
+  declareOrAppend(`LIBS_${suffix}`, "-lpthread");
 
   declareOrAppend(
     `DEFINES_${suffix}`,
@@ -54,4 +61,5 @@ for (const suffix of ["HOST", "TARGET"]) {
   // Uncomment to enable importing *.so library modules from JS code.
   // Disabled because we make static binaries.
   // declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_SHARED_LIBRARY_MODULES");
+  // declareOrAppend(`LIBS_${suffix}`, "-ldl");
 }
