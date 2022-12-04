@@ -503,7 +503,7 @@ static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
     } else {
         basename = JS_AtomToCString(ctx, basename_atom);
     }
-    
+
     name_val = JS_ToString(ctx, argv[0]);
     if (JS_IsException(name_val)) {
         JS_FreeAtom(ctx, basename_atom);
@@ -519,7 +519,7 @@ static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
         JS_FreeAtom(ctx, basename_atom);
         JS_FreeCString(ctx, basename);
         JS_FreeValue(ctx, name_val);
-        
+
         return JS_ThrowError(ctx, "Failed to normalize module name");
     }
 
@@ -568,7 +568,7 @@ static JSValue js_std_resolveModule(JSContext *ctx, JSValueConst this_val,
         if (normalized == NULL) {
             JS_FreeValue(ctx, name_val);
             JS_FreeValue(ctx, basename_val);
-            
+
             return JS_ThrowError(ctx, "Failed to normalize module name");
         }
 
