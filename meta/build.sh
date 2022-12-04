@@ -4,9 +4,14 @@ shopt -s globstar
 
 if [[ "$(uname)" == "Darwin" ]]; then
   HOST_OS="darwin"
-else
+elif [[ "$(uname)" == "FreeBSD" ]]; then
+  HOST_OS="freebsd"
+elif [[ "$(uname)" == "Linux" ]]; then
   HOST_OS="linux"
+else
+  HOST_OS="other"
 fi
+
 if [[ "${HOST:-}" == "" ]]; then
   export HOST="$HOST_OS"
 fi
