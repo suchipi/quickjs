@@ -2592,6 +2592,11 @@ static JSClassDef js_os_timer_class = {
     .gc_mark = js_os_timer_mark,
 };
 
+
+static const JSCFunctionListEntry js_os_timer_proto_funcs[] = {
+    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "OSTimer", JS_PROP_CONFIGURABLE ),
+};
+
 static void call_handler(JSContext *ctx, JSValueConst func)
 {
     JSValue ret, func1;
@@ -4460,11 +4465,17 @@ static const JSCFunctionListEntry js_os_funcs[] = {
 
 static int js_os_init(JSContext *ctx, JSModuleDef *m)
 {
+    JSValue timer_proto;
+
     os_poll_func = js_os_poll;
 
     /* OSTimer class */
     JS_NewClassID(&js_os_timer_class_id);
     JS_NewClass(JS_GetRuntime(ctx), js_os_timer_class_id, &js_os_timer_class);
+    timer_proto = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, timer_proto, js_os_timer_proto_funcs,
+                               countof(js_os_timer_proto_funcs));
+    JS_SetClassProto(ctx, js_os_timer_class_id, timer_proto);
 
 #ifdef USE_WORKER
     {
@@ -4632,6 +4643,48 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     JS_SetPropertyStr(ctx, module, "compilers", compilers);
 
     JS_SetPropertyStr(ctx, global_obj, "Module", module);
+
+    {
+        JSValue setTimeout, clearTimeout;
+        const char *intervalScript;
+
+        setTimeout = JS_NewCFunction(ctx, js_os_setTimeout, "setTimeout", 2);
+        JS_SetPropertyStr(ctx, global_obj, "setTimeout", setTimeout);
+
+        clearTimeout = JS_NewCFunction(ctx, js_os_clearTimeout, "clearTimeout", 1);
+        JS_SetPropertyStr(ctx, global_obj, "clearTimeout", clearTimeout);
+
+        intervalScript =
+            "(() => {\n"
+            "  const timerMap = new WeakMap();\n"
+            "  class Interval {}\n"
+            "\n"
+            "  globalThis.setInterval = (fn, ms) => {\n"
+            "    const interval = new Interval();\n"
+            "    const wrappedFn = () => {\n"
+            "      fn();\n"
+            "      const timer = setTimeout(wrappedFn, ms);\n"
+            "      timerMap.set(interval, timer);\n"
+            "    };\n"
+            "\n"
+            "    const timer = setTimeout(wrappedFn, ms);\n"
+            "    timerMap.set(interval, timer);\n"
+            "\n"
+            "    return interval;\n"
+            "  };\n"
+            "\n"
+            "  globalThis.clearInterval = (interval) => {\n"
+            "    if (interval == null) return;\n"
+            "    if (typeof interval != 'object') return;\n"
+            "    const timer = timerMap.get(interval);\n"
+            "    if (timer != null) {\n"
+            "      clearTimeout(timer);\n"
+            "    }\n"
+            "  };\n"
+            "})();\n\0";
+
+        JS_Eval(ctx, intervalScript, strlen(intervalScript), "internal:intervals.js", 0);
+    }
 
     JS_FreeValue(ctx, global_obj);
 }
