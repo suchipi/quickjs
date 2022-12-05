@@ -691,8 +691,8 @@ declare module "os" {
   /** Cancel a timer. */
   export function clearTimeout(handle: Timer): void;
 
-  /** Return a string representing the platform: "linux", "darwin", "win32" or "js". */
-  export var platform: "linux" | "darwin" | "win32" | "js";
+  /** Return a string representing the platform: "linux", "darwin", "win32", "freebsd", or "js" (emscripten). */
+  export var platform: "linux" | "darwin" | "win32" | "freebsd" | "js";
 
   /**
    * Things that can be put into Worker.postMessage.

@@ -4351,6 +4351,8 @@ void js_std_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt))
 #define OS_PLATFORM "darwin"
 #elif defined(EMSCRIPTEN)
 #define OS_PLATFORM "js"
+#elif defined(__FreeBSD__)
+#define OS_PLATFORM "freebsd"
 #else
 #define OS_PLATFORM "linux"
 #endif
