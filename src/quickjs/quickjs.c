@@ -16295,7 +16295,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         call_func = rt->class_array[p->class_id].call;
         if (!call_func) {
         not_a_function:
-            return JS_ThrowTypeError(caller_ctx, "not a function");
+            return JS_ThrowTypeError(caller_ctx, "attempting to call a non-function value");
         }
         return call_func(caller_ctx, func_obj, this_obj, argc,
                          (JSValueConst *)argv, flags);
@@ -18851,7 +18851,7 @@ static JSValue JS_CallConstructorInternal(JSContext *ctx,
         call_func = ctx->rt->class_array[p->class_id].call;
         if (!call_func) {
         not_a_function:
-            return JS_ThrowTypeError(ctx, "not a function");
+            return JS_ThrowTypeError(ctx, "attempting to call a constructor that is not a function");
         }
         return call_func(ctx, func_obj, new_target, argc,
                          (JSValueConst *)argv, flags);
@@ -36034,7 +36034,6 @@ static int check_function(JSContext *ctx, JSValueConst obj)
 {
     if (likely(JS_IsFunction(ctx, obj)))
         return 0;
-    JS_ThrowTypeError(ctx, "not a function");
     return -1;
 }
 
@@ -36650,7 +36649,11 @@ static JSValue js_object___defineGetter__(JSContext *ctx, JSValueConst this_val,
 
     if (check_function(ctx, value)) {
         JS_FreeValue(ctx, obj);
-        return JS_EXCEPTION;
+        if (magic == 1) {
+            return JS_ThrowTypeError(ctx, "second argument passed to __defineSetter__ was not a function");
+        } else {
+            return JS_ThrowTypeError(ctx, "second argument passed to __defineGetter__ was not a function");
+        }
     }
     atom = JS_ValueToAtom(ctx, prop);
     if (unlikely(atom == JS_ATOM_NULL)) {
@@ -37744,8 +37747,9 @@ static JSValue js_function_apply(JSContext *ctx, JSValueConst this_val,
     uint32_t len;
     JSValue *tab, ret;
 
-    if (check_function(ctx, this_val))
-        return JS_EXCEPTION;
+    if (check_function(ctx, this_val)) {
+        return JS_ThrowTypeError(ctx, "'this' target of Function.prototype.apply was not a function");
+    }
     this_arg = argv[0];
     array_arg = argv[1];
     if ((JS_VALUE_GET_TAG(array_arg) == JS_TAG_UNDEFINED ||
@@ -37782,8 +37786,9 @@ static JSValue js_function_bind(JSContext *ctx, JSValueConst this_val,
     JSObject *p;
     int arg_count, i, ret;
 
-    if (check_function(ctx, this_val))
-        return JS_EXCEPTION;
+    if (check_function(ctx, this_val)) {
+        return JS_ThrowTypeError(ctx, "'this' target of Function.prototype.bind was not a function");
+    }
 
     func_obj = JS_NewObjectProtoClass(ctx, ctx->function_proto,
                                  JS_CLASS_BOUND_FUNCTION);
@@ -37865,8 +37870,9 @@ static JSValue js_function_toString(JSContext *ctx, JSValueConst this_val,
     JSObject *p;
     JSFunctionKindEnum func_kind = JS_FUNC_NORMAL;
 
-    if (check_function(ctx, this_val))
-        return JS_EXCEPTION;
+    if (check_function(ctx, this_val)) {
+        return JS_ThrowTypeError(ctx, "'this' target of Function.prototype.toString was called with a non-function value");
+    }
 
     p = JS_VALUE_GET_OBJ(this_val);
     if (js_class_has_bytecode(p->class_id)) {
@@ -38198,8 +38204,10 @@ static JSValue js_array_from(JSContext *ctx, JSValueConst this_val,
     if (argc > 1) {
         mapfn = argv[1];
         if (!JS_IsUndefined(mapfn)) {
-            if (check_function(ctx, mapfn))
+            if (check_function(ctx, mapfn)) {
+                JS_ThrowTypeError(ctx, "A second argument was passed to Array.from, which should be a function used to map the input values. However, the second argument wasn't a function.");
                 goto exception;
+            }
             mapping = 1;
             if (argc > 2)
                 this_arg = argv[2];
@@ -38506,8 +38514,10 @@ static JSValue js_array_every(JSContext *ctx, JSValueConst this_val,
     if (argc > 1)
         this_arg = argv[1];
 
-    if (check_function(ctx, func))
+    if (check_function(ctx, func)) {
+        JS_ThrowTypeError(ctx, "first argument to Array.prototype.every was not a function");
         goto exception;
+    }
 
     switch (special) {
     case special_every:
@@ -38658,8 +38668,10 @@ static JSValue js_array_reduce(JSContext *ctx, JSValueConst this_val,
     }
     func = argv[0];
 
-    if (check_function(ctx, func))
+    if (check_function(ctx, func)) {
+        JS_ThrowTypeError(ctx, "first argument to Array.prototype.reduce was not a function");
         goto exception;
+    }
 
     k = 0;
     if (argc > 1) {
@@ -38914,8 +38926,10 @@ static JSValue js_array_find(JSContext *ctx, JSValueConst this_val,
         goto exception;
 
     func = argv[0];
-    if (check_function(ctx, func))
+    if (check_function(ctx, func)) {
+        JS_ThrowTypeError(ctx, "first argument to Array.prototype.find was not a function");
         goto exception;
+    }
 
     this_arg = JS_UNDEFINED;
     if (argc > 1)
@@ -39425,8 +39439,10 @@ static JSValue js_array_flatten(JSContext *ctx, JSValueConst this_val,
         if (argc > 1) {
             thisArg = argv[1];
         }
-        if (check_function(ctx, mapperFunction))
+        if (check_function(ctx, mapperFunction)) {
+            JS_ThrowTypeError(ctx, "An argument was passed to Array.prototype.flatten, which should be a function used to map the values. However, the argument wasn't a function.");
             goto exception;
+        }
     } else {
         if (argc > 0 && !JS_IsUndefined(argv[0])) {
             if (JS_ToInt32Sat(ctx, &depthNum, argv[0]) < 0)
@@ -39535,8 +39551,10 @@ static JSValue js_array_sort(JSContext *ctx, JSValueConst this_val,
     int present;
 
     if (!JS_IsUndefined(asc.method)) {
-        if (check_function(ctx, asc.method))
+        if (check_function(ctx, asc.method)) {
+            JS_ThrowTypeError(ctx, "An argument was passed to Array.prototype.sort, which should be a function used to order the values. However, the argument wasn't a function.");
             goto exception;
+        }
         asc.has_method = 1;
     }
     obj = JS_ToObject(ctx, this_val);
@@ -46003,6 +46021,7 @@ static JSValue js_map_get_size(JSContext *ctx, JSValueConst this_val, int magic)
     return JS_NewUint32(ctx, s->record_count);
 }
 
+// magic == 0 when this_val is a Map. otherwise, it's a Set
 static JSValue js_map_forEach(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv, int magic)
 {
@@ -46019,8 +46038,13 @@ static JSValue js_map_forEach(JSContext *ctx, JSValueConst this_val,
         this_arg = argv[1];
     else
         this_arg = JS_UNDEFINED;
-    if (check_function(ctx, func))
-        return JS_EXCEPTION;
+    if (check_function(ctx, func)) {
+        if (magic == 0) {
+            return JS_ThrowTypeError(ctx, "first argument passed to Map.prototype.forEach wasn't a function");
+        } else {
+            return JS_ThrowTypeError(ctx, "first argument passed to Set.prototype.forEach wasn't a function");
+        }
+    }
     /* Note: the list can be modified while traversing it, but the
        current element is locked */
     el = s->records.next;
@@ -46689,8 +46713,9 @@ static JSValue js_promise_constructor(JSContext *ctx, JSValueConst new_target,
     int i;
 
     executor = argv[0];
-    if (check_function(ctx, executor))
-        return JS_EXCEPTION;
+    if (check_function(ctx, executor)) {
+        return JS_ThrowTypeError(ctx, "first argument passed to Promise constructor wasn't a function");
+    }
     obj = js_create_from_ctor(ctx, new_target, JS_CLASS_PROMISE);
     if (JS_IsException(obj))
         return JS_EXCEPTION;
@@ -46775,8 +46800,10 @@ static JSValue js_new_promise_capability(JSContext *ctx,
         goto fail;
     s = JS_GetOpaque(executor, JS_CLASS_C_FUNCTION_DATA);
     for(i = 0; i < 2; i++) {
-        if (check_function(ctx, s->data[i]))
+        if (check_function(ctx, s->data[i])) {
+            JS_ThrowTypeError(ctx, "promise executor's C function data should contain two functions, but at index %d, a non-function value was found", i);
             goto fail;
+        }
     }
     for(i = 0; i < 2; i++)
         resolving_funcs[i] = JS_DupValue(ctx, s->data[i]);
@@ -46964,9 +46991,13 @@ static JSValue js_promise_all(JSContext *ctx, JSValueConst this_val,
     if (JS_IsException(result_promise))
         return result_promise;
     promise_resolve = JS_GetProperty(ctx, this_val, JS_ATOM_resolve);
-    if (JS_IsException(promise_resolve) ||
-        check_function(ctx, promise_resolve))
+    if (JS_IsException(promise_resolve)) {
         goto fail_reject;
+    }
+    if (check_function(ctx, promise_resolve)) {
+        JS_ThrowTypeError(ctx, "Promise.all was called with a 'this' value that didn't have a function as its 'resolve' property. This means that either Promise.all is being called against an object that is not similar to Promise, or someone has replaced Promise.resolve with a non-function value.");
+        goto fail_reject;
+    }
     iter = JS_GetIterator(ctx, argv[0], FALSE);
     if (JS_IsException(iter)) {
         JSValue error;
@@ -47106,9 +47137,13 @@ static JSValue js_promise_race(JSContext *ctx, JSValueConst this_val,
     if (JS_IsException(result_promise))
         return result_promise;
     promise_resolve = JS_GetProperty(ctx, this_val, JS_ATOM_resolve);
-    if (JS_IsException(promise_resolve) ||
-        check_function(ctx, promise_resolve))
+    if (JS_IsException(promise_resolve)) {
         goto fail_reject;
+    }
+    if (check_function(ctx, promise_resolve)) {
+        JS_ThrowTypeError(ctx, "Promise.race was called with a 'this' value that didn't have a function as its 'resolve' property. This means that either Promise.race is being called against an object that is not similar to Promise, or someone has replaced Promise.resolve with a non-function value.");
+        goto fail_reject;
+    }
     iter = JS_GetIterator(ctx, argv[0], FALSE);
     if (JS_IsException(iter)) {
         JSValue error;
@@ -48983,7 +49018,7 @@ static JSValue js_operators_create_internal(JSContext *ctx,
     uint32_t op_count;
 
     if (ctx->rt->operator_count == UINT32_MAX) {
-        return JS_ThrowTypeError(ctx, "too many operators");
+        return JS_ThrowTypeError(ctx, "too many operators have already been defined, so a new one cannot be defined. the max limit on operators is %d", UINT32_MAX);
     }
     opset_obj = JS_NewObjectProtoClass(ctx, JS_NULL, JS_CLASS_OPERATOR_SET);
     if (JS_IsException(opset_obj))
@@ -49001,6 +49036,7 @@ static JSValue js_operators_create_internal(JSContext *ctx,
                 goto fail;
             if (!JS_IsUndefined(prop)) {
                 if (check_function(ctx, prop)) {
+                    JS_ThrowTypeError(ctx, "the passed operator overload for '%s' was not a function", js_overloadable_operator_names[i]);
                     JS_FreeValue(ctx, prop);
                     goto fail;
                 }
@@ -49060,6 +49096,7 @@ static JSValue js_operators_create_internal(JSContext *ctx,
                 goto fail;
             if (!JS_IsUndefined(prop)) {
                 if (check_function(ctx, prop)) {
+                    JS_ThrowTypeError(ctx, "the passed operator overload for '%s' was not a function", js_overloadable_operator_names[i]);
                     JS_FreeValue(ctx, prop);
                     goto fail;
                 }
@@ -49105,6 +49142,7 @@ static JSValue js_operators_updateBigIntOperators(JSContext *ctx, JSValueConst t
             goto fail;
         if (!JS_IsUndefined(prop)) {
             if (!JS_IsNull(prop) && check_function(ctx, prop)) {
+                JS_ThrowTypeError(ctx, "the passed operator overload for '%s' was not a function", js_overloadable_operator_names[op]);
                 JS_FreeValue(ctx, prop);
                 goto fail;
             }
@@ -51902,8 +51940,10 @@ static JSValue js_typed_array_from(JSContext *ctx, JSValueConst this_val,
     if (argc > 1) {
         mapfn = argv[1];
         if (!JS_IsUndefined(mapfn)) {
-            if (check_function(ctx, mapfn))
+            if (check_function(ctx, mapfn)) {
+                JS_ThrowTypeError(ctx, "A second argument was passed to %%TypedArray%%.from, which should be a function used to map the input values. However, the second argument wasn't a function.");
                 goto exception;
+            }
             mapping = 1;
             if (argc > 2)
                 this_arg = argv[2];
@@ -52133,8 +52173,10 @@ static JSValue js_typed_array_find(JSContext *ctx, JSValueConst this_val,
         goto exception;
 
     func = argv[0];
-    if (check_function(ctx, func))
+    if (check_function(ctx, func)) {
+        JS_ThrowTypeError(ctx, "first argument to %%TypedArray%%.prototype.find was not a function");
         goto exception;
+    }
 
     this_arg = JS_UNDEFINED;
     if (argc > 1)
@@ -52824,8 +52866,9 @@ static JSValue js_typed_array_sort(JSContext *ctx, JSValueConst this_val,
     len = js_typed_array_get_length_internal(ctx, this_val);
     if (len < 0)
         return JS_EXCEPTION;
-    if (!JS_IsUndefined(tsc.cmp) && check_function(ctx, tsc.cmp))
-        return JS_EXCEPTION;
+    if (!JS_IsUndefined(tsc.cmp) && check_function(ctx, tsc.cmp)) {
+        return JS_ThrowTypeError(ctx, "An argument was passed to %%TypedArray%%.prototype.sort, which should be a function used to order the values. However, the argument wasn't a function.");
+    }
 
     if (len > 1) {
         p = JS_VALUE_GET_OBJ(this_val);
