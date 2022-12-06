@@ -686,7 +686,10 @@ declare module "os" {
   export type OSTimer = { [Symbol.toStringTag]: "OSTimer" };
 
   /** Call the function func after delay ms. Return a handle to the timer. */
-  export function setTimeout(func: () => void, delay: number): OSTimer;
+  export function setTimeout(
+    func: (...args: any) => any,
+    delay: number
+  ): OSTimer;
 
   /** Cancel a timer. */
   export function clearTimeout(handle: OSTimer): void;
@@ -1015,5 +1018,5 @@ declare var clearTimeout: typeof import("os").clearTimeout;
 
 declare type Interval = { [Symbol.toStringTag]: "Interval" };
 
-declare function setInterval(func: () => void, ms: number): Interval;
+declare function setInterval(func: (...args: any) => any, ms: number): Interval;
 declare function clearInterval(interval: Interval): void;
