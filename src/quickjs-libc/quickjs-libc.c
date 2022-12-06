@@ -2579,9 +2579,11 @@ static JSValue js_os_setTimeout(JSContext *ctx, JSValueConst this_val,
 static JSValue js_os_clearTimeout(JSContext *ctx, JSValueConst this_val,
                                   int argc, JSValueConst *argv)
 {
-    JSOSTimer *th = JS_GetOpaque2(ctx, argv[0], js_os_timer_class_id);
-    if (!th)
-        return JS_EXCEPTION;
+    JSOSTimer *th = JS_GetOpaque(argv[0], js_os_timer_class_id);
+    if (th == NULL) {
+        return JS_UNDEFINED;
+    }
+
     unlink_timer(JS_GetRuntime(ctx), th);
     return JS_UNDEFINED;
 }
