@@ -683,13 +683,13 @@ declare module "os" {
   /** Sleep for `delay_ms` milliseconds. */
   export function sleep(delay_ms: number): void;
 
-  export type Timer = number & { __is: "Timer" };
+  export type OSTimer = { [Symbol.toStringTag]: "OSTimer" };
 
   /** Call the function func after delay ms. Return a handle to the timer. */
-  export function setTimeout(func: () => void, delay: number): Timer;
+  export function setTimeout(func: () => void, delay: number): OSTimer;
 
   /** Cancel a timer. */
-  export function clearTimeout(handle: Timer): void;
+  export function clearTimeout(handle: OSTimer): void;
 
   /** Return a string representing the platform: "linux", "darwin", "win32", "freebsd", or "js" (emscripten). */
   export var platform: "linux" | "darwin" | "win32" | "freebsd" | "js";
@@ -1009,3 +1009,11 @@ declare var require: ((source: string) => { [key: string]: any }) & {
    */
   resolve: (source: string) => string;
 };
+
+declare var setTimeout: typeof import("os").setTimeout;
+declare var clearTimeout: typeof import("os").clearTimeout;
+
+declare type Interval = { [Symbol.toStringTag]: "Interval" };
+
+declare function setInterval(func: () => void, ms: number): Interval;
+declare function clearInterval(interval: Interval): void;
