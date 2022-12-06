@@ -2,7 +2,9 @@
   "name": "@suchipi/quickjs",
   "version": "0.0.0",
   "devDependencies": {
+    "@suchipi/jasmine-mini": "^3.2.1",
     "@suchipi/shinobi": "^0.0.4",
+    "@types/jasmine": "^4.3.1",
     "@types/node": "^18.11.9"
   }
 }
