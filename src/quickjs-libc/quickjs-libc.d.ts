@@ -179,7 +179,7 @@ declare module "std" {
    *
    * @param stackLevels - How many levels up the stack to search for a filename. Defaults to 0, which uses the current stack frame.
    */
-  export function getFileNameFromStack(stackLevels: number): string;
+  export function getFileNameFromStack(stackLevels?: number): string;
 
   /**
    * Return a boolean indicating whether the provided value is a FILE object.
