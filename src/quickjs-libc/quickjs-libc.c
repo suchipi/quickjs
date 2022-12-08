@@ -1862,7 +1862,7 @@ typedef enum JSCurlStatus {
 } JSCurlStatus;
 
 typedef struct JSCurlRequest {
-    JSCurlStatus *status;
+    JSCurlStatus status;
     DynBuf *body_dbuf;
     DynBuf *headers_dbuf;
 } JSCurlRequest;
@@ -1876,7 +1876,7 @@ static const char *_js_curl_status_to_str(JSCurlStatus status)
     return "UNKNOWN";
 }
 
-static size_t curl_write_callback(char *data, size_t size,
+static size_t _js_curl_write_callback(char *data, size_t size,
                                   size_t nmemb, JSCurlRequest *request)
 {
     DynBuf *dbuf;
@@ -1898,7 +1898,7 @@ static size_t curl_write_callback(char *data, size_t size,
         goto error;
     }
 
-    if (dbuf_put(dbuf, data, real_size)) {
+    if (dbuf_put(dbuf, (const uint8_t*)data, real_size)) {
         dbuf_free(dbuf);
         request->status = JSCURLST_OUT_OF_MEMORY;
         goto error;
@@ -1922,7 +1922,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
     JSValue ret;
     JSValueConst url_val;
     JSCurlRequest request;
-    double *http_status = 0;
+    double http_status = 0;
 
     url_val = argv[0];
     url = JS_ToCString(ctx, url_val);
@@ -1968,7 +1968,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
 
-    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _js_curl_write_callback);
     if (res != 0) {
         JS_FreeCString(ctx, url);
         JS_ThrowError(ctx, "failed to set CURLOPT_WRITEFUNCTION: %s (code = %d)", _curl_code_to_str(res), res);
@@ -2007,7 +2007,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
 
-    res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, http_status);
+    res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_status);
     if (res != 0) {
         dbuf_free(request.body_dbuf);
         JS_FreeCString(ctx, url);
@@ -2019,9 +2019,9 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
     if (!(http_status >= 200 && http_status <= 299)) {
         if (!full_flag) {
             dbuf_free(request.body_dbuf);
-            JS_ThrowError(ctx, "HTTP response status code was %d. Url was: '%s'. To allow non-2xx status codes, pass the 'full' option to urlGet.", http_status, url);
+            JS_ThrowError(ctx, "HTTP response status code was %lf. Url was: '%s'. To allow non-2xx status codes, pass the 'full' option to urlGet.", http_status, url);
             JS_FreeCString(ctx, url);
-            JS_AddPropertyToException(ctx, "status", JS_NewFloat64(ctx, *http_status));
+            JS_AddPropertyToException(ctx, "status", JS_NewFloat64(ctx, http_status));
             return JS_EXCEPTION;
         }
     }

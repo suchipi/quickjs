@@ -39,6 +39,9 @@ for (const suffix of ["HOST", "TARGET"]) {
   // multithreading. <pthread.h>
   declareOrAppend(`LIBS_${suffix}`, "-lpthread");
 
+  // network requests. <curl/curl.h>
+  declareOrAppend(`LIBS_${suffix}`, "-lcurl");
+
   declareOrAppend(
     `DEFINES_${suffix}`,
     '-DCONFIG_VERSION="\\"suchipi-`git rev-parse --short HEAD`\\""'
