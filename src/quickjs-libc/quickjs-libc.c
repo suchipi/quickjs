@@ -80,6 +80,115 @@ sighandler_t signal(int signum, sighandler_t handler);
 #include "quickjs-libc.h"
 #include "debugprint.h"
 
+#ifdef CONFIG_USE_LIBCURL
+#include "curl/curl.h"
+
+static const char *_curl_code_to_str(CURLcode code)
+{
+    if (code == 0 ) { return "CURLE_OK"; }
+    if (code == 1 ) { return "CURLE_UNSUPPORTED_PROTOCOL"; }
+    if (code == 2 ) { return "CURLE_FAILED_INIT"; }
+    if (code == 3 ) { return "CURLE_URL_MALFORMAT"; }
+    if (code == 4 ) { return "CURLE_NOT_BUILT_IN"; }
+    if (code == 5 ) { return "CURLE_COULDNT_RESOLVE_PROXY"; }
+    if (code == 6 ) { return "CURLE_COULDNT_RESOLVE_HOST"; }
+    if (code == 7 ) { return "CURLE_COULDNT_CONNECT"; }
+    if (code == 8 ) { return "CURLE_WEIRD_SERVER_REPLY"; }
+    if (code == 9 ) { return "CURLE_REMOTE_ACCESS_DENIED"; }
+    if (code == 10) { return "CURLE_FTP_ACCEPT_FAILED"; }
+    if (code == 11) { return "CURLE_FTP_WEIRD_PASS_REPLY"; }
+    if (code == 12) { return "CURLE_FTP_ACCEPT_TIMEOUT"; }
+    if (code == 13) { return "CURLE_FTP_WEIRD_PASV_REPLY"; }
+    if (code == 14) { return "CURLE_FTP_WEIRD_227_FORMAT"; }
+    if (code == 15) { return "CURLE_FTP_CANT_GET_HOST"; }
+    if (code == 16) { return "CURLE_HTTP2"; }
+    if (code == 17) { return "CURLE_FTP_COULDNT_SET_TYPE"; }
+    if (code == 18) { return "CURLE_PARTIAL_FILE"; }
+    if (code == 19) { return "CURLE_FTP_COULDNT_RETR_FILE"; }
+    if (code == 20) { return "CURLE_OBSOLETE20"; }
+    if (code == 21) { return "CURLE_QUOTE_ERROR"; }
+    if (code == 22) { return "CURLE_HTTP_RETURNED_ERROR"; }
+    if (code == 23) { return "CURLE_WRITE_ERROR"; }
+    if (code == 24) { return "CURLE_OBSOLETE24"; }
+    if (code == 25) { return "CURLE_UPLOAD_FAILED"; }
+    if (code == 26) { return "CURLE_READ_ERROR"; }
+    if (code == 27) { return "CURLE_OUT_OF_MEMORY"; }
+    if (code == 28) { return "CURLE_OPERATION_TIMEDOUT"; }
+    if (code == 29) { return "CURLE_OBSOLETE29"; }
+    if (code == 30) { return "CURLE_FTP_PORT_FAILED"; }
+    if (code == 31) { return "CURLE_FTP_COULDNT_USE_REST"; }
+    if (code == 32) { return "CURLE_OBSOLETE32"; }
+    if (code == 33) { return "CURLE_RANGE_ERROR"; }
+    if (code == 34) { return "CURLE_HTTP_POST_ERROR"; }
+    if (code == 35) { return "CURLE_SSL_CONNECT_ERROR"; }
+    if (code == 36) { return "CURLE_BAD_DOWNLOAD_RESUME"; }
+    if (code == 37) { return "CURLE_FILE_COULDNT_READ_FILE"; }
+    if (code == 38) { return "CURLE_LDAP_CANNOT_BIND"; }
+    if (code == 39) { return "CURLE_LDAP_SEARCH_FAILED"; }
+    if (code == 40) { return "CURLE_OBSOLETE40"; }
+    if (code == 41) { return "CURLE_FUNCTION_NOT_FOUND"; }
+    if (code == 42) { return "CURLE_ABORTED_BY_CALLBACK"; }
+    if (code == 43) { return "CURLE_BAD_FUNCTION_ARGUMENT"; }
+    if (code == 44) { return "CURLE_OBSOLETE44"; }
+    if (code == 45) { return "CURLE_INTERFACE_FAILED"; }
+    if (code == 46) { return "CURLE_OBSOLETE46"; }
+    if (code == 47) { return "CURLE_TOO_MANY_REDIRECTS"; }
+    if (code == 48) { return "CURLE_UNKNOWN_OPTION"; }
+    if (code == 49) { return "CURLE_SETOPT_OPTION_SYNTAX"; }
+    if (code == 50) { return "CURLE_OBSOLETE50"; }
+    if (code == 51) { return "CURLE_OBSOLETE51"; }
+    if (code == 52) { return "CURLE_GOT_NOTHING"; }
+    if (code == 53) { return "CURLE_SSL_ENGINE_NOTFOUND"; }
+    if (code == 54) { return "CURLE_SSL_ENGINE_SETFAILED"; }
+    if (code == 55) { return "CURLE_SEND_ERROR"; }
+    if (code == 56) { return "CURLE_RECV_ERROR"; }
+    if (code == 57) { return "CURLE_OBSOLETE57"; }
+    if (code == 58) { return "CURLE_SSL_CERTPROBLEM"; }
+    if (code == 59) { return "CURLE_SSL_CIPHER"; }
+    if (code == 60) { return "CURLE_PEER_FAILED_VERIFICATION"; }
+    if (code == 61) { return "CURLE_BAD_CONTENT_ENCODING"; }
+    if (code == 62) { return "CURLE_LDAP_INVALID_URL"; }
+    if (code == 63) { return "CURLE_FILESIZE_EXCEEDED"; }
+    if (code == 64) { return "CURLE_USE_SSL_FAILED"; }
+    if (code == 65) { return "CURLE_SEND_FAIL_REWIND"; }
+    if (code == 66) { return "CURLE_SSL_ENGINE_INITFAILED"; }
+    if (code == 67) { return "CURLE_LOGIN_DENIED"; }
+    if (code == 68) { return "CURLE_TFTP_NOTFOUND"; }
+    if (code == 69) { return "CURLE_TFTP_PERM"; }
+    if (code == 70) { return "CURLE_REMOTE_DISK_FULL"; }
+    if (code == 71) { return "CURLE_TFTP_ILLEGAL"; }
+    if (code == 72) { return "CURLE_TFTP_UNKNOWNID"; }
+    if (code == 73) { return "CURLE_REMOTE_FILE_EXISTS"; }
+    if (code == 74) { return "CURLE_TFTP_NOSUCHUSER"; }
+    if (code == 75) { return "CURLE_CONV_FAILED"; }
+    if (code == 76) { return "CURLE_CONV_REQD"; }
+    if (code == 77) { return "CURLE_SSL_CACERT_BADFILE"; }
+    if (code == 78) { return "CURLE_REMOTE_FILE_NOT_FOUND"; }
+    if (code == 79) { return "CURLE_SSH"; }
+    if (code == 80) { return "CURLE_SSL_SHUTDOWN_FAILED"; }
+    if (code == 81) { return "CURLE_AGAIN"; }
+    if (code == 82) { return "CURLE_SSL_CRL_BADFILE"; }
+    if (code == 83) { return "CURLE_SSL_ISSUER_ERROR"; }
+    if (code == 84) { return "CURLE_FTP_PRET_FAILED"; }
+    if (code == 85) { return "CURLE_RTSP_CSEQ_ERROR"; }
+    if (code == 86) { return "CURLE_RTSP_SESSION_ERROR"; }
+    if (code == 87) { return "CURLE_FTP_BAD_FILE_LIST"; }
+    if (code == 88) { return "CURLE_CHUNK_FAILED"; }
+    if (code == 89) { return "CURLE_NO_CONNECTION_AVAILABLE"; }
+    if (code == 90) { return "CURLE_SSL_PINNEDPUBKEYNOTMATCH"; }
+    if (code == 91) { return "CURLE_SSL_INVALIDCERTSTATUS"; }
+    if (code == 92) { return "CURLE_HTTP2_STREAM"; }
+    if (code == 93) { return "CURLE_RECURSIVE_API_CALL"; }
+    if (code == 94) { return "CURLE_AUTH_ERROR"; }
+    if (code == 95) { return "CURLE_HTTP3"; }
+    if (code == 96) { return "CURLE_QUIC_CONNECT_ERROR"; }
+    if (code == 97) { return "CURLE_PROXY"; }
+    if (code == 98) { return "CURLE_SSL_CLIENTCERT"; }
+    return "UNKNOWN";
+}
+
+#endif /* CONFIG_USE_LIBCURL */
+
 /* TODO:
    - add socket calls
 */
@@ -1744,6 +1853,251 @@ static JSValue js_std_file_putByte(JSContext *ctx, JSValueConst this_val,
 
 /* urlGet */
 
+#ifdef CONFIG_USE_LIBCURL
+
+typedef enum JSCurlStatus {
+  JSCURLST_OK = 0,
+  JSCURLST_BAD_REQUEST_DATA,
+  JSCURLST_OUT_OF_MEMORY,
+} JSCurlStatus;
+
+typedef struct JSCurlRequest {
+    JSCurlStatus *status;
+    DynBuf *body_dbuf;
+    DynBuf *headers_dbuf;
+} JSCurlRequest;
+
+
+static const char *_js_curl_status_to_str(JSCurlStatus status)
+{
+    if (status == JSCURLST_OK) { return "JSCURLST_OK"; }
+    if (status == JSCURLST_BAD_REQUEST_DATA) { return "JSCURLST_BAD_REQUEST_DATA"; }
+    if (status == JSCURLST_OUT_OF_MEMORY) { return "JSCURLST_OUT_OF_MEMORY"; }
+    return "UNKNOWN";
+}
+
+static size_t curl_write_callback(char *data, size_t size,
+                                  size_t nmemb, JSCurlRequest *request)
+{
+    DynBuf *dbuf;
+    size_t real_size = size * nmemb;
+
+    if (request == NULL || request->status != 0) {
+        goto error;
+    }
+
+    dbuf = request->body_dbuf;
+
+    if (dbuf == NULL) {
+        request->status = JSCURLST_BAD_REQUEST_DATA;
+        goto error;
+    }
+
+    if (dbuf->error) {
+        request->status = JSCURLST_OUT_OF_MEMORY;
+        goto error;
+    }
+
+    if (dbuf_put(dbuf, data, real_size)) {
+        dbuf_free(dbuf);
+        request->status = JSCURLST_OUT_OF_MEMORY;
+        goto error;
+    }
+
+    return real_size;
+
+error:
+    // Just need to return something other than real_size to tell curl
+    // that an error happened
+    return real_size - 1;
+}
+
+static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    const char *url;
+    BOOL binary_flag, full_flag;
+    CURL *curl;
+    CURLcode res;
+    JSValue ret;
+    JSValueConst url_val;
+    JSCurlRequest request;
+    double *http_status = 0;
+
+    url_val = argv[0];
+    url = JS_ToCString(ctx, url_val);
+    if (!url)
+        return JS_EXCEPTION;
+
+    binary_flag = FALSE;
+    full_flag = FALSE;
+
+    if (argc >= 2) {
+        JSValueConst options_obj = argv[1];
+
+        if (get_bool_option(ctx, &binary_flag, options_obj, "binary")) {
+            JS_FreeCString(ctx, url);
+            return JS_EXCEPTION;
+        }
+        if (get_bool_option(ctx, &full_flag, options_obj, "full")) {
+            JS_FreeCString(ctx, url);
+            return JS_EXCEPTION;
+        }
+    }
+
+    curl = curl_easy_init();
+    if (curl == NULL) {
+        JS_FreeCString(ctx, url);
+        return JS_ThrowError(ctx, "something went wrong: curl_easy_init returned NULL");
+    }
+
+    res = curl_easy_setopt(curl, CURLOPT_URL, url);
+    if (res != 0) {
+        JS_ThrowError(ctx, "failed to set url: %s (code = %d, url = %s)", _curl_code_to_str(res), res, url);
+        JS_FreeCString(ctx, url);
+        JS_AddPropertyToException(ctx, "code", JS_NewInt32(ctx, res));
+        JS_AddPropertyToException(ctx, "url", url_val);
+        return JS_EXCEPTION;
+    }
+
+    res = curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, (long)TRUE);
+    if (res != 0) {
+        JS_FreeCString(ctx, url);
+        JS_ThrowError(ctx, "failed to set CURLOPT_FOLLOWLOCATION: %s (code = %d)", _curl_code_to_str(res), res);
+        JS_AddPropertyToException(ctx, "code", JS_NewInt32(ctx, res));
+        return JS_EXCEPTION;
+    }
+
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
+    if (res != 0) {
+        JS_FreeCString(ctx, url);
+        JS_ThrowError(ctx, "failed to set CURLOPT_WRITEFUNCTION: %s (code = %d)", _curl_code_to_str(res), res);
+        JS_AddPropertyToException(ctx, "code", JS_NewInt32(ctx, res));
+        return JS_EXCEPTION;
+    }
+
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, &request);
+    if (res != 0) {
+        JS_FreeCString(ctx, url);
+        JS_ThrowError(ctx, "failed to set CURLOPT_WRITEDATA: %s (code = %d)", _curl_code_to_str(res), res);
+        JS_AddPropertyToException(ctx, "code", JS_NewInt32(ctx, res));
+        return JS_EXCEPTION;
+    }
+
+    request.status = JSCURLST_OK;
+    js_std_dbuf_init(ctx, request.body_dbuf);
+
+    // TODO: headers
+    // js_std_dbuf_init(ctx, request.headers_dbuf);
+
+    res = curl_easy_perform(curl);
+    if (res != 0) {
+        dbuf_free(request.body_dbuf);
+        JS_FreeCString(ctx, url);
+        JS_ThrowError(ctx, "request failed: %s (code = %d)", _curl_code_to_str(res), res);
+        JS_AddPropertyToException(ctx, "code", JS_NewInt32(ctx, res));
+        return JS_EXCEPTION;
+    }
+
+    if (request.status != 0) {
+        dbuf_free(request.body_dbuf);
+        JS_FreeCString(ctx, url);
+        JS_ThrowError(ctx, "request failed: %s (code = %d)", _curl_code_to_str(request.status), res);
+        JS_AddPropertyToException(ctx, "code", JS_NewInt32(ctx, res));
+        return JS_EXCEPTION;
+    }
+
+    res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, http_status);
+    if (res != 0) {
+        dbuf_free(request.body_dbuf);
+        JS_FreeCString(ctx, url);
+        JS_ThrowError(ctx, "couldn't get response code: %s (code = %d)", _curl_code_to_str(res), res);
+        JS_AddPropertyToException(ctx, "code", JS_NewInt32(ctx, res));
+        return JS_EXCEPTION;
+    }
+
+    if (!(http_status >= 200 && http_status <= 299)) {
+        if (!full_flag) {
+            dbuf_free(request.body_dbuf);
+            JS_ThrowError(ctx, "HTTP response status code was %d. Url was: '%s'. To allow non-2xx status codes, pass the 'full' option to urlGet.", http_status, url);
+            JS_FreeCString(ctx, url);
+            JS_AddPropertyToException(ctx, "status", JS_NewFloat64(ctx, *http_status));
+            return JS_EXCEPTION;
+        }
+    }
+
+    JS_FreeCString(ctx, url);
+
+    if (request.body_dbuf->error) {
+        dbuf_free(request.body_dbuf);
+        return JS_ThrowOutOfMemory(ctx);
+    } else if (request.status != JSCURLST_OK) {
+        int status = request.status;
+        dbuf_free(request.body_dbuf);
+        JS_ThrowError(ctx, "request failed: %s (status = %d)", _js_curl_status_to_str(status), status);
+        JS_AddPropertyToException(ctx, "status", JS_NewInt32(ctx, status));
+        return JS_EXCEPTION;
+    } else {
+        DynBuf *body_buf = request.body_dbuf;
+
+        if (binary_flag) {
+            ret = JS_NewArrayBufferCopy(ctx,body_buf->buf, body_buf->size);
+        } else {
+            ret = JS_NewStringLen(ctx, (char *)body_buf->buf, body_buf->size);
+        }
+        dbuf_free(request.body_dbuf);
+    }
+
+    if (JS_IsException(ret)) {
+        return ret;
+    }
+
+    if (full_flag) {
+        JSValue http_status_val;
+        int define_result = 0;
+        JSValue ret_obj = JS_NewObject(ctx);
+        if (JS_IsException(ret_obj)) {
+            return JS_EXCEPTION;
+        }
+
+        define_result = JS_DefinePropertyValueStr(ctx,
+                                                  ret_obj, "response",
+                                                  ret, JS_PROP_C_W_E);
+        if (define_result == -1) {
+            JS_FreeValue(ctx, ret_obj);
+            JS_FreeValue(ctx, ret);
+            return JS_EXCEPTION;
+        }
+
+        // JS_DefinePropertyValueStr(ctx, ret_obj, "responseHeaders",
+        //                               JS_NewStringLen(ctx, (char *)header_buf->buf,
+        //                                               header_buf->size),
+        //                               JS_PROP_C_W_E);
+
+        http_status_val = JS_NewInt32(ctx, http_status);
+        if (JS_IsException(http_status_val)) {
+            JS_FreeValue(ctx, ret_obj);
+            JS_FreeValue(ctx, ret);
+            return JS_EXCEPTION;
+        }
+
+        define_result = JS_DefinePropertyValueStr(ctx, ret_obj, "status",
+                                                  http_status_val,
+                                                  JS_PROP_C_W_E);
+        if (define_result == -1) {
+            JS_FreeValue(ctx, ret_obj);
+            JS_FreeValue(ctx, ret);
+            return JS_EXCEPTION;
+        }
+
+        return ret;
+    } else {
+        return ret;
+    }
+}
+
+#else
+
 #define URL_GET_PROGRAM "curl -s -i -L"
 #define URL_GET_BUF_SIZE 4096
 
@@ -1939,6 +2293,7 @@ read_headers:
     } else {
         if (!(status >= 200 && status <= 299)) {
             ret_obj = JS_ThrowError(ctx, "HTTP response status code was %d. Url was: '%s'. To allow non-2xx status codes, pass the 'full' option to urlGet.", status, url);
+            JS_AddPropertyToException(ctx, "status", JS_NewFloat64(ctx, *status));
         } else {
             ret_obj = response;
         }
@@ -1956,6 +2311,10 @@ read_headers:
     JS_FreeValue(ctx, response);
     return JS_EXCEPTION;
 }
+
+#endif /* CONFIG_USE_LIBCURL */
+
+/* end of urlGet */
 
 static JSClassDef js_std_file_class = {
     "FILE",
@@ -2045,6 +2404,18 @@ static int js_std_init(JSContext *ctx, JSModuleDef *m)
     stderr_FILE = js_new_std_file(ctx, stderr, FALSE, FALSE);
     JS_SetPropertyStr(ctx, stderr_FILE, "target", JS_NewString(ctx, "stderr"));
     JS_SetModuleExport(ctx, m, "err", stderr_FILE);
+
+#ifdef CONFIG_USE_LIBCURL
+    {
+        CURLcode code = curl_global_init(CURL_GLOBAL_ALL);
+        if (code != 0) {
+            const char *name = _curl_code_to_str(code);
+            JS_ThrowError(ctx, "curl_global_init failed: %s (code = %d)", name, code);
+            JS_AddPropertyToException(ctx, "code", JS_NewInt32(ctx, code));
+            return -1;
+        }
+    }
+#endif
 
     return 0;
 }

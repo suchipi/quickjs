@@ -58,6 +58,10 @@ for (const suffix of ["HOST", "TARGET"]) {
   // include full unicode tables
   declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_ALL_UNICODE");
 
+  // use libcurl for std.urlGet. If commented out, std.urlGet will shell out to
+  // a curl binary instead.
+  declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_USE_LIBCURL");
+
   // Uncomment to enable importing *.so library modules from JS code.
   // Disabled because we make static binaries.
   // declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_SHARED_LIBRARY_MODULES");
