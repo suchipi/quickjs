@@ -75,6 +75,24 @@ const uint64_t bootstrap_bin_size = BOOTSTRAP_BIN_SIZE;
 #define off_t long long
 #endif
 
+#ifdef _WIN32
+static char *find_self_binary(char *argv0)
+{
+  char *result;
+
+  result = malloc(sizeof(char) * PATH_MAX);
+  if (result == NULL) {
+    return NULL;
+  }
+
+  if (GetModuleFileNameA(NULL, result, PATH_MAX)) {
+    return result;
+  } else {
+    return NULL;
+  }
+}
+#else
+
 static BOOL exists(char *path)
 {
   int ret = access(path, F_OK);
@@ -96,11 +114,6 @@ static char *find_self_binary(char *argv0)
     return NULL;
   }
 
-#ifdef _WIN32
-  if (GetModuleFileNameA(null, result, PATH_MAX)) {
-    found = TRUE;
-  }
-#endif
   if (!found && exists((char *)PROC_PATH_LINUX)) {
     if (readlink(PROC_PATH_LINUX, result, PATH_MAX) != -1) {
       found = TRUE;
@@ -139,6 +152,7 @@ static char *find_self_binary(char *argv0)
   free(result);
   return result_realpath;
 }
+#endif /* _WIN32 */
 
 static off_t get_file_size(char *filename)
 {
