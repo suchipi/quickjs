@@ -1,3 +1,9 @@
+const get_program_path_target_o = build({
+  output: builddir("intermediate/get_program_path.target.o"),
+  rule: "cc_target",
+  inputs: [rel("get_program_path.c")],
+});
+
 // NOTE: the filenames for the 'zero' version and the 'fill' version
 // have to be the same length, so that they have the same filesize, so
 // that the filesize of the 'zero' version can be used to create the
@@ -17,6 +23,7 @@ const qjsbootstrap_zero_target = build({
   rule: "link_target",
   inputs: [
     qjsbootstrap_zero_target_o,
+    get_program_path_target_o,
     builddir("intermediate/quickjs-full.target.a"),
   ],
 });
@@ -39,6 +46,7 @@ const qjsbootstrap_fill_target = build({
   rule: "link_target",
   inputs: [
     qjsbootstrap_fill_target_o,
+    get_program_path_target_o,
     builddir("intermediate/quickjs-full.target.a"),
   ],
 });
