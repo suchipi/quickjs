@@ -26,9 +26,15 @@
  * THE SOFTWARE.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
+#include <limits.h>
+#ifdef _WIN32
+#include <libloaderapi.h>
+#endif
 #include "quickjs-libc.h"
 #include "cutils.h"
 
@@ -68,6 +74,71 @@ const uint64_t bootstrap_bin_size = BOOTSTRAP_BIN_SIZE;
 #ifndef off_t
 #define off_t long long
 #endif
+
+static BOOL exists(char *path)
+{
+  int ret = access(path, F_OK);
+  return (ret == 0);
+}
+
+static const char *PROC_PATH_LINUX = "/proc/self/exe";
+static const char *PROC_PATH_FREEBSD = "/proc/curproc/file";
+static const char *PROC_PATH_SOLARIS = "/proc/self/path/a.out";
+
+static char *find_self_binary(char *argv0)
+{
+  char *result;
+  char *result_realpath;
+  BOOL found = FALSE;
+
+  result = malloc(sizeof(char) * PATH_MAX);
+  if (result == NULL) {
+    return NULL;
+  }
+
+#ifdef _WIN32
+  if (GetModuleFileNameA(null, result, PATH_MAX)) {
+    found = TRUE;
+  }
+#endif
+  if (!found && exists((char *)PROC_PATH_LINUX)) {
+    if (readlink(PROC_PATH_LINUX, result, PATH_MAX) != -1) {
+      found = TRUE;
+    }
+  }
+  if (!found && exists((char *)PROC_PATH_FREEBSD)) {
+    if (readlink(PROC_PATH_FREEBSD, result, PATH_MAX) != -1) {
+      found = TRUE;
+    }
+  }
+  if (!found && exists((char *)PROC_PATH_SOLARIS)) {
+    if (readlink(PROC_PATH_SOLARIS, result, PATH_MAX) != -1) {
+      found = TRUE;
+    }
+  }
+  if (!found && argv0[0] == '/') {
+    strcpy(result, argv0);
+    found = TRUE;
+  }
+  if (!found && strchr(argv0, '/')) {
+    strcpy(result, argv0);
+    found = TRUE;
+  }
+  if (!found) {
+    // TODO: macos-specific implementation
+    // TODO: search through PATH env var
+    return NULL;
+  }
+
+  result_realpath = realpath(result, NULL);
+  if (result_realpath == NULL) {
+    free(result);
+    return NULL;
+  }
+
+  free(result);
+  return result_realpath;
+}
 
 static off_t get_file_size(char *filename)
 {
@@ -147,13 +218,26 @@ int main(int argc, char **argv)
 {
   JSRuntime *rt;
   JSContext *ctx;
+  char *self_binary_path;
   off_t base_len;
   off_t file_len;
   off_t appended_code_len;
   char *appended_code;
 
+  errno = 0;
+  self_binary_path = find_self_binary(argv[0]);
+  if (self_binary_path == NULL) {
+    if (errno == 0) {
+      printf("failed to find location of self executable\n");
+    } else {
+      printf("failed to find location of self executable: %s\n", strerror(errno));
+    }
+    return 1;
+  }
+
   base_len = bootstrap_bin_size;
-  file_len = get_file_size(argv[0]);
+  file_len = get_file_size(self_binary_path);
+  free(self_binary_path);
 
   if (file_len == 0) {
     printf("failed to get binary size: %s\n", strerror(errno));
