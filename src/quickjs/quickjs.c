@@ -37140,6 +37140,21 @@ static JSValue js_object_seal(JSContext *ctx, JSValueConst this_val,
     return JS_EXCEPTION;
 }
 
+JSValue JS_FreezeObjectValue(JSContext *ctx, JSValueConst val)
+{
+    JSValueConst argv[1];
+    JSValue ret;
+
+    argv[0] = val;
+    ret = js_object_seal(ctx, JS_UNDEFINED, 1, argv, 1);
+    if (JS_IsException(ret)) {
+        return ret;
+    } else {
+        JS_FreeValue(ctx, ret);
+        return val;
+    }
+}
+
 static JSValue js_object_isSealed(JSContext *ctx, JSValueConst this_val,
                                   int argc, JSValueConst *argv, int is_frozen)
 {

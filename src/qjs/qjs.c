@@ -499,7 +499,7 @@ int main(int argc, char **argv)
             js_std_eval_binary(ctx, qjsc_qjscalc, qjsc_qjscalc_size, 0);
         }
 #endif
-        js_std_add_helpers(ctx, argc - optind, argv + optind);
+        js_std_add_helpers(ctx, argc, argv);
 
         /* make 'std' and 'os' visible to non module code */
         if (load_std) {

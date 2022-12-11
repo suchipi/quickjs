@@ -79,6 +79,7 @@ sighandler_t signal(int signum, sighandler_t handler);
 #include "list.h"
 #include "quickjs-libc.h"
 #include "debugprint.h"
+#include "execpath.h"
 
 /* TODO:
    - add socket calls
@@ -140,6 +141,35 @@ typedef struct JSThreadState {
 
 static uint64_t os_pending_signals;
 static int (*os_poll_func)(JSContext *ctx);
+
+static void js_dump_obj(JSContext *ctx, FILE *f, JSValueConst val)
+{
+    const char *str;
+
+    str = JS_ToCString(ctx, val);
+    if (str) {
+        fprintf(f, "%s\n", str);
+        JS_FreeCString(ctx, str);
+    } else {
+        fprintf(f, "[exception]\n");
+    }
+}
+
+static void js_std_dump_error1(JSContext *ctx, JSValueConst exception_val)
+{
+    JSValue val;
+    BOOL is_error;
+
+    is_error = JS_IsError(ctx, exception_val);
+    js_dump_obj(ctx, stderr, exception_val);
+    if (is_error) {
+        val = JS_GetPropertyStr(ctx, exception_val, "stack");
+        if (!JS_IsUndefined(val)) {
+            js_dump_obj(ctx, stderr, val);
+        }
+        JS_FreeValue(ctx, val);
+    }
+}
 
 static void js_std_dbuf_init(JSContext *ctx, DynBuf *s)
 {
@@ -3907,6 +3937,52 @@ static JSValue js_os_access(JSContext *ctx, JSValueConst this_val,
     }
 }
 
+static JSValue js_os_execPath(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv)
+{
+    JSValue global_obj;
+    JSValue scriptArgs;
+    JSValue argv0_val;
+    char *argv0;
+    char *result;
+    char execpath_error[2048];
+
+    global_obj = JS_GetGlobalObject(ctx);
+    if (JS_IsException(global_obj)) {
+        return JS_EXCEPTION;
+    }
+
+    scriptArgs = JS_GetPropertyStr(ctx, global_obj, "scriptArgs");
+    if (JS_IsException(scriptArgs)) {
+        JS_FreeValue(ctx, global_obj);
+        return JS_EXCEPTION;
+    }
+
+    argv0_val = JS_GetPropertyUint32(ctx, scriptArgs, 0);
+    if (JS_IsException(argv0_val)) {
+        JS_FreeValue(ctx, global_obj);
+        return JS_EXCEPTION;
+    }
+
+    argv0 = (char *)JS_ToCString(ctx, argv0_val);
+    JS_FreeValue(ctx, argv0_val);
+    JS_FreeValue(ctx, scriptArgs);
+    if (argv0 == NULL) {
+        JS_FreeValue(ctx, global_obj);
+        return JS_EXCEPTION;
+    }
+
+    result = execpath(argv0, NULL, (char *)&execpath_error);
+    if (result == NULL) {
+        JS_ThrowError(ctx, "Couldn't determine exec path: %s", execpath_error);
+        JS_FreeValue(ctx, global_obj);
+        return JS_EXCEPTION;
+    }
+
+    JS_FreeValue(ctx, global_obj);
+    return JS_NewString(ctx, result);
+}
+
 #ifdef USE_WORKER
 
 /* Worker */
@@ -4458,6 +4534,7 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_CFUNC_DEF("dup2", 2, js_os_dup2 ),
 #endif
     JS_CFUNC_DEF("access", 2, js_os_access ),
+    JS_CFUNC_DEF("execPath", 0, js_os_execPath ),
     /* constants for access */
     OS_FLAG(R_OK),
     OS_FLAG(W_OK),
@@ -4612,6 +4689,9 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
         }
         JS_SetPropertyStr(ctx, global_obj, "scriptArgs", args);
     }
+    if (JS_IsException(JS_FreezeObjectValue(ctx, args))) {
+        js_std_dump_error(ctx);
+    }
 
     JS_SetPropertyStr(ctx, global_obj, "print",
                       JS_NewCFunctionMagic(ctx, js_print, "print", 1,
@@ -4751,35 +4831,6 @@ void js_std_free_handlers(JSRuntime *rt)
 
     free(ts);
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
-}
-
-static void js_dump_obj(JSContext *ctx, FILE *f, JSValueConst val)
-{
-    const char *str;
-
-    str = JS_ToCString(ctx, val);
-    if (str) {
-        fprintf(f, "%s\n", str);
-        JS_FreeCString(ctx, str);
-    } else {
-        fprintf(f, "[exception]\n");
-    }
-}
-
-static void js_std_dump_error1(JSContext *ctx, JSValueConst exception_val)
-{
-    JSValue val;
-    BOOL is_error;
-
-    is_error = JS_IsError(ctx, exception_val);
-    js_dump_obj(ctx, stderr, exception_val);
-    if (is_error) {
-        val = JS_GetPropertyStr(ctx, exception_val, "stack");
-        if (!JS_IsUndefined(val)) {
-            js_dump_obj(ctx, stderr, val);
-        }
-        JS_FreeValue(ctx, val);
-    }
 }
 
 void js_std_dump_error(JSContext *ctx)

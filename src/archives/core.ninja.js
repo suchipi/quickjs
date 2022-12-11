@@ -4,6 +4,7 @@ const deps_host = [
   builddir("intermediate/libregexp.host.o"),
   builddir("intermediate/libunicode.host.o"),
   builddir("intermediate/quickjs.host.o"),
+  builddir("intermediate/execpath.host.o"),
 ];
 
 const deps_target = [
@@ -12,6 +13,7 @@ const deps_target = [
   builddir("intermediate/libregexp.target.o"),
   builddir("intermediate/libunicode.target.o"),
   builddir("intermediate/quickjs.target.o"),
+  builddir("intermediate/execpath.target.o"),
 ];
 
 build({

@@ -46,6 +46,8 @@ You can use this to create distributable binaries that run JS code without needi
 - Additional error-related functions added:
   - `JS_ThrowError`
   - `JS_AddPropertyToException`
+- Additional utility functions added:
+  - `JS_FreezeObjectValue` (performs Object.freeze)
 
 ## Changes to project organization
 

@@ -978,6 +978,9 @@ JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels);
 JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
                           const char *filename);
 
+/* Freeze a value with Object.freeze. */
+JSValue JS_FreezeObjectValue(JSContext *ctx, JSValueConst val);
+
 /* C function definition */
 typedef enum JSCFunctionEnum {  /* XXX: should rename for namespace isolation */
     JS_CFUNC_generic,

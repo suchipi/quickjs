@@ -29,7 +29,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
-#include "get_program_path.h"
+#include "execpath.h"
 #include "quickjs-libc.h"
 #include "cutils.h"
 
@@ -143,7 +143,6 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
   return ret;
 }
 
-
 int main(int argc, char **argv)
 {
   JSRuntime *rt;
@@ -153,15 +152,12 @@ int main(int argc, char **argv)
   off_t file_len;
   off_t appended_code_len;
   char *appended_code;
+  char execpath_error[2048];
 
   errno = 0;
-  self_binary_path = get_program_path(argv[0]);
+  self_binary_path = execpath(argv[0], NULL, (char *)&execpath_error);
   if (self_binary_path == NULL) {
-    if (errno == 0) {
-      printf("failed to find location of self executable\n");
-    } else {
-      printf("failed to find location of self executable: %s\n", strerror(errno));
-    }
+    printf("failed to find location of self executable: %s\n", execpath_error);
     return 1;
   }
 
