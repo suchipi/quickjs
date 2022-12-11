@@ -7,7 +7,10 @@ const config = {
       "babel-jest",
       {
         babelrc: false,
-        presets: ["@babel/preset-typescript"],
+        presets: [
+          "@babel/preset-typescript",
+          ["@babel/preset-env", { targets: { node: "current" } }],
+        ],
       },
     ],
   },
