@@ -167,7 +167,6 @@ int main(int argc, char **argv)
 
   base_len = bootstrap_bin_size;
   file_len = get_file_size(self_binary_path);
-  free(self_binary_path);
 
   if (file_len == 0) {
     printf("failed to get binary size: %s\n", strerror(errno));
@@ -181,11 +180,12 @@ int main(int argc, char **argv)
     return 0;
   }
 
-  appended_code = read_section(argv[0], base_len, appended_code_len);
+  appended_code = read_section(self_binary_path, base_len, appended_code_len);
   if (appended_code == NULL) {
     printf("failed to read appended code: %s\n", strerror(errno));
     return 1;
   }
+  free(self_binary_path);
 
   rt = JS_NewRuntime();
   js_std_set_worker_new_context_func(JS_NewCustomContext);
