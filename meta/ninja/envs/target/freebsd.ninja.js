@@ -3,3 +3,5 @@
 declare("CC_TARGET", "cc");
 declare("AR_TARGET", "ar");
 declare("LDFLAGS_TARGET", "-static");
+
+declare("LIBS_TARGET", "-lprocstat");
