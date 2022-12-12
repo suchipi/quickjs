@@ -106,7 +106,7 @@ static char *read_section(char *filename, off_t offset, off_t len)
   }
 
   bytes_read = fread(data, sizeof(char), len, fp);
-  data[bytes_read + 1] = '\0';
+  data[bytes_read] = '\0';
 
   fclose(fp);
 
