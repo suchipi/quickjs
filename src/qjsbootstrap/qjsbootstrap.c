@@ -191,7 +191,7 @@ int main(int argc, char **argv)
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
 
-  if (eval_buf(ctx, appended_code, appended_code_len, argv[0], JS_EVAL_TYPE_MODULE)) {
+  if (eval_buf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
     return 1;
   }
 
