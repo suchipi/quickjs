@@ -57,7 +57,7 @@ char *execpath(char *argv0, char *info_message, char *error_message)
   result = malloc(result_size);
   if (result == NULL) {
     if (error_message != NULL) {
-      sprintf(error_message, "malloc failed to allocate %u bytes", result_size);
+      sprintf(error_message, "malloc failed to allocate %zu bytes", result_size);
     }
     return NULL;
   }

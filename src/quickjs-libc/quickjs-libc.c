@@ -4688,9 +4688,10 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
             JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, argv[i]));
         }
         JS_SetPropertyStr(ctx, global_obj, "scriptArgs", args);
-    }
-    if (JS_IsException(JS_FreezeObjectValue(ctx, args))) {
-        js_std_dump_error(ctx);
+
+        if (JS_IsException(JS_FreezeObjectValue(ctx, args))) {
+            js_std_dump_error(ctx);
+        }
     }
 
     JS_SetPropertyStr(ctx, global_obj, "print",
