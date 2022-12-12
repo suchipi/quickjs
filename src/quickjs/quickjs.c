@@ -19907,8 +19907,8 @@ enum {
 #define CP_NBSP 0x00a0
 #define CP_BOM  0xfeff
 
-#define CP_LS   0x2028
-#define CP_PS   0x2029
+#define CP_LS   0x2028 /* line separator */
+#define CP_PS   0x2029 /* paragraph separator */
 
 typedef struct BlockEnv {
     struct BlockEnv *prev;
@@ -33634,9 +33634,17 @@ static void skip_shebang(JSParseState *s)
 {
     const uint8_t *p = s->buf_ptr;
     int c;
+    int next_shebang_offset = 0;
 
-    if (p[0] == '#' && p[1] == '!') {
-        p += 2;
+    if ((s->buf_end - p >= 2) && p[0] == '#' && p[1] == '!') {
+        next_shebang_offset = 2;
+    }
+
+    // skip one or more shebangs, if present. Some Nix tooling uses two shebang lines
+    while (next_shebang_offset > 0) {
+        int remaining;
+
+        p += next_shebang_offset;
         while (p < s->buf_end) {
             if (*p == '\n' || *p == '\r') {
                 break;
@@ -33651,8 +33659,25 @@ static void skip_shebang(JSParseState *s)
                 p++;
             }
         }
-        s->buf_ptr = p;
+
+        remaining = s->buf_end - p;
+        if (
+            remaining >= 3 &&
+                ((p[0] == '\n' && p[1] == '#' && p[2] == '!') ||
+                (p[0] == '\r' && p[1] == '#' && p[2] == '!'))
+        ) {
+            next_shebang_offset = 3;
+        } else if (
+            remaining >= 4 &&
+            p[0] == '\r' && p[1] == '\n' && p[2] == '#' && p[3] == '!'
+        ) {
+            next_shebang_offset = 4;
+        } else {
+            next_shebang_offset = 0;
+        }
     }
+
+    s->buf_ptr = p;
 }
 
 /* 'input' must be zero terminated i.e. input[input_len] = '\0'. */
