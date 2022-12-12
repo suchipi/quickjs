@@ -4728,7 +4728,6 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 
     {
         JSValue setTimeout, clearTimeout;
-        const char *intervalScript;
 
         setTimeout = JS_NewCFunction(ctx, js_os_setTimeout, "setTimeout", 2);
         JS_SetPropertyStr(ctx, global_obj, "setTimeout", setTimeout);
@@ -4736,46 +4735,13 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
         clearTimeout = JS_NewCFunction(ctx, js_os_clearTimeout, "clearTimeout", 1);
         JS_SetPropertyStr(ctx, global_obj, "clearTimeout", clearTimeout);
 
-        intervalScript =
-            "(() => {\n"
-            "  const timerMap = new WeakMap();\n"
-            "  class Interval {}\n"
-            "\n"
-            "  globalThis.setInterval = (fn, ms) => {\n"
-            "    const interval = new Interval();\n"
-            "    const wrappedFn = () => {\n"
-            "      fn();\n"
-            "      const timer = setTimeout(wrappedFn, ms);\n"
-            "      timerMap.set(interval, timer);\n"
-            "    };\n"
-            "\n"
-            "    const timer = setTimeout(wrappedFn, ms);\n"
-            "    timerMap.set(interval, timer);\n"
-            "\n"
-            "    return interval;\n"
-            "  };\n"
-            "\n"
-            "  globalThis.clearInterval = (interval) => {\n"
-            "    if (interval == null) return;\n"
-            "    if (typeof interval != 'object') return;\n"
-            "    const timer = timerMap.get(interval);\n"
-            "    if (timer != null) {\n"
-            "      clearTimeout(timer);\n"
-            "    }\n"
-            "  };\n"
-            "})();\n\0";
-
-        JS_Eval(ctx, intervalScript, strlen(intervalScript), "internal:intervals.js", 0);
     }
 
-    {
-        const char *string_identity_tag_script =
-            "(() => {\n"
-            "  String.identity = (strings, ...values) => String.raw({ raw: strings }, ...values);\n"
-            "})();\n\0";
+    // define setInterval, clearInterval
+    js_std_eval_binary(ctx, qjsc_intervals, qjsc_intervals_size, 0);
 
-        JS_Eval(ctx, string_identity_tag_script, strlen(string_identity_tag_script), "internal:string-identity-tag.js", 0);
-    }
+    // define String.identity
+    js_std_eval_binary(ctx, qjsc_string_identity, qjsc_string_identity_size, 0);
 
     JS_FreeValue(ctx, global_obj);
 }

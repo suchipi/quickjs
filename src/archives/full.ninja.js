@@ -3,6 +3,8 @@ const core = require("./core.ninja");
 const deps_target = [
   ...core.deps_target,
   builddir("intermediate/inspect.target.o"),
+  builddir("intermediate/quickjs-libc/intervals.target.o"),
+  builddir("intermediate/quickjs-libc/string-identity.target.o"),
   builddir("intermediate/quickjs-libc.target.o"),
 ];
 

@@ -37,10 +37,14 @@
 #include "quickjs-libc.h"
 #include "debugprint.h"
 
-// Stub out inspect, which quickjs-libc depends on, but which we can't rely
-// on in qjsc, because inspect is built with qjsc
+// Stub out inspect, intervals, and string_identity, which quickjs-libc depends
+// on, but which we can't rely on in qjsc, because those are built with qjsc
 const uint32_t qjsc_inspect_size = 0;
 const uint8_t qjsc_inspect[0] = {};
+const uint32_t qjsc_intervals_size = 0;
+const uint8_t qjsc_intervals[0] = {};
+const uint32_t qjsc_string_identity_size = 0;
+const uint8_t qjsc_string_identity[0] = {};
 
 typedef struct {
     char *name;
