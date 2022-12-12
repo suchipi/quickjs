@@ -4737,11 +4737,8 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 
     }
 
-    // define setInterval, clearInterval
-    js_std_eval_binary(ctx, qjsc_intervals, qjsc_intervals_size, 0);
-
-    // define String.identity
-    js_std_eval_binary(ctx, qjsc_string_identity, qjsc_string_identity_size, 0);
+    // run all the stuff in the src/quickjs-libc/lib folder
+    js_std_eval_binary(ctx, qjsc_lib, qjsc_lib_size, 0);
 
     JS_FreeValue(ctx, global_obj);
 }

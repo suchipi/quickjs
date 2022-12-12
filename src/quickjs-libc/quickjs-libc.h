@@ -36,11 +36,8 @@ extern "C" {
 extern const uint8_t qjsc_inspect[];
 extern const uint32_t qjsc_inspect_size;
 
-extern const uint8_t qjsc_intervals[];
-extern const uint32_t qjsc_intervals_size;
-
-extern const uint8_t qjsc_string_identity[];
-extern const uint32_t qjsc_string_identity_size;
+extern const uint8_t qjsc_lib[];
+extern const uint32_t qjsc_lib_size;
 
 JSModuleDef *js_init_module_std(JSContext *ctx, const char *module_name);
 JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name);

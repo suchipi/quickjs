@@ -10,36 +10,26 @@ build({
   inputs: [rel("quickjs-libc.c")],
 });
 
-// lib/intervals
-const intervals_c = build({
-  output: builddir("intermediate/quickjs-libc/intervals.c"),
+const filesInLib = glob("**/*.js", { cwd: rel("lib"), absolute: true });
+
+const lib_js = build({
+  output: builddir("intermediate/quickjs-libc/lib.js"),
+  rule: "combine",
+  inputs: filesInLib,
+});
+
+const lib_c = build({
+  output: builddir("intermediate/quickjs-libc/lib.c"),
   rule: "qjsc",
-  inputs: [rel("lib/intervals.js")],
+  inputs: [lib_js],
   implicitInputs: [builddir("intermediate/qjsc.host")],
   ruleVariables: {
     qjsc_args: `-c -m`,
   },
 });
 
-const intervals_target_o = build({
+const lib_target_o = build({
   output: builddir("intermediate/quickjs-libc/intervals.target.o"),
   rule: "cc_target",
-  inputs: [intervals_c],
-});
-
-// lib/string-identity
-const string_identity_c = build({
-  output: builddir("intermediate/quickjs-libc/string-identity.c"),
-  rule: "qjsc",
-  inputs: [rel("lib/string-identity.js")],
-  implicitInputs: [builddir("intermediate/qjsc.host")],
-  ruleVariables: {
-    qjsc_args: `-c -m`,
-  },
-});
-
-const string_identity_target_o = build({
-  output: builddir("intermediate/quickjs-libc/string-identity.target.o"),
-  rule: "cc_target",
-  inputs: [string_identity_c],
+  inputs: [lib_c],
 });
