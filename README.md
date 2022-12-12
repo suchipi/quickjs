@@ -36,6 +36,10 @@ You can use this to create distributable binaries that run JS code without needi
 - `FILE.prototype.sync` method added (wrapper for `fsync`).
 - `std.isFILE` function added (returns whether the provided object is a `FILE` (via `js_std_file_class_id`)).
 - `os.{WUNTRACED,WEXITSTATUS,WTERMSIG,WSTOPSIG,WIFEXITED,WIFSIGNALED,WIFSTOPPED,WIFCONTINUED}` added, for working with `os.waitpid`.
+- `setTimeout` and `clearTimeout` are now available as globals.
+- `setInterval` and `clearInterval` are now available as globals.
+- `String.identity` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
+- `String.dedent` is now available (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
 
 ## Changes to `quickjs`:
 
