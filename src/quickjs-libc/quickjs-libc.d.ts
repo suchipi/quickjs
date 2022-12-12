@@ -1028,7 +1028,7 @@ interface StringConstructor {
   /**
    * A no-op template literal tag.
    */
-  identity(
+  cooked(
     strings: readonly string[] | ArrayLike<string>,
     ...substitutions: any[]
   ): string;
