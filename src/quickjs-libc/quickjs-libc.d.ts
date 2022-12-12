@@ -1023,3 +1023,13 @@ declare type Interval = { [Symbol.toStringTag]: "Interval" };
 
 declare function setInterval(func: (...args: any) => any, ms: number): Interval;
 declare function clearInterval(interval: Interval): void;
+
+interface StringConstructor {
+  /**
+   * A no-op template literal tag.
+   */
+  identity(
+    strings: readonly string[] | ArrayLike<string>,
+    ...substitutions: any[]
+  ): string;
+}

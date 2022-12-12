@@ -4768,6 +4768,15 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
         JS_Eval(ctx, intervalScript, strlen(intervalScript), "internal:intervals.js", 0);
     }
 
+    {
+        const char *string_identity_tag_script =
+            "(() => {\n"
+            "  String.identity = (strings, ...values) => String.raw({ raw: strings }, ...values);\n"
+            "})();\n\0";
+
+        JS_Eval(ctx, string_identity_tag_script, strlen(string_identity_tag_script), "internal:string-identity-tag.js", 0);
+    }
+
     JS_FreeValue(ctx, global_obj);
 }
 
