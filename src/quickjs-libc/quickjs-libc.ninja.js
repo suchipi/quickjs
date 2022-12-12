@@ -29,7 +29,7 @@ const lib_c = build({
 });
 
 const lib_target_o = build({
-  output: builddir("intermediate/quickjs-libc/intervals.target.o"),
+  output: builddir("intermediate/quickjs-libc/lib.target.o"),
   rule: "cc_target",
   inputs: [lib_c],
 });
