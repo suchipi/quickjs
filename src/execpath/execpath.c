@@ -25,10 +25,10 @@ char *execpath(char *argv0, char *info_message, char *error_message)
   char *result;
   size_t result_size;
 
-  result_size = sizeof(char) * bufsize;
+  result_size = sizeof(char) * PATH_MAX;
   result = malloc(result_size);
   if (result == NULL) {
-    sprintf(error_message, "malloc failed to allocate %u bytes", result_size);
+    sprintf(error_message, "malloc failed to allocate %llu bytes", result_size);
     return NULL;
   }
 
