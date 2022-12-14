@@ -6,5 +6,5 @@ declare("DEFINES_HOST", "-D__APPLE__");
 declare("LDFLAGS_HOST", "-rdynamic");
 declare(
   "CFLAGS_HOST",
-  "-funsigned-char -Wno-unused-command-line-argument -fPIC"
+  "-funsigned-char -Wno-unused-command-line-argument -fPIC -Wno-implicit-int-float-conversion"
 );
