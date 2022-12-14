@@ -205,7 +205,6 @@ int main(int argc, char **argv)
     printf("failed to read appended code: %s\n", strerror(errno));
     return 1;
   }
-  free(self_binary_path);
 
   rt = JS_NewRuntime();
   js_std_set_worker_new_context_func(JS_NewCustomContext);
@@ -217,11 +216,13 @@ int main(int argc, char **argv)
   js_std_add_helpers(ctx, argc, argv);
 
   if (eval_buf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
+    free(self_binary_path);
     return 1;
   }
 
   js_std_loop(ctx);
   JS_FreeContext(ctx);
   JS_FreeRuntime(rt);
+  free(self_binary_path);
   return 0;
 }
