@@ -143,6 +143,30 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
   return ret;
 }
 
+static void define_qjsbootstrap_offset(JSContext *ctx)
+{
+  JSValue global;
+  JSValue offset;
+  int ret;
+
+  global = JS_GetGlobalObject(ctx);
+  offset = JS_NewUint32(ctx, (uint32_t)bootstrap_bin_size);
+
+  if (JS_IsException(offset)) {
+    js_std_dump_error(ctx);
+    JS_FreeValue(ctx, global);
+    return;
+  }
+
+  ret = JS_DefinePropertyValueStr(ctx, global, "__qjsbootstrap_offset", offset, 0);
+  if (ret == -1) {
+    js_std_dump_error(ctx);
+  }
+
+  JS_FreeValue(ctx, global);
+  return;
+}
+
 int main(int argc, char **argv)
 {
   JSRuntime *rt;
@@ -189,6 +213,7 @@ int main(int argc, char **argv)
   JS_SetMaxStackSize(rt, 8000000);
   JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
   ctx = JS_NewCustomContext(rt);
+  define_qjsbootstrap_offset(ctx);
   js_std_add_helpers(ctx, argc, argv);
 
   if (eval_buf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
