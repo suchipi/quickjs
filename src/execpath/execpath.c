@@ -86,6 +86,22 @@ static const char *PROC_PATH_LINUX = "/proc/self/exe";
 static const char *PROC_PATH_FREEBSD = "/proc/curproc/file";
 static const char *PROC_PATH_SOLARIS = "/proc/self/path/a.out";
 
+static ssize_t readlink_null_terminated(const char *pathname, char *buf, size_t bufsize)
+{
+  ssize_t ret;
+  ret = readlink(pathname, buf, bufsize);
+  if (ret == -1) {
+    return -1;
+  }
+  if (ret == bufsize) {
+    buf[ret - 1] = '\0';
+    return ret;
+  } else {
+    buf[ret] = '\0';
+    return ret + 1;
+  }
+}
+
 char *execpath(char *argv0, char *info_message, char *error_message)
 {
   char *result;
@@ -102,7 +118,7 @@ char *execpath(char *argv0, char *info_message, char *error_message)
   }
 
   if (!found && exists((char *)PROC_PATH_LINUX)) {
-    if (readlink(PROC_PATH_LINUX, result, PATH_MAX) != -1) {
+    if (readlink_null_terminated(PROC_PATH_LINUX, result, PATH_MAX) != -1) {
       if (info_message != NULL) {
         sprintf(info_message, "found via %s", PROC_PATH_LINUX);
       }
@@ -110,7 +126,7 @@ char *execpath(char *argv0, char *info_message, char *error_message)
     }
   }
   if (!found && exists((char *)PROC_PATH_FREEBSD)) {
-    if (readlink(PROC_PATH_FREEBSD, result, PATH_MAX) != -1) {
+    if (readlink_null_terminated(PROC_PATH_FREEBSD, result, PATH_MAX) != -1) {
       if (info_message != NULL) {
         sprintf(info_message, "found via %s", PROC_PATH_FREEBSD);
       }
@@ -118,7 +134,7 @@ char *execpath(char *argv0, char *info_message, char *error_message)
     }
   }
   if (!found && exists((char *)PROC_PATH_SOLARIS)) {
-    if (readlink(PROC_PATH_SOLARIS, result, PATH_MAX) != -1) {
+    if (readlink_null_terminated(PROC_PATH_SOLARIS, result, PATH_MAX) != -1) {
       if (info_message != NULL) {
         sprintf(info_message, "found via %s", PROC_PATH_SOLARIS);
       }
