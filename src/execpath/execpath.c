@@ -10,6 +10,7 @@
 #endif
 #ifdef _WIN32
 #include <libloaderapi.h>
+#define realpath(N,R) _fullpath((R),(N),PATH_MAX)
 #endif
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -20,7 +21,7 @@
 // also, it is expected that the user will free() it
 
 #if defined(_WIN32)
-char *execpath(char *argv0, char *info_message, char *error_message)
+static char *execpath_raw(char *argv0, char *info_message, char *error_message)
 {
   char *result;
   size_t result_size;
@@ -28,7 +29,7 @@ char *execpath(char *argv0, char *info_message, char *error_message)
   result_size = sizeof(char) * PATH_MAX;
   result = malloc(result_size);
   if (result == NULL) {
-    sprintf(error_message, "malloc failed to allocate %llu bytes", result_size);
+    sprintf(error_message, "malloc failed to allocate %zu bytes", result_size);
     return NULL;
   }
 
@@ -45,10 +46,9 @@ char *execpath(char *argv0, char *info_message, char *error_message)
   }
 }
 #elif defined(__APPLE__)
-char *execpath(char *argv0, char *info_message, char *error_message)
+static char *execpath_raw(char *argv0, char *info_message, char *error_message)
 {
   char *result;
-  char *result_realpath;
   size_t result_size;
   uint32_t bufsize = 0;
 
@@ -74,17 +74,7 @@ char *execpath(char *argv0, char *info_message, char *error_message)
     }
   }
 
-  result_realpath = realpath(result, NULL);
-  if (result_realpath == NULL) {
-    if (error_message != NULL) {
-      sprintf(error_message, "realpath failed: %s (path = %s)", strerror(errno), result);
-    }
-    free(result);
-    return NULL;
-  }
-
-  free(result);
-  return result_realpath;
+  return result;
 }
 #else
 static int exists(char *path)
@@ -97,10 +87,9 @@ static const char *PROC_PATH_LINUX = "/proc/self/exe";
 static const char *PROC_PATH_FREEBSD = "/proc/curproc/file";
 static const char *PROC_PATH_SOLARIS = "/proc/self/path/a.out";
 
-char *execpath(char *argv0, char *info_message, char *error_message)
+static char *execpath_raw(char *argv0, char *info_message, char *error_message)
 {
   char *result;
-  char *result_realpath;
   size_t result_size;
   int found = 0;
 
@@ -108,7 +97,7 @@ char *execpath(char *argv0, char *info_message, char *error_message)
   result = malloc(result_size);
   if (result == NULL) {
     if (error_message != NULL) {
-      sprintf(error_message, "malloc failed to allocate %lu bytes", result_size);
+      sprintf(error_message, "malloc failed to allocate %zu bytes", result_size);
     }
     return NULL;
   }
@@ -159,16 +148,37 @@ char *execpath(char *argv0, char *info_message, char *error_message)
     return NULL;
   }
 
-  result_realpath = realpath(result, NULL);
-  if (result_realpath == NULL) {
+  return result;
+}
+#endif
+
+char *execpath(char *argv0, char *info_message, char *error_message)
+{
+  char *result_before_realpath = execpath_raw(argv0, info_message, error_message);
+  char *realpath_ret;
+  char *result_after_realpath;
+  size_t result_size;
+
+  result_size = sizeof(char) * PATH_MAX;
+  result_after_realpath = malloc(result_size);
+  if (result_after_realpath == NULL) {
     if (error_message != NULL) {
-      sprintf(error_message, "realpath failed: %s (path = %s)", strerror(errno), result);
+      sprintf(error_message, "malloc failed to allocate %zu bytes (for realpath)", result_size);
     }
-    free(result);
     return NULL;
   }
 
-  free(result);
-  return result_realpath;
+  errno = 0;
+  realpath_ret = realpath(result_before_realpath, result_after_realpath);
+  if (realpath_ret == NULL) {
+    if (error_message != NULL) {
+      sprintf(error_message, "realpath failed: %s (path = %s)", strerror(errno), result_before_realpath);
+    }
+    free(result_before_realpath);
+    free(result_after_realpath);
+    return NULL;
+  }
+
+  free(result_before_realpath);
+  return result_after_realpath;
 }
-#endif
