@@ -3915,11 +3915,14 @@ static JSValue js_os_access(JSContext *ctx, JSValueConst this_val,
     int amode, err, ret;
 
     path = JS_ToCString(ctx, argv[0]);
-    if (!path)
+    if (!path) {
         return JS_EXCEPTION;
+    }
 
-    if (JS_ToInt32(ctx, &amode, argv[1]))
+    if (JS_ToInt32(ctx, &amode, argv[1])) {
+        JS_FreeCString(ctx, path);
         return JS_EXCEPTION;
+    }
 
     ret = access(path, amode);
     err = errno;
@@ -3981,6 +3984,40 @@ static JSValue js_os_execPath(JSContext *ctx, JSValueConst this_val,
 
     JS_FreeValue(ctx, global_obj);
     return JS_NewString(ctx, result);
+}
+
+static JSValue js_os_chmod(JSContext *ctx, JSValueConst this_val,
+                           int argc, JSValueConst *argv)
+{
+    const char *path;
+    uint32_t mode;
+    int ret, err;
+
+    path = JS_ToCString(ctx, argv[0]);
+    if (!path) {
+        return JS_EXCEPTION;
+    }
+
+    if (JS_ToUint32(ctx, &mode, argv[1])) {
+        JS_FreeCString(ctx, path);
+        return JS_EXCEPTION;
+    }
+
+    errno = 0;
+    ret = chmod(path, (mode_t)mode);
+    err = errno;
+    if (ret != 0) {
+        JS_ThrowError(ctx, "%s (errno = %d, path = %s, mode = %u)", strerror(err), err, path, mode);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
+        JS_AddPropertyToException(ctx, "mode", JS_NewInt32(ctx, mode));
+
+        JS_FreeCString(ctx, path);
+        return JS_EXCEPTION;
+    }
+
+    JS_FreeCString(ctx, path);
+    return JS_UNDEFINED;
 }
 
 #ifdef USE_WORKER
@@ -4535,6 +4572,7 @@ static const JSCFunctionListEntry js_os_funcs[] = {
 #endif
     JS_CFUNC_DEF("access", 2, js_os_access ),
     JS_CFUNC_DEF("execPath", 0, js_os_execPath ),
+    JS_CFUNC_DEF("chmod", 2, js_os_chmod ),
     /* constants for access */
     OS_FLAG(R_OK),
     OS_FLAG(W_OK),

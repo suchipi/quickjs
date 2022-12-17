@@ -786,6 +786,9 @@ declare module "os" {
 
   /** gets the path to the executable which is executing this JS code. might be a relative path or symlink. */
   export function execPath(): string;
+
+  /** changes the access permission bits of the file at `path` using the octal number `mode`. */
+  export function chmod(path: string, mode: number): void;
 }
 
 /**
