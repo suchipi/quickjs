@@ -31,6 +31,7 @@
 #include <errno.h>
 #include "execpath.h"
 #include "quickjs-libc.h"
+#include "quickjs-bytecodelib.h"
 #include "cutils.h"
 
 extern const uint8_t qjsc_inspect[];
@@ -52,19 +53,17 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   JS_AddIntrinsicTypedArrays(ctx);
   JS_AddIntrinsicPromise(ctx);
   JS_AddIntrinsicBigInt(ctx);
-  {
-    extern JSModuleDef *js_init_module_os(JSContext *ctx, const char *name);
-    js_init_module_os(ctx, "os");
-  }
-  {
-    extern JSModuleDef *js_init_module_std(JSContext *ctx, const char *name);
-    js_init_module_std(ctx, "std");
-  }
+
+  js_init_module_os(ctx, "os");
+  js_init_module_std(ctx, "std");
+  js_init_module_bytecode(ctx, "bytecode");
+
   js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
   return ctx;
 }
 
 const uint64_t bootstrap_bin_size = BOOTSTRAP_BIN_SIZE;
+const int content_is_bytecode = BOOTSTRAP_USING_BYTECODE;
 
 #ifndef off_t
 #define off_t long long
@@ -83,10 +82,10 @@ static off_t get_file_size(char *filename)
   }
 }
 
-static char *read_section(char *filename, off_t offset, off_t len)
+static uint8_t *read_section(char *filename, off_t offset, off_t len)
 {
   size_t bytes_read;
-  char *data = NULL;
+  uint8_t *data = NULL;
   FILE *fp = fopen(filename, "r");
   if (fp == NULL) {
     return data;
@@ -98,14 +97,14 @@ static char *read_section(char *filename, off_t offset, off_t len)
   }
 
   // +1 is for null termination
-  data = malloc(sizeof(char) * (len + 1));
+  data = malloc(sizeof(uint8_t) * (len + 1));
 
   if (fseek(fp, offset, SEEK_SET)) {
     fclose(fp);
     return NULL;
   }
 
-  bytes_read = fread(data, sizeof(char), len, fp);
+  bytes_read = fread(data, sizeof(uint8_t), len, fp);
   data[bytes_read] = '\0';
 
   fclose(fp);
@@ -175,7 +174,7 @@ int main(int argc, char **argv)
   off_t base_len;
   off_t file_len;
   off_t appended_code_len;
-  char *appended_code;
+  uint8_t *appended_code;
   char execpath_error[2048];
 
   errno = 0;
@@ -215,9 +214,13 @@ int main(int argc, char **argv)
   define_qjsbootstrap_offset(ctx);
   js_std_add_helpers(ctx, argc, argv);
 
-  if (eval_buf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
-    free(self_binary_path);
-    return 1;
+  if (content_is_bytecode) {
+    js_std_eval_binary(ctx, appended_code, appended_code_len, 0);
+  } else {
+    if (eval_buf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
+      free(self_binary_path);
+      return 1;
+    }
   }
 
   js_std_loop(ctx);
