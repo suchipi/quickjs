@@ -31,7 +31,6 @@
 #include <errno.h>
 #include "execpath.h"
 #include "quickjs-libc.h"
-#include "quickjs-bytecodelib.h"
 #include "cutils.h"
 
 extern const uint8_t qjsc_inspect[];
@@ -56,14 +55,12 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
 
   js_init_module_os(ctx, "os");
   js_init_module_std(ctx, "std");
-  js_init_module_bytecode(ctx, "bytecode");
 
   js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
   return ctx;
 }
 
 const uint64_t bootstrap_bin_size = BOOTSTRAP_BIN_SIZE;
-const int content_is_bytecode = BOOTSTRAP_USING_BYTECODE;
 
 #ifndef off_t
 #define off_t long long
@@ -112,6 +109,7 @@ static uint8_t *read_section(char *filename, off_t offset, off_t len)
   return data;
 }
 
+#ifndef CONFIG_BYTECODE
 static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
                     const char *filename, int eval_flags)
 {
@@ -141,6 +139,7 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
   JS_FreeValue(ctx, val);
   return ret;
 }
+#endif
 
 static void define_qjsbootstrap_offset(JSContext *ctx)
 {
@@ -195,7 +194,11 @@ int main(int argc, char **argv)
   appended_code_len = file_len - base_len;
 
   if (appended_code_len == 0) {
+#ifdef CONFIG_BYTECODE
+    printf("append quickjs bytecode to the end of this binary to change this binary into a program that executes that bytecode\n");
+#else
     printf("append UTF-8 encoded JavaScript to the end of this binary to change this binary into a program that executes that JavaScript code\n");
+#endif
     return 0;
   }
 
@@ -214,14 +217,14 @@ int main(int argc, char **argv)
   define_qjsbootstrap_offset(ctx);
   js_std_add_helpers(ctx, argc, argv);
 
-  if (content_is_bytecode) {
-    js_std_eval_binary(ctx, appended_code, appended_code_len, 0);
-  } else {
+#ifdef CONFIG_BYTECODE
+  js_std_eval_binary(ctx, appended_code, appended_code_len, 0);
+#else
     if (eval_buf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
       free(self_binary_path);
       return 1;
     }
-  }
+#endif
 
   js_std_loop(ctx);
   JS_FreeContext(ctx);

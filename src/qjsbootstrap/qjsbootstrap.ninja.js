@@ -6,8 +6,7 @@
 let qjsbootstrapForExample;
 
 for (const bytecode of [false, true]) {
-  const dashByteCode = bytecode ? "" : "-bytecode";
-  const byteCodeNum = bytecode ? 1 : 0;
+  const dashByteCode = bytecode ? "-bytecode" : "";
 
   const qjsbootstrap_zero_target_o = build({
     output: builddir(`intermediate/qjsbootstrap-zero${dashByteCode}.target.o`),
@@ -16,7 +15,7 @@ for (const bytecode of [false, true]) {
     ruleVariables: {
       cc_args: [
         "-DBOOTSTRAP_BIN_SIZE=0",
-        `-DBOOTSTRAP_USING_BYTECODE=${byteCodeNum}`,
+        bytecode ? `-DCONFIG_BYTECODE` : "",
       ].join(" "),
     },
   });
@@ -42,7 +41,7 @@ for (const bytecode of [false, true]) {
     inputs: [rel("qjsbootstrap.c")],
     implicitInputs: [qjsbootstrap_zero_target],
     ruleVariables: {
-      cc_args: `-DBOOTSTRAP_USING_BYTECODE=${byteCodeNum}`,
+      cc_args: bytecode ? `-DCONFIG_BYTECODE` : "",
     },
   });
 

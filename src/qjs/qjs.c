@@ -42,7 +42,7 @@
 
 #include "cutils.h"
 #include "quickjs-libc.h"
-#include "quickjs-bytecodelib.h"
+#include "quickjs-libbytecode.h"
 
 extern const uint8_t qjsc_inspect[];
 extern const uint32_t qjsc_inspect_size;

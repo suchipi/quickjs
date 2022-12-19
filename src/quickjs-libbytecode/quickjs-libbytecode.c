@@ -1,9 +1,26 @@
 #include <string.h>
 #include <errno.h>
 
-#include "quickjs-bytecodelib.h"
-#include "quickjs-libc.h" // TODO: would be nice to not depend on libc
+#include "quickjs-libbytecode.h"
+#include "quickjs-libc.h"
 #include "cutils.h"
+
+static JSValue js_call_bytecode_func(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv)
+{
+    JSValue result;
+    JSValue obj = this_val;
+
+    if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
+        if (JS_ResolveModule(ctx, obj) < 0) {
+            JS_FreeValue(ctx, obj);
+            return JS_EXCEPTION;
+        }
+        js_module_set_import_meta(ctx, obj, FALSE, FALSE);
+    }
+    result = JS_EvalFunction(ctx, obj);
+    return result;
+}
 
 static JSValue js_obj_to_bytecode_arraybuf(JSContext *ctx, JSValueConst obj,
                                            BOOL byte_swap)
@@ -24,33 +41,33 @@ static JSValue js_obj_to_bytecode_arraybuf(JSContext *ctx, JSValueConst obj,
     return JS_NewArrayBufferCopy(ctx, out_buf, out_buf_len);
 }
 
-static JSValue js_bytecode_toByteCode(JSContext *ctx, JSValueConst this_val,
+static JSValue js_bytecode_fromValue(JSContext *ctx, JSValueConst this_val,
                                       int argc, JSValueConst *argv)
 {
     JSValue obj;
     BOOL byte_swap = FALSE;
 
     if (argc < 1) {
-        return JS_ThrowError(ctx, "toByteCode requires at least 1 argument");
+        return JS_ThrowError(ctx, "fromValue requires at least 1 argument");
     }
     obj = argv[0];
 
     if (argc == 2 && !JS_IsUndefined(argv[1]) && !JS_IsNull(argv[1])) {
         JSValue opts_obj;
-        JSValue val;
+        JSValue byte_swap_val;
 
         opts_obj = argv[1];
-        val = JS_GetPropertyStr(ctx, opts_obj, "byteSwap");
-        if (JS_IsException(val)) {
-            return val;
+        byte_swap_val = JS_GetPropertyStr(ctx, opts_obj, "byteSwap");
+        if (JS_IsException(byte_swap_val)) {
+            return byte_swap_val;
         }
 
-        if (JS_IsUndefined(val)) {
+        if (JS_IsUndefined(byte_swap_val)) {
             byte_swap = FALSE;
         } else {
-            byte_swap = JS_ToBool(ctx, val);
+            byte_swap = JS_ToBool(ctx, byte_swap_val);
         }
-        JS_FreeValue(ctx, val);
+        JS_FreeValue(ctx, byte_swap_val);
 
         // Could be -1 due to error from JS_ToBool
         if (byte_swap == -1) {
@@ -61,7 +78,7 @@ static JSValue js_bytecode_toByteCode(JSContext *ctx, JSValueConst this_val,
     return js_obj_to_bytecode_arraybuf(ctx, obj, byte_swap);
 }
 
-static JSValue js_bytecode_fromByteCode(JSContext *ctx, JSValueConst this_val,
+static JSValue js_bytecode_toValue(JSContext *ctx, JSValueConst this_val,
                                         int argc, JSValueConst *argv)
 {
     uint8_t *buf;
@@ -70,7 +87,7 @@ static JSValue js_bytecode_fromByteCode(JSContext *ctx, JSValueConst this_val,
     JSValue obj;
 
     if (argc < 1) {
-        return JS_ThrowError(ctx, "fromByteCode requires at least 1 argument");
+        return JS_ThrowError(ctx, "toValue requires at least 1 argument");
     }
 
     buf = JS_GetArrayBuffer(ctx, &buf_len, argv[0]);
@@ -82,6 +99,67 @@ static JSValue js_bytecode_fromByteCode(JSContext *ctx, JSValueConst this_val,
     obj = JS_ReadObject(ctx, buf, buf_len, flags);
     if (JS_IsException(obj)) {
         return JS_EXCEPTION;
+    }
+
+    if (JS_VALUE_GET_TAG(obj) == JS_TAG_FUNCTION_BYTECODE) {
+        JSValue global;
+        JSValue Function;
+        JSValue Function_proto;
+        JSValue Function_proto_bind;
+        JSValue callfunc;
+        JSValue bind_argv[1];
+        JSValue bound_callfunc;
+
+        global = JS_GetGlobalObject(ctx);
+        if (JS_IsException(global)) {
+            JS_FreeValue(ctx, obj);
+            return JS_EXCEPTION;
+        }
+
+        Function = JS_GetPropertyStr(ctx, global, "Function");
+        if (JS_IsException(Function)) {
+            JS_FreeValue(ctx, global);
+            JS_FreeValue(ctx, obj);
+            return JS_EXCEPTION;
+        }
+
+        Function_proto = JS_GetPropertyStr(ctx, Function, "prototype");
+        if (JS_IsException(Function_proto)) {
+            JS_FreeValue(ctx, Function);
+            JS_FreeValue(ctx, global);
+            JS_FreeValue(ctx, obj);
+            return JS_EXCEPTION;
+        }
+
+        Function_proto_bind = JS_GetPropertyStr(ctx, Function_proto, "bind");
+        if (JS_IsException(Function_proto_bind)) {
+            JS_FreeValue(ctx, Function_proto);
+            JS_FreeValue(ctx, Function);
+            JS_FreeValue(ctx, global);
+            JS_FreeValue(ctx, obj);
+            return JS_EXCEPTION;
+        }
+
+        callfunc = JS_NewCFunction(ctx, js_call_bytecode_func, "bytecode", 0);
+
+        bind_argv[0] = obj;
+        bound_callfunc = JS_Call(ctx, Function_proto_bind, callfunc, 1, bind_argv);
+        if (JS_IsException(bound_callfunc)) {
+            JS_FreeValue(ctx, callfunc);
+            JS_FreeValue(ctx, Function_proto_bind);
+            JS_FreeValue(ctx, Function_proto);
+            JS_FreeValue(ctx, Function);
+            JS_FreeValue(ctx, global);
+            JS_FreeValue(ctx, obj);
+            return JS_EXCEPTION;
+        }
+
+        obj = bound_callfunc;
+        JS_FreeValue(ctx, callfunc);
+        JS_FreeValue(ctx, Function_proto_bind);
+        JS_FreeValue(ctx, Function_proto);
+        JS_FreeValue(ctx, Function);
+        JS_FreeValue(ctx, global);
     }
 
     return obj;
@@ -178,11 +256,12 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
     }
 
     obj = JS_Eval(ctx, (const char *)buf, buf_len, filename, eval_flags);
+    js_free(ctx, buf);
     if (JS_IsException(obj)) {
         return JS_EXCEPTION;
     }
 
-    js_free(ctx, buf);
+
 
     ret = js_obj_to_bytecode_arraybuf(ctx, obj, byte_swap);
     JS_FreeValue(ctx, obj);
@@ -190,8 +269,8 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
 }
 
 static const JSCFunctionListEntry js_bytecode_funcs[] = {
-    JS_CFUNC_DEF("toByteCode", 2, js_bytecode_toByteCode ),
-    JS_CFUNC_DEF("fromByteCode", 1, js_bytecode_fromByteCode ),
+    JS_CFUNC_DEF("fromValue", 2, js_bytecode_fromValue ),
+    JS_CFUNC_DEF("toValue", 1, js_bytecode_toValue ),
     JS_CFUNC_DEF("fromFile", 1, js_bytecode_fromFile ),
 };
 
