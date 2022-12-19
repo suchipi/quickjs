@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     printf("%d: \"%s\"\n", i, argv[i]);
   }
 
-  program_path = execpath(argv[0]);
+  program_path = execpath(argv[0], NULL, NULL);
   if (program_path == NULL) {
     printf("execpath failed: %s\n", strerror(errno));
   } else {
