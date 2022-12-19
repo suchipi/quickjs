@@ -5,7 +5,6 @@ const deps_target = [
   builddir("intermediate/inspect.target.o"),
   builddir("intermediate/quickjs-libc/lib.target.o"),
   builddir("intermediate/quickjs-libc.target.o"),
-  builddir("intermediate/quickjs-libbytecode.target.o"),
 ];
 
 const full_target = build({
