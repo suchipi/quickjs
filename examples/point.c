@@ -143,7 +143,7 @@ static int js_point_init(JSContext *ctx, JSModuleDef *m)
 JSModuleDef *js_init_module(JSContext *ctx, const char *module_name)
 {
     JSModuleDef *m;
-    m = JS_NewCModule(ctx, module_name, js_point_init);
+    m = JS_NewCModule(ctx, module_name, js_point_init, NULL);
     if (!m)
         return NULL;
     JS_AddModuleExport(ctx, m, "Point");

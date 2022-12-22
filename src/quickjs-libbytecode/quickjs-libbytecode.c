@@ -283,7 +283,7 @@ static int js_bytecode_init(JSContext *ctx, JSModuleDef *m)
 JSModuleDef *js_init_module_bytecode(JSContext *ctx, const char *module_name)
 {
     JSModuleDef *m;
-    m = JS_NewCModule(ctx, module_name, js_bytecode_init);
+    m = JS_NewCModule(ctx, module_name, js_bytecode_init, NULL);
     if (!m) {
         return NULL;
     }

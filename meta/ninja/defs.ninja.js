@@ -44,6 +44,9 @@ for (const suffix of ["HOST", "TARGET"]) {
     '-DCONFIG_VERSION="\\"suchipi-`git rev-parse --short HEAD`\\""'
   );
 
+  // Uncomment to print debug info
+  // declareOrAppend(`DEFINES_${suffix}`, "-DDEBUG");
+
   // enable 'use math' and BigFloat
   declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_BIGNUM");
 

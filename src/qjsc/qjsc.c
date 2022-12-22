@@ -248,11 +248,11 @@ JSModuleDef *jsc_module_loader(JSContext *ctx,
         /* add in the static init module list */
         namelist_add(&init_module_list, e->name, e->short_name, 0);
         /* create a dummy module */
-        m = JS_NewCModule(ctx, module_name, js_module_dummy_init);
+        m = JS_NewCModule(ctx, module_name, js_module_dummy_init, NULL);
     } else if (has_suffix(module_name, ".so")) {
         fprintf(stderr, "Warning: binary module '%s' will be dynamically loaded\n", module_name);
         /* create a dummy module */
-        m = JS_NewCModule(ctx, module_name, js_module_dummy_init);
+        m = JS_NewCModule(ctx, module_name, js_module_dummy_init, NULL);
         /* the resulting executable will export its symbols for the
            dynamic library */
         dynamic_export = TRUE;

@@ -737,6 +737,7 @@ struct JSModuleDef {
     BOOL eval_has_exception : 8;
     JSValue eval_exception;
     JSValue meta_obj; /* for import.meta */
+    void *user_data;
 };
 
 typedef struct JSJobEntry {
@@ -27126,6 +27127,8 @@ static void js_free_module_def(JSContext *ctx, JSModuleDef *m)
     JS_FreeValue(ctx, m->func_obj);
     JS_FreeValue(ctx, m->eval_exception);
     JS_FreeValue(ctx, m->meta_obj);
+    // m->user_data not freed because it's opaque to us;
+    // we don't know what its lifetime is.
     list_del(&m->link);
     js_free(ctx, m);
 }
@@ -27221,9 +27224,9 @@ static int add_star_export_entry(JSContext *ctx, JSModuleDef *m,
     return 0;
 }
 
-/* create a C module */
+/* create a C module. user_data can be NULL */
 JSModuleDef *JS_NewCModule(JSContext *ctx, const char *name_str,
-                           JSModuleInitFunc *func)
+                           JSModuleInitFunc *func, void *user_data)
 {
     JSModuleDef *m;
     JSAtom name;
@@ -27232,7 +27235,19 @@ JSModuleDef *JS_NewCModule(JSContext *ctx, const char *name_str,
         return NULL;
     m = js_new_module_def(ctx, name);
     m->init_func = func;
+    m->user_data = user_data;
+
     return m;
+}
+
+void *JS_GetModuleUserData(JSModuleDef *m)
+{
+    return m->user_data;
+}
+
+void JS_SetModuleUserData(JSModuleDef *m, void *user_data)
+{
+    m->user_data = user_data;
 }
 
 int JS_AddModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name)

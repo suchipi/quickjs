@@ -1103,8 +1103,11 @@ void JS_SetPropertyFunctionList(JSContext *ctx, JSValueConst obj,
 
 typedef int JSModuleInitFunc(JSContext *ctx, JSModuleDef *m);
 
+/* user_data can be NULL */
 JSModuleDef *JS_NewCModule(JSContext *ctx, const char *name_str,
-                           JSModuleInitFunc *func);
+                           JSModuleInitFunc *func, void *user_data);
+void *JS_GetModuleUserData(JSModuleDef *m);
+void JS_SetModuleUserData(JSModuleDef *m, void *user_data);
 /* can only be called before the module is instantiated */
 int JS_AddModuleExport(JSContext *ctx, JSModuleDef *m, const char *name_str);
 int JS_AddModuleExportList(JSContext *ctx, JSModuleDef *m,

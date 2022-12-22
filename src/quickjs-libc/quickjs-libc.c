@@ -78,6 +78,7 @@ sighandler_t signal(int signum, sighandler_t handler);
 #include "cutils.h"
 #include "list.h"
 #include "quickjs-libc.h"
+#include "quickjs-utils.h"
 #include "debugprint.h"
 #include "execpath.h"
 
@@ -2082,7 +2083,7 @@ static int js_std_init(JSContext *ctx, JSModuleDef *m)
 JSModuleDef *js_init_module_std(JSContext *ctx, const char *module_name)
 {
     JSModuleDef *m;
-    m = JS_NewCModule(ctx, module_name, js_std_init);
+    m = JS_NewCModule(ctx, module_name, js_std_init, NULL);
     if (!m)
         return NULL;
     JS_AddModuleExportList(ctx, m, js_std_funcs, countof(js_std_funcs));
@@ -4629,7 +4630,7 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
 JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
 {
     JSModuleDef *m;
-    m = JS_NewCModule(ctx, module_name, js_os_init);
+    m = JS_NewCModule(ctx, module_name, js_os_init, NULL);
     if (!m)
         return NULL;
     JS_AddModuleExportList(ctx, m, js_os_funcs, countof(js_os_funcs));
@@ -4690,6 +4691,111 @@ static JSValue js_Module_hasInstance(JSContext *ctx, JSValueConst this_val,
     } else {
         return JS_FALSE;
     }
+}
+
+static int js_userdefined_module_init(JSContext *ctx, JSModuleDef *m)
+{
+    JSValueConst *objp;
+    JSValueConst obj;
+    JSForEachPropertyState *foreach = NULL;
+    int ret = 0;
+
+    objp = (JSValue *)JS_GetModuleUserData(m);
+    if (objp == NULL) {
+        JS_ThrowTypeError(ctx, "user-defined module did not have exports object as userdata");
+        ret = -1;
+        goto done;
+    }
+
+    obj = *objp;
+
+    foreach = JS_NewForEachPropertyState(ctx, obj, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
+    if (foreach == NULL) { // out of memory
+        ret = -1;
+        goto done;
+    }
+
+    JS_ForEachProperty(ctx, foreach) {
+        JSValue read_result = JS_ForEachProperty_Read(ctx, obj, foreach, TRUE);
+        if (JS_IsException(read_result)) {
+            ret = -1;
+            goto done;
+        }
+
+        JS_SetModuleExport(ctx, m, foreach->key_str, JS_DupValue(ctx, foreach->val));
+    }
+
+done:
+    JS_FreeForEachPropertyState(ctx, foreach);
+    JS_SetModuleUserData(m, NULL);
+    return ret;
+}
+
+static JSValue js_Module_define(JSContext *ctx, JSValueConst this_val,
+                                int argc, JSValueConst *argv)
+{
+    JSValueConst obj;
+    JSValue ret;
+    const char *name = NULL;
+    JSModuleDef *m = NULL;
+    JSForEachPropertyState *foreach = NULL;
+
+    if (argc < 2) {
+        ret = JS_ThrowError(ctx, "Module.define requires two arguments: a string (module name) and an object (module exports).");
+        goto done;
+    }
+
+    name = JS_ToCString(ctx, argv[0]);
+    if (name == NULL) {
+        ret = JS_EXCEPTION;
+        goto done;
+    }
+
+    if (!JS_IsObject(argv[1])) {
+        ret = JS_ThrowError(ctx, "Second argument to Module.define must be an object.");
+        goto done;
+    }
+
+    obj = argv[1];
+
+    m = JS_NewCModule(ctx, name, js_userdefined_module_init, &obj);
+    if (m == NULL) {
+        ret = JS_EXCEPTION;
+        goto done;
+    }
+
+    foreach = JS_NewForEachPropertyState(ctx, obj, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
+    if (foreach == NULL) {
+        ret = JS_EXCEPTION;
+        goto done;
+    }
+
+    JS_ForEachProperty(ctx, foreach) {
+        JSValue read_result = JS_ForEachProperty_Read(ctx, obj, foreach, TRUE);
+        if (JS_IsException(read_result)) {
+            ret = JS_EXCEPTION;
+            goto done;
+        }
+
+        JS_AddModuleExport(ctx, m, foreach->key_str);
+    }
+
+    // force module instantiation to happen now while &obj is still a valid
+    // pointer. js_userdefined_module_init will set m->user_data to NULL.
+    m = JS_RunModule(ctx, "", name);
+    if (m == NULL) {
+        ret = JS_EXCEPTION;
+        goto done;
+    } else {
+        ret = JS_UNDEFINED;
+        goto done;
+    }
+
+done:
+    JS_FreeCString(ctx, name);
+    JS_FreeForEachPropertyState(ctx, foreach);
+
+    return ret;
 }
 
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
@@ -4762,6 +4868,8 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 
     compilers = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, module, "compilers", compilers);
+
+    JS_SetPropertyStr(ctx, module, "define", JS_NewCFunction(ctx, js_Module_define, "define", 2));
 
     JS_SetPropertyStr(ctx, global_obj, "Module", module);
 

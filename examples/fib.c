@@ -64,7 +64,7 @@ static int js_fib_init(JSContext *ctx, JSModuleDef *m)
 JSModuleDef *JS_INIT_MODULE(JSContext *ctx, const char *module_name)
 {
     JSModuleDef *m;
-    m = JS_NewCModule(ctx, module_name, js_fib_init);
+    m = JS_NewCModule(ctx, module_name, js_fib_init, NULL);
     if (!m)
         return NULL;
     JS_AddModuleExportList(ctx, m, js_fib_funcs, countof(js_fib_funcs));
