@@ -2,6 +2,7 @@
 #define QUICKJS_UTILS_H
 
 #include "quickjs.h"
+#include "debugprint.h"
 
 typedef struct QJUForEachPropertyState {
   uint32_t len;
@@ -86,8 +87,7 @@ void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state
   if (state->tab != NULL) {
     int i;
     int len = state->len;
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
       JS_FreeAtom(ctx, state->tab[i].atom);
     };
     js_free(ctx, state->tab);
@@ -98,7 +98,8 @@ void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state
 
 #define QJU_END qju_end
 #define QJU_RETVAL qju_ret
-#define QJU_RETURN_TYPE(type) type QJU_RETVAL;
+#define QJU_DEFAULT_RETURN(type, default) type QJU_RETVAL = default;
 #define QJU_RETURN(value) QJU_RETVAL = value; goto QJU_END;
+#define QJU_FINAL_RETURN return QJU_RETVAL
 
 #endif /* ifndef QUICKJS_UTILS_H */

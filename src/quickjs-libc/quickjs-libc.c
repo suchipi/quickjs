@@ -4695,7 +4695,7 @@ static JSValue js_Module_hasInstance(JSContext *ctx, JSValueConst this_val,
 
 static int js_userdefined_module_init(JSContext *ctx, JSModuleDef *m)
 {
-    QJU_RETURN_TYPE(int);
+    QJU_DEFAULT_RETURN(int, 0);
 
     JSValueConst *objp;
     JSValueConst obj;
@@ -4727,13 +4727,13 @@ QJU_END:
     QJU_FreeForEachPropertyState(ctx, foreach);
     JS_SetModuleUserData(m, NULL);
 
-    return QJU_RETVAL;
+    QJU_FINAL_RETURN;
 }
 
 static JSValue js_Module_define(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv)
 {
-    QJU_RETURN_TYPE(JSValue);
+    QJU_DEFAULT_RETURN(JSValue, JS_UNDEFINED);
 
     JSValueConst obj;
     const char *name = NULL;
@@ -4789,7 +4789,7 @@ QJU_END:
     JS_FreeCString(ctx, name);
     QJU_FreeForEachPropertyState(ctx, foreach);
 
-    return QJU_RETVAL;
+    QJU_FINAL_RETURN;
 }
 
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
