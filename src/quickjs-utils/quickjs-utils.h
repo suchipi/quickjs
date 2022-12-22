@@ -3,22 +3,21 @@
 
 #include "quickjs.h"
 
-typedef struct JSForEachPropertyState
-{
+typedef struct QJUForEachPropertyState {
   uint32_t len;
   uint32_t i;
   JSPropertyEnum *tab;
   JSAtom key;
   const char *key_str;
   JSValue val;
-} JSForEachPropertyState;
+} QJUForEachPropertyState;
 
-/* free using JS_FreeForEachPropertyState */
-JSForEachPropertyState *JS_NewForEachPropertyState(JSContext *ctx, JSValue obj, int flags)
+/* free using QJU_FreeForEachPropertyState */
+QJUForEachPropertyState *QJU_NewForEachPropertyState(JSContext *ctx, JSValue obj, int flags)
 {
-  JSForEachPropertyState *data;
+  QJUForEachPropertyState *data;
 
-  data = (JSForEachPropertyState *)js_mallocz(ctx, sizeof(*data));
+  data = (QJUForEachPropertyState *)js_mallocz(ctx, sizeof(*data));
   if (data == NULL) {
     return NULL;
   }
@@ -32,17 +31,18 @@ JSForEachPropertyState *JS_NewForEachPropertyState(JSContext *ctx, JSValue obj, 
 }
 
 // put a block after this invocation; it will be run once per property
-#define JS_ForEachProperty(ctx, state) \
+#define QJU_ForEachProperty(ctx, state) \
   for (state->i = 0; state->i < state->len; state->i++)
 
 // fills in `state` with data for the current property.
 // return value will be JS_EXCEPTION if an exception was thrown, or JS_UNDEFINED otherwise.
 // you must JS_DupValue `state->val` if you wanna keep it around.
-JSValue JS_ForEachProperty_Read(JSContext *ctx, JSValue obj, JSForEachPropertyState *state, JS_BOOL stringify_keys)
+JSValue QJU_ForEachProperty_Read(JSContext *ctx, JSValue obj, QJUForEachPropertyState *state, JS_BOOL stringify_keys)
 {
   // Free key_str from previous iteration, if present
   if (state->key_str != NULL) {
     JS_FreeCString(ctx, state->key_str);
+    state->key_str = NULL;
   }
 
   state->key = JS_ATOM_NULL;
@@ -62,18 +62,15 @@ JSValue JS_ForEachProperty_Read(JSContext *ctx, JSValue obj, JSForEachPropertySt
   if (stringify_keys) {
     state->key_str = JS_AtomToCString(ctx, state->key);
     if (state->key_str == NULL) {
-        return JS_EXCEPTION;
+      return JS_EXCEPTION;
     }
   }
 
   return JS_UNDEFINED;
 }
 
-void JS_FreeForEachPropertyState(JSContext *ctx, JSForEachPropertyState *state)
+void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state)
 {
-  int i;
-  int len;
-
   if (state == NULL) {
     return;
   }
@@ -87,7 +84,8 @@ void JS_FreeForEachPropertyState(JSContext *ctx, JSForEachPropertyState *state)
   }
 
   if (state->tab != NULL) {
-    len = state->len;
+    int i;
+    int len = state->len;
     for (i = 0; i < len; i++)
     {
       JS_FreeAtom(ctx, state->tab[i].atom);
@@ -97,5 +95,10 @@ void JS_FreeForEachPropertyState(JSContext *ctx, JSForEachPropertyState *state)
 
   js_free(ctx, state);
 }
+
+#define QJU_END qju_end
+#define QJU_RETVAL qju_ret
+#define QJU_RETURN_TYPE(type) type QJU_RETVAL;
+#define QJU_RETURN(value) QJU_RETVAL = value; goto QJU_END;
 
 #endif /* ifndef QUICKJS_UTILS_H */
