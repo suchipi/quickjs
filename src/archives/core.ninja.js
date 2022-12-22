@@ -5,6 +5,7 @@ const deps_host = [
   builddir("intermediate/libunicode.host.o"),
   builddir("intermediate/quickjs.host.o"),
   builddir("intermediate/execpath.host.o"),
+  builddir("intermediate/quickjs-utils.host.o"),
 ];
 
 const deps_target = [
@@ -14,6 +15,7 @@ const deps_target = [
   builddir("intermediate/libunicode.target.o"),
   builddir("intermediate/quickjs.target.o"),
   builddir("intermediate/execpath.target.o"),
+  builddir("intermediate/quickjs-utils.target.o"),
 ];
 
 build({

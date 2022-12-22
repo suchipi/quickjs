@@ -1,13 +1,19 @@
 build({
   output: builddir("intermediate/quickjs-libc.host.o"),
   rule: "cc_host",
-  inputs: [rel("quickjs-libc.c")],
+  inputs: [
+    rel("quickjs-libc.c"),
+    builddir("intermediate/quickjs-utils.host.o"),
+  ],
 });
 
 build({
   output: builddir("intermediate/quickjs-libc.target.o"),
   rule: "cc_target",
-  inputs: [rel("quickjs-libc.c")],
+  inputs: [
+    rel("quickjs-libc.c"),
+    builddir("intermediate/quickjs-utils.target.o"),
+  ],
 });
 
 const filesInLib = glob("**/*.js", { cwd: rel("lib"), absolute: true });

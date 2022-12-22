@@ -60,7 +60,7 @@ A Module that exposes QuickJS's value <-> bytecode (de)serialization APIs to Jav
 
 ## New library: `quickjs-utils`
 
-Helper structs, functions, and macros that make it easier to work with QuickJS objects in C code. Header-only.
+Helper structs, functions, and macros that make it easier to work with QuickJS objects in C code.
 
 ## Changes to project organization
 

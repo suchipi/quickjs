@@ -4715,12 +4715,17 @@ static int js_userdefined_module_init(JSContext *ctx, JSModuleDef *m)
     }
 
     QJU_ForEachProperty(ctx, foreach) {
-        JSValue read_result = QJU_ForEachProperty_Read(ctx, obj, foreach, TRUE);
+        const char *key_str;
+        JSValue read_result = QJU_ForEachProperty_Read(ctx, obj, foreach);
         if (JS_IsException(read_result)) {
             QJU_RETURN(-1);
         }
+        key_str = JS_AtomToCString(ctx, foreach->key);
+        if (key_str == NULL) {
+            QJU_RETURN(-1);
+        }
 
-        JS_SetModuleExport(ctx, m, foreach->key_str, JS_DupValue(ctx, foreach->val));
+        JS_SetModuleExport(ctx, m, key_str, JS_DupValue(ctx, foreach->val));
     }
 
 QJU_END:
@@ -4768,12 +4773,19 @@ static JSValue js_Module_define(JSContext *ctx, JSValueConst this_val,
     }
 
     QJU_ForEachProperty(ctx, foreach) {
-        JSValue read_result = QJU_ForEachProperty_Read(ctx, obj, foreach, TRUE);
+        const char *key_str;
+
+        JSValue read_result = QJU_ForEachProperty_Read(ctx, obj, foreach);
         if (JS_IsException(read_result)) {
             QJU_RETURN(JS_EXCEPTION);
         }
 
-        JS_AddModuleExport(ctx, m, foreach->key_str);
+        key_str = JS_AtomToCString(ctx, foreach->key);
+        if (key_str == NULL) {
+            QJU_RETURN(JS_EXCEPTION);
+        }
+
+        JS_AddModuleExport(ctx, m, key_str);
     }
 
     // force module instantiation to happen now while &obj is still a valid
