@@ -26,3 +26,24 @@ test("Module.define - basic test", async () => {
     }
   `);
 });
+
+test("Module.define - never imported", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      Module.define("mymodule", {
+        something: 5,
+        somethingElse: () => 6
+      });
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
