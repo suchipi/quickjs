@@ -9,6 +9,6 @@ docker build \
   .
 popd > /dev/null
 
-docker run --rm -it \
+docker run --rm \
   -v $PWD:/opt/quickjs \
   suchipi/quickjs-builder
