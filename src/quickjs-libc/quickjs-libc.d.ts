@@ -1018,7 +1018,7 @@ declare class Module {
  * will use those, too. It will search in the same order as the strings appear
  * in the `Module.searchExtensions` array.
  */
-declare var require: ((source: string) => { [key: string]: any }) & {
+declare var require: ((source: string) => any) & {
   /**
    * Resolves the normalized path to a modules, relative to the calling file.
    */

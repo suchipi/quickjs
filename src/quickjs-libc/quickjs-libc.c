@@ -505,11 +505,47 @@ static JSValue js_std_getFileNameFromStack(JSContext *ctx, JSValueConst this_val
 static JSValue js_require(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
 {
+    JSValue ns;
+    JSAtom cjs_export_atom;
+    int has_cjs_export;
+    JSValue cjs_export_val;
+
     if (argc != 1) {
-        return JS_ThrowTypeError(ctx, "require must be called with exactly one argument");
+        JS_ThrowTypeError(ctx, "require must be called with exactly one argument");
+        return JS_EXCEPTION;
     }
 
-    return JS_DynamicImportSync(ctx, argv[0]);
+    ns = JS_DynamicImportSync(ctx, argv[0]);
+    if (JS_IsException(ns)) {
+        return JS_EXCEPTION;
+    }
+
+    cjs_export_atom = JS_NewAtom(ctx, "__cjsExports");
+    if (cjs_export_atom == JS_ATOM_NULL) {
+        JS_FreeValue(ctx, ns);
+        return JS_EXCEPTION;
+    }
+
+    has_cjs_export = JS_HasProperty(ctx, ns, cjs_export_atom);
+    if (has_cjs_export == -1) {
+        JS_FreeAtom(ctx, cjs_export_atom);
+        JS_FreeValue(ctx, ns);
+        return JS_EXCEPTION;
+    } else if (has_cjs_export == FALSE) {
+        JS_FreeAtom(ctx, cjs_export_atom);
+        return ns;
+    }
+    // otherwise, has_cjs_export is true
+
+    cjs_export_val = JS_GetProperty(ctx, ns, cjs_export_atom);
+    JS_FreeAtom(ctx, cjs_export_atom);
+    if (JS_IsException(cjs_export_val)) {
+        JS_FreeValue(ctx, ns);
+        return JS_EXCEPTION;
+    }
+
+    JS_FreeValue(ctx, ns);
+    return cjs_export_val;
 }
 
 /* resolve the path to a module, using the current caller as the basename */
