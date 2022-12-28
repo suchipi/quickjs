@@ -745,7 +745,7 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
                               JS_BOOL is_main)
 {
     JSModuleDef *m;
-    char buf[PATH_MAX + 16];
+    char buf[4096];
     JSValue meta_obj;
     JSAtom module_name_atom;
     const char *module_name;
@@ -840,7 +840,7 @@ JSModuleDef *js_module_loader(JSContext *ctx,
 
             if (!JS_IsString(result)) {
                 JS_ThrowTypeError(ctx, "Module.read returned non-string");
-                JS_AddPropertyToException(ctx, "result", result);
+                JS_FreeValue(ctx, result);
                 return NULL;
             }
 
