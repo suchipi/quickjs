@@ -14,8 +14,9 @@ for (const bytecode of [false, true]) {
     inputs: [rel("qjsbootstrap.c")],
     ruleVariables: {
       cc_args: [
-        "-DBOOTSTRAP_BIN_SIZE=0",
+        "-O0",
         bytecode ? `-DCONFIG_BYTECODE` : "",
+        "-DBOOTSTRAP_BIN_SIZE=0",
       ].join(" "),
     },
   });
@@ -29,19 +30,17 @@ for (const bytecode of [false, true]) {
     ],
   });
 
-  // TODO: this command is partially duplicated from rules.ninja.js
-  const build_sized_bootstrap = rule(`build_sized_bootstrap${dashByteCode}`, {
-    command: `$CC_TARGET -c $in -o $out $DEFINES_TARGET $CFLAGS_TARGET -DBOOTSTRAP_BIN_SIZE=$$(wc -c ${qjsbootstrap_zero_target} | awk '{print $$1}') $cc_args`,
-    description: "CC_TARGET $out",
-  });
-
   const qjsbootstrap_fill_target_o = build({
     output: builddir(`intermediate/qjsbootstrap-fill${dashByteCode}.target.o`),
-    rule: build_sized_bootstrap,
+    rule: "cc_target",
     inputs: [rel("qjsbootstrap.c")],
     implicitInputs: [qjsbootstrap_zero_target],
     ruleVariables: {
-      cc_args: bytecode ? `-DCONFIG_BYTECODE` : "",
+      cc_args: [
+        "-O0",
+        bytecode ? `-DCONFIG_BYTECODE` : "",
+        `-DBOOTSTRAP_BIN_SIZE=$$(wc -c ${qjsbootstrap_zero_target} | awk '{print $$1}')`,
+      ].join(" "),
     },
   });
 
