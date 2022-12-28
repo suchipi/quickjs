@@ -5,10 +5,11 @@ import * as os from "os";
     return path[0] === "/" || /[A-Za-z]:[/\\]/.test(path);
   }
 
-  function exists(path) {
+  function isValidFile(path) {
     try {
       os.access(path, os.F_OK);
-      return true;
+      const stats = os.stat(path);
+      return (stats.mode & os.S_IFMT) === os.S_IFREG;
     } catch (err) {
       return false;
     }
@@ -36,7 +37,7 @@ import * as os from "os";
       }
 
       const request = [...parts, name].join("/");
-      if (exists(request)) {
+      if (isValidFile(request)) {
         return os.realpath(request);
       }
 
@@ -45,11 +46,11 @@ import * as os from "os";
           throw new Error("Module.searchExtensions contained a non-string");
         }
 
-        if (exists(request + ext)) {
+        if (isValidFile(request + ext)) {
           return os.realpath(request + ext);
         }
 
-        if (exists(request + "/index" + ext)) {
+        if (isValidFile(request + "/index" + ext)) {
           return os.realpath(request + "/index" + ext);
         }
       }
