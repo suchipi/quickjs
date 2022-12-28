@@ -984,6 +984,14 @@ declare class Module {
    * enumerable properties of `obj`.
    */
   static define(name: string, obj: { [key: string]: any }): void;
+
+  /**
+   * Resolves a require/import request from `fromFile` into an absolute path.
+   *
+   * To change native module resolution behavior, replace this function with
+   * your own implementation.
+   */
+  static resolve(name: string, fromFile: string): string;
 }
 
 /**

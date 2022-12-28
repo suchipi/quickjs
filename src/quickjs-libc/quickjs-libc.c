@@ -565,7 +565,6 @@ static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
 
     basename_atom = JS_GetScriptOrModuleName(ctx, 1);
     if (basename_atom == JS_ATOM_NULL) {
-        JS_FreeAtom(ctx, basename_atom);
         return JS_ThrowError(ctx, "Failed to identify the filename of the code calling require.resolve");
     } else {
         basename = JS_AtomToCString(ctx, basename_atom);
@@ -903,175 +902,91 @@ JSModuleDef *js_module_loader(JSContext *ctx,
     return m;
 }
 
-static const char *SLASH_INDEX = "/index";
-
-static BOOL is_accessible_file(const char *path)
-{
-    debugprint("checking for file: %s...", path);
-
-    struct stat st;
-
-    if (stat(path, &st) != 0) {
-        debugprint(" doesn't exist\n");
-        return FALSE;
-    }
-
-    if (st.st_mode & S_IFDIR) {
-        debugprint(" exists, but it's a directory\n");
-        return FALSE;
-    }
-
-    debugprint(" exists\n");
-    return TRUE;
-}
-
 char *js_module_normalize_name(JSContext *ctx,
                                const char *base_name,
                                const char *name, void *opaque)
 {
-    // here starts stuff copied from js_default_module_normalize_name
+    JSValue global, Module, resolve;
+    JSValue base_name_val, name_val;
+    JSValue result_val;
+    const char *result;
+    JSValue argv[2];
+    int argc = 2;
 
-    char *filename, *p;
-    const char *r;
-    int len;
+    global = JS_GetGlobalObject(ctx);
+    if (JS_IsException(global)) {
+        return NULL;
+    }
 
-    if (name[0] != '.') {
-        /* if no initial dot, the module name is not modified */
+    Module = JS_GetPropertyStr(ctx, global, "Module");
+    if (JS_IsException(Module)) {
+        JS_FreeValue(ctx, global);
+        return NULL;
+    }
+
+    if (!JS_IsObject(Module)) {
+        JS_FreeValue(ctx, global);
+        // Return the original string as-is, so that qjsc is able to access
+        // builtins
         return js_strdup(ctx, name);
     }
 
-    p = strrchr(base_name, '/');
-    if (p)
-        len = p - base_name;
-    else
-        len = 0;
-
-    filename = js_malloc(ctx, len + strlen(name) + 1 + 1);
-    if (!filename)
+    resolve = JS_GetPropertyStr(ctx, Module, "resolve");
+    if (JS_IsException(resolve)) {
+        JS_FreeValue(ctx, Module);
+        JS_FreeValue(ctx, global);
         return NULL;
-    memcpy(filename, base_name, len);
-    filename[len] = '\0';
-
-    /* we only normalize the leading '..' or '.' */
-    r = name;
-    for(;;) {
-        if (r[0] == '.' && r[1] == '/') {
-            r += 2;
-        } else if (r[0] == '.' && r[1] == '.' && r[2] == '/') {
-            /* remove the last path element of filename, except if "."
-               or ".." */
-            if (filename[0] == '\0')
-                break;
-            p = strrchr(filename, '/');
-            if (!p)
-                p = filename;
-            else
-                p++;
-            if (!strcmp(p, ".") || !strcmp(p, ".."))
-                break;
-            if (p > filename)
-                p--;
-            *p = '\0';
-            r += 3;
-        } else {
-            break;
-        }
     }
-    if (filename[0] != '\0')
-        strcat(filename, "/");
-    strcat(filename, r);
 
-    // here ends stuff copied from js_default_module_normalize_name
-
-    if (is_accessible_file(filename)) {
-        debugprint("import resolved via literal filename: %s\n", filename);
-        return filename;
-    } else {
-        JSValue global, Module, search_extensions;
-
-        global = JS_GetGlobalObject(ctx);
-        Module = JS_GetPropertyStr(ctx, global, "Module");
-        search_extensions = JS_GetPropertyStr(ctx, Module, "searchExtensions");
+    if (!JS_IsFunction(ctx, resolve)) {
+        JS_FreeValue(ctx, resolve);
         JS_FreeValue(ctx, Module);
         JS_FreeValue(ctx, global);
 
-        if (JS_IsArray(ctx, search_extensions) == TRUE) {
-            uint32_t len = 0;
-            JSValue length_val = JS_GetPropertyStr(ctx, search_extensions, "length");
-            if (JS_IsNumber(length_val)) {
-                if (JS_ToUint32(ctx, &len, length_val) != 0) {
-                    JS_FreeValue(ctx, length_val);
-                    JS_FreeValue(ctx, search_extensions);
-                    return NULL;
-                }
-            }
-            JS_FreeValue(ctx, length_val);
-
-            for (uint32_t i = 0; i < len; i++) {
-                JSValue extension_val;
-                const char *extension;
-                char *filename_with_added_extension;
-                char *filename_with_added_index_dot_extension;
-
-                extension_val = JS_GetPropertyUint32(ctx, search_extensions, i);
-                if (JS_IsException(extension_val)) {
-                    JS_FreeValue(ctx, search_extensions);
-                    return NULL;
-                }
-
-                if (!JS_IsString(extension_val)) {
-                    JS_ThrowError(ctx, "require.searchExtensions contained a non-string");
-                    JS_FreeValue(ctx, extension_val);
-                    JS_FreeValue(ctx, search_extensions);
-                    return NULL;
-                }
-
-                extension = JS_ToCString(ctx, extension_val);
-                JS_FreeValue(ctx, extension_val);
-
-                filename_with_added_extension = js_malloc(ctx, strlen(filename) + strlen(extension));
-                if (!filename_with_added_extension) {
-                    JS_FreeValue(ctx, search_extensions);
-                    return NULL;
-                }
-
-                sprintf(filename_with_added_extension, "%s%s", filename, extension);
-
-                if (is_accessible_file(filename_with_added_extension)) {
-                    debugprint("import resolved via implicit %s extension: %s\n", extension, filename);
-                    JS_FreeValue(ctx, search_extensions);
-                    js_free(ctx, filename);
-                    return filename_with_added_extension;
-                } else {
-                    js_free(ctx, filename_with_added_extension);
-                }
-
-                filename_with_added_index_dot_extension = js_malloc(ctx, strlen(filename) + strlen(SLASH_INDEX) + strlen(extension));
-                if (!filename_with_added_index_dot_extension) {
-                    JS_FreeValue(ctx, search_extensions);
-                    return NULL;
-                }
-
-                sprintf(filename_with_added_index_dot_extension, "%s%s%s", filename, SLASH_INDEX, extension);
-
-                if (is_accessible_file(filename_with_added_index_dot_extension)) {
-                    debugprint("import resolved via implicit /index%s: %s\n", extension, filename);
-                    JS_FreeValue(ctx, search_extensions);
-                    js_free(ctx, filename);
-                    return filename_with_added_index_dot_extension;
-                } else {
-                    js_free(ctx, filename_with_added_index_dot_extension);
-                }
-            }
-        }
-        JS_FreeValue(ctx, search_extensions);
-
-        // Can't find this thing anywhere; maybe it doesn't exist?
-        // Use the originally-specified filename to make error messages
-        // clearer
-        debugprint("import failed to resolve: %s\n", filename);
-        return filename;
+        // Return the original string as-is, so that the file which defines
+        // Module.resolve is able to access builtins
+        return js_strdup(ctx, name);
     }
+
+    base_name_val = JS_NewString(ctx, base_name);
+    if (JS_IsException(base_name_val)) {
+        JS_FreeValue(ctx, resolve);
+        JS_FreeValue(ctx, Module);
+        JS_FreeValue(ctx, global);
+        return NULL;
+    }
+
+    name_val = JS_NewString(ctx, name);
+    if (JS_IsException(name_val)) {
+        JS_FreeValue(ctx, base_name_val);
+        JS_FreeValue(ctx, resolve);
+        JS_FreeValue(ctx, Module);
+        JS_FreeValue(ctx, global);
+        return NULL;
+    }
+
+    argv[0] = name_val;
+    argv[1] = base_name_val;
+
+    result_val = JS_Call(ctx, resolve, Module, argc, argv);
+
+    JS_FreeValue(ctx, name_val);
+    JS_FreeValue(ctx, base_name_val);
+    JS_FreeValue(ctx, resolve);
+    JS_FreeValue(ctx, Module);
+    JS_FreeValue(ctx, global);
+
+    if (JS_IsException(result_val)) {
+        return NULL;
+    }
+
+    result = JS_ToCString(ctx, result_val);
+    if (result == NULL) {
+        JS_FreeValue(ctx, result_val);
+        return NULL;
+    }
+
+    return js_strdup(ctx, result);
 }
 
 static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
