@@ -1,8 +1,8 @@
 # Dockerfile for: suchipi/quickjs-builder
-FROM --platform=linux/amd64 node:18-bullseye as node
-FROM --platform=linux/amd64 crazymax/osxcross:11.3-r7-ubuntu AS osxcross
+FROM node:18-bullseye as node
+FROM crazymax/osxcross:11.3-r7-ubuntu AS osxcross
 
-FROM --platform=linux/amd64 ubuntu:20.04
+FROM ubuntu:20.04
 
 COPY --from=node /usr/local /usr/local
 COPY --from=osxcross /osxcross /osxcross
@@ -13,11 +13,16 @@ RUN apt-get update && \
     build-essential \
     git \
     gcc-mingw-w64-x86-64 \
-    gcc-9-aarch64-linux-gnu \
     clang \
     lld \
     libc6-dev \
     ninja-build
+
+# Depending on the docker host arch, one of these will be available
+# and the other one won't be. So we use `|| true` to ignore failure
+# from the command.
+RUN apt-get install -y gcc-aarch64-linux-gnu || true
+RUN apt-get install -y gcc-x86-64-linux-gnu || true
 
 ARG UID=1000
 ARG GID=1000

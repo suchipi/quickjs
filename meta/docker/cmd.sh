@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+/opt/quickjs/meta/docker/fixup-gcc-libs.sh
+
 git config --global --add safe.directory /opt/quickjs
 meta/clean.sh
 
@@ -9,7 +11,7 @@ mkdir -p build
 echo "----"
 echo "---- Building linux (amd64) ----"
 echo "----"
-env BUILDDIR=build/linux-amd64 HOST=linux TARGET=linux meta/build.sh
+env BUILDDIR=build/linux-amd64 HOST=linux TARGET=cross-linux-x86_64 meta/build.sh
 
 echo "----"
 echo "---- Building linux (aarch64) ----"
