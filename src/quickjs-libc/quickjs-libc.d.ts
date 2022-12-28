@@ -986,12 +986,20 @@ declare class Module {
   static define(name: string, obj: { [key: string]: any }): void;
 
   /**
-   * Resolves a require/import request from `fromFile` into an absolute path.
+   * Resolves a require/import request from `fromFile` into a canonicalized path.
    *
    * To change native module resolution behavior, replace this function with
    * your own implementation.
    */
   static resolve(name: string, fromFile: string): string;
+
+  /**
+   * Reads the contents of the given resolved module name into a string.
+   *
+   * To change native module loading behavior, replace this function with your
+   * own implementation.
+   */
+  static read(modulePath: string): string;
 }
 
 /**

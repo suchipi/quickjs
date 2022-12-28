@@ -16,7 +16,7 @@ static JSValue js_call_bytecode_func(JSContext *ctx, JSValueConst this_val,
             JS_FreeValue(ctx, obj);
             return JS_EXCEPTION;
         }
-        js_module_set_import_meta(ctx, obj, FALSE, FALSE);
+        js_module_set_import_meta(ctx, obj, FALSE);
     }
     result = JS_EvalFunction(ctx, obj);
     return result;

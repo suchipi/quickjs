@@ -742,7 +742,7 @@ static JSModuleDef *js_module_loader_so(JSContext *ctx,
 }
 
 int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
-                              JS_BOOL use_realpath, JS_BOOL is_main)
+                              JS_BOOL is_main)
 {
     JSModuleDef *m;
     char buf[PATH_MAX + 16];
@@ -760,22 +760,7 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
         return -1;
     if (!strchr(module_name, ':')) {
         strcpy(buf, "file://");
-#if !defined(_WIN32)
-        /* realpath() cannot be used with modules compiled with qjsc
-           because the corresponding module source code is not
-           necessarily present */
-        if (use_realpath) {
-            char *res = realpath(module_name, buf + strlen(buf));
-            if (!res) {
-                JS_ThrowTypeError(ctx, "realpath failure");
-                JS_FreeCString(ctx, module_name);
-                return -1;
-            }
-        } else
-#endif
-        {
-            pstrcat(buf, sizeof(buf), module_name);
-        }
+        pstrcat(buf, sizeof(buf), module_name);
     } else {
         pstrcpy(buf, sizeof(buf), module_name);
     }
@@ -794,107 +779,108 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
     return 0;
 }
 
-/* including the leading dot */
-static const char *get_extension(const char *filename) {
-    const char *dot = strrchr(filename, '.');
-    if (!dot || dot == filename) {
-        return "";
-    }
-    return dot;
-}
-
 JSModuleDef *js_module_loader(JSContext *ctx,
                               const char *module_name, void *opaque)
 {
     JSModuleDef *m;
 
+    // TODO: delegate the decision about when to use the native module loader
+    // to the JavaScript side
     if (has_suffix(module_name, ".so")) {
         m = js_module_loader_so(ctx, module_name);
     } else {
-        const char* ext;
-        JSValue global, Module, compilers, user_compiler, func_val;
-        size_t buf_len;
-        uint8_t *buf;
-
-        ext = get_extension(module_name);
-        user_compiler = JS_UNDEFINED;
+        JSValue global, Module, read;
+        JSValue func_val;
 
         global = JS_GetGlobalObject(ctx);
-        Module = JS_GetPropertyStr(ctx, global, "Module");
-        compilers = JS_GetPropertyStr(ctx, Module, "compilers");
-        if (JS_IsObject(compilers)) {
-            JSValue compiler = JS_GetPropertyStr(ctx, compilers, ext);
-            if (JS_IsFunction(ctx, compiler)) {
-                user_compiler = compiler;
-            }
-        }
-        JS_FreeValue(ctx, compilers);
-        JS_FreeValue(ctx, Module);
-        JS_FreeValue(ctx, global);
-
-        buf = js_load_file(ctx, &buf_len, module_name);
-        if (!buf) {
-            JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
-                                module_name);
-            if (!JS_IsUndefined(user_compiler)) {
-                JS_FreeValue(ctx, user_compiler);
-            }
+        if (JS_IsException(global)) {
             return NULL;
         }
 
-        if (!JS_IsUndefined(user_compiler)) {
-            JSValue module_name_val, buf_val, result_val;
-            JSValue argv[2];
+        Module = JS_GetPropertyStr(ctx, global, "Module");
+        if (JS_IsException(Module)) {
+            JS_FreeValue(ctx, global);
+            return NULL;
+        }
+
+        read = JS_GetPropertyStr(ctx, Module, "read");
+        if (JS_IsException(read)) {
+            JS_FreeValue(ctx, Module);
+            JS_FreeValue(ctx, global);
+            return NULL;
+        }
+
+        if (JS_IsFunction(ctx, read)) {
+            const char *buf;
+            size_t buf_len;
+            JSValue module_name_val;
+            JSValue result;
+            JSValue argv[1];
+            int argc = 1;
 
             module_name_val = JS_NewString(ctx, module_name);
             if (JS_IsException(module_name_val)) {
-                JS_FreeValue(ctx, user_compiler);
-                return NULL;
-            }
-
-            // Intentionally recasting uint8_t to char
-            buf_val = JS_NewStringLen(ctx, (const char *)(void *)buf, buf_len);
-            if (JS_IsException(buf_val)) {
-                JS_FreeValue(ctx, user_compiler);
-                JS_FreeValue(ctx, module_name_val);
+                JS_FreeValue(ctx, read);
+                JS_FreeValue(ctx, Module);
+                JS_FreeValue(ctx, global);
                 return NULL;
             }
 
             argv[0] = module_name_val;
-            argv[1] = buf_val;
-
-            result_val = JS_Call(ctx, user_compiler, JS_NULL, 2, argv);
-            JS_FreeValue(ctx, buf_val);
+            result = JS_Call(ctx, read, Module, argc, argv);
             JS_FreeValue(ctx, module_name_val);
-            JS_FreeValue(ctx, user_compiler);
 
-            if (JS_IsException(result_val)) {
+            JS_FreeValue(ctx, read);
+            JS_FreeValue(ctx, Module);
+            JS_FreeValue(ctx, global);
+
+            if (JS_IsException(result)) {
                 return NULL;
-            } else if (!JS_IsString(result_val)) {
-                JS_ThrowTypeError(ctx, "require.loaders[\"%s\"] returned non-string", ext);
-                JS_FreeValue(ctx, result_val);
-                return NULL;
-            } else {
-                const char *result = JS_ToCString(ctx, result_val);
-
-                /* compile the module */
-                func_val = JS_Eval(ctx, result, strlen(result), module_name,
-                                JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-
-                JS_FreeValue(ctx, result_val);
             }
-        } else {
-            /* compile the module */
-            func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name,
-                            JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-        }
 
-        js_free(ctx, buf);
+            if (!JS_IsString(result)) {
+                JS_ThrowTypeError(ctx, "Module.read returned non-string");
+                JS_AddPropertyToException(ctx, "result", result);
+                return NULL;
+            }
+
+            buf = JS_ToCStringLen(ctx, &buf_len, result);
+            if (buf == NULL) {
+                JS_FreeValue(ctx, result);
+                return NULL;
+            }
+
+            /* compile the module */
+            func_val = JS_Eval(ctx, buf, buf_len, module_name,
+                               JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+
+            JS_FreeCString(ctx, buf);
+            JS_FreeValue(ctx, result);
+        } else {
+            char *buf;
+            size_t buf_len;
+
+            JS_FreeValue(ctx, read);
+            JS_FreeValue(ctx, Module);
+            JS_FreeValue(ctx, global);
+
+            buf = (char *)js_load_file(ctx, &buf_len, module_name);
+            if (!buf) {
+                JS_ThrowReferenceError(ctx, "could not load module filename '%s'", module_name);
+                return NULL;
+            }
+
+            /* compile the module */
+            func_val = JS_Eval(ctx, buf, buf_len, module_name,
+                               JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+
+            js_free(ctx, buf);
+        }
 
         if (JS_IsException(func_val))
             return NULL;
         /* XXX: could propagate the exception */
-        js_module_set_import_meta(ctx, func_val, TRUE, FALSE);
+        js_module_set_import_meta(ctx, func_val, FALSE);
         /* the module is already referenced, so we must free it */
         m = JS_VALUE_GET_PTR(func_val);
         JS_FreeValue(ctx, func_val);
@@ -4960,7 +4946,7 @@ void js_std_eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
         goto exception;
     if (load_only) {
         if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
-            js_module_set_import_meta(ctx, obj, FALSE, FALSE);
+            js_module_set_import_meta(ctx, obj, FALSE);
         }
     } else {
         if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
@@ -4968,7 +4954,7 @@ void js_std_eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
                 JS_FreeValue(ctx, obj);
                 goto exception;
             }
-            js_module_set_import_meta(ctx, obj, FALSE, TRUE);
+            js_module_set_import_meta(ctx, obj, TRUE);
         }
         val = JS_EvalFunction(ctx, obj);
         if (JS_IsException(val)) {
