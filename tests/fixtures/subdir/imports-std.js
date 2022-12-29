@@ -1,3 +1,3 @@
-import * as std from "std";
+import * as std from "quickjs:std";
 
 console.log(typeof std.exit);

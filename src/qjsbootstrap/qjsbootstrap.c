@@ -53,8 +53,8 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   JS_AddIntrinsicPromise(ctx);
   JS_AddIntrinsicBigInt(ctx);
 
-  js_init_module_os(ctx, "os");
-  js_init_module_std(ctx, "std");
+  js_init_module_os(ctx, "quickjs:os");
+  js_init_module_std(ctx, "quickjs:std");
 
   js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
   return ctx;

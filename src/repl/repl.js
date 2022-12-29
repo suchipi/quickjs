@@ -24,8 +24,8 @@
  */
 "use strip";
 
-import * as std from "std";
-import * as os from "os";
+import * as std from "quickjs:std";
+import * as os from "quickjs:os";
 
 (function (g) {
   /* add 'os' and 'std' bindings */

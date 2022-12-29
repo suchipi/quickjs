@@ -1,6 +1,6 @@
 /* os.Worker API test */
-import * as std from "std";
-import * as os from "os";
+import * as std from "quickjs:std";
+import * as os from "quickjs:os";
 
 function assert(actual, expected, message) {
     if (arguments.length == 1)

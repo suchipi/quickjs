@@ -1,4 +1,4 @@
-import * as std from "std";
+import * as std from "quickjs:std";
 
 function sum(nums) {
   return nums.reduce((prev, curr) => prev + curr, 0);

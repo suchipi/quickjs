@@ -160,7 +160,7 @@ describe("std.importModule", () => {
       [
         "-e",
         `
-          const std = require("std");
+          const std = require("quickjs:std");
           const res = std.importModule("./fixtures/without-cjs-export");
 
           console.log(JSON.stringify([
@@ -198,7 +198,7 @@ describe("std.importModule", () => {
       [
         "-e",
         `
-          const std = require("std");
+          const std = require("quickjs:std");
           const res = std.importModule("./fixtures/with-cjs-export");
 
           console.log(JSON.stringify([

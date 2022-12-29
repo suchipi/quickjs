@@ -115,7 +115,7 @@ declare interface FILE {
   putByte(value: number): void;
 }
 
-declare module "std" {
+declare module "quickjs:std" {
   /**
    * Exit the process with the provided status code.
    *
@@ -390,7 +390,7 @@ declare module "std" {
   export function parseExtJSON(str: string): any;
 }
 
-declare module "os" {
+declare module "quickjs:os" {
   /**
    * Open a file handle. Returns a number; the file descriptor.
    *
@@ -1041,8 +1041,8 @@ declare var require: ((source: string) => any) & {
   resolve: (source: string) => string;
 };
 
-declare var setTimeout: typeof import("os").setTimeout;
-declare var clearTimeout: typeof import("os").clearTimeout;
+declare var setTimeout: typeof import("quickjs:os").setTimeout;
+declare var clearTimeout: typeof import("quickjs:os").clearTimeout;
 
 declare type Interval = { [Symbol.toStringTag]: "Interval" };
 

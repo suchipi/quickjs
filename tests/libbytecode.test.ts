@@ -7,7 +7,7 @@ test("bytecode", async () => {
     [
       "-e",
       `
-        const bytecode = require("bytecode");
+        const bytecode = require("quickjs:bytecode");
 
         function log(label, arg) { console.log(label, inspect(arg)); }
 

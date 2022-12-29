@@ -1,5 +1,4 @@
 import { spawn } from "first-base";
-import path from "path";
 import { binDir } from "./_utils";
 
 test("using custom Module.resolve and custom Module.read to import stuff via std.urlGet", async () => {

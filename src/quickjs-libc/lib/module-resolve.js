@@ -1,4 +1,4 @@
-import * as os from "os";
+import * as os from "quickjs:os";
 
 (() => {
   function isAbsolute(path) {
@@ -17,8 +17,13 @@ import * as os from "os";
 
   Module.resolve = (name, baseName) => {
     try {
+      if (name.includes(":")) {
+        // namespaced module
+        return name;
+      }
+
       if (name[0] !== ".") {
-        // if no initial dot, the module name is not modified
+        // maybe something made with Module.define
         return name;
       }
 

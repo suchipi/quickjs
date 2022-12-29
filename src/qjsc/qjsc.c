@@ -533,8 +533,8 @@ int main(int argc, char **argv)
     memset(&dynamic_module_list, 0, sizeof(dynamic_module_list));
 
     /* add system modules */
-    namelist_add(&cmodule_list, "std", "std", 0);
-    namelist_add(&cmodule_list, "os", "os", 0);
+    namelist_add(&cmodule_list, "quickjs:std", "std", 0);
+    namelist_add(&cmodule_list, "quickjs:os", "os", 0);
 
     for(;;) {
         c = getopt(argc, argv, "ho:cN:f:mxevM:p:S:D:");

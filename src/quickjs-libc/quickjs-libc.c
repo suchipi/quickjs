@@ -2031,7 +2031,7 @@ JSModuleDef *js_init_module_std(JSContext *ctx, const char *module_name)
 }
 
 /**********************************************************/
-/* 'os' object */
+/* 'quickjs:os' module */
 
 static JSValue js_os_open(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)

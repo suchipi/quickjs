@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-import * as std from "std";
+import * as std from "quickjs:std";
 
 function pad(str, n) {
     str += "";

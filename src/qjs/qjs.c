@@ -123,9 +123,9 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
     }
 #endif
     /* system modules */
-    js_init_module_std(ctx, "std");
-    js_init_module_os(ctx, "os");
-    js_init_module_bytecode(ctx, "bytecode");
+    js_init_module_std(ctx, "quickjs:std");
+    js_init_module_os(ctx, "quickjs:os");
+    js_init_module_bytecode(ctx, "quickjs:bytecode");
     return ctx;
 }
 
@@ -505,8 +505,8 @@ int main(int argc, char **argv)
 
         /* make 'std' and 'os' visible to non module code */
         if (load_std) {
-            const char *str = "import * as std from 'std';\n"
-                "import * as os from 'os';\n"
+            const char *str = "import * as std from 'quickjs:std';\n"
+                "import * as os from 'quickjs:os';\n"
                 "globalThis.std = std;\n"
                 "globalThis.os = os;\n";
             eval_buf(ctx, str, strlen(str), "<input>", JS_EVAL_TYPE_MODULE);
