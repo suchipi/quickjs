@@ -2,36 +2,32 @@
 
 Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following changes:
 
-## New binary: `qjsbootstrap`:
-
-Appending some JS code to the end of this binary changes it into a binary that executes that JS code:
-
-```sh
-$ cp qjsbootstrap my-program
-$ echo 'console.log("hello!")' >> my-program
-$ ./my-program
-hello!
-```
-
-You can use this to create distributable binaries that run JS code without needing to use qjsc or a C compiler. Instructions [here](https://github.com/suchipi/quickjs/tree/main/src/qjsbootstrap).
-
-> Note: On FreeBSD, `qjsbootstrap` requires procfs. You can mount it with `mount -t procfs proc /proc`. I started some work to use libprocstat instead, but haven't completed it yet.
-
 ## Changes to `quickjs-libc`:
 
+- `std` and `os` builtin modules are now namespaced under "quickjs:". In other words, you have to import them as "quickjs:std" and "quickjs:os".
 - APIs in `std` and `os` no longer return errno anywhere; instead, Error objects are thrown. `errno` is available as a property on the thrown Error objects.
 - In places where APIs in `std` or `os` would return null on failure, now an error will be thrown instead.
 - Error messages from `std` and `os` include information in the message such as the path to the file that couldn't be loaded. This info is also available as properties on the Error object.
-- A builtin global `inspect` function is added, which pretty-prints any JS value as a string.
+- `.js` extensions can now be omitted from import specifiers; they're optional.
+- If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
+
+## Additions to `quickjs-libc`:
+
 - A TypeScript `.d.ts` file is provided for all APIs (globals as well as stuff from `std`/`os`).
 - Synchronous import functions added (`require`, or the more flexible `std.importModule`).
   - Both of these functions provide the same module record object you would get via dynamic (async) import.
   - The `require` function is not fully CommonJS-compliant; for instance, `require.main` is not present.
-- `.js` extensions can now be omitted from import specifiers; they're optional.
-- If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
-- Adds a global `Module` object with a `Symbol.hasInstance` property defined such that it can be used to identify module namespace objects.
-- You can specify additional implicit import specifier extensions by adding to the `Module.searchExtensions` array.
-- You can transform any file prior to evaluating it as a module by adding a function to the `Module.compilers` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
+- Module resolution functions added (`require.resolve`, or `std.resolveModule`).
+- A builtin global function `inspect` is added, which pretty-prints any JS value as a string.
+- A builtin global object `Module` is added.
+  - `instanceof Module` can be used to identify module namespace objects.
+  - You can specify additional implicit import specifier extensions by adding to the `Module.searchExtensions` array.
+  - You can transform any file prior to evaluating it as a module by adding a function to the `Module.compilers` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
+  - You can define custom builtin modules using the `Module.define` function.
+  - You can override module name normalization (aka module resolution) by replacing the `Module.resolve` function.
+    - Note that you must handle `Module.searchExtensions` yourself in your replacement implementation.
+  - You can override the method used to load modules by replacing the `Module.read` function.
+    - Note that you must handle `Module.compilers` yourself in your replacement implementation.
 - `os.access` function added (wrapper for libc `access`).
 - `FILE.prototype.sync` method added (wrapper for `fsync`).
 - `std.isFILE` function added (returns whether the provided object is a `FILE` (via `js_std_file_class_id`)).
@@ -54,6 +50,21 @@ You can use this to create distributable binaries that run JS code without needi
   - `JS_FreezeObjectValue` (performs Object.freeze)
 - ModuleDefs now have an optional "user_data" property (pointer to void) which can be accessed during module initialization (via `JS_GetModuleUserData` and `JS_SetModuleUserData`)
 
+## New binary: `qjsbootstrap`:
+
+Appending some JS code to the end of this binary changes it into a binary that executes that JS code:
+
+```sh
+$ cp qjsbootstrap my-program
+$ echo 'console.log("hello!")' >> my-program
+$ ./my-program
+hello!
+```
+
+You can use this to create distributable binaries that run JS code without needing to use qjsc or a C compiler. Instructions [here](https://github.com/suchipi/quickjs/tree/main/src/qjsbootstrap).
+
+> Note: On FreeBSD, `qjsbootstrap` requires procfs. You can mount it with `mount -t procfs proc /proc`. I started some work to use libprocstat instead, but haven't completed it yet.
+
 ## New library: `quickjs-libbytecode`
 
 A Module that exposes QuickJS's value <-> bytecode (de)serialization APIs to JavaScript code. Generated bytecode can be combined with `qjsbootstrap-bytecode` in the same way that source code strings can be combined with `qjsbootstrap`.
@@ -73,6 +84,7 @@ Helper structs, functions, and macros that make it easier to work with QuickJS o
   - these are statically linked, so should work on a raspi/etc, in theory. maybe android, too
 - Line endings have been made consistent and trailing whitespace has been removed
 - FreeBSD support added (but there's no cross-compilation set up, so you'll have to compile it yourself from a FreeBSD machine).
+- I'm in the process of converting the tests to a new format (which gets run by jest). But I haven't touched most of the old tests yet.
 
 ## Other changes
 
@@ -108,4 +120,4 @@ If you are targeting an unsupported OS or would like to use a different compiler
 
 ## Notes
 
-The tests aren't working right now; I really haven't touched them yet, so they're still expecting the old APIs for std/os.
+The old tests for std and os aren't working right now; I really haven't touched them yet, so they're still expecting the old function signatures (returning errno, etc).
