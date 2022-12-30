@@ -28091,38 +28091,75 @@ static int js_link_module(JSContext *ctx, JSModuleDef *m)
                 ret = js_resolve_export(ctx, &res_m,
                                         &res_me, m1, mi->import_name);
                 if (ret != JS_RESOLVE_RES_FOUND) {
-                    js_resolve_export_throw_error(ctx, ret, m1, mi->import_name);
-                    goto fail;
-                }
-                if (res_me->local_name == JS_ATOM__star_) {
-                    JSValue val;
-                    JSModuleDef *m2;
-                    /* name space import from */
-                    m2 = res_m->req_module_entries[res_me->u.req_module_idx].module;
-                    val = js_get_module_ns(ctx, m2);
-                    if (JS_IsException(val))
+                    JSValue ns, val;
+
+                    // deviation from ecma262 in order to support CommonJS
+                    // interop:
+                    //
+                    // instead of throwing an error because the import name
+                    // couldn't be resolved, use the same-named property from
+                    // the namespace object.
+                    ns = js_get_module_ns(ctx, m1);
+                    if (JS_IsException(ns)) {
                         goto fail;
-                    var_ref = js_create_module_var(ctx, TRUE);
+                    }
+
+                    val = JS_GetProperty(ctx, ns, mi->import_name);
+                    if (JS_IsException(val)) {
+                        goto fail;
+                    }
+
+#ifdef DUMP_MODULE_RESOLVE
+                    printf("property from namespace\n");
+#endif
+
+                    var_ref = js_create_module_var(ctx, FALSE);
                     if (!var_ref) {
                         JS_FreeValue(ctx, val);
+                        JS_FreeValue(ctx, ns);
                         goto fail;
                     }
+
                     set_value(ctx, &var_ref->value, val);
                     var_refs[mi->var_idx] = var_ref;
-#ifdef DUMP_MODULE_RESOLVE
-                    printf("namespace from\n");
-#endif
+
+                    JS_FreeValue(ctx, ns);
+
+                    // ecma262-compliant implementation would instead do:
+                    //
+                    //   js_resolve_export_throw_error(ctx, ret, m1, mi->import_name);
+                    //   goto fail;
                 } else {
-                    var_ref = res_me->u.local.var_ref;
-                    if (!var_ref) {
-                        p1 = JS_VALUE_GET_OBJ(res_m->func_obj);
-                        var_ref = p1->u.func.var_refs[res_me->u.local.var_idx];
-                    }
-                    var_ref->header.ref_count++;
-                    var_refs[mi->var_idx] = var_ref;
+                    if (res_me->local_name == JS_ATOM__star_) {
+                        JSValue val;
+                        JSModuleDef *m2;
+                        /* name space import from */
+                        m2 = res_m->req_module_entries[res_me->u.req_module_idx].module;
+                        val = js_get_module_ns(ctx, m2);
+                        if (JS_IsException(val))
+                            goto fail;
+                        var_ref = js_create_module_var(ctx, TRUE);
+                        if (!var_ref) {
+                            JS_FreeValue(ctx, val);
+                            goto fail;
+                        }
+                        set_value(ctx, &var_ref->value, val);
+                        var_refs[mi->var_idx] = var_ref;
 #ifdef DUMP_MODULE_RESOLVE
-                    printf("local export (var_ref=%p)\n", var_ref);
+                        printf("namespace from\n");
 #endif
+                    } else {
+                        var_ref = res_me->u.local.var_ref;
+                        if (!var_ref) {
+                            p1 = JS_VALUE_GET_OBJ(res_m->func_obj);
+                            var_ref = p1->u.func.var_refs[res_me->u.local.var_idx];
+                        }
+                        var_ref->header.ref_count++;
+                        var_refs[mi->var_idx] = var_ref;
+#ifdef DUMP_MODULE_RESOLVE
+                        printf("local export (var_ref=%p)\n", var_ref);
+#endif
+                    }
                 }
             }
         }
