@@ -740,13 +740,13 @@ int main(int argc, char **argv)
                     e->short_name, e->short_name, e->name);
         }
 
-        fprintf(fo, "  js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);\n");
+        fprintf(fo, "  js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0, \"quickjs-builtin:inspect\");\n");
 
         for(i = 0; i < cname_list.count; i++) {
             namelist_entry_t *e = &cname_list.array[i];
             if (e->flags) {
-                fprintf(fo, "  js_std_eval_binary(ctx, %s, %s_size, 1);\n",
-                        e->name, e->name);
+                fprintf(fo, "  js_std_eval_binary(ctx, %s, %s_size, 1, \"qjsc-included:%s\");\n",
+                        e->name, e->name, e->name);
             }
         }
         fprintf(fo,
@@ -772,8 +772,8 @@ int main(int argc, char **argv)
         for(i = 0; i < cname_list.count; i++) {
             namelist_entry_t *e = &cname_list.array[i];
             if (!e->flags) {
-                fprintf(fo, "  js_std_eval_binary(ctx, %s, %s_size, 0);\n",
-                        e->name, e->name);
+                fprintf(fo, "  js_std_eval_binary(ctx, %s, %s_size, 0, \"qjsc-included:%s\");\n",
+                        e->name, e->name, e->name);
             }
         }
         fputs(main_c_template2, fo);

@@ -56,7 +56,7 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   js_init_module_os(ctx, "quickjs:os");
   js_init_module_std(ctx, "quickjs:std");
 
-  js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
+  js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0, "quickjs-builtin:inspect");
   return ctx;
 }
 
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
   js_std_add_helpers(ctx, argc, argv);
 
 #ifdef CONFIG_BYTECODE
-  js_std_eval_binary(ctx, appended_code, appended_code_len, 0);
+  js_std_eval_binary(ctx, appended_code, appended_code_len, 0, self_binary_path);
 #else
     if (eval_buf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
       free(self_binary_path);
