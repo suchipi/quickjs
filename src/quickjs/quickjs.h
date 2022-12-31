@@ -1123,6 +1123,11 @@ JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier);
 JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier);
 JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename);
 
+/* returns NULL if the currently-executing code is not a module */
+JSModuleDef *JS_GetCurrentModule(JSContext *ctx);
+/* returns JS_NULL if m is NULL */
+JSValue JS_GetModuleNamespace(JSContext *ctx, JSModuleDef *m);
+
 #undef js_unlikely
 #undef js_force_inline
 

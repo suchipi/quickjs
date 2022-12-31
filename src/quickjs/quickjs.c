@@ -210,6 +210,8 @@ struct JSRuntime {
 
     struct JSStackFrame *current_stack_frame;
 
+    JSModuleDef *current_module;
+
     JSInterruptHandler *interrupt_handler;
     void *interrupt_opaque;
 
@@ -27833,7 +27835,13 @@ static JSValue js_build_module_ns(JSContext *ctx, JSModuleDef *m)
                            JS_AtomToString(ctx, JS_ATOM_Module),
                            0);
 
-    p->extensible = FALSE;
+    // deviation from ecma262 for CommonJS interop: module namespace objects
+    // are extensible
+    p->extensible = TRUE;
+
+    // ecma262-compliant code would instead do:
+    //   p->extensible = FALSE;
+
     return obj;
  fail:
     js_free(ctx, s->exported_names);
@@ -28458,6 +28466,7 @@ static JSValue js_evaluate_module(JSContext *ctx, JSModuleDef *m)
         }
     }
 
+    ctx->rt->current_module = m;
     if (m->init_func) {
         /* C module init */
         if (m->init_func(ctx, m) < 0)
@@ -28468,6 +28477,7 @@ static JSValue js_evaluate_module(JSContext *ctx, JSModuleDef *m)
         ret_val = JS_CallFree(ctx, m->func_obj, JS_UNDEFINED, 0, NULL);
         m->func_obj = JS_UNDEFINED;
     }
+    ctx->rt->current_module = NULL;
     if (JS_IsException(ret_val)) {
         /* save the thrown exception value */
         m->eval_has_exception = TRUE;
@@ -28476,6 +28486,22 @@ static JSValue js_evaluate_module(JSContext *ctx, JSModuleDef *m)
     m->eval_mark = FALSE;
     m->evaluated = TRUE;
     return ret_val;
+}
+
+/* returns NULL if the currently-executing code is not a module */
+JSModuleDef *JS_GetCurrentModule(JSContext *ctx)
+{
+    return ctx->rt->current_module;
+}
+
+/* returns JS_NULL if m is NULL */
+JSValue JS_GetModuleNamespace(JSContext *ctx, JSModuleDef *m)
+{
+    if (m == NULL) {
+        return JS_NULL;
+    } else {
+        return js_get_module_ns(ctx, m);
+    }
 }
 
 static __exception JSAtom js_parse_from_clause(JSParseState *s)
