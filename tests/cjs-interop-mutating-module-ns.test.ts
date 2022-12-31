@@ -115,4 +115,78 @@ describe("mutating the module namespace", () => {
       }
     `);
   });
+
+  test("requesting nothing from module that mutates ns", async () => {
+    const run = spawn(
+      binDir("qjs"),
+      ["./fixtures/module-ns-mutation/loads-nothing.js"],
+      {
+        cwd: __dirname,
+      }
+    );
+    await run.completion;
+    expect(run.result).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": false,
+        "stderr": "ns before mutation {
+      	Null prototype
+      	
+      	changed: "before"
+      	default: 7
+      	five: 5
+      	six: 6
+      }
+      ns after mutation {
+      	Null prototype
+      	
+      	changed: "after"
+      	default: 7
+      	five: 5
+      	six: 6
+      	somethingNew: "this is new"
+      }
+      ",
+        "stdout": "",
+      }
+    `);
+  });
+
+  test("requesting new named export after it was earlier not requested", async () => {
+    const run = spawn(
+      binDir("qjs"),
+      ["./fixtures/module-ns-mutation/loads-nothing-then-new.js"],
+      {
+        cwd: __dirname,
+      }
+    );
+    await run.completion;
+    expect(run.result).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": false,
+        "stderr": "ns before mutation {
+      	Null prototype
+      	
+      	changed: "before"
+      	default: 7
+      	five: 5
+      	six: 6
+      	somethingNew: undefined
+      }
+      ns after mutation {
+      	Null prototype
+      	
+      	changed: "after"
+      	default: 7
+      	five: 5
+      	six: 6
+      	somethingNew: "this is new"
+      }
+      ",
+        "stdout": "somethingNew this is new
+      ",
+      }
+    `);
+  });
 });
