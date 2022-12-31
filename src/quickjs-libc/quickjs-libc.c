@@ -4741,6 +4741,25 @@ QJU_END:
     QJU_FINAL_RETURN;
 }
 
+static JSValue js_Module_getNamespace(JSContext *ctx, JSValueConst this_val,
+                                      int argc, JSValueConst *argv)
+{
+    JSModuleDef *m;
+    JSValue ns;
+
+    m = JS_GetCurrentModule(ctx);
+    if (m == NULL) {
+        return JS_ThrowReferenceError(ctx, "Cannot get the current module namespace, because the current code is not a module.");
+    }
+
+    ns = JS_GetModuleNamespace(ctx, m);
+    if (JS_IsNull(ns)) {
+        return JS_ThrowError(ctx, "Couldn't get the module namespace object for the current module.");
+    }
+
+    return ns;
+}
+
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
     JSValue global_obj, console, args, require, require_resolve, module,
@@ -4813,6 +4832,7 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     JS_SetPropertyStr(ctx, module, "compilers", compilers);
 
     JS_SetPropertyStr(ctx, module, "define", JS_NewCFunction(ctx, js_Module_define, "define", 2));
+    JS_SetPropertyStr(ctx, module, "getNamespace", JS_NewCFunction(ctx, js_Module_getNamespace, "getNamespace", 0));
 
     JS_SetPropertyStr(ctx, global_obj, "Module", module);
 
