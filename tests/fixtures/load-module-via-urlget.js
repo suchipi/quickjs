@@ -18,11 +18,5 @@ Module.read = (moduleName) => {
   return defaultRead(moduleName);
 };
 
-// preact tries to do 'self.preact = ...', so we need to make sure there's a
-// 'self' for it to assign onto
-globalThis.self = globalThis;
-
-require("https://unpkg.com/preact@10.11.3/dist/preact.min.js");
-
-// 'preact' global should now be available
+const preact = require("https://unpkg.com/preact@10.11.3/dist/preact.min.js");
 console.log(typeof preact.render);
