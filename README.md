@@ -36,10 +36,11 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `setInterval` and `clearInterval` are now available as globals.
 - `String.cooked` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
 - `String.dedent` is now available (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
-- `Object.toPrimitive` is now available (static method that invokes ToPrimitive on the given value, using the provided hint).
 
 ## Changes to `quickjs`:
 
+- `Object.toPrimitive` is now available (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
+- `Symbol.typeofValue` can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
 - Additional functions are exposed that allow importing modules synchronously or asynchronously:
   - `JS_DynamicImportAsync`
   - `JS_DynamicImportSync`

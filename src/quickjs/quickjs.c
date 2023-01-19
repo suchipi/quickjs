@@ -14880,7 +14880,56 @@ static __exception int js_operator_typeof(JSContext *ctx, JSValueConst op1)
         break;
     case JS_TAG_OBJECT:
         {
+            JSValue method;
             JSObject *p;
+
+            method = JS_GetProperty(ctx, op1, JS_ATOM_Symbol_typeofValue);
+            if (JS_IsException(method)) {
+                JS_FreeValue(ctx, JS_GetException(ctx));
+                goto normal_obj_behavior;
+            }
+            if (JS_IsFunction(ctx, method)) {
+                JSValue result;
+                JSAtom result_atom;
+
+                result = JS_Call(ctx, method, op1, 0, NULL);
+                JS_FreeValue(ctx, method);
+                if (JS_IsException(result)) {
+                    JS_FreeValue(ctx, JS_GetException(ctx));
+                    goto normal_obj_behavior;
+                }
+
+                result_atom = JS_ValueToAtom(ctx, result);
+                if (result_atom == JS_ATOM_NULL) {
+                    JS_FreeValue(ctx, result);
+                    goto normal_obj_behavior;
+                }
+
+                JS_FreeValue(ctx, result);
+                switch (result_atom) {
+                    case JS_ATOM_undefined:
+                    case JS_ATOM_object:
+                    case JS_ATOM_boolean:
+                    case JS_ATOM_number:
+#ifdef CONFIG_BIGNUM
+                    case JS_ATOM_bigint:
+                    case JS_ATOM_bigfloat:
+                    case JS_ATOM_bigdecimal:
+#endif
+                    case JS_ATOM_string:
+                    case JS_ATOM_symbol:
+                    case JS_ATOM_function:
+                        // these are all acceptable
+                        break;
+                    default:
+                        // you can't use a weird value here
+                        JS_FreeAtom(ctx, result_atom);
+                        goto normal_obj_behavior;
+                }
+                return result_atom;
+            }
+
+        normal_obj_behavior:
             p = JS_VALUE_GET_OBJ(op1);
             if (unlikely(p->is_HTMLDDA))
                 atom = JS_ATOM_undefined;
