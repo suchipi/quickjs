@@ -1109,3 +1109,19 @@ interface StringConstructor {
     ): Func;
   };
 }
+
+interface ObjectConstructor {
+  /**
+   * Convert the specified value to a primitive value.
+   *
+   * The provided hint indicates a preferred return type, which may or may not
+   * be respected by the engine.
+   *
+   * See the abstract operation "ToPrimitive" in the ECMAScript standard for
+   * more info.
+   */
+  toPrimitive(
+    input: any,
+    hint: "string" | "number" | "default"
+  ): string | number | bigint | boolean | undefined | symbol | null;
+}

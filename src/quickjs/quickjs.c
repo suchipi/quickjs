@@ -37133,6 +37133,45 @@ static JSValue js_object_hasOwn(JSContext *ctx, JSValueConst this_val,
         return JS_NewBool(ctx, ret);
 }
 
+static JSValue js_object_toPrimitive(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv)
+{
+    JSValueConst input;
+    int hint;
+
+    if (argc < 1) {
+        return JS_ThrowTypeError(ctx, "toPrimitive requires at least 1 argument.");
+    }
+
+    input = argv[0];
+    hint = HINT_NONE;
+
+    if (argc > 1) {
+        JSValueConst hint_val;
+        JSAtom hint_atom;
+
+        hint_val = argv[1];
+        hint_atom = JS_ValueToAtom(ctx, hint_val);
+        if (hint_atom == JS_ATOM_NULL) {
+            return JS_EXCEPTION;
+        }
+
+        if (hint_atom == JS_ATOM_string) {
+            hint = HINT_STRING;
+        } else if (hint_atom == JS_ATOM_number) {
+            hint = HINT_NUMBER;
+        } else if (hint_atom == JS_ATOM_default) {
+            hint = HINT_NONE;
+        } else {
+            JS_FreeAtom(ctx, hint_atom);
+            return JS_ThrowTypeError(ctx, "invalid hint passed to toPrimitive.");
+        }
+        JS_FreeAtom(ctx, hint_atom);
+    }
+
+    return JS_ToPrimitive(ctx, input, hint);
+}
+
 static JSValue js_object_valueOf(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
@@ -37721,6 +37760,7 @@ static const JSCFunctionListEntry js_object_funcs[] = {
     //JS_CFUNC_DEF("__setObjectData", 2, js_object___setObjectData ),
     JS_CFUNC_DEF("fromEntries", 1, js_object_fromEntries ),
     JS_CFUNC_DEF("hasOwn", 2, js_object_hasOwn ),
+    JS_CFUNC_DEF("toPrimitive", 2, js_object_toPrimitive ),
 };
 
 static const JSCFunctionListEntry js_object_proto_funcs[] = {

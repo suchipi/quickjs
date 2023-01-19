@@ -36,6 +36,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `setInterval` and `clearInterval` are now available as globals.
 - `String.cooked` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
 - `String.dedent` is now available (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
+- `Object.toPrimitive` is now available (static method that invokes ToPrimitive on the given value, using the provided hint).
 
 ## Changes to `quickjs`:
 
