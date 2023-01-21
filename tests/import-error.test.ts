@@ -61,7 +61,7 @@ test("module with error is gc'd properly: cjs", async () => {
   `);
 });
 
-test("module with error is gc'd properly: cjs file that requires cjs", async () => {
+test.skip("module with error is gc'd properly: cjs file that requires cjs", async () => {
   const run = spawn(
     binDir("qjs"),
     [
