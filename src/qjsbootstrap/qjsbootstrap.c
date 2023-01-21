@@ -52,6 +52,10 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   JS_AddIntrinsicTypedArrays(ctx);
   JS_AddIntrinsicPromise(ctx);
   JS_AddIntrinsicBigInt(ctx);
+  JS_AddIntrinsicBigFloat(ctx);
+  JS_AddIntrinsicBigDecimal(ctx);
+  JS_AddIntrinsicOperators(ctx);
+  JS_EnableBignumExt(ctx, TRUE);
 
   js_init_module_os(ctx, "quickjs:os");
   js_init_module_std(ctx, "quickjs:std");
