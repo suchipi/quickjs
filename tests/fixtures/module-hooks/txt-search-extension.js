@@ -1,0 +1,1 @@
+Module.searchExtensions.push(".txt");
