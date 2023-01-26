@@ -72,7 +72,6 @@ enum {
     JS_TAG_BIG_FLOAT   = -9,
     JS_TAG_SYMBOL      = -8,
     JS_TAG_STRING      = -7,
-    JS_TAG_MODULE      = -3, /* used internally */
     JS_TAG_FUNCTION_BYTECODE = -2, /* used internally */
     JS_TAG_OBJECT      = -1,
 
@@ -100,7 +99,6 @@ enum {
     JS_CLASS_ARGUMENTS,         /* u.array       | length */
     JS_CLASS_MAPPED_ARGUMENTS,  /*               | length */
     JS_CLASS_DATE,              /* u.object_data */
-    JS_CLASS_MODULE_NS,
     JS_CLASS_C_FUNCTION,        /* u.cfunc */
     JS_CLASS_BYTECODE_FUNCTION, /* u.func */
     JS_CLASS_BOUND_FUNCTION,    /* u.bound_function */
@@ -364,7 +362,6 @@ JSClassID JS_VALUE_GET_CLASS_ID(JSValue v);
 
 /* JS_Eval() flags */
 #define JS_EVAL_TYPE_GLOBAL   (0 << 0) /* global code (default) */
-#define JS_EVAL_TYPE_MODULE   (1 << 0) /* module code */
 #define JS_EVAL_TYPE_DIRECT   (2 << 0) /* direct call (internal use) */
 #define JS_EVAL_TYPE_INDIRECT (3 << 0) /* indirect call (internal use) */
 #define JS_EVAL_TYPE_MASK     (3 << 0)
@@ -372,7 +369,7 @@ JSClassID JS_VALUE_GET_CLASS_ID(JSValue v);
 #define JS_EVAL_FLAG_STRICT   (1 << 3) /* force 'strict' mode */
 #define JS_EVAL_FLAG_STRIP    (1 << 4) /* force 'strip' mode */
 /* compile but do not run. The result is an object with a
-   JS_TAG_FUNCTION_BYTECODE or JS_TAG_MODULE tag. It can be executed
+   JS_TAG_FUNCTION_BYTECODE tag. It can be executed
    with JS_EvalFunction(). */
 #define JS_EVAL_FLAG_COMPILE_ONLY (1 << 5)
 /* don't include the stack frames before this eval in the Error() backtraces */
@@ -922,25 +919,6 @@ void JS_SetCanBlock(JSRuntime *rt, JS_BOOL can_block);
 /* set the [IsHTMLDDA] internal slot */
 void JS_SetIsHTMLDDA(JSContext *ctx, JSValueConst obj);
 
-typedef struct JSModuleDef JSModuleDef;
-
-/* return the module specifier (allocated with js_malloc()) or NULL if
-   exception */
-typedef char *JSModuleNormalizeFunc(JSContext *ctx,
-                                    const char *module_base_name,
-                                    const char *module_name, void *opaque);
-typedef JSModuleDef *JSModuleLoaderFunc(JSContext *ctx,
-                                        const char *module_name, void *opaque);
-
-/* module_normalize = NULL is allowed and invokes the default module
-   filename normalizer */
-void JS_SetModuleLoaderFunc(JSRuntime *rt,
-                            JSModuleNormalizeFunc *module_normalize,
-                            JSModuleLoaderFunc *module_loader, void *opaque);
-/* return the import.meta object of a module */
-JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);
-JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m);
-
 /* JS Job support */
 
 typedef JSValue JSJobFunc(JSContext *ctx, int argc, JSValueConst *argv);
@@ -950,7 +928,7 @@ JS_BOOL JS_IsJobPending(JSRuntime *rt);
 int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx);
 
 /* Object Writer/Reader (currently only used to handle precompiled code) */
-#define JS_WRITE_OBJ_BYTECODE  (1 << 0) /* allow function/module */
+#define JS_WRITE_OBJ_BYTECODE  (1 << 0) /* allow function */
 #define JS_WRITE_OBJ_BSWAP     (1 << 1) /* byte swapped output */
 #define JS_WRITE_OBJ_SAB       (1 << 2) /* allow SharedArrayBuffer */
 #define JS_WRITE_OBJ_REFERENCE (1 << 3) /* allow object references to
@@ -961,22 +939,15 @@ uint8_t *JS_WriteObject(JSContext *ctx, size_t *psize, JSValueConst obj,
 uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValueConst obj,
                          int flags, uint8_t ***psab_tab, size_t *psab_tab_len);
 
-#define JS_READ_OBJ_BYTECODE  (1 << 0) /* allow function/module */
+#define JS_READ_OBJ_BYTECODE  (1 << 0) /* allow function */
 #define JS_READ_OBJ_ROM_DATA  (1 << 1) /* avoid duplicating 'buf' data */
 #define JS_READ_OBJ_SAB       (1 << 2) /* allow SharedArrayBuffer */
 #define JS_READ_OBJ_REFERENCE (1 << 3) /* allow object references */
 JSValue JS_ReadObject(JSContext *ctx, const uint8_t *buf, size_t buf_len,
                       int flags);
 /* instantiate and evaluate a bytecode function. Only used when
-   reading a script or module with JS_ReadObject() */
+   reading a script with JS_ReadObject() */
 JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj);
-/* load the dependencies of the module 'obj'. Useful when JS_ReadObject()
-   returns a module. */
-int JS_ResolveModule(JSContext *ctx, JSValueConst obj);
-
-JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels);
-JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
-                          const char *filename);
 
 /* Freeze a value with Object.freeze. */
 JSValue JS_FreezeObjectValue(JSContext *ctx, JSValueConst val);
@@ -1098,37 +1069,6 @@ typedef struct JSCFunctionListEntry {
 void JS_SetPropertyFunctionList(JSContext *ctx, JSValueConst obj,
                                 const JSCFunctionListEntry *tab,
                                 int len);
-
-/* C module definition */
-
-typedef int JSModuleInitFunc(JSContext *ctx, JSModuleDef *m);
-
-/* user_data can be NULL */
-JSModuleDef *JS_NewCModule(JSContext *ctx, const char *name_str,
-                           JSModuleInitFunc *func, void *user_data);
-void *JS_GetModuleUserData(JSModuleDef *m);
-void JS_SetModuleUserData(JSModuleDef *m, void *user_data);
-/* can only be called before the module is instantiated */
-int JS_AddModuleExport(JSContext *ctx, JSModuleDef *m, const char *name_str);
-int JS_AddModuleExportList(JSContext *ctx, JSModuleDef *m,
-                           const JSCFunctionListEntry *tab, int len);
-/* can only be called after the module is instantiated */
-int JS_SetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name,
-                       JSValue val);
-int JS_SetModuleExportList(JSContext *ctx, JSModuleDef *m,
-                           const JSCFunctionListEntry *tab, int len);
-
-/* module-related addons */
-JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier);
-JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier);
-JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename);
-
-/* returns NULL if the currently-executing code is not a module */
-JSModuleDef *JS_GetCurrentModule(JSContext *ctx);
-/* m can be NULL */
-void JS_SetCurrentModule(JSContext *ctx, JSModuleDef *m);
-/* returns JS_NULL if m is NULL */
-JSValue JS_GetModuleNamespace(JSContext *ctx, JSModuleDef *m);
 
 #undef js_unlikely
 #undef js_force_inline
