@@ -1125,8 +1125,6 @@ JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueCon
 
 /* returns NULL if the currently-executing code is not a module */
 JSModuleDef *JS_GetCurrentModule(JSContext *ctx);
-/* m can be NULL */
-void JS_SetCurrentModule(JSContext *ctx, JSModuleDef *m);
 /* returns JS_NULL if m is NULL */
 JSValue JS_GetModuleNamespace(JSContext *ctx, JSModuleDef *m);
 

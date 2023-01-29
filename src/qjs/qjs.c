@@ -498,7 +498,7 @@ int main(int argc, char **argv)
     if (!empty_run) {
 #ifdef CONFIG_BIGNUM
         if (load_jscalc) {
-            js_std_eval_binary(ctx, qjsc_qjscalc, qjsc_qjscalc_size, 0, "quickjs-builtin:qjscalc");
+            js_std_eval_binary(ctx, qjsc_qjscalc, qjsc_qjscalc_size, 0);
         }
 #endif
         js_std_add_helpers(ctx, argc, argv);
@@ -530,9 +530,9 @@ int main(int argc, char **argv)
             if (eval_file(ctx, filename, module))
                 goto fail;
         }
-        js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0, "quickjs-builtin:inspect");
+        js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
         if (interactive) {
-            js_std_eval_binary(ctx, qjsc_repl, qjsc_repl_size, 0, "quickjs-builtin:repl");
+            js_std_eval_binary(ctx, qjsc_repl, qjsc_repl_size, 0);
         }
         js_std_loop(ctx);
     }

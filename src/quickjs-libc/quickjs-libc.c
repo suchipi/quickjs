@@ -4770,7 +4770,7 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     global_obj = JS_GetGlobalObject(ctx);
 
     // Creates 'inspect' global
-    js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0, "quickjs-builtin:inspect");
+    js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
 
     console = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, console, "log",
@@ -4848,7 +4848,7 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     }
 
     // run all the stuff in the src/quickjs-libc/lib folder
-    js_std_eval_binary(ctx, qjsc_lib, qjsc_lib_size, 0, "quickjs-builtin:quickjs-libc-lib");
+    js_std_eval_binary(ctx, qjsc_lib, qjsc_lib_size, 0);
 
     JS_FreeValue(ctx, global_obj);
 }
@@ -4958,47 +4958,30 @@ void js_std_loop(JSContext *ctx)
 }
 
 void js_std_eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                        int load_only, const char *name_if_module)
+                        int load_only)
 {
     JSValue obj, val;
-    BOOL is_module;
-    JSModuleDef *m = NULL;
-
     obj = JS_ReadObject(ctx, buf, buf_len, JS_READ_OBJ_BYTECODE);
-    if (JS_IsException(obj)) {
+    if (JS_IsException(obj))
         goto exception;
-    }
-
-    is_module = JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE;
-
     if (load_only) {
-        if (is_module) {
+        if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
             js_module_set_import_meta(ctx, obj, FALSE);
         }
     } else {
-        if (is_module) {
+        if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
             if (JS_ResolveModule(ctx, obj) < 0) {
                 JS_FreeValue(ctx, obj);
                 goto exception;
             }
             js_module_set_import_meta(ctx, obj, TRUE);
-
-            m = JS_NewCModule(ctx, name_if_module, NULL, NULL);
-            JS_SetCurrentModule(ctx, m);
         }
         val = JS_EvalFunction(ctx, obj);
-        if (is_module) {
-            JS_SetCurrentModule(ctx, NULL);
-        }
-
         if (JS_IsException(val)) {
-            goto exception;
+        exception:
+            js_std_dump_error(ctx);
+            exit(1);
         }
         JS_FreeValue(ctx, val);
     }
-
-    return;
-exception:
-    js_std_dump_error(ctx);
-    exit(1);
 }

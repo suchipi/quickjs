@@ -28573,12 +28573,6 @@ JSModuleDef *JS_GetCurrentModule(JSContext *ctx)
     return ctx->rt->current_module;
 }
 
-/* m can be NULL */
-void JS_SetCurrentModule(JSContext *ctx, JSModuleDef *m)
-{
-    ctx->rt->current_module = m;
-}
-
 /* returns JS_NULL if m is NULL */
 JSValue JS_GetModuleNamespace(JSContext *ctx, JSModuleDef *m)
 {
