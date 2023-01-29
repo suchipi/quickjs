@@ -44,6 +44,9 @@ for (const suffix of ["HOST", "TARGET"]) {
     '-DCONFIG_VERSION="\\"suchipi-`git rev-parse --short HEAD`\\""'
   );
 
+  // Uncomment to print debug info
+  // declareOrAppend(`DEFINES_${suffix}`, "-DDEBUG");
+
   // enable 'use math' and BigFloat
   declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_BIGNUM");
 
@@ -62,10 +65,4 @@ for (const suffix of ["HOST", "TARGET"]) {
   // Disabled because we make static binaries.
   // declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_SHARED_LIBRARY_MODULES");
   // declareOrAppend(`LIBS_${suffix}`, "-ldl");
-
-  // Uncomment to print debug info
-  // declareOrAppend(`DEFINES_${suffix}`, "-DDEBUG");
-
-  // uncomment to print debugging log messages about module resolution
-  // declareOrAppend(`DEFINES_${suffix}`, "-DDUMP_MODULE_RESOLVE");
 }
