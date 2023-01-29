@@ -1,1 +1,0 @@
-exports.potato = require("./cjs");

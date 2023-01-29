@@ -60,7 +60,11 @@ import * as os from "quickjs:os";
         }
       }
 
-      throw new Error("import failed to resolve");
+      throw new Error(
+        `No such file: '${request}' (using search extensions: ${JSON.stringify(
+          Module.searchExtensions
+        )})`
+      );
     } catch (err) {
       const newErr = new Error(
         `Failed to resolve '${name}' from '${baseName}': ${err.message}`

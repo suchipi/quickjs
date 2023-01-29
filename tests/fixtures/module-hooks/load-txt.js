@@ -1,6 +1,8 @@
-import "./txt-compiler";
-import "./txt-search-extension";
+// Have to use require instead of import so that things load in order
 
-import content from "./something";
+require("./txt-compiler");
+require("./txt-search-extension");
 
-console.log("content:", content);
+const mod = require("./something");
+
+console.log("content:", mod.default);

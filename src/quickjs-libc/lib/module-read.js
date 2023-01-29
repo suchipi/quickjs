@@ -7,7 +7,7 @@ import * as std from "quickjs:std";
       err.moduleName = moduleName;
       throw err;
     }
-    const matches = moduleName.match(/\.([^.]+)$/);
+    const matches = moduleName.match(/(\.[^.]+)$/);
     const ext = matches ? matches[1] : "";
 
     const compilers = globalThis.Module.compilers;

@@ -13,9 +13,9 @@ test("Module.compilers and Module.searchExtensions", async () => {
       "code": 0,
       "error": false,
       "stderr": "",
-      "stdout": "hello world!
+      "stdout": "content: hello world!
 
-      ",
+    ",
     }
   `);
 });
