@@ -8457,17 +8457,11 @@ retry:
         } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_GETSET) {
             return call_setter(ctx, pr->u.getset.setter, this_obj, val, flags);
         } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_VARREF) {
-            // deviation from ecma262 for CommonJS interop:
-            // allow writing to properties in a module namespace object.
-
-            // ecma262-compliant code would do:
-            //
-            //   /* JS_PROP_WRITABLE is always true for variable
-            //      references, but they are write protected in module name
-            //      spaces. */
-            //   if (p->class_id == JS_CLASS_MODULE_NS)
-            //       goto read_only_prop;
-
+            /* JS_PROP_WRITABLE is always true for variable
+               references, but they are write protected in module name
+               spaces. */
+            if (p->class_id == JS_CLASS_MODULE_NS)
+                goto read_only_prop;
             set_value(ctx, pr->u.var_ref->pvalue, val);
             return TRUE;
         } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_AUTOINIT) {
@@ -9139,16 +9133,11 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
                 if ((prs->flags & JS_PROP_TMASK) == JS_PROP_VARREF) {
                     if (flags & JS_PROP_HAS_VALUE) {
                         if (p->class_id == JS_CLASS_MODULE_NS) {
-                            // deviation from ecma262 for CommonJS interop:
-                            // allow writing to properties in a module namespace object.
-
-                            // ecma262-compliant code would instead do:
-                            //
-                            //   /* JS_PROP_WRITABLE is always true for variable
-                            //      references, but they are write protected in module name
-                            //      spaces. */
-                            //   if (!js_same_value(ctx, val, *pr->u.var_ref->pvalue))
-                            //      goto not_configurable;
+                            /* JS_PROP_WRITABLE is always true for variable
+                               references, but they are write protected in module name
+                               spaces. */
+                            if (!js_same_value(ctx, val, *pr->u.var_ref->pvalue))
+                                goto not_configurable;
                         }
                         /* update the reference */
                         set_value(ctx, pr->u.var_ref->pvalue,
@@ -28159,59 +28148,40 @@ static int js_link_module(JSContext *ctx, JSModuleDef *m)
                 ret = js_resolve_export(ctx, &res_m,
                                         &res_me, m1, mi->import_name);
                 if (ret != JS_RESOLVE_RES_FOUND) {
+                    JSValue ns, val;
+
                     // deviation from ecma262 in order to support CommonJS
                     // interop:
                     //
                     // instead of throwing an error because the import name
-                    // couldn't be resolved, define that property on the
-                    // namespace object and initialize it to undefined.
-
-                    JSValue ns;
-                    int has_prop;
-
+                    // couldn't be resolved, use the same-named property from
+                    // the namespace object.
                     ns = js_get_module_ns(ctx, m1);
                     if (JS_IsException(ns)) {
                         goto fail;
                     }
 
-                    has_prop = JS_HasProperty(ctx, ns, mi->import_name);
-                    if (has_prop == -1) {
+                    val = JS_GetProperty(ctx, ns, mi->import_name);
+                    if (JS_IsException(val)) {
+                        goto fail;
+                    }
+
+#ifdef DUMP_MODULE_RESOLVE
+                    printf("property from namespace\n");
+#endif
+
+                    var_ref = js_create_module_var(ctx, FALSE);
+                    if (!var_ref) {
+                        JS_FreeValue(ctx, val);
                         JS_FreeValue(ctx, ns);
                         goto fail;
                     }
 
-                    if (has_prop == FALSE) {
-                        JSProperty *pr;
-
-                        pr = add_property(ctx, JS_VALUE_GET_OBJ(ns),
-                                          mi->import_name,
-                                          JS_PROP_C_W_E | JS_PROP_VARREF);
-                        if (!pr) {
-                            JS_FreeValue(ctx, ns);
-                            goto fail;
-                        }
-
-                        var_ref = js_create_module_var(ctx, FALSE);
-                        pr->u.var_ref = var_ref;
-                    } else {
-                        // get existing var ref
-                        JSProperty *pr = NULL;
-                        find_own_property(&pr, JS_VALUE_GET_OBJ(ns), mi->import_name);
-                        if (pr == NULL) {
-                            // has property but couldn't find it? wat
-                            JS_ThrowError(ctx, "module namespace object claims to have a property, but it could not be found");
-                            JS_FreeValue(ctx, ns);
-                            goto fail;
-                        }
-                        var_ref = pr->u.var_ref;
-                    }
-
+                    set_value(ctx, &var_ref->value, val);
                     var_refs[mi->var_idx] = var_ref;
+
                     JS_FreeValue(ctx, ns);
 
-#ifdef DUMP_MODULE_RESOLVE
-                    printf("freshly-initialized property on namespace object\n");
-#endif
                     // ecma262-compliant implementation would instead do:
                     //
                     //   js_resolve_export_throw_error(ctx, ret, m1, mi->import_name);
