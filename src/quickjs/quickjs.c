@@ -1054,13 +1054,6 @@ static void js_async_function_resolve_mark(JSRuntime *rt, JSValueConst val,
 static JSValue JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
                                const char *input, size_t input_len,
                                const char *filename, int flags, int scope_idx);
-static JSValue js_import_meta(JSContext *ctx);
-JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier);
-JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier);
-JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename);
-static JSValue js_dynamic_import_run(JSContext *ctx, JSValueConst basename_val, JSValueConst specifier);
-static JSValue js_dynamic_import_async_job(JSContext *ctx,
-                                     int argc, JSValueConst *argv);
 static void free_var_ref(JSRuntime *rt, JSVarRef *var_ref);
 static JSValue js_new_promise_capability(JSContext *ctx,
                                          JSValue *resolving_funcs,
@@ -2076,7 +2069,6 @@ static void JS_MarkContext(JSRuntime *rt, JSContext *ctx,
                            JS_MarkFunc *mark_func)
 {
     int i;
-    struct list_head *el;
 
     JS_MarkValue(rt, ctx->global_obj, mark_func);
     JS_MarkValue(rt, ctx->global_var_obj, mark_func);
@@ -5728,7 +5720,7 @@ static void compute_value_size(JSValueConst val, JSMemoryUsage_helper *hp)
 
 void JS_ComputeMemoryUsage(JSRuntime *rt, JSMemoryUsage *s)
 {
-    struct list_head *el, *el1;
+    struct list_head *el;
     int i;
     JSMemoryUsage_helper mem = { 0 }, *hp = &mem;
 
@@ -16364,7 +16356,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                         goto exception;
                     break;
                 case OP_SPECIAL_OBJECT_IMPORT_META:
-                    *sp++ = js_import_meta(ctx);
+                    // TODO: create and return import.meta object (from module hook)
+                    *sp++ = JS_NewObjectProto(ctx, JS_NULL);
                     if (unlikely(JS_IsException(sp[-1])))
                         goto exception;
                     break;
@@ -16796,10 +16789,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_import):
             {
                 JSValue val;
-                val = JS_DynamicImportAsync(ctx, sp[-1]);
-                if (JS_IsException(val))
-                    goto exception;
-                JS_FreeValue(ctx, sp[-1]);
+                // TODO: async import module hook
+                val = JS_NULL;
                 sp[-1] = val;
             }
             BREAK;
@@ -20654,7 +20645,6 @@ static __exception int next_token(JSParseState *s)
         } else if (p[1] == '/') {
             /* line comment */
             p += 2;
-        skip_line_comment:
             for(;;) {
                 if (*p == '\0' && p >= s->buf_end)
                     break;
@@ -21958,7 +21948,6 @@ static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
     case JS_VAR_DEF_VAR:
         if (find_lexical_decl(ctx, fd, name, fd->scope_first,
                               FALSE) >= 0) {
-       invalid_lexical_redefinition:
             /* error to redefine a var that inside a lexical scope */
             return js_parse_error(s, "invalid redefinition of lexical identifier");
         }
@@ -27202,7 +27191,6 @@ static __exception int js_parse_import(JSParseState *s)
 
 static __exception int js_parse_source_element(JSParseState *s)
 {
-    JSFunctionDef *fd = s->cur_func;
     int tok;
 
     if (s->token.val == TOK_FUNCTION ||
@@ -27828,6 +27816,7 @@ static int add_closure_var(JSContext *ctx, JSFunctionDef *s,
     return s->closure_var_count - 1;
 }
 
+#if 0
 static int find_closure_var(JSContext *ctx, JSFunctionDef *s,
                             JSAtom var_name)
 {
@@ -27839,6 +27828,7 @@ static int find_closure_var(JSContext *ctx, JSFunctionDef *s,
     }
     return -1;
 }
+#endif
 
 /* 'fd' must be a parent of 's'. Create in 's' a closure referencing a
    local variable (is_local = TRUE) or a closure (is_local = FALSE) in
@@ -29088,7 +29078,7 @@ static BOOL code_match(CodeContext *s, int pos, ...)
 
 static void instantiate_hoisted_definitions(JSContext *ctx, JSFunctionDef *s, DynBuf *bc)
 {
-    int i, idx, label_next = -1;
+    int i, idx;
 
     /* add the hoisted functions in arguments and local variables */
     for(i = 0; i < s->arg_count; i++) {
@@ -45021,33 +45011,6 @@ static JSValue js_promise_resolve(JSContext *ctx, JSValueConst this_val,
     return result_promise;
 }
 
-#if 0
-static JSValue js_promise___newPromiseCapability(JSContext *ctx,
-                                                 JSValueConst this_val,
-                                                 int argc, JSValueConst *argv)
-{
-    JSValue result_promise, resolving_funcs[2], obj;
-    JSValueConst ctor;
-    ctor = argv[0];
-    if (!JS_IsObject(ctor))
-        return JS_ThrowTypeErrorNotAnObject(ctx);
-    result_promise = js_new_promise_capability(ctx, resolving_funcs, ctor);
-    if (JS_IsException(result_promise))
-        return result_promise;
-    obj = JS_NewObject(ctx);
-    if (JS_IsException(obj)) {
-        JS_FreeValue(ctx, resolving_funcs[0]);
-        JS_FreeValue(ctx, resolving_funcs[1]);
-        JS_FreeValue(ctx, result_promise);
-        return JS_EXCEPTION;
-    }
-    JS_DefinePropertyValue(ctx, obj, JS_ATOM_promise, result_promise, JS_PROP_C_W_E);
-    JS_DefinePropertyValue(ctx, obj, JS_ATOM_resolve, resolving_funcs[0], JS_PROP_C_W_E);
-    JS_DefinePropertyValue(ctx, obj, JS_ATOM_reject, resolving_funcs[1], JS_PROP_C_W_E);
-    return obj;
-}
-#endif
-
 static __exception int remainingElementsCount_add(JSContext *ctx,
                                                   JSValueConst resolve_element_env,
                                                   int addend)
@@ -49207,7 +49170,7 @@ static void JS_AddIntrinsicBasicObjects(JSContext *ctx)
 void JS_AddIntrinsicBaseObjects(JSContext *ctx)
 {
     int i;
-    JSValueConst obj, number_obj;
+    JSValueConst obj, number_obj, module_obj;
     JSValue obj1;
 
     ctx->throw_type_error = JS_NewCFunction(ctx, js_throw_type_error, NULL, 0);
@@ -49399,6 +49362,15 @@ void JS_AddIntrinsicBaseObjects(JSContext *ctx)
     JS_DefinePropertyValue(ctx, ctx->global_obj, JS_ATOM_globalThis,
                            JS_DupValue(ctx, ctx->global_obj),
                            JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE);
+
+    /* Module system */
+    module_obj = JS_NewObject(ctx);
+
+    JS_DefinePropertyValue(ctx, module_obj, JS_ATOM_builtins,
+                           JS_NewObjectProto(ctx, JS_NULL), JS_PROP_C_W_E);
+
+    JS_DefinePropertyValue(ctx, ctx->global_obj, JS_ATOM_Module,
+                           module_obj, JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
 }
 
 /* Typed Arrays */
@@ -52352,4 +52324,33 @@ void JS_AddIntrinsicTypedArrays(JSContext *ctx)
 #ifdef CONFIG_ATOMICS
     JS_AddIntrinsicAtomics(ctx);
 #endif
+}
+
+/* returns -1 on exception. frees 'obj' */
+int JS_DefineBuiltinModule(JSContext *ctx, const char *module_name,
+                            JSValueConst obj)
+{
+    JSValueConst Module, builtins;
+    int result;
+
+    Module = JS_GetProperty(ctx, ctx->global_obj, JS_ATOM_Module);
+    if (JS_IsException(Module)) {
+        return -1;
+    }
+
+    builtins = JS_GetProperty(ctx, Module, JS_ATOM_builtins);
+    if (JS_IsException(builtins)) {
+        JS_FreeValue(ctx, Module);
+        return -1;
+    }
+
+    result = JS_SetPropertyStr(ctx, builtins, module_name, obj);
+    JS_FreeValue(ctx, builtins);
+    JS_FreeValue(ctx, Module);
+
+    if (result == -1) {
+        return -1;
+    }
+
+    return 0;
 }

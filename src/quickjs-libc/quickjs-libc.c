@@ -444,44 +444,37 @@ uint8_t *js_load_file(JSContext *ctx, size_t *pbuf_len, const char *filename)
 }
 
 /* load and evaluate a file as a script */
-static JSValue js_loadScript(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
+static JSValue js_run_script(JSContext *ctx, const char *filename)
 {
     uint8_t *buf;
-    const char *filename;
     JSValue ret;
     size_t buf_len;
 
-    filename = JS_ToCString(ctx, argv[0]);
-    if (!filename)
-        return JS_EXCEPTION;
     buf = js_load_file(ctx, &buf_len, filename);
     if (!buf) {
         JS_ThrowReferenceError(ctx, "could not load '%s'", filename);
-        JS_FreeCString(ctx, filename);
         return JS_EXCEPTION;
     }
     ret = JS_Eval(ctx, (char *)buf, buf_len, filename,
                   JS_EVAL_TYPE_GLOBAL);
     js_free(ctx, buf);
-    JS_FreeCString(ctx, filename);
     return ret;
 }
 
-/* load and evaluate a file as a module */
-static JSValue js_std_importModule(JSContext *ctx, JSValueConst this_val,
+/* load and evaluate a file as a script */
+static JSValue js_loadScript(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
-    // TODO replace impl for post-esm-hooks world
-    return JS_NULL;
+    const char *filename;
+    JSValue ret;
 
-    // if (argc == 1) {
-    //     return JS_DynamicImportSync(ctx, argv[0]);
-    // } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
-    //     return JS_DynamicImportSync2(ctx, argv[0], argv[1]);
-    // } else {
-    //     return JS_ThrowTypeError(ctx, "importModule must be called with one or two arguments");
-    // }
+    filename = JS_ToCString(ctx, argv[0]);
+    if (!filename)
+        return JS_EXCEPTION;
+
+    ret = js_run_script(ctx, filename);
+    JS_FreeCString(ctx, filename);
+    return ret;
 }
 
 /* return the name of the calling script or module */
@@ -501,160 +494,6 @@ static JSValue js_std_getFileNameFromStack(JSContext *ctx, JSValueConst this_val
         return JS_ThrowError(ctx, "Cannot determine the caller filename for the given stack level. Maybe you're using eval?");
     } else {
         return JS_AtomToString(ctx, filename);
-    }
-}
-
-/* load and evaluate a file as a module */
-static JSValue js_require(JSContext *ctx, JSValueConst this_val,
-                          int argc, JSValueConst *argv)
-{
-    // TODO replace impl for post-esm-hooks world
-    return JS_NULL;
-
-    // JSValue ns;
-    // JSAtom cjs_export_atom;
-    // int has_cjs_export;
-    // JSValue cjs_export_val;
-
-    // if (argc != 1) {
-    //     JS_ThrowTypeError(ctx, "require must be called with exactly one argument");
-    //     return JS_EXCEPTION;
-    // }
-
-    // ns = JS_DynamicImportSync(ctx, argv[0]);
-    // if (JS_IsException(ns)) {
-    //     return JS_EXCEPTION;
-    // }
-
-    // cjs_export_atom = JS_NewAtom(ctx, "__cjsExports");
-    // if (cjs_export_atom == JS_ATOM_NULL) {
-    //     JS_FreeValue(ctx, ns);
-    //     return JS_EXCEPTION;
-    // }
-
-    // has_cjs_export = JS_HasProperty(ctx, ns, cjs_export_atom);
-    // if (has_cjs_export == -1) {
-    //     JS_FreeAtom(ctx, cjs_export_atom);
-    //     JS_FreeValue(ctx, ns);
-    //     return JS_EXCEPTION;
-    // } else if (has_cjs_export == FALSE) {
-    //     JS_FreeAtom(ctx, cjs_export_atom);
-    //     return ns;
-    // }
-    // // otherwise, has_cjs_export is true
-
-    // cjs_export_val = JS_GetProperty(ctx, ns, cjs_export_atom);
-    // JS_FreeAtom(ctx, cjs_export_atom);
-    // if (JS_IsException(cjs_export_val)) {
-    //     JS_FreeValue(ctx, ns);
-    //     return JS_EXCEPTION;
-    // }
-
-    // JS_FreeValue(ctx, ns);
-    // return cjs_export_val;
-}
-
-/* resolve the path to a module, using the current caller as the basename */
-static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv)
-{
-    JSAtom basename_atom;
-    const char *basename;
-    JSValue name_val;
-    const char *name;
-    const char *normalized;
-    JSValue normalized_value;
-
-    if (argc != 1) {
-        return JS_ThrowTypeError(ctx, "require.resolve must be called with exactly one argument");
-    }
-
-    basename_atom = JS_GetScriptOrModuleName(ctx, 1);
-    if (basename_atom == JS_ATOM_NULL) {
-        return JS_ThrowError(ctx, "Failed to identify the filename of the code calling require.resolve");
-    } else {
-        basename = JS_AtomToCString(ctx, basename_atom);
-    }
-
-    name_val = JS_ToString(ctx, argv[0]);
-    if (JS_IsException(name_val)) {
-        JS_FreeAtom(ctx, basename_atom);
-        JS_FreeCString(ctx, basename);
-        return name_val;
-    }
-
-    name = JS_ToCString(ctx, name_val);
-
-    normalized = js_module_normalize_name(ctx, basename, name, NULL);
-
-    if (normalized == NULL) {
-        JS_FreeAtom(ctx, basename_atom);
-        JS_FreeCString(ctx, basename);
-        JS_FreeValue(ctx, name_val);
-
-        return JS_ThrowError(ctx, "Failed to normalize module name");
-    }
-
-    normalized_value = JS_NewString(ctx, normalized);
-    // normalized_value could be exception here, but the handling for exception
-    // case and non-exception case is the same (free stuff and return
-    // normalized_value), so we don't have handling using JS_IsException
-
-    JS_FreeAtom(ctx, basename_atom);
-    JS_FreeCString(ctx, basename);
-    JS_FreeValue(ctx, name_val);
-
-    return normalized_value;
-}
-
-/* resolve the absolute path to a module */
-static JSValue js_std_resolveModule(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    if (argc == 1) {
-        return js_require_resolve(ctx, this_val, argc, argv);
-    } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
-        JSValue name_val;
-        JSValue basename_val;
-        const char *basename;
-        const char *name;
-        const char *normalized;
-        JSValue normalized_value;
-
-        name_val = JS_ToString(ctx, argv[0]);
-        if (JS_IsException(name_val)) {
-            return name_val;
-        }
-
-        basename_val = JS_ToString(ctx, argv[1]);
-        if (JS_IsException(basename_val)) {
-            JS_FreeValue(ctx, name_val);
-            return basename_val;
-        }
-
-        name = JS_ToCString(ctx, name_val);
-        basename = JS_ToCString(ctx, basename_val);
-
-        normalized = js_module_normalize_name(ctx, basename, name, NULL);
-
-        if (normalized == NULL) {
-            JS_FreeValue(ctx, name_val);
-            JS_FreeValue(ctx, basename_val);
-
-            return JS_ThrowError(ctx, "Failed to normalize module name");
-        }
-
-        normalized_value = JS_NewString(ctx, normalized);
-        // normalized_value could be exception here, but the handling for exception
-        // case and non-exception case is the same (free stuff and return
-        // normalized_value), so we don't have handling using JS_IsException
-
-        JS_FreeValue(ctx, name_val);
-        JS_FreeValue(ctx, basename_val);
-
-        return normalized_value;
-    } else {
-        return JS_ThrowTypeError(ctx, "resolveModule must be called with one or two arguments");
     }
 }
 
@@ -1646,8 +1485,6 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("gc", 0, js_std_gc ),
     JS_CFUNC_DEF("evalScript", 1, js_evalScript ),
     JS_CFUNC_DEF("loadScript", 1, js_loadScript ),
-    JS_CFUNC_DEF("importModule", 2, js_std_importModule ),
-    JS_CFUNC_DEF("resolveModule", 2, js_std_resolveModule ),
     JS_CFUNC_DEF("getenv", 1, js_std_getenv ),
     JS_CFUNC_DEF("setenv", 1, js_std_setenv ),
     JS_CFUNC_DEF("unsetenv", 1, js_std_unsetenv ),
@@ -1693,7 +1530,7 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
     /* setvbuf, ...  */
 };
 
-static int js_std_init(JSContext *ctx, JSModuleDef *m)
+static int js_std_init(JSContext *ctx, JSValueConst obj)
 {
     JSValue proto;
     JSValue stdin_FILE;
@@ -1710,35 +1547,37 @@ static int js_std_init(JSContext *ctx, JSModuleDef *m)
                                countof(js_std_file_proto_funcs));
     JS_SetClassProto(ctx, js_std_file_class_id, proto);
 
-    JS_SetModuleExportList(ctx, m, js_std_funcs,
-                           countof(js_std_funcs));
+    JS_SetPropertyFunctionList(ctx, obj, js_std_funcs, countof(js_std_funcs));
 
     stdin_FILE = js_new_std_file(ctx, stdin, FALSE, FALSE);
     JS_SetPropertyStr(ctx, stdin_FILE, "target", JS_NewString(ctx, "stdin"));
-    JS_SetModuleExport(ctx, m, "in", stdin_FILE);
+    JS_SetPropertyStr(ctx, obj, "in", stdin_FILE);
 
     stdout_FILE = js_new_std_file(ctx, stdout, FALSE, FALSE);
     JS_SetPropertyStr(ctx, stdout_FILE, "target", JS_NewString(ctx, "stdout"));
-    JS_SetModuleExport(ctx, m, "out", stdout_FILE);
+    JS_SetPropertyStr(ctx, obj, "out", stdout_FILE);
 
     stderr_FILE = js_new_std_file(ctx, stderr, FALSE, FALSE);
     JS_SetPropertyStr(ctx, stderr_FILE, "target", JS_NewString(ctx, "stderr"));
-    JS_SetModuleExport(ctx, m, "err", stderr_FILE);
+    JS_SetPropertyStr(ctx, obj, "err", stderr_FILE);
 
     return 0;
 }
 
-JSModuleDef *js_init_module_std(JSContext *ctx, const char *module_name)
+int js_init_module_std(JSContext *ctx, const char *module_name)
 {
-    JSModuleDef *m;
-    m = JS_NewCModule(ctx, module_name, js_std_init, NULL);
-    if (!m)
-        return NULL;
-    JS_AddModuleExportList(ctx, m, js_std_funcs, countof(js_std_funcs));
-    JS_AddModuleExport(ctx, m, "in");
-    JS_AddModuleExport(ctx, m, "out");
-    JS_AddModuleExport(ctx, m, "err");
-    return m;
+    JSValue std = JS_NewObjectProto(ctx, JS_NULL);
+    if (JS_IsException(std)) {
+        return -1;
+    }
+
+    if (js_std_init(ctx, std) == -1) {
+        return -1;
+    }
+
+    JS_DefineBuiltinModule(ctx, module_name, std);
+
+    return 0;
 }
 
 /**********************************************************/
@@ -3831,8 +3670,6 @@ static void *worker_func(void *opaque)
     }
     js_std_init_handlers(rt);
 
-    JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
-
     /* set the pipe to communicate with the parent */
     ts = JS_GetRuntimeOpaque(rt);
     ts->recv_pipe = args->recv_pipe;
@@ -3849,8 +3686,12 @@ static void *worker_func(void *opaque)
 
     js_std_add_helpers(ctx, -1, NULL);
 
-    if (!JS_RunModule(ctx, args->basename, args->filename))
+    // TODO: should run as Module, not script
+    // if (!JS_RunModule(ctx, args->basename, args->filename))
+    //     js_std_dump_error(ctx);
+    if (JS_IsException(js_run_script(ctx, args->filename))) {
         js_std_dump_error(ctx);
+    }
     free(args->filename);
     free(args->basename);
     free(args);
@@ -4229,7 +4070,7 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     OS_FLAG(F_OK),
 };
 
-static int js_os_init(JSContext *ctx, JSModuleDef *m)
+static int js_os_init(JSContext *ctx, JSValueConst mod)
 {
     JSValue timer_proto;
 
@@ -4267,25 +4108,32 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
                                       JS_PROP_C_W_E);
         }
 
-        JS_SetModuleExport(ctx, m, "Worker", obj);
+        JS_SetPropertyStr(ctx, mod, "Worker", obj);
     }
 #endif /* USE_WORKER */
 
-    return JS_SetModuleExportList(ctx, m, js_os_funcs,
-                                  countof(js_os_funcs));
+    JS_SetPropertyFunctionList(ctx, mod, js_os_funcs,
+                               countof(js_os_funcs));
+
+    return 0;
 }
 
-JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
+int js_init_module_os(JSContext *ctx, const char *module_name)
 {
-    JSModuleDef *m;
-    m = JS_NewCModule(ctx, module_name, js_os_init, NULL);
-    if (!m)
-        return NULL;
-    JS_AddModuleExportList(ctx, m, js_os_funcs, countof(js_os_funcs));
-#ifdef USE_WORKER
-    JS_AddModuleExport(ctx, m, "Worker");
-#endif
-    return m;
+    JSValue mod;
+
+    mod = JS_NewObjectProto(ctx, JS_NULL);
+    if (JS_IsException(mod)) {
+        return -1;
+    }
+
+    if (js_os_init(ctx, mod) == -1) {
+        return -1;
+    }
+
+    JS_DefineBuiltinModule(ctx, module_name, mod);
+
+    return 0;
 }
 
 /**********************************************************/
@@ -4320,38 +4168,16 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-static JSValue js_Module_hasInstance(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
-{
-    // TODO won't be needed after module hooks stuff
-    return JS_FALSE;
-}
-
-static JSValue js_Module_define(JSContext *ctx, JSValueConst this_val,
-                                int argc, JSValueConst *argv)
-{
-    // TODO won't be needed after module hooks stuff
-    return JS_UNDEFINED;
-}
-
-static JSValue js_Module_getNamespace(JSContext *ctx, JSValueConst this_val,
-                                      int argc, JSValueConst *argv)
-{
-    // TODO won't be needed after module hooks stuff
-    return JS_NULL;
-}
-
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
-    JSValue global_obj, console, args, require, require_resolve, module,
-            search_extensions, compilers, Symbol, hasInstance;
+    JSValue global_obj, console, args;
     int i;
 
     /* XXX: should these global definitions be enumerable? */
     global_obj = JS_GetGlobalObject(ctx);
 
     // Creates 'inspect' global
-    js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0, "quickjs-builtin:inspect");
+    js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
 
     console = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, console, "log",
@@ -4385,38 +4211,6 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
                       JS_NewCFunctionMagic(ctx, js_print, "print", 1,
                                            JS_CFUNC_generic_magic, 1));
 
-    require = JS_NewCFunction(ctx, js_require, "require", 1);
-    require_resolve = JS_NewCFunction(ctx, js_require_resolve, "require.resolve", 1);
-    JS_SetPropertyStr(ctx, require, "resolve", require_resolve);
-
-    JS_SetPropertyStr(ctx, global_obj, "require", require);
-
-    module = JS_NewObject(ctx);
-
-    Symbol = JS_GetPropertyStr(ctx, global_obj, "Symbol");
-    hasInstance = JS_GetPropertyStr(ctx, Symbol, "hasInstance");
-
-    JS_SetPropertyValue(ctx, module, hasInstance,
-                        JS_NewCFunction(ctx, js_Module_hasInstance,
-                                        "hasInstance", 1), 0);
-
-    JS_FreeValue(ctx, hasInstance);
-    JS_FreeValue(ctx, Symbol);
-
-    search_extensions = JS_NewArray(ctx);
-    JS_DefinePropertyValueUint32(ctx, search_extensions, 0,
-                                 JS_NewString(ctx, ".js"), JS_PROP_C_W_E);
-
-    JS_SetPropertyStr(ctx, module, "searchExtensions", search_extensions);
-
-    compilers = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx, module, "compilers", compilers);
-
-    JS_SetPropertyStr(ctx, module, "define", JS_NewCFunction(ctx, js_Module_define, "define", 2));
-    JS_SetPropertyStr(ctx, module, "getNamespace", JS_NewCFunction(ctx, js_Module_getNamespace, "getNamespace", 0));
-
-    JS_SetPropertyStr(ctx, global_obj, "Module", module);
-
     {
         JSValue setTimeout, clearTimeout;
 
@@ -4429,7 +4223,7 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     }
 
     // run all the stuff in the src/quickjs-libc/lib folder
-    js_std_eval_binary(ctx, qjsc_lib, qjsc_lib_size, 0, "quickjs-builtin:quickjs-libc-lib");
+    js_std_eval_binary(ctx, qjsc_lib, qjsc_lib_size, 0);
 
     JS_FreeValue(ctx, global_obj);
 }
@@ -4539,39 +4333,17 @@ void js_std_loop(JSContext *ctx)
 }
 
 void js_std_eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                        int load_only, const char *name_if_module)
+                        int load_only)
 {
     JSValue obj, val;
-    BOOL is_module;
-    JSModuleDef *m = NULL;
 
     obj = JS_ReadObject(ctx, buf, buf_len, JS_READ_OBJ_BYTECODE);
     if (JS_IsException(obj)) {
         goto exception;
     }
 
-    is_module = JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE;
-
-    if (load_only) {
-        if (is_module) {
-            js_module_set_import_meta(ctx, obj, FALSE);
-        }
-    } else {
-        if (is_module) {
-            if (JS_ResolveModule(ctx, obj) < 0) {
-                JS_FreeValue(ctx, obj);
-                goto exception;
-            }
-            js_module_set_import_meta(ctx, obj, TRUE);
-
-            m = JS_NewCModule(ctx, name_if_module, NULL, NULL);
-            JS_SetCurrentModule(ctx, m);
-        }
+    if (!load_only) {
         val = JS_EvalFunction(ctx, obj);
-        if (is_module) {
-            JS_SetCurrentModule(ctx, NULL);
-        }
-
         if (JS_IsException(val)) {
             goto exception;
         }

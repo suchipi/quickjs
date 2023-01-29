@@ -1070,6 +1070,14 @@ void JS_SetPropertyFunctionList(JSContext *ctx, JSValueConst obj,
                                 const JSCFunctionListEntry *tab,
                                 int len);
 
+/* returns -1 on exception. frees 'obj' */
+int JS_DefineBuiltinModule(JSContext *ctx, const char *module_name,
+                            JSValueConst obj);
+
+/* return JS_ATOM_NULL if the name cannot be found. Only works with
+   not striped bytecode functions. */
+JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels);
+
 #undef js_unlikely
 #undef js_force_inline
 
