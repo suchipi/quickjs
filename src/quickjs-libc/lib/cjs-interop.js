@@ -1,54 +1,42 @@
 (() => {
   const has = Object.prototype.hasOwnProperty;
 
-  function getNs() {
-    try {
-      return Module.getNamespace();
-    } catch (err) {
-      return undefined;
-    }
-  }
-
   Object.defineProperty(globalThis, "exports", {
     get() {
-      return getNs();
+      return Module.getNamespace();
     },
   });
 
-  Object.defineProperty(globalThis, "module", {
-    get() {
-      const ns = getNs();
-      if (ns == null) {
-        return undefined;
+  const module = {
+    get exports() {
+      const ns = Module.getNamespace();
+      if (has.call(ns, "__cjsExports")) {
+        return ns.__cjsExports;
+      } else {
+        return ns;
       }
-
-      return {
-        get exports() {
-          if (has.call(ns, "__cjsExports")) {
-            return ns.__cjsExports;
-          } else {
-            return ns;
-          }
-        },
-        set exports(newVal) {
-          ns.__cjsExports = newVal;
-
-          for (const key in newVal) {
-            try {
-              Object.defineProperty(ns, key, {
-                get() {
-                  return newVal.key;
-                },
-                set(subKey, subVal) {
-                  newVal[subKey] = subVal;
-                },
-              });
-            } catch (err) {
-              // ignored
-            }
-          }
-        },
-      };
     },
-  });
+    set exports(newVal) {
+      const ns = Module.getNamespace();
+
+      ns.__cjsExports = newVal;
+
+      for (const key in newVal) {
+        try {
+          Object.defineProperty(ns, key, {
+            get() {
+              return newVal.key;
+            },
+            set(subKey, subVal) {
+              newVal[subKey] = subVal;
+            },
+          });
+        } catch (err) {
+          // ignored
+        }
+      }
+    },
+  };
+
+  globalThis.module = module;
 })();
