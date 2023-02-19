@@ -26,6 +26,7 @@ for (const bytecode of [false, true]) {
     rule: "link_target",
     inputs: [
       qjsbootstrap_zero_target_o,
+      builddir("intermediate/quickjs-libbytecode.target.o"),
       builddir("intermediate/quickjs-full.target.a"),
     ],
   });
@@ -49,6 +50,7 @@ for (const bytecode of [false, true]) {
     rule: "link_target",
     inputs: [
       qjsbootstrap_fill_target_o,
+      builddir("intermediate/quickjs-libbytecode.target.o"),
       builddir("intermediate/quickjs-full.target.a"),
     ],
   });
