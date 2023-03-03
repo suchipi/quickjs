@@ -1347,7 +1347,7 @@ static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
     if (!mode) {
         return JS_EXCEPTION;
     }
-    if (mode[strspn(mode, "rwa+")] != '\0') {
+    if (mode[strspn(mode, "rwa+b")] != '\0') {
         JS_ThrowTypeError(ctx, "invalid file mode: %s", mode);
         JS_AddPropertyToException(ctx, "mode", JS_NewString(ctx, mode));
         return JS_EXCEPTION;
