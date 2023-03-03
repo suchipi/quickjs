@@ -421,7 +421,7 @@ interface BigFloatConstructor {
    *
    * If `value`` is a string, it is converted to BigFloat using the precision of the global floating point environment ({@link BigFloatEnv.prec}).
    */
-  (value: number | string): BigFloat;
+  (value: number | string | BigInt | BigFloat): BigFloat;
 
   prototype: BigFloat;
 
@@ -706,3 +706,149 @@ interface BigFloat {
 
   [Symbol.typeofValue]: () => "bigfloat";
 }
+
+declare type BigDecimalRoundingMode =
+  | "floor"
+  | "ceiling"
+  | "down"
+  | "up"
+  | "half-even"
+  | "half-up";
+
+declare type BigDecimalRoundingObject =
+  | {
+      /** must be >= 1 */
+      maximumSignificantDigits: number;
+      roundingMode: BigDecimalRoundingMode;
+    }
+  | {
+      /** must be >= 0 */
+      maximumFractionDigits: number;
+      roundingMode: BigDecimalRoundingMode;
+    };
+
+interface BigDecimalConstructor {
+  (): BigDecimal;
+  (value: number | string | BigInt | BigFloat): BigDecimal;
+
+  /**
+   * Adds together `a` and `b` and rounds the result according to the rounding
+   * object `e`. If the rounding object is not present, the operation is
+   * executed with infinite precision; in other words, no rounding occurs when
+   * the rounding object is not present.
+   */
+  add(a: BigDecimal, b: BigDecimal, e?: BigDecimalRoundingObject): BigDecimal;
+
+  /**
+   * Subtracts `b` from `a` and rounds the result according to the rounding
+   * object `e`. If the rounding object is not present, the operation is
+   * executed with infinite precision; in other words, no rounding occurs when
+   * the rounding object is not present.
+   */
+  sub(a: BigDecimal, b: BigDecimal, e?: BigDecimalRoundingObject): BigDecimal;
+
+  /**
+   * Multiplies together `a` and `b` and rounds the result according to the
+   * rounding object `e`. If the rounding object is not present, the operation
+   * is executed with infinite precision; in other words, no rounding occurs
+   * when the rounding object is not present.
+   */
+  mul(a: BigDecimal, b: BigDecimal, e?: BigDecimalRoundingObject): BigDecimal;
+
+  /**
+   * Divides `a` by `b` and rounds the result according to the rounding object
+   * `e`.
+   *
+   * If the rounding object is not present, an attempt is made to perform the
+   * operation with infinite precision. However, not all quotients can be
+   * represented with infinite precision. If the quotient cannot be represented
+   * with infinite precision, a RangeError is thrown.
+   *
+   * A RangeError is thrown when dividing by zero.
+   */
+  div(a: BigDecimal, b: BigDecimal, e?: BigDecimalRoundingObject): BigDecimal;
+
+  /**
+   * Perform the modulo operation of `a` by `b` and round the result according
+   * to the rounding object `e`. If the rounding object is not present, the
+   * operation is executed with infinite precision; in other words, no rounding
+   * occurs when the rounding object is not present.
+   */
+  mod(a: BigDecimal, b: BigDecimal, e?: BigDecimalRoundingObject): BigDecimal;
+
+  /**
+   * Obtain the square root of `a`, rounding the result according to the
+   * rounding object `e`.
+   *
+   * If `a` is less than zero, a RangeError will be thrown.
+   *
+   * Note that the rounding object is *required*.
+   */
+  sqrt(a: BigDecimal, e: BigDecimalRoundingObject): BigDecimal;
+
+  /**
+   * Rounds `a` using the rounding object `e`.
+   */
+  round(a: BigDecimal, e: BigDecimalRoundingObject): BigDecimal;
+
+  prototype: BigDecimal;
+}
+
+declare var BigDecimal: BigDecimalConstructor;
+
+/**
+ * The BigDecimal type represents floating point numbers in base 10.
+ *
+ * It is inspired from the proposal available at https://github.com/littledan/proposal-bigdecimal.
+ *
+ * The BigDecimal floating point numbers are always normalized and finite.
+ * There is no concept of -0, Infinity or NaN. By default, all the computations
+ * are done with infinite precision.
+ */
+interface BigDecimal {
+  /**
+   * Returns the bigdecimal primitive value corresponding to this BigDecimal.
+   */
+  valueOf(): BigDecimal;
+
+  /**
+   * Converts this BigDecimal to a string with infinite precision in base 10.
+   */
+  toString(): string;
+
+  /**
+   * Returns a string containing a number represented either in exponential or
+   * fixed-point notation with a specified number of digits.
+   *
+   * @param precision Number of significant digits. There is no range limit on this number.
+   * @param roundingMode The rounding mode to use when representing the value. Defaults to "half-up".
+   */
+  toPrecision(precision: number, roundingMode?: BigDecimalRoundingMode): string;
+
+  /**
+   * Returns a string representing a number in fixed-point notation.
+   *
+   * @param fractionDigits Number of digits after the decimal point. There is no range limit on this number.
+   * @param roundingMode The rounding mode to use when representing the value. Defaults to "half-up".
+   */
+  toFixed(
+    fractionDigits: number,
+    roundingMode?: BigDecimalRoundingMode
+  ): string;
+
+  /**
+   * Returns a string containing a number represented in exponential notation.
+   *
+   * @param fractionDigits Number of digits after the decimal point. Must be in the range 0 - 20, inclusive.
+   * @param roundingMode The rounding mode to use when representing the value. Defaults to "half-up".
+   */
+  toExponential(
+    fractionDigits: number,
+    roundingMode?: BigDecimalRoundingMode
+  ): string;
+}
+
+// Note that BigFloat and BigDecimal have custom operator overloads defined in
+// QuickJS, but TypeScript does not support operator overloading. As such,
+// TypeScript will not understand or handle unary/binary operators for BigFloat
+// and BigDecimal properly.
