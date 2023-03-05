@@ -1165,6 +1165,8 @@ import * as os from "quickjs:os";
       /* set the last result */
       g._ = result;
     } catch (error) {
+      g._error = error;
+
       std.puts(colors[styles.error_msg]);
       if (error instanceof Error) {
         console.log(error);
