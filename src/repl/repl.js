@@ -516,6 +516,19 @@ import * as os from "quickjs:os";
     }
   }
 
+  function delete_word_back_from_cursor() {
+    const beforeCursor = cmd.slice(0, cursor_pos);
+    const afterCursor = cmd.slice(cursor_pos);
+
+    const beforeCursorReversed = beforeCursor.split("").reverse().join("");
+    const matches = beforeCursorReversed.match(/[^\s./]*(?:[\s./]|$)/);
+    if (matches) {
+      const offsetFromMatch = matches[0].length;
+      cmd = beforeCursor.slice(0, -offsetFromMatch) + afterCursor;
+      cursor_pos -= offsetFromMatch;
+    }
+  }
+
   function upcase_word() {
     var end = skip_word_forward(cursor_pos);
     cmd =
@@ -745,6 +758,7 @@ import * as os from "quickjs:os";
     "\x12": alert /* ^R - reverse-search */,
     "\x13": alert /* ^S - search */,
     "\x14": transpose_chars /* ^T - transpose */,
+    "\x17": delete_word_back_from_cursor /* ^W - delete word backwards */,
     "\x18": reset /* ^X - cancel */,
     "\x19": yank /* ^Y - yank */,
     "\x1bOA": previous_history /* ^[OA - up */,
