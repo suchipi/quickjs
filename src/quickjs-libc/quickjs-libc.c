@@ -1710,6 +1710,53 @@ static JSValue js_std_file_putByte(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+
+static JSValue js_std_file_setvbuf(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv)
+{
+    int mode;
+    uint32_t size_uint;
+    size_t size;
+    FILE *f;
+
+    if (argc != 2) {
+        // we don't support changing the buffer
+        return JS_ThrowTypeError(ctx, "setvbuf must be called exactly two arguments: 'mode' and 'size'.");
+    }
+
+    f = js_std_file_get(ctx, this_val);
+    if (!f) {
+        return JS_EXCEPTION;
+    }
+
+    if (JS_ToInt32(ctx, &mode, argv[0])) {
+        return JS_EXCEPTION;
+    }
+
+    if (JS_ToUint32(ctx, &size_uint, argv[1])) {
+        return JS_EXCEPTION;
+    }
+
+    size = (size_t)size_uint;
+
+    if (mode != _IOFBF && mode != _IOLBF && mode != _IONBF) {
+        JS_ThrowError(ctx, "'mode' argument must be either 'std._IOFBF', 'std._IOLBF', or 'std._IONBF'. Instead, received '%d'.", mode);
+        JS_AddPropertyToException(ctx, "mode", JS_NewInt32(ctx, mode));
+
+        return JS_EXCEPTION;
+    }
+
+    errno = 0;
+    if (setvbuf(f, NULL, mode, size)) {
+        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+
+        return JS_EXCEPTION;
+    }
+
+    return JS_UNDEFINED;
+}
+
 /* urlGet */
 
 #define URL_GET_PROGRAM "curl -s -i -L"
@@ -1958,6 +2005,10 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_PROP_INT32_DEF("SEEK_SET", SEEK_SET, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("SEEK_CUR", SEEK_CUR, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("SEEK_END", SEEK_END, JS_PROP_CONFIGURABLE ),
+
+    JS_PROP_INT32_DEF("_IOFBF", _IOFBF, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("_IOLBF", _IOLBF, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("_IONBF", _IONBF, JS_PROP_CONFIGURABLE ),
 };
 
 static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
@@ -1979,7 +2030,7 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
     JS_CFUNC_DEF("readAsString", 0, js_std_file_readAsString ),
     JS_CFUNC_DEF("getByte", 0, js_std_file_getByte ),
     JS_CFUNC_DEF("putByte", 1, js_std_file_putByte ),
-    /* setvbuf, ...  */
+    JS_CFUNC_DEF("setvbuf", 2, js_std_file_setvbuf ),
 };
 
 static int js_std_init(JSContext *ctx, JSModuleDef *m)

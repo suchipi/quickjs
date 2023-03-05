@@ -113,6 +113,16 @@ declare interface FILE {
 
   /** Write one byte to the file. */
   putByte(value: number): void;
+
+  /**
+   * Set the buffering mode and buffer size for the file stream (wrapper to the libc `setvbuf()`).
+   *
+   * Note that unlike the libc setvbuf, the "buffer" argument is not supported, and therefore is not present.
+   *
+   * @param mode The buffering mode to use. It can be one of the following values: `std._IOFBF` for full buffering, `std._IOLBF` for line buffering, or `std._IONBF` for no buffering.
+   * @param size The size to resize the internal in-memory buffer for this file to.
+   */
+  setvbuf(mode: number, size: number): void;
 }
 
 declare module "quickjs:std" {
@@ -255,6 +265,15 @@ declare module "quickjs:std" {
 
   /** Constant for {@link FILE.seek}. Declares that the offset should be relative to the end of the file. See also libc `fseek()`. */
   export var SEEK_END: number;
+
+  /** Constant for {@link FILE.setvbuf}. Declares that the buffer mode should be 'full buffering'. */
+  export var _IOFBF: number;
+
+  /** Constant for {@link FILE.setvbuf}. Declares that the buffer mode should be 'line buffering'. */
+  export var _IOLBF: number;
+
+  /** Constant for {@link FILE.setvbuf}. Declares that the buffer mode should be 'no buffering'. */
+  export var _IONBF: number;
 
   /** Manually invoke the cycle removal algorithm (garbage collector). The cycle removal algorithm is automatically started when needed, so this function is useful in case of specific memory constraints or for testing. */
   export function gc(): void;
