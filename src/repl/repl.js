@@ -1171,6 +1171,11 @@ import * as os from "quickjs:os";
         if (error.stack) {
           std.puts(error.stack);
         }
+        const { name, stack, message, ...others } = error;
+        if (Object.keys(others).length > 0) {
+          print(others);
+          std.puts("\n");
+        }
       } else {
         std.puts("Throw: ");
         console.log(error);
