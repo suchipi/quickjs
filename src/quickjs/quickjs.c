@@ -38119,20 +38119,27 @@ static JSValue js_error_constructor(JSContext *ctx, JSValueConst new_target,
 {
     JSValue obj, msg, proto;
     JSValueConst message;
+    JSValueConst options;
 
-    if (JS_IsUndefined(new_target))
+    if (JS_IsUndefined(new_target)) {
         new_target = JS_GetActiveFunction(ctx);
+    }
+
     proto = JS_GetProperty(ctx, new_target, JS_ATOM_prototype);
-    if (JS_IsException(proto))
+    if (JS_IsException(proto)) {
         return proto;
+    }
+
     if (!JS_IsObject(proto)) {
         JSContext *realm;
         JSValueConst proto1;
 
         JS_FreeValue(ctx, proto);
         realm = JS_GetFunctionRealm(ctx, new_target);
-        if (!realm)
+        if (!realm) {
             return JS_EXCEPTION;
+        }
+
         if (magic < 0) {
             proto1 = realm->class_proto[JS_CLASS_ERROR];
         } else {
@@ -38140,30 +38147,72 @@ static JSValue js_error_constructor(JSContext *ctx, JSValueConst new_target,
         }
         proto = JS_DupValue(ctx, proto1);
     }
+
     obj = JS_NewObjectProtoClass(ctx, proto, JS_CLASS_ERROR);
     JS_FreeValue(ctx, proto);
-    if (JS_IsException(obj))
+    if (JS_IsException(obj)) {
         return obj;
+    }
+
     if (magic == JS_AGGREGATE_ERROR) {
         message = argv[1];
+        options = argv[2];
     } else {
         message = argv[0];
+        options = argv[1];
     }
 
     if (!JS_IsUndefined(message)) {
+        int define_property_result = 0;
+
         msg = JS_ToString(ctx, message);
-        if (unlikely(JS_IsException(msg)))
+        if (unlikely(JS_IsException(msg))) {
             goto exception;
-        JS_DefinePropertyValue(ctx, obj, JS_ATOM_message, msg,
-                               JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        }
+
+        define_property_result = JS_DefinePropertyValue(ctx, obj, JS_ATOM_message, msg,
+                                                        JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+
+        if (define_property_result == -1) {
+            goto exception;
+        }
+    }
+
+    if (JS_IsObject(options)) {
+        int has_cause = JS_HasProperty(ctx, options, JS_ATOM_cause);
+        if (has_cause == -1) {
+            goto exception;
+        }
+
+        if (has_cause) {
+            int define_property_result = 0;
+            JSValue cause = JS_GetProperty(ctx, options, JS_ATOM_cause);
+            if (JS_IsException(cause)) {
+                goto exception;
+            }
+
+            define_property_result = JS_DefinePropertyValue(ctx, obj, JS_ATOM_cause, cause,
+                                                            JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+
+            if (define_property_result == -1) {
+                goto exception;
+            }
+        }
     }
 
     if (magic == JS_AGGREGATE_ERROR) {
+        int define_property_result = 0;
         JSValue error_list = iterator_to_array(ctx, argv[0]);
-        if (JS_IsException(error_list))
+        if (JS_IsException(error_list)) {
             goto exception;
-        JS_DefinePropertyValue(ctx, obj, JS_ATOM_errors, error_list,
-                               JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        }
+
+        define_property_result = JS_DefinePropertyValue(ctx, obj, JS_ATOM_errors, error_list,
+                                                        JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+
+        if (define_property_result == -1) {
+            goto exception;
+        }
     }
 
     /* skip the Error() function in the backtrace */
@@ -51221,14 +51270,14 @@ void JS_AddIntrinsicBaseObjects(JSContext *ctx)
 
     /* Error */
     obj1 = JS_NewCFunctionMagic(ctx, js_error_constructor,
-                                "Error", 1, JS_CFUNC_constructor_or_func_magic, -1);
+                                "Error", 2, JS_CFUNC_constructor_or_func_magic, -1);
     JS_NewGlobalCConstructor2(ctx, obj1,
                               "Error", ctx->class_proto[JS_CLASS_ERROR]);
 
     for(i = 0; i < JS_NATIVE_ERROR_COUNT; i++) {
         JSValue func_obj;
         int n_args;
-        n_args = 1 + (i == JS_AGGREGATE_ERROR);
+        n_args = 2 + (i == JS_AGGREGATE_ERROR);
         func_obj = JS_NewCFunction3(ctx, (JSCFunction *)js_error_constructor,
                                     native_error_name[i], n_args,
                                     JS_CFUNC_constructor_or_func_magic, i, obj1);
