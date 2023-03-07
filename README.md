@@ -30,8 +30,10 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
     - Note that you must handle `Module.compilers` yourself in your replacement implementation.
 - `os.access` function added (wrapper for libc `access`).
 - `FILE.prototype.sync` method added (wrapper for `fsync`).
+- `FILE.prototype.setvbuf` method added (wrapper for `setvbuf`).
 - `std.isFILE` function added (returns whether the provided object is a `FILE` (via `js_std_file_class_id`)).
 - `os.{WUNTRACED,WEXITSTATUS,WTERMSIG,WSTOPSIG,WIFEXITED,WIFSIGNALED,WIFSTOPPED,WIFCONTINUED}` added, for working with `os.waitpid`.
+- `"b"` mode flag is now allowed in `std.fdopen`.
 - `setTimeout` and `clearTimeout` are now available as globals.
 - `setInterval` and `clearInterval` are now available as globals.
 - `String.cooked` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
@@ -39,6 +41,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 
 ## Changes to `quickjs`:
 
+- A TypeScript `.d.ts` file is provided for all QuickJS-specific APIs (operator overloading APIs, BigInt extensions, BigFloat, BigDecimal, etc).
 - `Object.toPrimitive` is now available (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
 - `Symbol.typeofValue` can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
 - Additional functions are exposed that allow importing modules synchronously or asynchronously:
@@ -51,6 +54,13 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - Additional utility functions added:
   - `JS_FreezeObjectValue` (performs Object.freeze)
 - ModuleDefs now have an optional "user_data" property (pointer to void) which can be accessed during module initialization (via `JS_GetModuleUserData` and `JS_SetModuleUserData`)
+
+## Changes to the `qjs` repl:
+
+- The new `inspect` global is used to print results
+- The last error is accessible via the `_error` global
+- If a thrown error has additional properties added onto it, those are printed along with the thrown error
+- Ctrl+W deletes words backwards from the cursor position
 
 ## New binary: `qjsbootstrap`:
 
