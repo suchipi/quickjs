@@ -4792,17 +4792,11 @@ QJU_END:
     QJU_FINAL_RETURN;
 }
 
-void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
+void js_std_add_console(JSContext *ctx)
 {
-    JSValue global_obj, console, args, require, require_resolve, module,
-            search_extensions, compilers, Symbol, hasInstance;
-    int i;
+    JSValue global_obj, console;
 
-    /* XXX: should these global definitions be enumerable? */
     global_obj = JS_GetGlobalObject(ctx);
-
-    // Creates 'inspect' global
-    js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
 
     console = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, console, "log",
@@ -4819,7 +4813,33 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
                                            JS_CFUNC_generic_magic, 2));
     JS_SetPropertyStr(ctx, global_obj, "console", console);
 
-    /* scriptArgs and print are the same as in the mozilla JS shell */
+    JS_FreeValue(ctx, global_obj);
+}
+
+void js_std_add_print(JSContext *ctx)
+{
+    JSValue global_obj = JS_GetGlobalObject(ctx);
+
+    JS_SetPropertyStr(ctx, global_obj, "print",
+                      JS_NewCFunctionMagic(ctx, js_print, "print", 1,
+                                           JS_CFUNC_generic_magic, 1));
+
+    JS_FreeValue(ctx, global_obj);
+}
+
+void js_std_add_inspect(JSContext *ctx)
+{
+    // Creates 'inspect' global
+    js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
+}
+
+void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv)
+{
+    JSValue global_obj, args;
+    int i;
+
+    global_obj = JS_GetGlobalObject(ctx);
+
     if (argc >= 0) {
         args = JS_NewArray(ctx);
         for(i = 0; i < argc; i++) {
@@ -4832,15 +4852,30 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
         }
     }
 
-    JS_SetPropertyStr(ctx, global_obj, "print",
-                      JS_NewCFunctionMagic(ctx, js_print, "print", 1,
-                                           JS_CFUNC_generic_magic, 1));
+    JS_FreeValue(ctx, global_obj);
+}
+
+void js_std_add_require(JSContext *ctx)
+{
+    JSValue global_obj, require, require_resolve;
+
+    global_obj = JS_GetGlobalObject(ctx);
 
     require = JS_NewCFunction(ctx, js_require, "require", 1);
     require_resolve = JS_NewCFunction(ctx, js_require_resolve, "require.resolve", 1);
     JS_SetPropertyStr(ctx, require, "resolve", require_resolve);
 
     JS_SetPropertyStr(ctx, global_obj, "require", require);
+
+    JS_FreeValue(ctx, global_obj);
+}
+
+void js_std_add_Module(JSContext *ctx)
+{
+    JSValue global_obj, module, Symbol, hasInstance, search_extensions,
+        compilers;
+
+    global_obj = JS_GetGlobalObject(ctx);
 
     module = JS_NewObject(ctx);
 
@@ -4863,25 +4898,49 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     compilers = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, module, "compilers", compilers);
 
-    JS_SetPropertyStr(ctx, module, "define", JS_NewCFunction(ctx, js_Module_define, "define", 2));
+    JS_SetPropertyStr(ctx, module, "define",
+                      JS_NewCFunction(ctx, js_Module_define, "define", 2));
 
     JS_SetPropertyStr(ctx, global_obj, "Module", module);
 
-    {
-        JSValue setTimeout, clearTimeout;
+    JS_FreeValue(ctx, global_obj);
+}
 
-        setTimeout = JS_NewCFunction(ctx, js_os_setTimeout, "setTimeout", 2);
-        JS_SetPropertyStr(ctx, global_obj, "setTimeout", setTimeout);
+void js_std_add_timeout(JSContext *ctx)
+{
+    JSValue global_obj, setTimeout, clearTimeout;
 
-        clearTimeout = JS_NewCFunction(ctx, js_os_clearTimeout, "clearTimeout", 1);
-        JS_SetPropertyStr(ctx, global_obj, "clearTimeout", clearTimeout);
+    global_obj = JS_GetGlobalObject(ctx);
 
-    }
+    setTimeout = JS_NewCFunction(ctx, js_os_setTimeout, "setTimeout", 2);
+    JS_SetPropertyStr(ctx, global_obj, "setTimeout", setTimeout);
 
-    // run all the stuff in the src/quickjs-libc/lib folder
-    js_std_eval_binary(ctx, qjsc_lib, qjsc_lib_size, 0);
+    clearTimeout = JS_NewCFunction(ctx, js_os_clearTimeout, "clearTimeout", 1);
+    JS_SetPropertyStr(ctx, global_obj, "clearTimeout", clearTimeout);
 
     JS_FreeValue(ctx, global_obj);
+}
+
+// TODO: separate that stuff out so that things can have intervals without the other stuff
+void js_std_add_lib(JSContext *ctx)
+{
+    // run all the stuff in the src/quickjs-libc/lib folder
+    js_std_eval_binary(ctx, qjsc_lib, qjsc_lib_size, 0);
+}
+
+void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
+{
+    js_std_add_inspect(ctx);
+    js_std_add_console(ctx);
+
+    /* scriptArgs and print are the same as in the mozilla JS shell */
+    js_std_add_print(ctx);
+    js_std_add_scriptArgs(ctx, argc, argv);
+
+    js_std_add_require(ctx);
+    js_std_add_Module(ctx);
+    js_std_add_timeout(ctx);
+    js_std_add_lib(ctx);
 }
 
 void js_std_init_handlers(JSRuntime *rt)

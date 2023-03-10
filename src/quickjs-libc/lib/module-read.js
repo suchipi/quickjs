@@ -1,6 +1,8 @@
 import * as std from "quickjs:std";
 
 (() => {
+  if (typeof Module === "undefined") return;
+
   Module.read = (moduleName) => {
     if (typeof moduleName !== "string") {
       const err = new Error("moduleName must be a string");

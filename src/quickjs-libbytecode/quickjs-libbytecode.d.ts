@@ -1,4 +1,4 @@
-declare module "bytecode" {
+declare module "quickjs:bytecode" {
   /**
    * Convert the module or script in the specified file into bytecode.
    *

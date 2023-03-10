@@ -1887,6 +1887,9 @@ void JS_FreeRuntime(JSRuntime *rt)
     init_list_head(&rt->job_list);
 
     JS_RunGC(rt);
+    // Need to run GC twice in order to handle any Context objects created by
+    // quickjs-libcontext... TODO: surely there is a better way to handle this.
+    JS_RunGC(rt);
 
 #ifdef DUMP_LEAKS
     /* leaking objects */
@@ -33896,6 +33899,22 @@ JSValue JS_EvalThis(JSContext *ctx, JSValueConst this_obj,
            eval_type == JS_EVAL_TYPE_MODULE);
     ret = JS_EvalInternal(ctx, this_obj, input, input_len, filename,
                           eval_flags, -1);
+    return ret;
+}
+
+/* A way to eval code even if the context itself doesn't have eval */
+JSValue JS_EvalThis_Privileged(JSContext *ctx, JSValueConst this_obj,
+                               const char *input, size_t input_len,
+                               const char *filename, int eval_flags)
+{
+    int eval_type = eval_flags & JS_EVAL_TYPE_MASK;
+    JSValue ret;
+
+    assert(eval_type == JS_EVAL_TYPE_GLOBAL ||
+           eval_type == JS_EVAL_TYPE_MODULE);
+
+    ret = __JS_EvalInternal(ctx, this_obj, input, input_len, filename,
+                            eval_flags, -1);
     return ret;
 }
 

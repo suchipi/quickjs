@@ -30,36 +30,48 @@
 #include "quickjs.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-extern const uint8_t qjsc_inspect[];
-extern const uint32_t qjsc_inspect_size;
+  extern const uint8_t qjsc_inspect[];
+  extern const uint32_t qjsc_inspect_size;
 
-extern const uint8_t qjsc_lib[];
-extern const uint32_t qjsc_lib_size;
+  extern const uint8_t qjsc_lib[];
+  extern const uint32_t qjsc_lib_size;
 
-JSModuleDef *js_init_module_std(JSContext *ctx, const char *module_name);
-JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name);
-void js_std_add_helpers(JSContext *ctx, int argc, char **argv);
-void js_std_loop(JSContext *ctx);
-void js_std_init_handlers(JSRuntime *rt);
-void js_std_free_handlers(JSRuntime *rt);
-void js_std_dump_error(JSContext *ctx);
-uint8_t *js_load_file(JSContext *ctx, size_t *pbuf_len, const char *filename);
-int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
-                              JS_BOOL is_main);
-JSModuleDef *js_module_loader(JSContext *ctx,
-                              const char *module_name, void *opaque);
-char *js_module_normalize_name(JSContext *ctx,
-                               const char *base_name,
-                               const char *name, void *opaque);
-void js_std_eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                        int flags);
-void js_std_promise_rejection_tracker(JSContext *ctx, JSValueConst promise,
-                                      JSValueConst reason,
-                                      JS_BOOL is_handled, void *opaque);
-void js_std_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt));
+  JSModuleDef *js_init_module_std(JSContext *ctx, const char *module_name);
+  JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name);
+
+  void js_std_add_helpers(JSContext *ctx, int argc, char **argv);
+
+  void js_std_add_inspect(JSContext *ctx);
+  void js_std_add_console(JSContext *ctx);
+  void js_std_add_print(JSContext *ctx);
+  void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv);
+  void js_std_add_require(JSContext *ctx);
+  void js_std_add_Module(JSContext *ctx);
+  void js_std_add_timeout(JSContext *ctx);
+  void js_std_add_lib(JSContext *ctx);
+
+  void js_std_loop(JSContext *ctx);
+  void js_std_init_handlers(JSRuntime *rt);
+  void js_std_free_handlers(JSRuntime *rt);
+  void js_std_dump_error(JSContext *ctx);
+  uint8_t *js_load_file(JSContext *ctx, size_t *pbuf_len, const char *filename);
+  int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
+                                JS_BOOL is_main);
+  JSModuleDef *js_module_loader(JSContext *ctx,
+                                const char *module_name, void *opaque);
+  char *js_module_normalize_name(JSContext *ctx,
+                                 const char *base_name,
+                                 const char *name, void *opaque);
+  void js_std_eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
+                          int flags);
+  void js_std_promise_rejection_tracker(JSContext *ctx, JSValueConst promise,
+                                        JSValueConst reason,
+                                        JS_BOOL is_handled, void *opaque);
+  void js_std_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt));
 
 #ifdef __cplusplus
 } /* extern "C" { */

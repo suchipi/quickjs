@@ -32,6 +32,7 @@
 #include "execpath.h"
 #include "quickjs-libc.h"
 #include "quickjs-libbytecode.h"
+#include "quickjs-libcontext.h"
 #include "cutils.h"
 
 extern const uint8_t qjsc_inspect[];
@@ -61,6 +62,7 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   js_init_module_os(ctx, "quickjs:os");
   js_init_module_std(ctx, "quickjs:std");
   js_init_module_bytecode(ctx, "quickjs:bytecode");
+  js_init_module_context(ctx, "quickjs:context");
 
   js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
   return ctx;

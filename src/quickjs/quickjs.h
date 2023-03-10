@@ -859,6 +859,10 @@ JSValue JS_Eval(JSContext *ctx, const char *input, size_t input_len,
 JSValue JS_EvalThis(JSContext *ctx, JSValueConst this_obj,
                     const char *input, size_t input_len,
                     const char *filename, int eval_flags);
+/* A way to eval code even if the context itself doesn't have eval */
+JSValue JS_EvalThis_Privileged(JSContext *ctx, JSValueConst this_obj,
+                               const char *input, size_t input_len,
+                               const char *filename, int eval_flags);
 JSValue JS_GetGlobalObject(JSContext *ctx);
 int JS_IsInstanceOf(JSContext *ctx, JSValueConst val, JSValueConst obj);
 int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,

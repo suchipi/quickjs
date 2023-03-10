@@ -1,6 +1,8 @@
 import * as os from "quickjs:os";
 
 (() => {
+  if (typeof Module === "undefined") return;
+
   function isAbsolute(path) {
     return path[0] === "/" || /[A-Za-z]:[/\\]/.test(path);
   }
