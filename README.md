@@ -8,6 +8,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `Object.toPrimitive` is now available (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
 - `Symbol.typeofValue` can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
 - Added support for Error constructor "cause" option (from ES2022).
+- Added support for relative indexing method `.at()` (from ES2022).
 - Added function `JS_EvalThis_Privileged`, which allows C code to run eval in Contexts that have eval disabled. With this, you can disable eval in a context for security purposes, but can still execute trusted code within it.
 - Additional functions are exposed that allow importing modules synchronously or asynchronously:
   - `JS_DynamicImportAsync`
