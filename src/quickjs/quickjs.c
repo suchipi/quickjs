@@ -39840,6 +39840,43 @@ fail:
     return JS_EXCEPTION;
 }
 
+static JSValue js_array_at(JSContext *ctx, JSValueConst this_val,
+                           int argc, JSValueConst *argv)
+{
+    JSValue obj, ret;
+    int64_t len, relative_index, normalized_index;
+
+    obj = JS_ToObject(ctx, this_val);
+    if (JS_IsException(obj)) {
+        return JS_EXCEPTION;
+    }
+
+    if (js_get_length64(ctx, &len, obj) != 0) {
+        JS_FreeValue(ctx, obj);
+        return JS_EXCEPTION;
+    }
+
+    if (JS_ToInt64(ctx, &relative_index, argv[0]) != 0) {
+        JS_FreeValue(ctx, obj);
+        return JS_EXCEPTION;
+    }
+
+    if (relative_index >= 0) {
+        normalized_index = relative_index;
+    } else {
+        normalized_index = len + relative_index;
+    }
+
+    if (normalized_index < 0 || normalized_index >= len) {
+        JS_FreeValue(ctx, obj);
+        return JS_UNDEFINED;
+    }
+
+    ret = JS_GetPropertyInt64(ctx, obj, normalized_index);
+    JS_FreeValue(ctx, obj);
+    return ret;
+}
+
 typedef struct JSArrayIteratorData {
     JSValue obj;
     JSIteratorKindEnum kind;
@@ -40015,6 +40052,7 @@ static const JSCFunctionListEntry js_array_proto_funcs[] = {
     JS_CFUNC_MAGIC_DEF("unshift", 1, js_array_push, 1 ),
     JS_CFUNC_DEF("reverse", 0, js_array_reverse ),
     JS_CFUNC_DEF("sort", 1, js_array_sort ),
+    JS_CFUNC_DEF("at", 1, js_array_at ),
     JS_CFUNC_MAGIC_DEF("slice", 2, js_array_slice, 0 ),
     JS_CFUNC_MAGIC_DEF("splice", 2, js_array_slice, 1 ),
     JS_CFUNC_DEF("copyWithin", 2, js_array_copyWithin ),
@@ -40736,6 +40774,45 @@ static JSValue js_string_codePointAt(JSContext *ctx, JSValueConst this_val,
     } else {
         c = string_getc(p, &idx);
         ret = JS_NewInt32(ctx, c);
+    }
+    JS_FreeValue(ctx, val);
+    return ret;
+}
+
+static JSValue js_string_at(JSContext *ctx, JSValueConst this_val,
+                            int argc, JSValueConst *argv)
+{
+    JSValue val, ret;
+    JSString *p;
+    int idx, k;
+
+    val = JS_ToStringCheckObject(ctx, this_val);
+    if (JS_IsException(val)) {
+        return val;
+    }
+
+    p = JS_VALUE_GET_STRING(val);
+    if (JS_ToInt32Sat(ctx, &idx, argv[0])) {
+        JS_FreeValue(ctx, val);
+        return JS_EXCEPTION;
+    }
+
+    if (idx >= 0) {
+        k = idx;
+    } else {
+        k = p->len + idx;
+    }
+
+    if (k < 0 || k >= p->len) {
+        ret = JS_UNDEFINED;
+    } else {
+        uint16_t c;
+        if (p->is_wide_char) {
+            c = p->u.str16[k];
+        } else {
+            c = p->u.str8[k];
+        }
+        ret = js_new_string_char(ctx, c);
     }
     JS_FreeValue(ctx, val);
     return ret;
@@ -41967,6 +42044,7 @@ static const JSCFunctionListEntry js_string_proto_funcs[] = {
     JS_CFUNC_DEF("charAt", 1, js_string_charAt ),
     JS_CFUNC_DEF("concat", 1, js_string_concat ),
     JS_CFUNC_DEF("codePointAt", 1, js_string_codePointAt ),
+    JS_CFUNC_DEF("at", 1, js_string_at ),
     JS_CFUNC_MAGIC_DEF("indexOf", 1, js_string_indexOf, 0 ),
     JS_CFUNC_MAGIC_DEF("lastIndexOf", 1, js_string_indexOf, 1 ),
     JS_CFUNC_MAGIC_DEF("includes", 1, js_string_includes, 0 ),
@@ -51324,7 +51402,7 @@ void JS_AddIntrinsicBaseObjects(JSContext *ctx)
     /* XXX: create auto_initializer */
     {
         /* initialize Array.prototype[Symbol.unscopables] */
-        char const unscopables[] = "copyWithin" "\0" "entries" "\0" "fill" "\0" "find" "\0"
+        char const unscopables[] = "at" "\0" "copyWithin" "\0" "entries" "\0" "fill" "\0" "find" "\0"
             "findIndex" "\0" "flat" "\0" "flatMap" "\0" "includes" "\0" "keys" "\0" "values" "\0";
         const char *p = unscopables;
         obj1 = JS_NewObjectProto(ctx, JS_NULL);
@@ -52371,6 +52449,37 @@ static JSValue js_typed_array_fill(JSContext *ctx, JSValueConst this_val,
     return JS_DupValue(ctx, this_val);
 }
 
+static JSValue js_typed_array_at(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
+{
+    int len, relative_index, normalized_index;
+
+    if (validate_typed_array(ctx, this_val) != 0) {
+        return JS_EXCEPTION;
+    }
+
+    len = js_typed_array_get_length_internal(ctx, this_val);
+    if (len < 0) {
+        return JS_EXCEPTION;
+    }
+
+    if (JS_ToInt32(ctx, &relative_index, argv[0]) != 0) {
+        return JS_EXCEPTION;
+    }
+
+    if (relative_index >= 0) {
+        normalized_index = relative_index;
+    } else {
+        normalized_index = len + relative_index;
+    }
+
+    if (normalized_index < 0 || normalized_index >= len) {
+        return JS_UNDEFINED;
+    }
+
+    return JS_GetPropertyInt64(ctx, this_val, normalized_index);
+}
+
 static JSValue js_typed_array_find(JSContext *ctx, JSValueConst this_val,
                                    int argc, JSValueConst *argv, int findIndex)
 {
@@ -53236,6 +53345,7 @@ static const JSCFunctionListEntry js_typed_array_base_proto_funcs[] = {
     JS_CFUNC_MAGIC_DEF("indexOf", 1, js_typed_array_indexOf, special_indexOf ),
     JS_CFUNC_MAGIC_DEF("lastIndexOf", 1, js_typed_array_indexOf, special_lastIndexOf ),
     JS_CFUNC_MAGIC_DEF("includes", 1, js_typed_array_indexOf, special_includes ),
+    JS_CFUNC_DEF("at", 1, js_typed_array_at ),
     //JS_ALIAS_BASE_DEF("toString", "toString", 2 /* Array.prototype. */), @@@
 };
 
