@@ -440,8 +440,19 @@ declare module "quickjs:os" {
   /** POSIX open flag, used in {@link open}. */
   export var O_TRUNC: number;
 
-  /** Windows-specific open flag: open the file in text mode. The default is binary mode. Used in {@link open}. */
-  export var O_TEXT: number;
+  /**
+   * Windows-specific open flag: open the file in binary mode (which is the default). Used in {@link open}.
+   *
+   * NOTE: this property is only present on windows
+   */
+  export var O_BINARY: number | undefined;
+
+  /**
+   * Windows-specific open flag: open the file in text mode. The default is binary mode. Used in {@link open}.
+   *
+   * NOTE: this property is only present on windows
+   */
+  export var O_TEXT: number | undefined;
 
   /** Close the file with descriptor `fd`. */
   export function close(fd: number): void;
@@ -555,26 +566,83 @@ declare module "quickjs:os" {
    */
   export function lstat(path: string): Stats;
 
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Mask for getting type of file from mode.
+   */
   export var S_IFMT: number;
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * File type: named pipe (fifo)
+   */
   export var S_IFIFO: number;
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * File type: character special
+   */
   export var S_IFCHR: number;
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * File type: directory
+   */
   export var S_IFDIR: number;
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * File type: block special
+   */
   export var S_IFBLK: number;
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * File type: regular
+   */
   export var S_IFREG: number;
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
-  export var S_IFSOCK: number;
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
-  export var S_IFLNK: number;
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
-  export var S_ISGID: number;
-  /** Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`. */
-  export var S_ISUID: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * File type: socket
+   *
+   * NOTE: this property is not present on windows
+   */
+  export var S_IFSOCK: number | undefined;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * File type: symbolic link
+   *
+   * NOTE: this property is not present on windows
+   */
+  export var S_IFLNK: number | undefined;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Flag: set group id on execution
+   *
+   * NOTE: this property is not present on windows
+   */
+  export var S_ISGID: number | undefined;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Flag: set user id on execution
+   *
+   * NOTE: this property is not present on windows
+   */
+  export var S_ISUID: number | undefined;
 
   /**
    * Change the access and modification times of the file path.
@@ -621,6 +689,42 @@ declare module "quickjs:os" {
 
   /** POSIX signal number. */
   export var SIGTERM: number;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGQUIT: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGQUIT: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGPIPE: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGALRM: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGUSR1: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGUSR2: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGCHLD: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGCONT: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGSTOP: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGTSTP: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGTTIN: number | undefined;
+
+  /** POSIX signal number. NOTE: this signal is not present on windows. */
+  export var SIGTTOU: number | undefined;
 
   /** Send the signal `sig` to the process `pid`. Use `os.SIG*` constants. */
   export function kill(pid: number, sig: number): void;
