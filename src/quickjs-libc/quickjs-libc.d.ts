@@ -645,6 +645,90 @@ declare module "quickjs:os" {
   export var S_ISUID: number | undefined;
 
   /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Mask for getting RWX permissions for owner
+   */
+  export var S_IRWXU: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Permission: read for owner
+   */
+  export var S_IRUSR: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Permission: write for owner
+   */
+  export var S_IWUSR: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Permission: execute for owner
+   */
+  export var S_IXUSR: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Mask for getting RWX permissions for group
+   */
+  export var S_IRWXG: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Permission: read for group
+   */
+  export var S_IRGRP: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Permission: write for group
+   */
+  export var S_IWGRP: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Permission: execute for group
+   */
+  export var S_IXGRP: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Mask for getting RWX permissions for others
+   */
+  export var S_IRWXO: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Permission: read for others
+   */
+  export var S_IROTH: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Permission: write for others
+   */
+  export var S_IWOTH: number;
+
+  /**
+   * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
+   *
+   * Permission: execute for others
+   */
+  export var S_IXOTH: number;
+
+  /**
    * Change the access and modification times of the file path.
    *
    * The times are specified in milliseconds since 1970.

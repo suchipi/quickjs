@@ -52,6 +52,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `FILE.prototype.setvbuf` method added (wrapper for `setvbuf`).
 - `std.isFILE` function added (returns whether the provided object is a `FILE` (via `js_std_file_class_id`)).
 - `os.{WUNTRACED,WEXITSTATUS,WTERMSIG,WSTOPSIG,WIFEXITED,WIFSIGNALED,WIFSTOPPED,WIFCONTINUED}` added, for working with `os.waitpid`.
+- `os.{S_IRWXU,S_IRUSR,S_IWUSR,S_IXUSR,S_IRWXG,S_IRGRP,S_IWGRP,S_IXGRP,S_IRWXO,S_IROTH,S_IWOTH,S_IXOTH}` added, for working with file modes.
 - `"b"` mode flag is now allowed in `std.fdopen`.
 - `setTimeout` and `clearTimeout` are now available as globals.
 - `setInterval` and `clearInterval` are now available as globals.
