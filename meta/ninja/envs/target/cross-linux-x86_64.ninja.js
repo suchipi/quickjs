@@ -8,5 +8,5 @@ if (process.arch === "x64") {
   declare("CC_TARGET", "x86_64-linux-gnu-gcc");
   declare("AR_TARGET", "x86_64-linux-gnu-gcc-ar");
   declare("DEFINES_TARGET", "-D_GNU_SOURCE -D__linux__");
-  declare("LDFLAGS_TARGET", "-static -L/usr/x86_64-linux-gnu/lib/");
+  declare("LDFLAGS_TARGET", "-rdynamic -L/usr/x86_64-linux-gnu/lib/");
 }

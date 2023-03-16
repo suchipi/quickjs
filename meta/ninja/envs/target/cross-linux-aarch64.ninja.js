@@ -8,5 +8,5 @@ if (process.arch === "arm64") {
   declare("CC_TARGET", "aarch64-linux-gnu-gcc");
   declare("AR_TARGET", "aarch64-linux-gnu-gcc-ar");
   declare("DEFINES_TARGET", "-D_GNU_SOURCE -D__linux__");
-  declare("LDFLAGS_TARGET", "-static");
+  declare("LDFLAGS_TARGET", "-rdynamic");
 }
