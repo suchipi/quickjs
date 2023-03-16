@@ -26,5 +26,5 @@ if [[ "${SKIP_NPM_INSTALL:-}" == "" ]]; then
   npm install
 fi
 
-meta/ninja/generate.sh src/**/*.ninja.js
+meta/ninja/generate.js src/**/*.ninja.js
 ninja
