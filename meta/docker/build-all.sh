@@ -2,17 +2,16 @@
 set -ex
 
 meta/clean.sh
+npm install
 
-# feel free to comment stuff out
-DIRS=(
-  most
-  linux-musl
-)
+# defines IMAGES
+source meta/docker/images.sh
 
 meta/docker/build-images.sh
 
-for DIR in "${DIRS[@]}"; do
+for DIR in "${IMAGES[@]}"; do
   docker run --rm \
   -v $PWD:/opt/quickjs \
-  "suchipi/quickjs-builder-${DIR}"
+  "suchipi/quickjs-builder-${DIR}" \
+  "/opt/quickjs/meta/docker/$DIR/cmd.sh"
 done

@@ -1,5 +1,4 @@
-# Dockerfile for: suchipi/quickjs-builder:linux-musl
-FROM alpine:3.17.2
+FROM --platform=aarch64 alpine:3.17.2
 
 RUN apk add \
   sudo \
@@ -23,4 +22,3 @@ USER user
 
 # The intent is that you volume-mount the repo into /opt/quickjs.
 WORKDIR /opt/quickjs
-CMD /opt/quickjs/meta/docker/linux-musl/cmd.sh
