@@ -1,4 +1,4 @@
-# Dockerfile for: suchipi/quickjs-builder
+# Dockerfile for: suchipi/quickjs-builder:most
 FROM node:18-bullseye as node
 FROM crazymax/osxcross:11.3-r7-ubuntu AS osxcross
 
@@ -39,4 +39,4 @@ ENV LD_LIBRARY_PATH="/osxcross/lib:$LD_LIBRARY_PATH"
 
 # The intent is that you volume-mount the repo into /opt/quickjs.
 WORKDIR /opt/quickjs
-CMD /opt/quickjs/meta/docker/cmd.sh
+CMD /opt/quickjs/meta/docker/most/cmd.sh

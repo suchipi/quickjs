@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-/opt/quickjs/meta/docker/fixup-gcc-libs.sh
-
-git config --global --add safe.directory /opt/quickjs
-meta/clean.sh
+/opt/quickjs/meta/docker/most/fixup-gcc-libs.sh
 
 mkdir -p build
 

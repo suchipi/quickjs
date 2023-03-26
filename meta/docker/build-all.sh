@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -ex
 
-./meta/docker/build-image.sh
+meta/clean.sh
 
-docker run --rm \
+# feel free to comment stuff out
+DIRS=(
+  most
+  linux-musl
+)
+
+meta/docker/build-images.sh
+
+for DIR in "${DIRS[@]}"; do
+  docker run --rm \
   -v $PWD:/opt/quickjs \
-  suchipi/quickjs-builder
+  "suchipi/quickjs-builder-${DIR}"
+done

@@ -5,9 +5,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <limits.h>
-#ifdef __linux__
-#include <linux/limits.h>
-#endif
 #ifdef _WIN32
 #include <libloaderapi.h>
 #endif
