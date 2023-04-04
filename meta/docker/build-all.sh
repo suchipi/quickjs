@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -ex
 
+# move to root dir
+cd $(dirname "$BASH_SOURCE")
+cd ../..
+
 meta/clean.sh
-npm install
+
+NODE_VERSION=$(cat .node-version)
+docker run --rm -it node:${NODE_VERSION/v/} -v $PWD:/workdir -w /workdir \
+  npm install
 
 # defines IMAGES
 source meta/docker/images.sh
