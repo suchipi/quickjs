@@ -21,8 +21,15 @@ ARG UID=1000
 ARG GID=1000
 
 # Make normal user
-RUN groupadd -g $GID user || true
+
+# if group with that GID already exists, use it (macOS ubuntu image on at least
+# orbstack has group staff with gid 20, which matches a macOS user's group. Not
+# sure if Docker Desktop does that)
+RUN if ! getent group $GID; then groupadd -g $GID user; fi
+
 RUN useradd -m -s /bin/bash -u $UID -g $GID user
+
+# allow user to use sudo with no password prompt
 RUN echo "user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 USER user
