@@ -10,7 +10,6 @@ pushd meta/docker > /dev/null
       docker build \
         --build-arg UID=$(id -u) \
         --build-arg GID=$(id -g) \
-        --build-arg IMAGE_DIR="$DIR" \
         -t "suchipi/quickjs-builder-${DIR}" \
         .
     popd > /dev/null
