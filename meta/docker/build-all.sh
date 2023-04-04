@@ -8,7 +8,7 @@ cd ../..
 meta/clean.sh
 
 NODE_VERSION=$(cat .node-version)
-docker run --rm -it node:${NODE_VERSION/v/} -v $PWD:/workdir -w /workdir \
+docker run --rm -it -v $PWD:/workdir -w /workdir node:${NODE_VERSION/v/} \
   npm install
 
 # defines IMAGES
