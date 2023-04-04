@@ -8,7 +8,7 @@ mkdir -p build
 echo "----"
 echo "---- Building linux (x86_64) ----"
 echo "----"
-env BUILDDIR=build/x86_64-unknown-linux-gnu HOST=linux TARGET=cross-linux-x86_64 meta/build.sh
+env SKIP_NPM_INSTALL=1 BUILDDIR=build/x86_64-unknown-linux-gnu HOST=linux TARGET=cross-linux-x86_64 meta/build.sh
 
 echo "----"
 echo "---- Building linux (aarch64) ----"

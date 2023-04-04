@@ -6,7 +6,7 @@ mkdir -p build
 echo "----"
 echo "---- Building linux-musl (aarch64) ----"
 echo "----"
-env BUILDDIR=build/aarch64-unknown-linux-musl HOST=linux TARGET=linux meta/build.sh
+env SKIP_NPM_INSTALL=1 BUILDDIR=build/aarch64-unknown-linux-musl HOST=linux TARGET=linux meta/build.sh
 
 echo "----"
 echo "---- Building linux-static (aarch64) ----"

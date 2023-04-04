@@ -6,7 +6,7 @@ mkdir -p build
 echo "----"
 echo "---- Building linux-musl (x86_64) ----"
 echo "----"
-env BUILDDIR=build/x86_64-unknown-linux-musl HOST=linux TARGET=linux meta/build.sh
+env SKIP_NPM_INSTALL=1 BUILDDIR=build/x86_64-unknown-linux-musl HOST=linux TARGET=linux meta/build.sh
 
 echo "----"
 echo "---- Building linux-static (x86_64) ----"
