@@ -1125,7 +1125,7 @@ static JSValue js_evalScript(JSContext *ctx, JSValueConst this_val,
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
     const char *code;
     const char *filename = "<evalScript>";
-    BOOL filename_needs_to_be_freed = false;
+    BOOL filename_needs_to_be_freed = FALSE;
     size_t len;
     JSValue ret;
     JSValueConst options_obj;
@@ -1149,7 +1149,7 @@ static JSValue js_evalScript(JSContext *ctx, JSValueConst this_val,
             if (!filename) {
                 return JS_EXCEPTION;
             }
-            filename_needs_to_be_freed = true;
+            filename_needs_to_be_freed = TRUE;
         }
     }
 
