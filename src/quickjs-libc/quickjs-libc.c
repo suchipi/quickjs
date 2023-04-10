@@ -1123,23 +1123,43 @@ static JSValue js_evalScript(JSContext *ctx, JSValueConst this_val,
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
-    const char *str;
+    const char *code;
+    const char *filename = "<evalScript>";
+    BOOL filename_needs_to_be_freed = false;
     size_t len;
     JSValue ret;
     JSValueConst options_obj;
+    JSValueConst filename_val;
     BOOL backtrace_barrier = FALSE;
     int flags;
 
     if (argc >= 2) {
         options_obj = argv[1];
-        if (get_bool_option(ctx, &backtrace_barrier, options_obj,
-                            "backtraceBarrier"))
+        if (get_bool_option(ctx, &backtrace_barrier, options_obj, "backtraceBarrier")) {
             return JS_EXCEPTION;
+        }
+
+        filename_val = JS_GetPropertyStr(ctx, options_obj, "filename");
+        if (JS_IsException(filename_val)) {
+            return JS_EXCEPTION;
+        }
+
+        if (JS_IsString(filename_val)) {
+            filename = JS_ToCString(ctx, filename_val);
+            if (!filename) {
+                return JS_EXCEPTION;
+            }
+            filename_needs_to_be_freed = true;
+        }
     }
 
-    str = JS_ToCStringLen(ctx, &len, argv[0]);
-    if (!str)
+    code = JS_ToCStringLen(ctx, &len, argv[0]);
+    if (!code) {
+        if (filename_needs_to_be_freed) {
+            JS_FreeCString(ctx, filename);
+        }
         return JS_EXCEPTION;
+    }
     if (!ts->recv_pipe && ++ts->eval_script_recurse == 1) {
         /* install the interrupt handler */
         JS_SetInterruptHandler(JS_GetRuntime(ctx), interrupt_handler, NULL);
@@ -1147,8 +1167,11 @@ static JSValue js_evalScript(JSContext *ctx, JSValueConst this_val,
     flags = JS_EVAL_TYPE_GLOBAL;
     if (backtrace_barrier)
         flags |= JS_EVAL_FLAG_BACKTRACE_BARRIER;
-    ret = JS_Eval(ctx, str, len, "<evalScript>", flags);
-    JS_FreeCString(ctx, str);
+    ret = JS_Eval(ctx, code, len, filename, flags);
+    JS_FreeCString(ctx, code);
+    if (filename_needs_to_be_freed) {
+        JS_FreeCString(ctx, filename);
+    }
     if (!ts->recv_pipe && --ts->eval_script_recurse == 0) {
         /* remove the interrupt handler */
         JS_SetInterruptHandler(JS_GetRuntime(ctx), NULL, NULL);
