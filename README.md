@@ -6,6 +6,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 
 - A TypeScript `.d.ts` file is provided for all QuickJS-specific APIs (operator overloading APIs, BigInt extensions, BigFloat, BigDecimal, etc).
 - `Object.toPrimitive` is now available (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
+- `Object.isPrimitive` is now available (static method that returns a boolean indicating whether the given value is a primitive).
 - `Symbol.typeofValue` can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
 - Added support for Error constructor "cause" option (from ES2022).
 - Added support for relative indexing method `.at()` (from ES2022).
@@ -19,6 +20,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
   - `JS_AddPropertyToException`
 - Additional utility functions added:
   - `JS_FreezeObjectValue` (performs Object.freeze)
+  - `JS_IsPrimitive`
 - ModuleDefs now have an optional "user_data" property (pointer to void) which can be accessed during module initialization (via `JS_GetModuleUserData` and `JS_SetModuleUserData`)
 
 ## Changes to `quickjs-libc`:

@@ -14943,6 +14943,34 @@ static __exception int js_operator_typeof(JSContext *ctx, JSValueConst op1)
     return atom;
 }
 
+JS_BOOL JS_IsPrimitive(JSValueConst value)
+{
+    uint32_t tag;
+
+    tag = JS_VALUE_GET_NORM_TAG(value);
+    switch(tag) {
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_INT:
+    case JS_TAG_BIG_FLOAT:
+    case JS_TAG_BIG_DECIMAL:
+#endif
+    case JS_TAG_INT:
+    case JS_TAG_FLOAT64:
+    case JS_TAG_UNDEFINED:
+    case JS_TAG_BOOL:
+    case JS_TAG_STRING:
+    case JS_TAG_NULL:
+    case JS_TAG_SYMBOL:
+        return FALSE;
+
+    case JS_TAG_OBJECT:
+    case JS_TAG_MODULE:
+    case JS_TAG_FUNCTION_BYTECODE:
+    default:
+        return TRUE;
+    }
+}
+
 static __exception int js_operator_delete(JSContext *ctx, JSValue *sp)
 {
     JSValue op1, op2;
@@ -37141,6 +37169,16 @@ static JSValue js_object_toPrimitive(JSContext *ctx, JSValueConst this_val,
     return JS_ToPrimitive(ctx, input, hint);
 }
 
+static JSValue js_object_isPrimitive(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv)
+{
+    if (JS_IsPrimitive(argv[0])) {
+        return JS_TRUE;
+    } else {
+        return JS_FALSE;
+    }
+}
+
 static JSValue js_object_valueOf(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
@@ -37730,6 +37768,7 @@ static const JSCFunctionListEntry js_object_funcs[] = {
     JS_CFUNC_DEF("fromEntries", 1, js_object_fromEntries ),
     JS_CFUNC_DEF("hasOwn", 2, js_object_hasOwn ),
     JS_CFUNC_DEF("toPrimitive", 2, js_object_toPrimitive ),
+    JS_CFUNC_DEF("isPrimitive", 1, js_object_isPrimitive ),
 };
 
 static const JSCFunctionListEntry js_object_proto_funcs[] = {
