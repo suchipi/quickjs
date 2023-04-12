@@ -14961,13 +14961,13 @@ JS_BOOL JS_IsPrimitive(JSValueConst value)
     case JS_TAG_STRING:
     case JS_TAG_NULL:
     case JS_TAG_SYMBOL:
-        return FALSE;
+        return TRUE;
 
     case JS_TAG_OBJECT:
     case JS_TAG_MODULE:
     case JS_TAG_FUNCTION_BYTECODE:
     default:
-        return TRUE;
+        return FALSE;
     }
 }
 
