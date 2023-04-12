@@ -12,6 +12,11 @@ interface ObjectConstructor {
     input: any,
     hint: "string" | "number" | "default"
   ): string | number | bigint | boolean | undefined | symbol | null;
+
+  /**
+   * Returns a boolean indicating whether the specified value is a primitive value.
+   */
+  isPrimitive(input: any): boolean;
 }
 
 interface SymbolConstructor {
