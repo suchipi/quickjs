@@ -52,7 +52,7 @@ test("bytecode", async () => {
     	│0x00000040│ 00 42 E4 00 00 00 B7 B7 9D 24 01 00 CD 28 CA 03
     	│0x00000050│ 01 00
     }
-    file toValue Function {
+    file toValue Function "bound bytecode" {
     	│1│ function bound bytecode() {
     	│2│     [native code]
     	│3│ }

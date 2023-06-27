@@ -1,4 +1,4 @@
-/** npm: @suchipi/print@2.3.0. License: ISC */
+/** npm: @suchipi/print@2.4.0. License: ISC */
 
 /*
 Copyright (c) 2016-2022, John Gardner
@@ -324,6 +324,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
       type = value[Symbol.toStringTag];
     }
 
+    let typeSuffix = "";
+
     if (!tooDeep) {
       if (Object.isFrozen(value)) {
         linesBefore.push(frozen + "Frozen" + off);
@@ -506,6 +508,23 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
       }
     }
 
+    // Display function names
+    if (
+      typeof value === "function" &&
+      typeof value.name === "string" &&
+      value.name != ""
+    ) {
+      const printedName = inspect(
+        value.name,
+        null,
+        opts,
+        refs,
+        path + dot + keys + "name",
+        depth
+      );
+      typeSuffix += " " + printedName;
+    }
+
     // Display the source code of function objects
     if (typeof value === "function" && !opts.noSource && !tooDeep) {
       const source = [...Function.prototype.toString.call(value)];
@@ -670,7 +689,9 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
     }
 
     return (
-      key + (type ? typeColour + type + off + " " : "") + valueParts.join("")
+      key +
+      (type ? typeColour + type + off + typeSuffix + " " : "") +
+      valueParts.join("")
     );
   }
 

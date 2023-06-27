@@ -29,17 +29,17 @@ test("qjsbootstrap - can access bytecode lib", async () => {
     	Null prototype
     	Sealed
     	
-    	fromFile: Function {
+    	fromFile: Function "fromFile" {
     		│1│ function fromFile() {
     		│2│     [native code]
     		│3│ }
     	}
-    	fromValue: Function {
+    	fromValue: Function "fromValue" {
     		│1│ function fromValue() {
     		│2│     [native code]
     		│3│ }
     	}
-    	toValue: Function {
+    	toValue: Function "toValue" {
     		│1│ function toValue() {
     		│2│     [native code]
     		│3│ }

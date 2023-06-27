@@ -6,12 +6,14 @@
     "./src/quickjs-libcontext/quickjs-libcontext.d.ts",
 ],
   "include": ["./**/*.js", "./**/*.ts"],
+  "exclude": ["oldtests/**/*"],
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
     "lib": ["ES2020"],
     "strictNullChecks": true,
-    "types": []
+    "esModuleInterop": true,
+    "types": ["jest"]
   }
 }
