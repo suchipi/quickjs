@@ -73,6 +73,18 @@ extern "C"
                                         JS_BOOL is_handled, void *opaque);
   void js_std_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt));
 
+  /**
+   * 'userdata'-esque pointer wrapper so JS can pass C pointers around.
+   *
+   * nothing in quickjs-libc uses these, but it's good to have some sort of
+   * convention for foreign pointers, so I establish that here.
+   */
+  JSValue js_std_new_user_ptr(JSContext *ctx, void *ptr);
+  /* copies the pointer inside of the UserPtr user_ptr_val into ptr_out. */
+  int js_std_read_user_ptr(JSContext *ctx, JSValue user_ptr_val, void **ptr_out);
+  /* whether val is a UserPtr object. JS can use std.isUserPtr to get this info. */
+  int js_std_is_user_ptr(JSContext *ctx, JSValue val);
+
 #ifdef __cplusplus
 } /* extern "C" { */
 #endif

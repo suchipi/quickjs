@@ -1184,6 +1184,21 @@ static JSValue js_evalScript(JSContext *ctx, JSValueConst this_val,
     return ret;
 }
 
+static JSValue js_std_parseExtJSON(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv)
+{
+    JSValue obj;
+    const char *str;
+    size_t len;
+
+    str = JS_ToCStringLen(ctx, &len, argv[0]);
+    if (!str)
+        return JS_EXCEPTION;
+    obj = JS_ParseJSON2(ctx, str, len, "<input>", JS_PARSE_JSON_EXT);
+    JS_FreeCString(ctx, str);
+    return obj;
+}
+
 static JSClassID js_std_file_class_id;
 
 typedef struct {
@@ -1204,21 +1219,6 @@ static void js_std_file_finalizer(JSRuntime *rt, JSValue val)
         }
         js_free_rt(rt, s);
     }
-}
-
-static JSValue js_std_parseExtJSON(JSContext *ctx, JSValueConst this_val,
-                                   int argc, JSValueConst *argv)
-{
-    JSValue obj;
-    const char *str;
-    size_t len;
-
-    str = JS_ToCStringLen(ctx, &len, argv[0]);
-    if (!str)
-        return JS_EXCEPTION;
-    obj = JS_ParseJSON2(ctx, str, len, "<input>", JS_PARSE_JSON_EXT);
-    JS_FreeCString(ctx, str);
-    return obj;
 }
 
 static JSValue js_new_std_file(JSContext *ctx, FILE *f,
@@ -1250,6 +1250,76 @@ static JSValue js_std_isFILE(JSContext *ctx, JSValueConst this_val,
         return JS_FALSE;
     } else {
         return JS_TRUE;
+    }
+}
+
+static JSClassID js_std_user_ptr_class_id;
+
+typedef struct {
+    void *ptr;
+} JSUserPtr;
+
+static void js_std_user_ptr_finalizer(JSRuntime *rt, JSValue val)
+{
+    JSUserPtr *up = JS_GetOpaque(val, js_std_user_ptr_class_id);
+    if (up) {
+        js_free_rt(rt, up);
+    }
+}
+
+JSValue js_std_new_user_ptr(JSContext *ctx, void *ptr)
+{
+    JSUserPtr *up;
+    JSValue obj;
+    obj = JS_NewObjectClass(ctx, js_std_user_ptr_class_id);
+    if (JS_IsException(obj)) {
+        return obj;
+    }
+    up = js_mallocz(ctx, sizeof(*up));
+    if (!up) {
+        JS_FreeValue(ctx, obj);
+        return JS_EXCEPTION;
+    }
+    up->ptr = ptr;
+    JS_SetOpaque(obj, up);
+    return obj;
+}
+
+/* -1 on exception, 0 on success */
+int js_std_read_user_ptr(JSContext *ctx, JSValue user_ptr_val, void **ptr_out)
+{
+    JSUserPtr *up = JS_GetOpaque(user_ptr_val, js_std_user_ptr_class_id);
+    if (up == NULL) {
+        *ptr_out = NULL;
+        JS_ThrowTypeError(ctx, "value passed to js_std_read_user_ptr was not a UserPtr");
+        return -1;
+    }
+
+    *ptr_out = up->ptr;
+    return 0;
+}
+
+int js_std_is_user_ptr(JSContext *ctx, JSValue val)
+{
+    JSUserPtr *up = JS_GetOpaque(val, js_std_user_ptr_class_id);
+    if (up == NULL) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+static JSValue js_std_isUserPtr(JSContext *ctx, JSValueConst this_val,
+                                int argc, JSValueConst *argv)
+{
+    if (argc != 1) {
+        return JS_ThrowTypeError(ctx, "isUserPtr accepts one argument, but received %d instead", argc);
+    }
+
+    if (js_std_is_user_ptr(ctx, argv[0])) {
+        return JS_TRUE;
+    } else {
+        return JS_FALSE;
     }
 }
 
@@ -1995,6 +2065,11 @@ read_headers:
     return JS_EXCEPTION;
 }
 
+static JSClassDef js_std_user_ptr_class = {
+    "UserPtr",
+    .finalizer = js_std_user_ptr_finalizer,
+};
+
 static JSClassDef js_std_file_class = {
     "FILE",
     .finalizer = js_std_file_finalizer,
@@ -2032,6 +2107,12 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_PROP_INT32_DEF("_IOFBF", _IOFBF, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("_IOLBF", _IOLBF, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("_IONBF", _IONBF, JS_PROP_CONFIGURABLE ),
+
+    JS_CFUNC_DEF("isUserPtr", 1, js_std_isUserPtr ),
+};
+
+static const JSCFunctionListEntry js_std_user_ptr_proto_funcs[] = {
+    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "UserPtr", JS_PROP_CONFIGURABLE ),
 };
 
 static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
@@ -2058,7 +2139,8 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
 
 static int js_std_init(JSContext *ctx, JSModuleDef *m)
 {
-    JSValue proto;
+    JSValue file_proto;
+    JSValue user_ptr_proto;
     JSValue stdin_FILE;
     JSValue stdout_FILE;
     JSValue stderr_FILE;
@@ -2068,10 +2150,18 @@ static int js_std_init(JSContext *ctx, JSModuleDef *m)
     JS_NewClassID(&js_std_file_class_id);
     /* the class is created once per runtime */
     JS_NewClass(JS_GetRuntime(ctx), js_std_file_class_id, &js_std_file_class);
-    proto = JS_NewObject(ctx);
-    JS_SetPropertyFunctionList(ctx, proto, js_std_file_proto_funcs,
+    file_proto = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, file_proto, js_std_file_proto_funcs,
                                countof(js_std_file_proto_funcs));
-    JS_SetClassProto(ctx, js_std_file_class_id, proto);
+    JS_SetClassProto(ctx, js_std_file_class_id, file_proto);
+
+    /* UserPtr class */
+    JS_NewClassID(&js_std_user_ptr_class_id);
+    JS_NewClass(JS_GetRuntime(ctx), js_std_user_ptr_class_id, &js_std_user_ptr_class);
+    user_ptr_proto = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, user_ptr_proto, js_std_user_ptr_proto_funcs,
+                               countof(js_std_user_ptr_proto_funcs));
+    JS_SetClassProto(ctx, js_std_user_ptr_class_id, user_ptr_proto);
 
     JS_SetModuleExportList(ctx, m, js_std_funcs,
                            countof(js_std_funcs));

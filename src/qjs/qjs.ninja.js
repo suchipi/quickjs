@@ -13,6 +13,7 @@ build({
     builddir("intermediate/repl.target.o"),
     builddir("intermediate/quickjs-libcontext.target.o"),
     builddir("intermediate/quickjs-libbytecode.target.o"),
+    builddir("intermediate/quickjs-libdl.target.o"),
     builddir("intermediate/quickjs-full.target.a"),
   ],
 });
