@@ -27,12 +27,9 @@ JSValue QJU_ForEachProperty_Read(JSContext *ctx, JSValue obj, QJUForEachProperty
 
 void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state);
 
-#define QJU_END qju_end
-#define QJU_RETVAL qju_ret
-#define QJU_DEFAULT_RETURN(type, default) type QJU_RETVAL = default;
-#define QJU_RETURN(value) \
-  QJU_RETVAL = value;     \
-  goto QJU_END;
-#define QJU_FINAL_RETURN return QJU_RETVAL
+#define QJU_AssertArgLength(function_name, expected_arg_length) \
+  if (argc != expected_arg_length) { \
+    return JS_ThrowTypeError(ctx, "expected %d argument(s) to %s, but received %d", expected_arg_length, function_name, argc); \
+  }
 
 #endif /* ifndef QUICKJS_UTILS_H */
