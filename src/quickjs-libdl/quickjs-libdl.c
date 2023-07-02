@@ -3,6 +3,7 @@
 
 #include "quickjs-libdl.h"
 #include "quickjs-libc.h"
+#include "quickjs-utils.h"
 
 static JSValue js_dl_dlopen(JSContext *ctx, JSValueConst this_val,
                             int argc, JSValueConst *argv)
@@ -12,9 +13,7 @@ static JSValue js_dl_dlopen(JSContext *ctx, JSValueConst this_val,
     void *handle;
     char *error;
 
-    if (argc != 2) {
-        return JS_ThrowTypeError(ctx, "expected 2 arguments to dlopen, but received %d", argc);
-    }
+    QJU_AssertArgLength("dlopen", 2);
 
     filename = JS_ToCString(ctx, argv[0]);
     if (filename == NULL) {
@@ -41,15 +40,60 @@ static JSValue js_dl_dlopen(JSContext *ctx, JSValueConst this_val,
 static JSValue js_dl_dlsym(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
-    // TODO
-    return JS_ThrowError(ctx, "Not yet implemented");
+    void *handle;
+    const char *symbol_name;
+    void *symbol;
+    char *error;
+
+    QJU_AssertArgLength("dlsym", 2);
+
+    if (js_std_read_user_ptr(ctx, argv[0], &handle)) {
+        return JS_EXCEPTION;
+    }
+
+    symbol_name = JS_ToCString(ctx, argv[1]);
+    if (symbol_name == NULL) {
+        return JS_EXCEPTION;
+    }
+
+    /* clear error code */
+    dlerror();
+    symbol = dlsym(handle, symbol_name);
+    error = dlerror();
+    if (error != NULL) {
+        JS_FreeCString(ctx, symbol_name);
+        return JS_ThrowError(ctx, "dlsym failed: %s", error);
+    }
+
+    return js_std_new_user_ptr(ctx, symbol);
 }
 
 static JSValue js_dl_dlclose(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
-    // TODO
-    return JS_ThrowError(ctx, "Not yet implemented");
+    void *handle;
+    int result;
+
+    QJU_AssertArgLength("dlsym", 1);
+
+    if (js_std_read_user_ptr(ctx, argv[0], &handle)) {
+        return JS_EXCEPTION;
+    }
+
+    /* clear error code */
+    dlerror();
+
+    result = dlclose(handle);
+    if (result != 0) {
+        const char *error = dlerror();
+        if (error != NULL) {
+            return JS_ThrowError(ctx, "dlclose failed: %s (result = %d)", error, result);
+        } else {
+            return JS_ThrowError(ctx, "dlclose failed and dlerror returned NULL (result = %d)", result);
+        }
+    }
+
+    return JS_UNDEFINED;
 }
 
 static const JSCFunctionListEntry js_dl_funcs[] = {
