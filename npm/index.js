@@ -18,6 +18,7 @@ exports.identifyCurrentPlatform = function identifyCurrentPlatform() {
     }
   }
 
+  /** @type {string} */
   let arch = process.arch;
   switch (arch) {
     case "arm64": {
