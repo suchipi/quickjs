@@ -45,14 +45,7 @@ exports.identifyCurrentPlatform = function identifyCurrentPlatform() {
       return `${arch}-pc-windows-static`;
     }
     case "linux": {
-      const lddInfo = runShell(`ldd --version 2>&1 || true`);
-      if (/musl/.test(lddInfo)) {
-        return `${arch}-unknown-linux-musl`;
-      } else if (/GLIBC|GNU/.test(lddInfo)) {
-        return `${arch}-unknown-linux-gnu`;
-      } else {
-        return `${arch}-unknown-linux-static`;
-      }
+      return `${arch}-unknown-linux-static`;
     }
     default: {
       // should be unreachable
