@@ -13,3 +13,9 @@ build({
   rule: "cc_target",
   inputs: [inspect_c],
 });
+
+build({
+  output: builddir("dts/inspect.d.ts"),
+  rule: "copy",
+  inputs: [rel("inspect.d.ts")],
+});

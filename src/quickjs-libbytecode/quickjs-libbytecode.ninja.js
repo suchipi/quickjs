@@ -9,3 +9,9 @@ build({
   rule: "cc_target",
   inputs: [rel("quickjs-libbytecode.c")],
 });
+
+build({
+  output: builddir("dts/quickjs-libbytecode.d.ts"),
+  rule: "copy",
+  inputs: [rel("quickjs-libbytecode.d.ts")],
+});

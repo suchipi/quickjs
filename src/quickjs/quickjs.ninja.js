@@ -9,3 +9,9 @@ build({
   rule: "cc_target",
   inputs: [rel("quickjs.c")],
 });
+
+build({
+  output: builddir("dts/quickjs.d.ts"),
+  rule: "copy",
+  inputs: [rel("quickjs.d.ts")],
+});

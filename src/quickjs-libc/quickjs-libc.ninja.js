@@ -33,3 +33,9 @@ const lib_target_o = build({
   rule: "cc_target",
   inputs: [lib_c],
 });
+
+build({
+  output: builddir("dts/quickjs-libc.d.ts"),
+  rule: "copy",
+  inputs: [rel("quickjs-libc.d.ts")],
+});
