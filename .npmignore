@@ -1,0 +1,22 @@
+examples
+meta
+node_modules
+oldtests
+src
+tests
+.editorconfig
+.gitignore
+.node-version
+.npmignore
+.prettierignore
+build.ninja
+Changelog
+jest.config.js
+build/*/intermediate
+build/**/.ninja_*
+
+# non-platform-specific build artifacts (dev builds)
+build/bin
+build/intermediate
+build/lib
+build/dts

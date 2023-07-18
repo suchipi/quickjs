@@ -1,7 +1,12 @@
 {
   "name": "@suchipi/quickjs",
-  "version": "0.0.0",
-  "license": "MIT",
+  "description": "Suchipi's QuickJS Fork",
+  "version": "0.1.0",
+  "main": "./npm/index.cjs",
+  "exports": {
+    "import": "./npm/index.mjs",
+    "require": "./npm/index.cjs"
+  },
   "devDependencies": {
     "@babel/core": "^7.20.5",
     "@babel/preset-env": "^7.20.2",
@@ -20,5 +25,10 @@
   "scripts": {
     "test": "jest --runInBand"
   },
-  "prettier": {}
+  "prettier": {},
+  "license": "MIT",
+  "repository": "suchipi/quickjs",
+  "publishConfig": {
+    "access": "public"
+  }
 }

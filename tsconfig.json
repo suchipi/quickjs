@@ -6,7 +6,7 @@
     "./src/quickjs-libcontext/quickjs-libcontext.d.ts",
 ],
   "include": ["./**/*.js", "./**/*.ts"],
-  "exclude": ["oldtests/**/*"],
+  "exclude": ["oldtests/**/*", "build/**/*", "examples/**/*"],
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
