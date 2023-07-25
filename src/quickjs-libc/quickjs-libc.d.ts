@@ -410,6 +410,20 @@ declare module "quickjs:std" {
    * - octal (0o prefix) and hexadecimal (0x prefix) numbers
    */
   export function parseExtJSON(str: string): any;
+
+  /**
+   * A wrapper around the standard C [strftime](https://en.cppreference.com/w/c/chrono/strftime).
+   * Formats a time/date into a format as specified by the user.
+   *
+   * @param maxBytes - The number of bytes to allocate for the string that will be returned
+   * @param format - Format string, using `%`-prefixed sequences as found in [this table](https://en.cppreference.com/w/c/chrono/strftime#Format_string).
+   * @param time - The Date object (or unix timestamp, in ms) to render.
+   */
+  export function strftime(
+    maxBytes: number,
+    format: string,
+    time: Date | number
+  ): string;
 }
 
 declare module "quickjs:os" {

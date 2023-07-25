@@ -56,6 +56,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `os.{WUNTRACED,WEXITSTATUS,WTERMSIG,WSTOPSIG,WIFEXITED,WIFSIGNALED,WIFSTOPPED,WIFCONTINUED}` added, for working with `os.waitpid`.
 - `os.{S_IRWXU,S_IRUSR,S_IWUSR,S_IXUSR,S_IRWXG,S_IRGRP,S_IWGRP,S_IXGRP,S_IRWXO,S_IROTH,S_IWOTH,S_IXOTH}` added, for working with file modes.
 - `"b"` mode flag is now allowed in `std.fdopen`.
+- `std.strftime` is now available (wrapper for libc `strftime`).
 - `setTimeout` and `clearTimeout` are now available as globals.
 - `setInterval` and `clearInterval` are now available as globals.
 - `String.cooked` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
@@ -82,6 +83,10 @@ hello!
 You can use this to create distributable binaries that run JS code without needing to use qjsc or a C compiler. Instructions [here](https://github.com/suchipi/quickjs/tree/main/src/qjsbootstrap).
 
 > Note: On FreeBSD, `qjsbootstrap` requires procfs. You can mount it with `mount -t procfs proc /proc`. I started some work to use libprocstat instead, but haven't completed it yet.
+
+## New binary: `quickjs-run`:
+
+Barebones binary for running files, without any of the arg parsing logic from qjs. Good for testing some unusual cases, or writing programs with custom argv parsing logic.
 
 ## New module: "quickjs:bytecode"
 

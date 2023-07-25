@@ -37,6 +37,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <time.h>
 #if defined(_WIN32)
 #include <windows.h>
 #include <conio.h>
@@ -1425,6 +1426,66 @@ static JSValue js_std_printf(JSContext *ctx, JSValueConst this_val,
     return js_printf_internal(ctx, argc, argv, stdout);
 }
 
+static JSValue js_std_strftime(JSContext *ctx, JSValueConst this_val,
+                               int argc, JSValueConst *argv)
+{
+    int32_t max_bytes;
+    double epoch_as_double;
+    time_t epoch;
+    struct tm time;
+    size_t returned_str_size;
+    JSValue output_str_val;
+    const char *format_str = NULL;
+    char *output_str = NULL;
+
+    if (argc != 3) {
+        return JS_ThrowTypeError(ctx, "strftime must be called with exactly three arguments: max bytes to write, a format string, and a Date object (or number).");
+    }
+
+    if (JS_ToInt32(ctx, &max_bytes, argv[0])) {
+        return JS_EXCEPTION;
+    }
+
+    format_str = JS_ToCString(ctx, argv[1]);
+    if (format_str == NULL) {
+        return JS_EXCEPTION;
+    }
+
+    // Note: coerces Date to number here
+    if (JS_ToFloat64(ctx, &epoch_as_double, argv[2])) {
+        JS_FreeCString(ctx, format_str);
+        return JS_EXCEPTION;
+    }
+
+    // JS epoch is in ms, but strftime epoch is in seconds, so divide by 1000
+    epoch = (time_t) (epoch_as_double / 1000);
+    if (!localtime_r(&epoch, &time)) {
+        int err = errno;
+        char *err_msg = strerror(err);
+        JS_ThrowTypeError(ctx, "localtime_r failed: %s (errno = %d)", err_msg, err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        JS_FreeCString(ctx, format_str);
+        return JS_EXCEPTION;
+    }
+
+    output_str = js_malloc(ctx, (size_t) max_bytes);
+    if (!output_str) {
+        JS_FreeCString(ctx, format_str);
+        return JS_EXCEPTION;
+    }
+
+    returned_str_size = strftime(output_str, (size_t) max_bytes, format_str, &time);
+    JS_FreeCString(ctx, format_str);
+    if (returned_str_size == 0) {
+        js_free(ctx, output_str);
+        return JS_ThrowRangeError(ctx, "specified size for formatted string was not large enough to hold it. call again with larger max bytes");
+    }
+
+    output_str_val = JS_NewStringLen(ctx, output_str, returned_str_size);
+    js_free(ctx, output_str);
+    return output_str_val;
+}
+
 static FILE *js_std_file_get(JSContext *ctx, JSValueConst obj)
 {
     JSSTDFile *s = JS_GetOpaque2(ctx, obj, js_std_file_class_id);
@@ -2025,6 +2086,7 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_MAGIC_DEF("puts", 1, js_std_file_puts, 0 ),
     JS_CFUNC_DEF("printf", 1, js_std_printf ),
     JS_CFUNC_DEF("sprintf", 1, js_std_sprintf ),
+    JS_CFUNC_DEF("strftime", 3, js_std_strftime ),
     JS_PROP_INT32_DEF("SEEK_SET", SEEK_SET, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("SEEK_CUR", SEEK_CUR, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("SEEK_END", SEEK_END, JS_PROP_CONFIGURABLE ),
