@@ -752,21 +752,29 @@ static inline JSValue JS_DupValueRT(JSRuntime *rt, JSValueConst v)
     return (JSValue)v;
 }
 
-int JS_ToBool(JSContext *ctx, JSValueConst val); /* return -1 for JS_EXCEPTION */
+/* returns -1 when exception has been thrown, 0 when ok */
+int JS_ToBool(JSContext *ctx, JSValueConst val);
+/* returns -1 when exception has been thrown, 0 when ok */
 int JS_ToInt32(JSContext *ctx, int32_t *pres, JSValueConst val);
+/* returns -1 when exception has been thrown, 0 when ok */
 static inline int JS_ToUint32(JSContext *ctx, uint32_t *pres, JSValueConst val)
 {
     return JS_ToInt32(ctx, (int32_t*)pres, val);
 }
+/* returns -1 when exception has been thrown, 0 when ok */
 int JS_ToInt64(JSContext *ctx, int64_t *pres, JSValueConst val);
+/* returns -1 when exception has been thrown, 0 when ok */
 int JS_ToIndex(JSContext *ctx, uint64_t *plen, JSValueConst val);
+/* returns -1 when exception has been thrown, 0 when ok */
 int JS_ToFloat64(JSContext *ctx, double *pres, JSValueConst val);
-/* return an exception if 'val' is a Number */
+/* returns -1 when exception has been thrown, 0 when ok. throws an exception if 'val' is a Number */
 int JS_ToBigInt64(JSContext *ctx, int64_t *pres, JSValueConst val);
-/* same as JS_ToInt64() but allow BigInt */
+/* same as JS_ToInt64() but allows BigInt. returns -1 when exception has been thrown, 0 when ok */
 int JS_ToInt64Ext(JSContext *ctx, int64_t *pres, JSValueConst val);
 
+/* creates a string from a UTF-8 buffer. the buffer is copied. */
 JSValue JS_NewStringLen(JSContext *ctx, const char *str1, size_t len1);
+/* creates a string from a UTF-8 buffer. the buffer is copied. */
 JSValue JS_NewString(JSContext *ctx, const char *str);
 JSValue JS_NewAtomString(JSContext *ctx, const char *str);
 JSValue JS_ToString(JSContext *ctx, JSValueConst val);
@@ -789,6 +797,7 @@ JSValue JS_NewObject(JSContext *ctx);
 
 JS_BOOL JS_IsFunction(JSContext* ctx, JSValueConst val);
 JS_BOOL JS_IsConstructor(JSContext* ctx, JSValueConst val);
+/* returns whether the bit was set (doesn't get set if func_obj is a primitive) */
 JS_BOOL JS_SetConstructorBit(JSContext *ctx, JSValueConst func_obj, JS_BOOL val);
 
 JSValue JS_NewArray(JSContext *ctx);
