@@ -737,7 +737,7 @@ static JSModuleDef *js_module_loader_so(JSContext *ctx,
     }
     return m;
 #else
-    JS_ThrowReferenceError(ctx, "shared library modules are not supported in this version of quickjs");
+    JS_ThrowReferenceError(ctx, "shared library modules are not supported in this build of quickjs");
     return NULL;
 #endif /* _WIN32 or CONFIG_SHARED_LIBRARY_MODULES */
 }

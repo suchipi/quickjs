@@ -986,7 +986,7 @@ JSValue JS_ReadObject(JSContext *ctx, const uint8_t *buf, size_t buf_len,
    reading a script or module with JS_ReadObject() */
 JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj);
 /* load the dependencies of the module 'obj'. Useful when JS_ReadObject()
-   returns a module. */
+   returns a module. returns 0 on success, -1 on error. */
 int JS_ResolveModule(JSContext *ctx, JSValueConst obj);
 
 JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels);
