@@ -1,22 +1,22 @@
 // compiles one or more .c files into one .o file.
 // takes 1..n inputs, has one output (the .o file).
 rule("cc_host", {
-  command: `$CC_HOST -c $in -o $out $DEFINES_HOST $CFLAGS_HOST $cc_args`,
+  command: `$CC_HOST $DEFINES_HOST $CFLAGS_HOST $cc_args -c $in -o $out`,
   description: "CC_HOST $out",
 });
 rule("cc_target", {
-  command: `$CC_TARGET -c $in -o $out $DEFINES_TARGET $CFLAGS_TARGET $cc_args`,
+  command: `$CC_TARGET $DEFINES_TARGET $CFLAGS_TARGET $cc_args -c $in -o $out`,
   description: "CC_TARGET $out",
 });
 
 // compiles one or more .o files into one executable file.
 // takes 1..n inputs, has one output (the program file).
 rule("link_host", {
-  command: `$CC_HOST $in $LDFLAGS_HOST -o $out $LIBS_HOST && rm -rf $out.dSYM`,
+  command: `$CC_HOST $LDFLAGS_HOST $LIBS_HOST $LDEXPORT_HOST $in -o $out`,
   description: "LINK_HOST $out",
 });
 rule("link_target", {
-  command: `$CC_TARGET $in $LDFLAGS_TARGET -o $out $LIBS_TARGET && rm -rf $out.dSYM`,
+  command: `$CC_TARGET $LDFLAGS_TARGET $LIBS_TARGET $LDEXPORT_TARGET $in -o $out`,
   description: "LINK_TARGET $out",
 });
 

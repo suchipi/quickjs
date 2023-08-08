@@ -2,4 +2,4 @@
 
 declare("CC_HOST", "cc");
 declare("AR_HOST", "ar");
-declare("LDFLAGS_HOST", "-rdynamic");
+declare("LDEXPORT_HOST", "-rdynamic");

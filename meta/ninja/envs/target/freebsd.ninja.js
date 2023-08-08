@@ -2,4 +2,4 @@
 
 declare("CC_TARGET", "cc");
 declare("AR_TARGET", "ar");
-declare("LDFLAGS_TARGET", "-rdynamic");
+declare("LDEXPORT_TARGET", "-rdynamic");

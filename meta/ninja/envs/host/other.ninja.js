@@ -6,6 +6,7 @@ declare("AR_HOST", env.AR_HOST || env.AR || "ar");
 declare("DEFINES_HOST", env.DEFINES_HOST || env.DEFINES || "");
 declare("CFLAGS_HOST", env.CFLAGS_HOST || env.CFLAGS || "");
 declare("LDFLAGS_HOST", env.LDFLAGS_HOST || env.LDFLAGS || "");
+declare("LDEXPORT_HOST", env.LDEXPORT_HOST || env.LDEXPORT || "");
 
 console.error("LTO_HOST", getVar("LTO_HOST"));
 console.error("CC_HOST", getVar("CC_HOST"));
@@ -13,3 +14,4 @@ console.error("AR_HOST", getVar("AR_HOST"));
 console.error("DEFINES_HOST", getVar("DEFINES_HOST"));
 console.error("CFLAGS_HOST", getVar("CFLAGS_HOST"));
 console.error("LDFLAGS_HOST", getVar("LDFLAGS_HOST"));
+console.error("LDEXPORT_HOST", getVar("LDEXPORT_HOST"));

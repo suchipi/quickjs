@@ -61,7 +61,7 @@ for (const suffix of ["HOST", "TARGET"]) {
   // include full unicode tables
   declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_ALL_UNICODE");
 
-  if (getVar(`LDFLAGS_${suffix}`)?.match(/-rdynamic/)) {
+  if (getVar(`LDEXPORT_${suffix}`)?.match(/-rdynamic/)) {
     // Enable importing *.so library modules from JS code.
     declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_SHARED_LIBRARY_MODULES");
     declareOrAppend(`LIBS_${suffix}`, "-ldl");
