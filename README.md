@@ -61,6 +61,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `setInterval` and `clearInterval` are now available as globals.
 - `String.cooked` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
 - `String.dedent` is now available (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
+- Added `std.getuid`, `std.geteuid`, `std.getgid`, and `std.getegid` (wrappers for the libc functions of the same names).
 
 ## Changes to the `qjs` repl:
 

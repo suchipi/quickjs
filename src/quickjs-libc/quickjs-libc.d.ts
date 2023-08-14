@@ -293,6 +293,18 @@ declare module "quickjs:std" {
   /** Return an object containing the environment variables as key-value pairs. */
   export function getenviron(): { [key: string]: string | undefined };
 
+  /** Return the real user ID of the calling process. */
+  export function getuid(): number;
+
+  /** Return the effective user ID of the calling process. */
+  export function geteuid(): number;
+
+  /** Return the real group ID of the calling process. */
+  export function getgid(): number;
+
+  /** Return the effective group ID of the calling process. */
+  export function getegid(): number;
+
   interface UrlGet {
     /**
      * Download `url` using the `curl` command line utility. Returns string

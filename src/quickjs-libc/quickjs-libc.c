@@ -1092,6 +1092,34 @@ static JSValue js_std_getenviron(JSContext *ctx, JSValueConst this_val,
     return JS_EXCEPTION;
 }
 
+static JSValue js_std_getuid(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    int32_t uid = getuid();
+    return JS_NewInt32(ctx, uid);
+}
+
+static JSValue js_std_geteuid(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv)
+{
+    int32_t uid = geteuid();
+    return JS_NewInt32(ctx, uid);
+}
+
+static JSValue js_std_getgid(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    int32_t gid = getgid();
+    return JS_NewInt32(ctx, gid);
+}
+
+static JSValue js_std_getegid(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv)
+{
+    int32_t gid = getegid();
+    return JS_NewInt32(ctx, gid);
+}
+
 static JSValue js_std_gc(JSContext *ctx, JSValueConst this_val,
                          int argc, JSValueConst *argv)
 {
@@ -2072,6 +2100,10 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("setenv", 1, js_std_setenv ),
     JS_CFUNC_DEF("unsetenv", 1, js_std_unsetenv ),
     JS_CFUNC_DEF("getenviron", 1, js_std_getenviron ),
+    JS_CFUNC_DEF("getuid", 0, js_std_getuid ),
+    JS_CFUNC_DEF("geteuid", 0, js_std_geteuid ),
+    JS_CFUNC_DEF("getgid", 0, js_std_getgid ),
+    JS_CFUNC_DEF("getegid", 0, js_std_getegid ),
     JS_CFUNC_DEF("urlGet", 1, js_std_urlGet ),
     JS_CFUNC_DEF("loadFile", 1, js_std_loadFile ),
     JS_CFUNC_DEF("getFileNameFromStack", 1, js_std_getFileNameFromStack ),
