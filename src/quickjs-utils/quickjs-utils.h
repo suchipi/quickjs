@@ -27,12 +27,4 @@ JSValue QJU_ForEachProperty_Read(JSContext *ctx, JSValue obj, QJUForEachProperty
 
 void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state);
 
-#define QJU_END qju_end
-#define QJU_RETVAL qju_ret
-#define QJU_DEFAULT_RETURN(type, default) type QJU_RETVAL = default;
-#define QJU_RETURN(value) \
-  QJU_RETVAL = value;     \
-  goto QJU_END;
-#define QJU_FINAL_RETURN return QJU_RETVAL
-
 #endif /* ifndef QUICKJS_UTILS_H */
