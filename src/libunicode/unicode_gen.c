@@ -1536,7 +1536,8 @@ void build_general_category_table(FILE *f)
 {
     int i, v, j, n, n1;
     DynBuf dbuf_s, *dbuf = &dbuf_s;
-    int cw_count, cw_len_count[4], cw_start;
+    __maybe_unused int cw_count;
+    int cw_len_count[4], cw_start;
 
     fprintf(f, "typedef enum {\n");
     for(i = 0; i < GCAT_COUNT; i++)
@@ -1615,7 +1616,8 @@ void build_script_table(FILE *f)
 {
     int i, v, j, n, n1, type;
     DynBuf dbuf_s, *dbuf = &dbuf_s;
-    int cw_count, cw_len_count[4], cw_start;
+    __maybe_unused int cw_count;
+    int cw_len_count[4], cw_start;
 
     fprintf(f, "typedef enum {\n");
     for(i = 0; i < SCRIPT_COUNT; i++)
@@ -1685,7 +1687,7 @@ void build_script_ext_table(FILE *f)
 {
     int i, j, n, n1, script_ext_len;
     DynBuf dbuf_s, *dbuf = &dbuf_s;
-    int cw_count;
+    __maybe_unused int cw_count;
 
     dbuf_init(dbuf);
     cw_count = 0;
@@ -1894,7 +1896,8 @@ void check_flags(void)
 
 void build_cc_table(FILE *f)
 {
-    int i, cc, n, cc_table_len, type, n1;
+    int i, cc, n, type, n1;
+    __maybe_unused int cc_table_len;
     DynBuf dbuf_s, *dbuf = &dbuf_s;
     DynBuf dbuf1_s, *dbuf1 = &dbuf1_s;
     int cw_len_tab[3], cw_start, block_end_pos;
