@@ -30,13 +30,8 @@
 #include <string.h>
 #include <errno.h>
 #include "execpath.h"
-#include "quickjs-libc.h"
-#include "quickjs-libbytecode.h"
-#include "quickjs-libcontext.h"
 #include "cutils.h"
-
-extern const uint8_t qjsc_inspect[];
-extern const uint32_t qjsc_inspect_size;
+#include "quickjs-full-init.h"
 
 static JSContext *JS_NewCustomContext(JSRuntime *rt)
 {
@@ -59,12 +54,8 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   JS_AddIntrinsicOperators(ctx);
   JS_EnableBignumExt(ctx, TRUE);
 
-  js_init_module_os(ctx, "quickjs:os");
-  js_init_module_std(ctx, "quickjs:std");
-  js_init_module_bytecode(ctx, "quickjs:bytecode");
-  js_init_module_context(ctx, "quickjs:context");
+  quickjs_full_init(ctx);
 
-  js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
   return ctx;
 }
 

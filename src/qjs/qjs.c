@@ -41,13 +41,8 @@
 #endif
 
 #include "cutils.h"
-#include "quickjs-libc.h"
-#include "quickjs-libbytecode.h"
-#include "quickjs-libcontext.h"
-#include "quickjs-libpointer.h"
+#include "quickjs-full-init.h"
 
-extern const uint8_t qjsc_inspect[];
-extern const uint32_t qjsc_inspect_size;
 extern const uint8_t qjsc_repl[];
 extern const uint32_t qjsc_repl_size;
 #ifdef CONFIG_BIGNUM
@@ -124,12 +119,7 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
         JS_EnableBignumExt(ctx, TRUE);
     }
 #endif
-    /* system modules */
-    js_init_module_std(ctx, "quickjs:std");
-    js_init_module_os(ctx, "quickjs:os");
-    js_init_module_bytecode(ctx, "quickjs:bytecode");
-    js_init_module_context(ctx, "quickjs:context");
-    js_init_module_pointer(ctx, "quickjs:pointer");
+    quickjs_full_init(ctx);
     return ctx;
 }
 
@@ -534,7 +524,6 @@ int main(int argc, char **argv)
             if (eval_file(ctx, filename, module))
                 goto fail;
         }
-        js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
         if (interactive) {
             js_std_eval_binary(ctx, qjsc_repl, qjsc_repl_size, 0);
         }

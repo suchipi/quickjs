@@ -1,7 +1,20 @@
 const core = require("./core.ninja");
 
+const quickjs_full_init_target_o = build({
+  output: builddir("intermediate/quickjs-full-init.target.o"),
+  rule: "cc_target",
+  inputs: [rel("quickjs-full-init.c")],
+});
+
+const quickjs_full_init_host_o = build({
+  output: builddir("intermediate/quickjs-full-init.host.o"),
+  rule: "cc_host",
+  inputs: [rel("quickjs-full-init.c")],
+});
+
 const deps_target = [
   ...core.deps_target,
+  quickjs_full_init_target_o,
   builddir("intermediate/inspect.target.o"),
   builddir("intermediate/quickjs-libc/lib.target.o"),
   builddir("intermediate/quickjs-libc.target.o"),
@@ -18,6 +31,7 @@ const full_target = build({
 
 const deps_host = [
   ...core.deps_host,
+  quickjs_full_init_host_o,
   builddir("intermediate/inspect.host.o"),
   builddir("intermediate/quickjs-libc/lib.host.o"),
   builddir("intermediate/quickjs-libc.host.o"),
