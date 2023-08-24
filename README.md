@@ -97,6 +97,10 @@ A Module that exposes QuickJS's value <-> bytecode (de)serialization APIs to Jav
 
 A Module that allows JS code to create new JS Contexts (Realms). You can create new Contexts and run code inside them. Contexts can have certain features disabled (like eval) for security purposes. You can share values between Contexts. Contexts are destroyed when they get garbage-collected.
 
+## New module: "quickjs:pointer"
+
+A barebones Module that exports a JS class which can be used to represent an opaque pointer. C modules can use the `js_new_pointer` function provided by this module to pass opaque pointer handles to users without needing to make their own wrapper class for stuff. This is mostly just useful in order to have a codified convention for how FFI libraries and such should represent foreign pointers.
+
 ## New library: `quickjs-utils`
 
 Helper structs, functions, and macros that make it easier to work with QuickJS objects in C code.
