@@ -6267,6 +6267,7 @@ void JS_DumpMemoryUsage(FILE *fp, const JSMemoryUsage *s, JSRuntime *rt)
     }
 }
 
+/* NOTE: you must free it! */
 JSValue JS_GetGlobalObject(JSContext *ctx)
 {
     return JS_DupValue(ctx, ctx->global_obj);

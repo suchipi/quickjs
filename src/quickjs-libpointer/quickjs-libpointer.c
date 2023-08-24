@@ -15,7 +15,21 @@ static JSClassDef js_pointer_class = {
 static JSValue js_pointer_ctor(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
 {
-    return JS_ThrowError(ctx, "Pointer objects cannot be created by scripts/modules. They must instead be created by native code.");
+    return JS_ThrowError(ctx, "Pointer objects cannot be created by JavaScript code. They must instead be created by native code, by using the function `js_new_pointer`.");
+}
+
+static JSValue js_pointer_Pointer_isPointer(JSContext *ctx, JSValueConst this_val,
+                                            int argc, JSValueConst *argv)
+{
+    if (argc != 1) {
+        return JS_FALSE;
+    }
+
+    if (JS_IsObject(argv[0]) && JS_VALUE_GET_CLASS_ID(argv[0]) == js_pointer_class_id) {
+        return JS_TRUE;
+    } else {
+        return JS_FALSE;
+    }
 }
 
 static int js_pointer_init(JSContext *ctx, JSModuleDef *m) {
@@ -29,6 +43,9 @@ static int js_pointer_init(JSContext *ctx, JSModuleDef *m) {
                             JS_CFUNC_constructor, 0);
     JS_SetConstructor(ctx, pointer, pointer_proto);
     JS_SetClassProto(ctx, js_pointer_class_id, pointer_proto);
+
+    JS_SetPropertyStr(ctx, pointer, "NULL", js_new_pointer(ctx, NULL));
+    JS_SetPropertyStr(ctx, pointer, "isPointer", JS_NewCFunction(ctx, js_pointer_Pointer_isPointer, "isPointer", 1));
 
     JS_SetModuleExport(ctx, m, "Pointer", pointer);
 
@@ -52,6 +69,31 @@ JSValue js_new_pointer(JSContext *ctx, void *value)
 
     ret = JS_NewObjectClass(ctx, js_pointer_class_id);
     JS_SetOpaque(ret, value);
+
+    // Add _info property, if we can
+    {
+        char *buf = js_malloc(ctx,
+            sizeof(char)
+            * sizeof(void *) /* bytes in pointer-to-void */
+            * 2 /* printed hex chars per byte */
+            + 2 /* for the 0x at the front */
+            + 16 /* %p is 'implementation defined' so god I hope they don't do weird stuff, but here's some bonus space in case they do */
+        );
+        if (buf != NULL) {
+            if (sprintf(buf, "%p", value) >= 0) {
+                JSValue ptr_as_str = JS_NewString(ctx, buf);
+                if (JS_IsException(ptr_as_str)) {
+                    // clear exception
+                    JS_GetException(ctx);
+                } else {
+                    JS_DefinePropertyValueStr(ctx, ret, "_info", ptr_as_str, JS_PROP_ENUMERABLE);
+                }
+            }
+
+
+            js_free(ctx, buf);
+        }
+    }
 
     return ret;
 }
