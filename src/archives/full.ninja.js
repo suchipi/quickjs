@@ -5,12 +5,29 @@ const deps_target = [
   builddir("intermediate/inspect.target.o"),
   builddir("intermediate/quickjs-libc/lib.target.o"),
   builddir("intermediate/quickjs-libc.target.o"),
+  builddir("intermediate/quickjs-libcontext.target.o"),
+  builddir("intermediate/quickjs-libbytecode.target.o"),
 ];
 
 const full_target = build({
   output: builddir("intermediate/quickjs-full.target.a"),
   rule: "ar_target",
   inputs: deps_target,
+});
+
+const deps_host = [
+  ...core.deps_host,
+  builddir("intermediate/inspect.host.o"),
+  builddir("intermediate/quickjs-libc/lib.host.o"),
+  builddir("intermediate/quickjs-libc.host.o"),
+  builddir("intermediate/quickjs-libcontext.host.o"),
+  builddir("intermediate/quickjs-libbytecode.host.o"),
+];
+
+const full_host = build({
+  output: builddir("intermediate/quickjs-full.host.a"),
+  rule: "ar_host",
+  inputs: deps_host,
 });
 
 build({

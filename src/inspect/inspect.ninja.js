@@ -15,6 +15,12 @@ build({
 });
 
 build({
+  output: builddir("intermediate/inspect.host.o"),
+  rule: "cc_host",
+  inputs: [inspect_c],
+});
+
+build({
   output: builddir("dts/inspect.d.ts"),
   rule: "copy",
   inputs: [rel("inspect.d.ts")],

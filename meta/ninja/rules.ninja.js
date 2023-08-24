@@ -12,11 +12,11 @@ rule("cc_target", {
 // compiles one or more .o files into one executable file.
 // takes 1..n inputs, has one output (the program file).
 rule("link_host", {
-  command: `$CC_HOST $LDFLAGS_HOST $LIBS_HOST $LDEXPORT_HOST $in -o $out`,
+  command: `$CC_HOST $LDFLAGS_HOST $LDEXPORT_HOST $in -o $out $LIBS_HOST`,
   description: "LINK_HOST $out",
 });
 rule("link_target", {
-  command: `$CC_TARGET $LDFLAGS_TARGET $LIBS_TARGET $LDEXPORT_TARGET $in -o $out`,
+  command: `$CC_TARGET $LDFLAGS_TARGET $LDEXPORT_TARGET $in -o $out $LIBS_TARGET`,
   description: "LINK_TARGET $out",
 });
 

@@ -11,8 +11,6 @@ build({
     qjs_target_o,
     builddir("intermediate/qjscalc.target.o"),
     builddir("intermediate/repl.target.o"),
-    builddir("intermediate/quickjs-libcontext.target.o"),
-    builddir("intermediate/quickjs-libbytecode.target.o"),
     builddir("intermediate/quickjs-full.target.a"),
   ],
 });

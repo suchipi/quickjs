@@ -34,6 +34,12 @@ const lib_target_o = build({
   inputs: [lib_c],
 });
 
+const lib_host_o = build({
+  output: builddir("intermediate/quickjs-libc/lib.host.o"),
+  rule: "cc_host",
+  inputs: [lib_c],
+});
+
 build({
   output: builddir("dts/quickjs-libc.d.ts"),
   rule: "copy",
