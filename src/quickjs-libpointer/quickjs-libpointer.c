@@ -72,15 +72,17 @@ JSValue js_new_pointer(JSContext *ctx, void *value)
 
     // Add _info property, if we can
     {
-        char *buf = js_malloc(ctx,
+        size_t info_len =
             sizeof(char)
             * sizeof(void *) /* bytes in pointer-to-void */
             * 2 /* printed hex chars per byte */
             + 2 /* for the 0x at the front */
             + 16 /* %p is 'implementation defined' so god I hope they don't do weird stuff, but here's some bonus space in case they do */
-        );
+            ;
+
+        char *buf = js_malloc(ctx, info_len);
         if (buf != NULL) {
-            if (sprintf(buf, "%p", value) >= 0) {
+            if (snprintf(buf, info_len, "%p", value) >= 0) {
                 JSValue ptr_as_str = JS_NewString(ctx, buf);
                 if (JS_IsException(ptr_as_str)) {
                     // clear exception
