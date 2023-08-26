@@ -293,16 +293,36 @@ declare module "quickjs:std" {
   /** Return an object containing the environment variables as key-value pairs. */
   export function getenviron(): { [key: string]: string | undefined };
 
-  /** Return the real user ID of the calling process. */
+  /**
+   * Return the real user ID of the calling process.
+   *
+   * This function throws an error on windows, because windows doesn't support
+   * the same uid/gid paradigm as Unix-like operating systems.
+   */
   export function getuid(): number;
 
-  /** Return the effective user ID of the calling process. */
+  /**
+   * Return the effective user ID of the calling process.
+   *
+   * This function throws an error on windows, because windows doesn't support
+   * the same uid/gid paradigm as Unix-like operating systems.
+   */
   export function geteuid(): number;
 
-  /** Return the real group ID of the calling process. */
+  /**
+   * Return the real group ID of the calling process.
+   *
+   * This function throws an error on windows, because windows doesn't support
+   * the same uid/gid paradigm as Unix-like operating systems.
+   */
   export function getgid(): number;
 
-  /** Return the effective group ID of the calling process. */
+  /**
+   * Return the effective group ID of the calling process.
+   *
+   * This function throws an error on windows, because windows doesn't support
+   * the same uid/gid paradigm as Unix-like operating systems.
+   */
   export function getegid(): number;
 
   interface UrlGet {

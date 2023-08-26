@@ -1095,29 +1095,46 @@ static JSValue js_std_getenviron(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_getuid(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
+#ifdef _WIN32
+    return JS_ThrowError(ctx, "getuid is not supported on Windows");
+#else
     int32_t uid = getuid();
     return JS_NewInt32(ctx, uid);
+#endif
+
 }
 
 static JSValue js_std_geteuid(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
+#ifdef _WIN32
+    return JS_ThrowError(ctx, "geteuid is not supported on Windows");
+#else
     int32_t uid = geteuid();
     return JS_NewInt32(ctx, uid);
+#endif
 }
 
 static JSValue js_std_getgid(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
+#ifdef _WIN32
+    return JS_ThrowError(ctx, "getgid is not supported on Windows");
+#else
     int32_t gid = getgid();
     return JS_NewInt32(ctx, gid);
+#endif
 }
 
 static JSValue js_std_getegid(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
+#ifdef _WIN32
+    return JS_ThrowError(ctx, "getegid is not supported on Windows");
+#else
     int32_t gid = getegid();
     return JS_NewInt32(ctx, gid);
+#endif
 }
 
 static JSValue js_std_gc(JSContext *ctx, JSValueConst this_val,
