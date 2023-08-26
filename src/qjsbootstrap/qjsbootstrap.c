@@ -212,6 +212,7 @@ int main(int argc, char **argv)
   js_std_init_handlers(rt);
   JS_SetMaxStackSize(rt, 8000000);
   JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
+  JS_SetCanBlock(rt, TRUE);
   ctx = JS_NewCustomContext(rt);
   define_qjsbootstrap_offset(ctx);
   js_std_add_helpers(ctx, argc, argv);

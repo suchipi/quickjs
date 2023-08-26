@@ -475,6 +475,7 @@ int main(int argc, char **argv)
         JS_SetMaxStackSize(rt, stack_size);
     js_std_set_worker_new_context_func(JS_NewCustomContext);
     js_std_init_handlers(rt);
+    JS_SetCanBlock(rt, TRUE);
     ctx = JS_NewCustomContext(rt);
     if (!ctx) {
         fprintf(stderr, "qjs: cannot allocate JS context\n");
