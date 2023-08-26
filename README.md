@@ -69,6 +69,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - The last error is accessible via the `_error` global
 - If a thrown error has additional properties added onto it, those are printed along with the thrown error
 - Ctrl+W deletes words backwards from the cursor position
+- Blocking the main thread is allowed
 
 ## New binary: `qjsbootstrap`:
 
