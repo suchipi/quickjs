@@ -1,5 +1,4 @@
 const path = require("path");
-const child_process = require("child_process");
 
 exports.buildArtifactsLocation = function buildArtifactsLocation() {
   return path.resolve(__dirname, "..", "build");
@@ -53,9 +52,3 @@ exports.identifyCurrentPlatform = function identifyCurrentPlatform() {
     }
   }
 };
-
-function runShell(cmd) {
-  return child_process
-    .spawnSync(cmd, { shell: true, encoding: "utf-8" })
-    .stdout.trim();
-}
