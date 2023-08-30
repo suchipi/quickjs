@@ -15,3 +15,5 @@ declare("DEFINES_TARGET", [
 declare("LDEXPORT_TARGET", "-static");
 
 declare("DOTEXE", ".exe");
+
+declare("SKIP_SHARED_LIBS", true);

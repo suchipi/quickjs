@@ -11,14 +11,25 @@ rule("cc_target", {
 
 // compiles one or more .c files into one .so file.
 // takes 1..n inputs, has one output (the .so file).
-rule("shared_lib_host", {
-  command: `$CC_HOST $DEFINES_HOST $CFLAGS_HOST -shared $SHARED_LIBRARY_FLAGS_HOST $in -o $out`,
-  description: "SHARED_LIB_HOST $out",
-});
-rule("shared_lib_target", {
-  command: `$CC_TARGET $DEFINES_TARGET $CFLAGS_TARGET -shared $SHARED_LIBRARY_FLAGS_TARGET $in -o $out`,
-  description: "SHARED_LIB_TARGET $out",
-});
+if (getVar("SKIP_SHARED_LIBS")) {
+  rule("shared_lib_host", {
+    command: `echo Skipping shared library build: $in -> $out`,
+    description: "SHARED_LIB_HOST $out",
+  });
+  rule("shared_lib_target", {
+    command: `echo Skipping shared library build: $in -> $out`,
+    description: "SHARED_LIB_TARGET $out",
+  });
+} else {
+  rule("shared_lib_host", {
+    command: `$CC_HOST $DEFINES_HOST $CFLAGS_HOST -shared $SHARED_LIBRARY_FLAGS_HOST $in -o $out`,
+    description: "SHARED_LIB_HOST $out",
+  });
+  rule("shared_lib_target", {
+    command: `$CC_TARGET $DEFINES_TARGET $CFLAGS_TARGET -shared $SHARED_LIBRARY_FLAGS_TARGET $in -o $out`,
+    description: "SHARED_LIB_TARGET $out",
+  });
+}
 
 // compiles one or more .o files into one executable file.
 // takes 1..n inputs, has one output (the program file).

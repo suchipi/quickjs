@@ -19,6 +19,7 @@ meta/docker/build-images.sh
 for DIR in "${IMAGES[@]}"; do
   docker run --rm \
   -v $PWD:/opt/quickjs \
+  -e QUICKJS_EXTRAS=1 \
   "suchipi/quickjs-builder-${DIR}" \
   "/opt/quickjs/meta/docker/$DIR/cmd.sh"
 done
