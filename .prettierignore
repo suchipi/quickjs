@@ -1,2 +1,2 @@
 # prettier handles operator precedence wrong for math mode
-oldtests/test_qjscalc.js
+tests/oldtests/test_qjscalc.js
