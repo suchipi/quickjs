@@ -32,6 +32,7 @@ const c3 = new Context({
     "quickjs:context": false,
     "quickjs:os": false,
     "quickjs:std": false,
+    "quickjs:pointer": false,
   },
   proxy: false,
   regExp: false,

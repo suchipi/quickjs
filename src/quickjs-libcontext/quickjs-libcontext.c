@@ -4,6 +4,7 @@
 #include "quickjs-libcontext.h"
 #include "quickjs-libc.h"
 #include "quickjs-libbytecode.h"
+#include "quickjs-libpointer.h"
 #include "cutils.h"
 
 static JSClassID js_context_class_id;
@@ -63,7 +64,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     JSContext *target_ctx;
     BOOL date, eval, stringNormalize, regExp, json, proxy, mapSet, typedArrays,
         promise, bigint, bigfloat, bigdecimal, operators, useMath, stdHelpers,
-        module_std, module_os, module_bytecode, module_context;
+        module_std, module_os, module_bytecode, module_context, module_pointer;
 
     options = argv[0];
     if (get_option_bool(ctx, options, "date", &date, TRUE)) {
@@ -117,6 +118,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         BOOL module_os_default = TRUE;
         BOOL module_bytecode_default = TRUE;
         BOOL module_context_default = TRUE;
+        BOOL module_pointer_default = TRUE;
 
         if (JS_IsObject(options)) {
             JSValue options_modules = JS_GetPropertyStr(ctx, options, "modules");
@@ -139,6 +141,10 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
             }
+            if (get_option_bool(ctx, options_modules, "quickjs:pointer", &module_pointer, module_pointer_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
 
             JS_FreeValue(ctx, options_modules);
         } else {
@@ -146,6 +152,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
             module_os = module_os_default;
             module_bytecode = module_bytecode_default;
             module_context = module_context_default;
+            module_pointer = module_pointer_default;
         }
     }
 
@@ -211,6 +218,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
     if (module_context) {
         js_init_module_context(target_ctx, "quickjs:context");
+    }
+    if (module_pointer) {
+        js_init_module_pointer(target_ctx, "quickjs:pointer");
     }
 
     if (stdHelpers) {
