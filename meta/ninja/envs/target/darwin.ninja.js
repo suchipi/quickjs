@@ -8,3 +8,4 @@ declare(
   "CFLAGS_TARGET",
   "-Ofast -funsigned-char -Wno-unused-command-line-argument -fPIC -Wno-implicit-int-float-conversion"
 );
+declare("SHARED_LIBRARY_FLAGS_TARGET", "-undefined dynamic_lookup");
