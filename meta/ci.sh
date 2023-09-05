@@ -11,5 +11,5 @@ nvm use
 
 set -x
 
-meta/build.sh
+env QUICKJS_EXTRAS=1 meta/build.sh
 npm test
