@@ -14,4 +14,4 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build and test
-        run: meta/scripts/ci.sh
+        run: meta/ci.sh
