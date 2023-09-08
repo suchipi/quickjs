@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 const { HOST, TARGET, QUICKJS_SHINOBI_EXTRA_FILES } = process.env;
 

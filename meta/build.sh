@@ -22,8 +22,8 @@ fi
 echo "HOST: $HOST"
 echo "TARGET: $TARGET"
 
-if [[ "${SKIP_NPM_INSTALL:-}" == "" ]]; then
-  npm install
+if [[ "${SKIP_BUN_INSTALL:-}" == "" ]]; then
+  bun install
 fi
 
 meta/ninja/generate.js src/**/*.ninja.js
