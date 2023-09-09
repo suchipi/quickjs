@@ -24,6 +24,8 @@
     "shelljs": "^0.8.5"
   },
   "scripts": {
+    "build": "env QUICKJS_EXTRAS=1 meta/build.sh",
+    "build-all": "meta/docker/build-all.sh",
     "test": "jest --runInBand"
   },
   "prettier": {},
