@@ -6,6 +6,7 @@ tests
 .editorconfig
 .gitignore
 .node-version
+.bun-version
 .npmignore
 .prettierignore
 build.ninja

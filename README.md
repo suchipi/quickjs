@@ -131,7 +131,7 @@ QuickJS itself has no external dependencies outside this repo except pthreads, a
 
 Linux, macOS, iOS, and Windows binaries can be compiled using Docker. Or, you can compile binaries for just your own unix system, without using Docker.
 
-If you're not gonna use Docker, you'll need to install [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) in order to compile. I use Ninja 1.10.1 and Node.js 18.12.1, but it should work with most versions of both of those.
+If you're not gonna use Docker, you'll need to install [Ninja](https://ninja-build.org/) and [Bun](https://bun.sh/) in order to compile. I use Ninja 1.10.1 and Bun 1.0.0.
 
 ## Compilation Instructions
 
@@ -144,7 +144,7 @@ To compile binaries for Linux, macOS, iOS, and Windows (using Docker):
 
 Or, to compile binaries for just your own unix system:
 
-- Make sure you have both [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) installed. I use Ninja 1.10.1 and Node.js 18.12.1, but it should work with most versions of both of those.
+- Make sure you have both [Ninja](https://ninja-build.org/) and [Bun](https://bun.sh/) installed. I use Ninja 1.10.1 and Bun 1.0.0.
 - Clone the repo and cd to its folder
 - Run `meta/build.sh`
 - Build artifacts will be placed in the `build` folder. You're probably most interested in stuff in the `build/bin` and `build/lib` folders.
