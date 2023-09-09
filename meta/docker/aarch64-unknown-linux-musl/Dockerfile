@@ -1,4 +1,7 @@
+FROM oven/bun:1.0.0 as bun
 FROM --platform=aarch64 alpine:3.17.2
+
+COPY --from=bun /usr/local /usr/local
 
 RUN apk add \
   sudo \
@@ -6,9 +9,7 @@ RUN apk add \
   bash \
   build-base \
   gcc \
-  ninja \
-  nodejs \
-  npm
+  ninja
 
 ARG UID=1000
 ARG GID=1000

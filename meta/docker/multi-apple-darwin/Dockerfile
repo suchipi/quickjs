@@ -1,9 +1,9 @@
-FROM node:18-bullseye as node
+FROM oven/bun:1.0.0 as bun
 FROM crazymax/osxcross:11.3-r7-ubuntu AS osxcross
 
 FROM ubuntu:20.04
 
-COPY --from=node /usr/local /usr/local
+COPY --from=bun /usr/local /usr/local
 COPY --from=osxcross /osxcross /osxcross
 
 RUN apt-get update && \

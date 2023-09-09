@@ -7,9 +7,9 @@ cd ../..
 
 meta/clean.sh
 
-NODE_VERSION=$(cat .node-version)
-docker run --rm -it -v $PWD:/workdir -w /workdir node:${NODE_VERSION/v/} \
-  npm install
+BUN_VERSION=$(cat .bun-version)
+docker run --rm -it -v $PWD:/workdir -w /workdir oven/bun:${BUN_VERSION/v/} \
+  bun install
 
 # defines IMAGES
 source meta/docker/images.sh

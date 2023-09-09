@@ -1,8 +1,8 @@
-FROM node:18-bullseye as node
+FROM oven/bun:1.0.0 as bun
 
 FROM ubuntu:20.04
 
-COPY --from=node /usr/local /usr/local
+COPY --from=bun /usr/local /usr/local
 
 RUN apt-get update && \
   apt-get install -y \
