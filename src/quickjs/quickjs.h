@@ -952,7 +952,7 @@ typedef JSModuleDef *JSModuleLoaderFunc(JSContext *ctx,
 void JS_SetModuleLoaderFunc(JSRuntime *rt,
                             JSModuleNormalizeFunc *module_normalize,
                             JSModuleLoaderFunc *module_loader, void *opaque);
-/* return the import.meta object of a module */
+/* return the import.meta object of a module. you'll have to free it when done */
 JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);
 JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m);
 

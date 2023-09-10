@@ -746,8 +746,8 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
                               JS_BOOL is_main)
 {
     JSModuleDef *m;
-    char buf[4096];
-    JSValue meta_obj;
+    char url_buf[4096];
+    JSValue meta_obj, global_obj, require;
     JSAtom module_name_atom;
     const char *module_name;
 
@@ -760,22 +760,32 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
     if (!module_name)
         return -1;
     if (!strchr(module_name, ':')) {
-        strcpy(buf, "file://");
-        pstrcat(buf, sizeof(buf), module_name);
+        strcpy(url_buf, "file://");
+        pstrcat(url_buf, sizeof(url_buf), module_name);
     } else {
-        pstrcpy(buf, sizeof(buf), module_name);
+        pstrcpy(url_buf, sizeof(url_buf), module_name);
     }
     JS_FreeCString(ctx, module_name);
 
-    meta_obj = JS_GetImportMeta(ctx, m);
-    if (JS_IsException(meta_obj))
+    global_obj = JS_GetGlobalObject(ctx);
+    require = JS_GetPropertyStr(ctx, global_obj, "require");
+    if (JS_IsException(require)) {
         return -1;
+    }
+    JS_FreeValue(ctx, global_obj);
+
+    meta_obj = JS_GetImportMeta(ctx, m);
+    if (JS_IsException(meta_obj)) {
+        return -1;
+    }
     JS_DefinePropertyValueStr(ctx, meta_obj, "url",
-                              JS_NewString(ctx, buf),
+                              JS_NewString(ctx, url_buf),
                               JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, meta_obj, "main",
                               JS_NewBool(ctx, is_main),
                               JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, meta_obj, "require",
+                              require, JS_PROP_C_W_E);
     JS_FreeValue(ctx, meta_obj);
     return 0;
 }
