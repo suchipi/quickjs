@@ -445,8 +445,8 @@ uint8_t *js_load_file(JSContext *ctx, size_t *pbuf_len, const char *filename)
 }
 
 /* load and evaluate a file as a script */
-static JSValue js_loadScript(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
+static JSValue js_std_loadScript(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
 {
     uint8_t *buf;
     const char *filename;
@@ -1174,8 +1174,8 @@ static int get_bool_option(JSContext *ctx, BOOL *pbool,
     return 0;
 }
 
-static JSValue js_evalScript(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
+static JSValue js_std_evalScript(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
@@ -2119,8 +2119,8 @@ static JSClassDef js_std_file_class = {
 static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("exit", 1, js_std_exit ),
     JS_CFUNC_DEF("gc", 0, js_std_gc ),
-    JS_CFUNC_DEF("evalScript", 1, js_evalScript ),
-    JS_CFUNC_DEF("loadScript", 1, js_loadScript ),
+    JS_CFUNC_DEF("evalScript", 1, js_std_evalScript ),
+    JS_CFUNC_DEF("loadScript", 1, js_std_loadScript ),
     JS_CFUNC_DEF("importModule", 2, js_std_importModule ),
     JS_CFUNC_DEF("resolveModule", 2, js_std_resolveModule ),
     JS_CFUNC_DEF("getenv", 1, js_std_getenv ),
