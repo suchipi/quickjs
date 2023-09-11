@@ -54,7 +54,7 @@ for (const bytecode of [false, true]) {
   });
 
   const qjsbootstrap = build({
-    output: builddir(`bin/qjsbootstrap${dashByteCode}$DOTEXE`),
+    output: builddir(`bin/qjsbootstrap${dashByteCode}$PROGRAM_SUFFIX`),
     rule: "copy",
     inputs: [qjsbootstrap_fill_target],
   });
@@ -66,7 +66,7 @@ for (const bytecode of [false, true]) {
 
 if (env.QUICKJS_EXTRAS === "1") {
   const is_stdin_a_tty = build({
-    output: builddir("extras/is-stdin-a-tty$DOTEXE"),
+    output: builddir("extras/is-stdin-a-tty$PROGRAM_SUFFIX"),
     rule: "combine_into_executable",
     inputs: [qjsbootstrapForExample, rel("is-stdin-a-tty.js")],
   });

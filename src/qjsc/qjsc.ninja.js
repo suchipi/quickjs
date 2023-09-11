@@ -31,7 +31,7 @@ const qjsc_target = build({
 });
 
 build({
-  output: builddir("bin/qjsc$DOTEXE"),
+  output: builddir("bin/qjsc$PROGRAM_SUFFIX"),
   rule: "copy",
   inputs: [qjsc_target],
 });

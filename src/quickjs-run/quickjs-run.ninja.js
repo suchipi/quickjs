@@ -5,7 +5,7 @@ const quickjs_run_target_o = build({
 });
 
 build({
-  output: builddir("bin/quickjs-run$DOTEXE"),
+  output: builddir("bin/quickjs-run$PROGRAM_SUFFIX"),
   rule: "link_target",
   inputs: [
     quickjs_run_target_o,

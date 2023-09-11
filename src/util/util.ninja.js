@@ -6,7 +6,7 @@ if (env.QUICKJS_EXTRAS === "1") {
   });
 
   build({
-    output: builddir("extras/log-argv$DOTEXE"),
+    output: builddir("extras/log-argv$PROGRAM_SUFFIX"),
     rule: "link_target",
     inputs: [log_argv_target_o, builddir("intermediate/execpath.target.o")],
   });

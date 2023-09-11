@@ -14,6 +14,6 @@ declare("DEFINES_TARGET", [
 // statically-linked so that it doesn't depend on libwinpthread-1.dll
 declare("LDEXPORT_TARGET", "-static");
 
-declare("DOTEXE", ".exe");
+declare("PROGRAM_SUFFIX", ".exe");
 
 declare("SKIP_SHARED_LIBS", true);

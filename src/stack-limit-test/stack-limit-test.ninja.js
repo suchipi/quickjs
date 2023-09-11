@@ -28,7 +28,7 @@ if (env.QUICKJS_EXTRAS === "1") {
   // program
 
   build({
-    output: builddir("extras/stack-limit-test$DOTEXE"),
+    output: builddir("extras/stack-limit-test$PROGRAM_SUFFIX"),
     rule: "link_target",
     inputs: [
       main_target_o,

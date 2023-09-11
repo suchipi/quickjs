@@ -1,8 +1,8 @@
 const path = require("path");
 
-// DOTEXE is the suffix for binaries which should end with .exe on windows
-if (getVar("DOTEXE") == null) {
-  declare("DOTEXE", "");
+// PROGRAM_SUFFIX is ".exe" on windows or ".com" when targeting Cosmopolitan Libc
+if (getVar("PROGRAM_SUFFIX") == null) {
+  declare("PROGRAM_SUFFIX", "");
 }
 
 const headerFiles = glob("**/*.h", {

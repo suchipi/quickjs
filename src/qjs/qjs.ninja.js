@@ -5,7 +5,7 @@ const qjs_target_o = build({
 });
 
 build({
-  output: builddir("bin/qjs$DOTEXE"),
+  output: builddir("bin/qjs$PROGRAM_SUFFIX"),
   rule: "link_target",
   inputs: [
     qjs_target_o,
