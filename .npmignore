@@ -1,3 +1,5 @@
+.github
+.nvmrc
 examples
 meta
 node_modules
