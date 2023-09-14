@@ -83,7 +83,7 @@ static JSValue js_bytecode_toValue(JSContext *ctx, JSValueConst this_val,
 {
     uint8_t *buf;
     size_t buf_len;
-    int flags;
+    int flags, tag;
     JSValue obj;
 
     if (argc < 1) {
@@ -101,7 +101,8 @@ static JSValue js_bytecode_toValue(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
 
-    if (JS_VALUE_GET_TAG(obj) == JS_TAG_FUNCTION_BYTECODE) {
+    tag = JS_VALUE_GET_TAG(obj);
+    if (tag == JS_TAG_FUNCTION_BYTECODE || tag == JS_TAG_MODULE) {
         JSValue global;
         JSValue Function;
         JSValue Function_proto;
