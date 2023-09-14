@@ -20,5 +20,4 @@ build/**/.ninja_*
 build/bin
 build/intermediate
 build/lib
-build/dts
 build/extras

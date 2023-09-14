@@ -23,3 +23,6 @@ for DIR in "${IMAGES[@]}"; do
   "suchipi/quickjs-builder-${DIR}" \
   "/opt/quickjs/meta/docker/$DIR/cmd.sh"
 done
+
+cp -r build/aarch64-apple-darwin/dts build/
+rm -rf build/*/dts
