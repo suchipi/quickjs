@@ -3324,6 +3324,9 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
                                 JS_PROP_C_W_E);
 #endif
 
+    // TODO: it'd be nice to provide birth time, too, when available.
+    // for Linux, that'd mean using crtime
+
     return obj;
 }
 
