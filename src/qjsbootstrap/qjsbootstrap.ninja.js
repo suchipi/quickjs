@@ -5,6 +5,17 @@
 
 let qjsbootstrapForExample;
 
+const qjsbootstrap_size_check_rule = rule("qjsbootstrap_size_check", {
+  command: `${builddir("intermediate/quickjs-run.host$PROGRAM_SUFFIX")} ${rel(
+    "size_check.js"
+  )} $in > $out`,
+  description: "SIZE_CHECK $in",
+});
+const qjsbootstrap_size_check_rule_implicit_inputs = [
+  builddir("intermediate/quickjs-run.host$PROGRAM_SUFFIX"),
+  rel("size_check.js"),
+];
+
 for (const bytecode of [false, true]) {
   const dashByteCode = bytecode ? "-bytecode" : "";
 
@@ -51,6 +62,15 @@ for (const bytecode of [false, true]) {
       qjsbootstrap_fill_target_o,
       builddir("intermediate/quickjs-full.target.a"),
     ],
+  });
+
+  build({
+    output: builddir(
+      `intermediate/qjsbootstrap-size-check${dashByteCode}.target.txt`
+    ),
+    rule: qjsbootstrap_size_check_rule,
+    inputs: [qjsbootstrap_zero_target, qjsbootstrap_fill_target],
+    implicitInputs: qjsbootstrap_size_check_rule_implicit_inputs,
   });
 
   const qjsbootstrap = build({
