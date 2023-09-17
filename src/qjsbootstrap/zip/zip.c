@@ -816,7 +816,6 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
 
   if (!zipname || strlen(zipname) < 1) {
     // zip_t archive name is empty or NULL
-    printf("// zip_t archive name is empty or NULL\n");
     goto cleanup;
   }
 
@@ -824,7 +823,6 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
     level = MZ_DEFAULT_LEVEL;
   if ((level & 0xF) > MZ_UBER_COMPRESSION) {
     // Wrong compression level
-    printf("// Wrong compression level\n");
     goto cleanup;
   }
 
