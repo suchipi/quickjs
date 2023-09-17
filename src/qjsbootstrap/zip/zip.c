@@ -850,6 +850,7 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
       // An archive file does not exist or cannot initialize
       // zip_archive reader
 
+// TODO NOTE SUCHI ADDED THIS LINE
       printf("%s\n", mz_zip_get_error_string(mz_zip_get_last_error(&(zip->archive))));
 
       goto cleanup;
