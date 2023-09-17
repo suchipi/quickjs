@@ -70,9 +70,3 @@ rule("combine", {
   command: "cat $in > $out",
   description: "COMBINE $out",
 });
-
-// Append files together into something and then mark it as executable
-rule("combine_into_executable", {
-  command: "cat $in > $out && chmod +x $out",
-  description: "COMBINE $out",
-});

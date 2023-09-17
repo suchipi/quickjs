@@ -37,6 +37,7 @@ __static_yoink("blink_xnu_aarch64");
 #include "execpath.h"
 #include "cutils.h"
 #include "quickjs-full-init.h"
+#include "zip.h"
 
 static JSContext *JS_NewCustomContext(JSRuntime *rt)
 {
@@ -64,56 +65,6 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   return ctx;
 }
 
-const uint64_t bootstrap_bin_size = BOOTSTRAP_BIN_SIZE;
-
-#ifndef off_t
-#define off_t long long
-#endif
-
-static off_t get_file_size(char *filename)
-{
-  struct stat st;
-  int ret = 0;
-
-  ret = stat(filename, &st);
-  if (ret == -1) {
-    return 0;
-  } else {
-    return st.st_size;
-  }
-}
-
-static uint8_t *read_section(char *filename, off_t offset, off_t len)
-{
-  size_t bytes_read;
-  uint8_t *data = NULL;
-  FILE *fp = fopen(filename, "r");
-  if (fp == NULL) {
-    return data;
-  }
-
-  if (fseek(fp, 0, SEEK_END)) {
-    fclose(fp);
-    return NULL;
-  }
-
-  // +1 is for null termination
-  data = malloc(sizeof(uint8_t) * (len + 1));
-
-  if (fseek(fp, offset, SEEK_SET)) {
-    fclose(fp);
-    return NULL;
-  }
-
-  bytes_read = fread(data, sizeof(uint8_t), len, fp);
-  data[bytes_read] = '\0';
-
-  fclose(fp);
-
-  return data;
-}
-
-#ifndef CONFIG_BYTECODE
 static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
                     const char *filename, int eval_flags)
 {
@@ -143,72 +94,101 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
   JS_FreeValue(ctx, val);
   return ret;
 }
-#endif
 
-static void define_qjsbootstrap_offset(JSContext *ctx)
+typedef enum {
+  CODE_KIND_UNKNOWN,
+  CODE_KIND_UTF8,
+  CODE_KIND_BYTECODE,
+} CODE_KIND;
+
+typedef struct code_from_zip_result_t {
+  int status;
+  CODE_KIND kind;
+} code_from_zip_result_t;
+
+#define INSTRUCTIONS "append a zip file to the end of this binary containing either a file named 'main.bin' containing quickjs bytecode or a file named 'main.js' containing UTF-8 encoded JavaScript source code.\n"
+
+static code_from_zip_result_t read_code_from_zip(char *argv0, size_t* appended_code_len, void **appended_code)
 {
-  JSValue global;
-  JSValue offset;
-  int ret;
+  char *self_binary_path;
+  char execpath_error[2048];
+  code_from_zip_result_t ret = { 0, CODE_KIND_UNKNOWN };
+  struct zip_t *zip = NULL;
 
-  global = JS_GetGlobalObject(ctx);
-  offset = JS_NewUint32(ctx, (uint32_t)bootstrap_bin_size);
-
-  if (JS_IsException(offset)) {
-    js_std_dump_error(ctx);
-    JS_FreeValue(ctx, global);
-    return;
+  self_binary_path = execpath(argv0, NULL, (char *)&execpath_error);
+  if (self_binary_path == NULL) {
+    printf("failed to find location of self executable: %s\n", execpath_error);
+    ret.status = 1;
+    return ret;
   }
 
-  ret = JS_DefinePropertyValueStr(ctx, global, "__qjsbootstrap_offset", offset, 0);
-  if (ret == -1) {
-    js_std_dump_error(ctx);
+  {
+    int level;
+    for (level = 0; level < 10; level++) {
+      zip = zip_open(self_binary_path, level, 'r');
+      if (zip != NULL) {
+        break;
+      }
+    }
   }
+  if (zip == NULL) {
+    printf("failed to open %s as zip file\n" INSTRUCTIONS, self_binary_path);
+    ret.status = 1;
+    free(self_binary_path);
+    return ret;
+  }
+  {
+    int main_bin_result = zip_entry_open(zip, "main.bin");
+    if (main_bin_result == 0) {
+      ret.kind = CODE_KIND_BYTECODE;
+    } else {
+      int main_js_result = zip_entry_open(zip, "main.js");
+      if (main_js_result == 0) {
+        ret.kind = CODE_KIND_UTF8;
+      } else {
+        printf("failed to open %s as zip file\n" INSTRUCTIONS, self_binary_path);
+        ret.status = 1;
+        zip_close(zip);
+        free(self_binary_path);
+        return ret;
+      }
+    }
 
-  JS_FreeValue(ctx, global);
-  return;
+    {
+      ssize_t entry_read_result = zip_entry_read(zip, appended_code, appended_code_len);
+      if (entry_read_result < 0) {
+        const char *entry_name;
+        if (ret.kind == CODE_KIND_BYTECODE) {
+          entry_name = "main.bin";
+        } else {
+          entry_name = "main.js";
+        }
+        printf("failed to read '%s' in zip '%s': %s\n" INSTRUCTIONS, entry_name, self_binary_path, zip_strerror(entry_read_result));
+        ret.status = 1;
+        zip_entry_close(zip);
+        zip_close(zip);
+        free(self_binary_path);
+        return ret;
+      }
+    }
+    zip_entry_close(zip);
+  }
+  zip_close(zip);
+
+  free(self_binary_path);
+  return ret;
 }
 
 int main(int argc, char **argv)
 {
   JSRuntime *rt;
   JSContext *ctx;
-  char *self_binary_path;
-  off_t base_len;
-  off_t file_len;
-  off_t appended_code_len;
-  uint8_t *appended_code;
-  char execpath_error[2048];
+  code_from_zip_result_t zip_result;
+  size_t appended_code_len = 0;
+  void *appended_code = NULL;
 
-  errno = 0;
-  self_binary_path = execpath(argv[0], NULL, (char *)&execpath_error);
-  if (self_binary_path == NULL) {
-    printf("failed to find location of self executable: %s\n", execpath_error);
-    return 1;
-  }
-
-  base_len = bootstrap_bin_size;
-  file_len = get_file_size(self_binary_path);
-
-  if (file_len == 0) {
-    printf("failed to get binary size: %s\n", strerror(errno));
-    return 1;
-  }
-
-  appended_code_len = file_len - base_len;
-
-  if (appended_code_len == 0) {
-#ifdef CONFIG_BYTECODE
-    printf("append quickjs bytecode to the end of this binary to change this binary into a program that executes that bytecode\n");
-#else
-    printf("append UTF-8 encoded JavaScript to the end of this binary to change this binary into a program that executes that JavaScript code\n");
-#endif
-    return 0;
-  }
-
-  appended_code = read_section(self_binary_path, base_len, appended_code_len);
-  if (appended_code == NULL) {
-    printf("failed to read appended code: %s\n", strerror(errno));
+  zip_result = read_code_from_zip(argv[0], &appended_code_len, &appended_code);
+  if (zip_result.status != 0 || zip_result.kind == CODE_KIND_UNKNOWN) {
     return 1;
   }
 
@@ -219,21 +199,20 @@ int main(int argc, char **argv)
   JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
   JS_SetCanBlock(rt, TRUE);
   ctx = JS_NewCustomContext(rt);
-  define_qjsbootstrap_offset(ctx);
   js_std_add_helpers(ctx, argc, argv);
 
-#ifdef CONFIG_BYTECODE
-  js_std_eval_binary(ctx, appended_code, appended_code_len, 0);
-#else
-    if (eval_buf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
-      free(self_binary_path);
-      return 1;
+  if (appended_code_len != 0) {
+    if (zip_result.kind == CODE_KIND_BYTECODE) {
+      js_std_eval_binary(ctx, appended_code, appended_code_len, 0);
+    } else {
+      if (eval_buf(ctx, appended_code, appended_code_len, "main.js", JS_EVAL_TYPE_MODULE)) {
+        return 1;
+      }
     }
-#endif
+  }
 
   js_std_loop(ctx);
   JS_FreeContext(ctx);
   JS_FreeRuntime(rt);
-  free(self_binary_path);
   return 0;
 }
