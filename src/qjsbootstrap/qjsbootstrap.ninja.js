@@ -40,3 +40,16 @@ if (env.QUICKJS_EXTRAS === "1") {
     inputs: [qjsbootstrap, is_stdin_a_tty_zip],
   });
 }
+
+// tmp for debugging
+const zip_test_target_o = build({
+  output: builddir(`intermediate/zip_test.target.o`),
+  rule: "cc_target",
+  inputs: [rel("zip_test.c")],
+});
+
+const zip_test = build({
+  output: builddir(`bin/zip_test$PROGRAM_SUFFIX`),
+  rule: "link_target",
+  inputs: [zip_test_target_o, zip_target_o],
+});
