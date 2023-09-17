@@ -22,11 +22,21 @@ const qjsbootstrap = build({
 });
 
 if (env.QUICKJS_EXTRAS === "1") {
-  // TODO make rule for appending zip
-  //
-  // const is_stdin_a_tty = build({
-  //   output: builddir("extras/is-stdin-a-tty$PROGRAM_SUFFIX"),
-  //   rule: "combine_into_executable",
-  //   inputs: [qjsbootstrap, rel("is-stdin-a-tty.js")],
-  // });
+  const zip_js = rule("zip_js", {
+    command: `${rel("zip-js.sh")} $in $out`,
+    description: "ZIP_JS $out",
+  });
+
+  const is_stdin_a_tty_zip = build({
+    output: builddir("intermediate/is-stdin-a-tty.zip"),
+    rule: zip_js,
+    inputs: [rel("is-stdin-a-tty.js")],
+    implicitInputs: [rel("zip-js.sh")],
+  });
+
+  const is_stdin_a_tty = build({
+    output: builddir("extras/is-stdin-a-tty$PROGRAM_SUFFIX"),
+    rule: "combine_into_executable",
+    inputs: [qjsbootstrap, is_stdin_a_tty_zip],
+  });
 }
