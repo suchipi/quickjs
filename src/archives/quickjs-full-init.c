@@ -1,24 +1,44 @@
 #include "quickjs-full-init.h"
+#include "quickjs-utils.h"
 
 extern const uint8_t qjsc_inspect[];
 extern const uint32_t qjsc_inspect_size;
 
-static void quickjs_full_init_modules(JSContext *ctx)
+/* returns 0 on success, nonzero on failure */
+static int quickjs_full_init_modules(JSContext *ctx)
 {
-    js_init_module_std(ctx, "quickjs:std");
-    js_init_module_os(ctx, "quickjs:os");
-    js_init_module_bytecode(ctx, "quickjs:bytecode");
-    js_init_module_context(ctx, "quickjs:context");
-    js_init_module_pointer(ctx, "quickjs:pointer");
+    if (js_init_module_std(ctx, "quickjs:std") == NULL) {
+        return -1;
+    }
+    if (js_init_module_os(ctx, "quickjs:os") == NULL) {
+        return -1;
+    }
+    if (js_init_module_bytecode(ctx, "quickjs:bytecode") == NULL) {
+        return -1;
+    }
+    if (js_init_module_context(ctx, "quickjs:context") == NULL) {
+        return -1;
+    }
+    if (js_init_module_pointer(ctx, "quickjs:pointer") == NULL) {
+        return -1;
+    }
+
+    return 0;
 }
 
-static void quickjs_full_init_globals(JSContext *ctx)
+static int quickjs_full_init_globals(JSContext *ctx)
 {
-    js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
+    return QJU_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
 }
 
-void quickjs_full_init(JSContext *ctx)
+int quickjs_full_init(JSContext *ctx)
 {
-    quickjs_full_init_modules(ctx);
-    quickjs_full_init_globals(ctx);
+    if (quickjs_full_init_modules(ctx)) {
+        return -1;
+    }
+    if (quickjs_full_init_globals(ctx)) {
+        return -1;
+    }
+
+    return 0;
 }

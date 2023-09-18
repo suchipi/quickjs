@@ -57,59 +57,6 @@ extern const uint32_t qjsc_qjscalc_size;
 static int bignum_ext;
 #endif
 
-static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
-                    const char *filename, int eval_flags)
-{
-    JSValue val;
-    int ret;
-
-    if ((eval_flags & JS_EVAL_TYPE_MASK) == JS_EVAL_TYPE_MODULE) {
-        /* for the modules, we compile then run to be able to set
-           import.meta */
-        val = JS_Eval(ctx, buf, buf_len, filename,
-                      eval_flags | JS_EVAL_FLAG_COMPILE_ONLY);
-        if (!JS_IsException(val)) {
-            QJU_SetModuleImportMeta(ctx, val, TRUE);
-            val = JS_EvalFunction(ctx, val);
-        }
-    } else {
-        val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
-    }
-    if (JS_IsException(val)) {
-        js_std_dump_error(ctx);
-        ret = -1;
-    } else {
-        ret = 0;
-    }
-    JS_FreeValue(ctx, val);
-    return ret;
-}
-
-static int eval_file(JSContext *ctx, const char *filename, int module)
-{
-    uint8_t *buf;
-    int ret, eval_flags;
-    size_t buf_len;
-
-    buf = QJU_LoadFile(ctx, &buf_len, filename);
-    if (!buf) {
-        perror(filename);
-        exit(1);
-    }
-
-    if (module < 0) {
-        module = (has_suffix(filename, ".mjs") ||
-                  JS_DetectModule((const char *)buf, buf_len));
-    }
-    if (module)
-        eval_flags = JS_EVAL_TYPE_MODULE;
-    else
-        eval_flags = JS_EVAL_TYPE_GLOBAL;
-    ret = eval_buf(ctx, buf, buf_len, filename, eval_flags);
-    js_free(ctx, buf);
-    return ret;
-}
-
 /* also used to initialize the worker context */
 static JSContext *JS_NewCustomContext(JSRuntime *rt)
 {
@@ -125,7 +72,9 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
         JS_EnableBignumExt(ctx, TRUE);
     }
 #endif
-    quickjs_full_init(ctx);
+    if (quickjs_full_init(ctx)) {
+        exit(1);
+    }
     return ctx;
 }
 
@@ -499,7 +448,7 @@ int main(int argc, char **argv)
     if (!empty_run) {
 #ifdef CONFIG_BIGNUM
         if (load_jscalc) {
-            js_std_eval_binary(ctx, qjsc_qjscalc, qjsc_qjscalc_size, 0);
+            QJU_EvalBinary(ctx, qjsc_qjscalc, qjsc_qjscalc_size, 0);
         }
 #endif
         js_std_add_helpers(ctx, argc, argv);
@@ -510,16 +459,16 @@ int main(int argc, char **argv)
                 "import * as os from 'quickjs:os';\n"
                 "globalThis.std = std;\n"
                 "globalThis.os = os;\n";
-            eval_buf(ctx, str, strlen(str), "<input>", JS_EVAL_TYPE_MODULE);
+            QJU_EvalBuf(ctx, str, strlen(str), "<input>", JS_EVAL_TYPE_MODULE);
         }
 
         for(i = 0; i < include_count; i++) {
-            if (eval_file(ctx, include_list[i], module))
+            if (QJU_EvalFile(ctx, include_list[i], module))
                 goto fail;
         }
 
         if (expr) {
-            if (eval_buf(ctx, expr, strlen(expr), "<cmdline>", 0))
+            if (QJU_EvalBuf(ctx, expr, strlen(expr), "<cmdline>", 0))
                 goto fail;
         } else
         if (optind >= argc) {
@@ -528,11 +477,11 @@ int main(int argc, char **argv)
         } else {
             const char *filename;
             filename = argv[optind];
-            if (eval_file(ctx, filename, module))
+            if (QJU_EvalFile(ctx, filename, module))
                 goto fail;
         }
         if (interactive) {
-            js_std_eval_binary(ctx, qjsc_repl, qjsc_repl_size, 0);
+            QJU_EvalBinary(ctx, qjsc_repl, qjsc_repl_size, 0);
         }
         js_std_loop(ctx);
     }

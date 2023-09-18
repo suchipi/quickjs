@@ -60,7 +60,9 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   JS_AddIntrinsicOperators(ctx);
   JS_EnableBignumExt(ctx, TRUE);
 
-  quickjs_full_init(ctx);
+  if (quickjs_full_init(ctx)) {
+    exit(1);
+  }
 
   return ctx;
 }
@@ -114,38 +116,6 @@ static uint8_t *read_section(char *filename, off_t offset, off_t len)
   return data;
 }
 
-#ifndef CONFIG_BYTECODE
-static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
-                    const char *filename, int eval_flags)
-{
-  JSValue val;
-  int ret;
-
-  if ((eval_flags & JS_EVAL_TYPE_MASK) == JS_EVAL_TYPE_MODULE) {
-    /* for the modules, we compile then run to be able to set
-        import.meta */
-    val = JS_Eval(ctx, buf, buf_len, filename,
-                  eval_flags | JS_EVAL_FLAG_COMPILE_ONLY);
-    if (!JS_IsException(val)) {
-        QJU_SetModuleImportMeta(ctx, val, TRUE);
-        val = JS_EvalFunction(ctx, val);
-    }
-  } else {
-    val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
-  }
-
-  if (JS_IsException(val)) {
-    js_std_dump_error(ctx);
-    ret = 1;
-  } else {
-    ret = 0;
-  }
-
-  JS_FreeValue(ctx, val);
-  return ret;
-}
-#endif
-
 static void define_qjsbootstrap_offset(JSContext *ctx)
 {
   JSValue global;
@@ -156,14 +126,14 @@ static void define_qjsbootstrap_offset(JSContext *ctx)
   offset = JS_NewUint32(ctx, (uint32_t)bootstrap_bin_size);
 
   if (JS_IsException(offset)) {
-    js_std_dump_error(ctx);
+    QJU_PrintException(ctx, stderr);
     JS_FreeValue(ctx, global);
     return;
   }
 
   ret = JS_DefinePropertyValueStr(ctx, global, "__qjsbootstrap_offset", offset, 0);
   if (ret == -1) {
-    js_std_dump_error(ctx);
+    QJU_PrintException(ctx, stderr);
   }
 
   JS_FreeValue(ctx, global);
@@ -224,9 +194,9 @@ int main(int argc, char **argv)
   js_std_add_helpers(ctx, argc, argv);
 
 #ifdef CONFIG_BYTECODE
-  js_std_eval_binary(ctx, appended_code, appended_code_len, 0);
+  QJU_EvalBinary(ctx, appended_code, appended_code_len, 0);
 #else
-    if (eval_buf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
+    if (QJU_EvalBuf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
       free(self_binary_path);
       return 1;
     }

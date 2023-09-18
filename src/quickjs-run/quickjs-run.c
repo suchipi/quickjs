@@ -35,6 +35,7 @@ __static_yoink("blink_xnu_aarch64");
 #include <string.h>
 #include <errno.h>
 #include "quickjs-full-init.h"
+#include "quickjs-utils.h"
 #include "cutils.h"
 
 static JSContext *JS_NewCustomContext(JSRuntime *rt)
@@ -60,65 +61,11 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   JS_AddIntrinsicOperators(ctx);
   JS_EnableBignumExt(ctx, TRUE);
 
-  quickjs_full_init(ctx);
-  return ctx;
-}
-
-static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
-                    const char *filename, int eval_flags)
-{
-  JSValue val;
-  int ret;
-
-  if ((eval_flags & JS_EVAL_TYPE_MASK) == JS_EVAL_TYPE_MODULE) {
-    /* for the modules, we compile then run to be able to set
-        import.meta */
-    val = JS_Eval(ctx, buf, buf_len, filename,
-                  eval_flags | JS_EVAL_FLAG_COMPILE_ONLY);
-    if (!JS_IsException(val)) {
-        QJU_SetModuleImportMeta(ctx, val, TRUE);
-        val = JS_EvalFunction(ctx, val);
-    }
-  } else {
-    val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
-  }
-
-  if (JS_IsException(val)) {
-    js_std_dump_error(ctx);
-    ret = 1;
-  } else {
-    ret = 0;
-  }
-
-  JS_FreeValue(ctx, val);
-  return ret;
-}
-
-static int eval_file(JSContext *ctx, const char *filename, int module)
-{
-  uint8_t *buf;
-  int ret, eval_flags;
-  size_t buf_len;
-
-  buf = QJU_LoadFile(ctx, &buf_len, filename);
-  if (!buf) {
-    perror(filename);
+  if (quickjs_full_init(ctx)) {
     exit(1);
   }
 
-  if (module < 0) {
-    module = (has_suffix(filename, ".mjs") ||
-              JS_DetectModule((const char *)buf, buf_len));
-  }
-  if (module) {
-    eval_flags = JS_EVAL_TYPE_MODULE;
-  } else {
-    eval_flags = JS_EVAL_TYPE_GLOBAL;
-  }
-
-  ret = eval_buf(ctx, buf, buf_len, filename, eval_flags);
-  js_free(ctx, buf);
-  return ret;
+  return ctx;
 }
 
 int main(int argc, char **argv)
@@ -143,7 +90,7 @@ int main(int argc, char **argv)
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
 
-  if (eval_file(ctx, filename, -1)) {
+  if (QJU_EvalFile(ctx, filename, -1)) {
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
     return 1;

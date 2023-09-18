@@ -40,6 +40,7 @@ __static_yoink("blink_xnu_aarch64");
 
 #include "cutils.h"
 #include "quickjs-libc.h"
+#include "quickjs-utils.h"
 #include "debugprint.h"
 
 // Stub out inspect and lib, which quickjs-libc depends on, but which we can't
@@ -197,7 +198,7 @@ static void output_object_code(JSContext *ctx,
         flags |= JS_WRITE_OBJ_BSWAP;
     out_buf = JS_WriteObject(ctx, &out_buf_len, obj, flags);
     if (!out_buf) {
-        js_std_dump_error(ctx);
+        QJU_PrintException(ctx, stderr);
         exit(1);
     }
 
@@ -324,7 +325,7 @@ static void compile_file(JSContext *ctx, FILE *fo,
     debugprint("running JS_Eval.\n");
     obj = JS_Eval(ctx, (const char *)buf, buf_len, filename, eval_flags);
     if (JS_IsException(obj)) {
-        js_std_dump_error(ctx);
+        QJU_PrintException(ctx, stderr);
         exit(1);
     }
 
@@ -682,6 +683,7 @@ int main(int argc, char **argv)
 
     if (output_type != OUTPUT_C) {
         fprintf(fo, "#include \"quickjs-libc.h\"\n"
+                "#include \"quickjs-utils.h\"\n"
                 "\n"
                 );
     } else {
@@ -745,12 +747,12 @@ int main(int argc, char **argv)
                     e->short_name, e->short_name, e->name);
         }
 
-        fprintf(fo, "  js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);\n");
+        fprintf(fo, "  QJU_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);\n");
 
         for(i = 0; i < cname_list.count; i++) {
             namelist_entry_t *e = &cname_list.array[i];
             if (e->flags) {
-                fprintf(fo, "  js_std_eval_binary(ctx, %s, %s_size, 1);\n",
+                fprintf(fo, "  QJU_EvalBinary(ctx, %s, %s_size, 1);\n",
                         e->name, e->name);
             }
         }
@@ -777,7 +779,7 @@ int main(int argc, char **argv)
         for(i = 0; i < cname_list.count; i++) {
             namelist_entry_t *e = &cname_list.array[i];
             if (!e->flags) {
-                fprintf(fo, "  js_std_eval_binary(ctx, %s, %s_size, 0);\n",
+                fprintf(fo, "  QJU_EvalBinary(ctx, %s, %s_size, 0);\n",
                         e->name, e->name);
             }
         }

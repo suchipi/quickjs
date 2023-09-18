@@ -37,6 +37,7 @@
 
 #include "cutils.h"
 #include "list.h"
+#include "quickjs-utils.h"
 #include "quickjs-libc.h"
 
 /* enable test262 thread support to test SharedArrayBuffer and Atomics */
@@ -477,14 +478,14 @@ static void *agent_start(void *arg)
     free(agent->script);
     agent->script = NULL;
     if (JS_IsException(ret_val))
-        js_std_dump_error(ctx);
+        QJU_PrintException(ctx, stderr);
     JS_FreeValue(ctx, ret_val);
 
     for(;;) {
         JSContext *ctx1;
         ret = JS_ExecutePendingJob(JS_GetRuntime(ctx), &ctx1);
         if (ret < 0) {
-            js_std_dump_error(ctx);
+            QJU_PrintException(ctx, stderr);
             break;
         } else if (ret == 0) {
             if (JS_IsUndefined(agent->broadcast_func)) {
@@ -511,7 +512,7 @@ static void *agent_start(void *arg)
                 JS_FreeValue(ctx, args[0]);
                 JS_FreeValue(ctx, args[1]);
                 if (JS_IsException(ret_val))
-                    js_std_dump_error(ctx);
+                    QJU_PrintException(ctx, stderr);
                 JS_FreeValue(ctx, ret_val);
                 JS_FreeValue(ctx, agent->broadcast_func);
                 agent->broadcast_func = JS_UNDEFINED;
@@ -1832,7 +1833,7 @@ int run_test262_harness_test(const char *filename, BOOL is_module)
     res_val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
     ret_code = 0;
     if (JS_IsException(res_val)) {
-       js_std_dump_error(ctx);
+       QJU_PrintException(ctx, stderr);
        ret_code = 1;
     } else {
         JS_FreeValue(ctx, res_val);
@@ -1840,7 +1841,7 @@ int run_test262_harness_test(const char *filename, BOOL is_module)
             JSContext *ctx1;
             ret = JS_ExecutePendingJob(JS_GetRuntime(ctx), &ctx1);
             if (ret < 0) {
-	      js_std_dump_error(ctx1);
+	      QJU_PrintException(ctx1, stderr);
 	      ret_code = 1;
             } else if (ret == 0) {
 	      break;

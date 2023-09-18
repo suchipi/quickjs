@@ -155,3 +155,125 @@ int QJU_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
     JS_FreeValue(ctx, meta_obj);
     return 0;
 }
+
+int QJU_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
+                const char *filename, int eval_flags)
+{
+    JSValue val;
+    int ret;
+
+    if ((eval_flags & JS_EVAL_TYPE_MASK) == JS_EVAL_TYPE_MODULE) {
+        /* for the modules, we compile then run to be able to set
+           import.meta */
+        val = JS_Eval(ctx, buf, buf_len, filename,
+                      eval_flags | JS_EVAL_FLAG_COMPILE_ONLY);
+        if (!JS_IsException(val)) {
+            QJU_SetModuleImportMeta(ctx, val, TRUE);
+            val = JS_EvalFunction(ctx, val);
+        }
+    } else {
+        val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
+    }
+    if (JS_IsException(val)) {
+        QJU_PrintException(ctx, stderr);
+        ret = -1;
+    } else {
+        ret = 0;
+    }
+    JS_FreeValue(ctx, val);
+    return ret;
+}
+
+int QJU_EvalFile(JSContext *ctx, const char *filename, int module)
+{
+    uint8_t *buf;
+    int ret, eval_flags;
+    size_t buf_len;
+
+    buf = QJU_LoadFile(ctx, &buf_len, filename);
+    if (!buf) {
+        perror(filename);
+        exit(1);
+    }
+
+    if (module < 0) {
+        module = (has_suffix(filename, ".mjs") ||
+                  JS_DetectModule((const char *)buf, buf_len));
+    }
+    if (module)
+        eval_flags = JS_EVAL_TYPE_MODULE;
+    else
+        eval_flags = JS_EVAL_TYPE_GLOBAL;
+    ret = QJU_EvalBuf(ctx, buf, buf_len, filename, eval_flags);
+    js_free(ctx, buf);
+    return ret;
+}
+
+static void qju_ToStringValueAndPrint(JSContext *ctx, FILE *f, JSValueConst val)
+{
+    const char *str;
+
+    str = JS_ToCString(ctx, val);
+    if (str) {
+        fprintf(f, "%s\n", str);
+        JS_FreeCString(ctx, str);
+    } else {
+        fprintf(f, "[exception]\n");
+    }
+}
+
+void QJU_PrintError(JSContext *ctx, FILE *f, JSValueConst exception_val)
+{
+    JSValue val;
+    BOOL is_error;
+
+    is_error = JS_IsError(ctx, exception_val);
+    qju_ToStringValueAndPrint(ctx, f, exception_val);
+    if (is_error) {
+        val = JS_GetPropertyStr(ctx, exception_val, "stack");
+        if (!JS_IsUndefined(val)) {
+            qju_ToStringValueAndPrint(ctx, f, val);
+        }
+        JS_FreeValue(ctx, val);
+    }
+}
+
+void QJU_PrintException(JSContext *ctx, FILE *f)
+{
+    JSValue exception_val;
+
+    exception_val = JS_GetException(ctx);
+    QJU_PrintError(ctx, f, exception_val);
+    JS_FreeValue(ctx, exception_val);
+}
+
+int QJU_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
+                    int load_only)
+{
+    JSValue obj, val;
+    obj = JS_ReadObject(ctx, buf, buf_len, JS_READ_OBJ_BYTECODE);
+    if (JS_IsException(obj))
+        goto exception;
+    if (load_only) {
+        if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
+            QJU_SetModuleImportMeta(ctx, obj, FALSE);
+        }
+    } else {
+        if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
+            if (JS_ResolveModule(ctx, obj) < 0) {
+                JS_FreeValue(ctx, obj);
+                goto exception;
+            }
+            QJU_SetModuleImportMeta(ctx, obj, TRUE);
+        }
+        val = JS_EvalFunction(ctx, obj);
+        if (JS_IsException(val)) {
+        exception:
+            QJU_PrintException(ctx, stderr);
+            return -1;
+        }
+        JS_FreeValue(ctx, val);
+    }
+
+    return 0;
+}

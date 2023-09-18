@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "quickjs-libc.h"
+#include "quickjs-utils.h";
 
 extern const uint32_t qjsc_loop_size;
 extern const uint8_t qjsc_loop[];
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
   JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
-  js_std_eval_binary(ctx, qjsc_loop, qjsc_loop_size, 0);
+  QJU_EvalBinary(ctx, qjsc_loop, qjsc_loop_size, 0);
   js_std_loop(ctx);
   JS_FreeContext(ctx);
   JS_FreeRuntime(rt);

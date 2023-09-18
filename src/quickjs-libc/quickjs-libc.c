@@ -144,35 +144,6 @@ typedef struct JSThreadState {
 static uint64_t os_pending_signals;
 static int (*os_poll_func)(JSContext *ctx);
 
-static void js_dump_obj(JSContext *ctx, FILE *f, JSValueConst val)
-{
-    const char *str;
-
-    str = JS_ToCString(ctx, val);
-    if (str) {
-        fprintf(f, "%s\n", str);
-        JS_FreeCString(ctx, str);
-    } else {
-        fprintf(f, "[exception]\n");
-    }
-}
-
-static void js_std_dump_error1(JSContext *ctx, JSValueConst exception_val)
-{
-    JSValue val;
-    BOOL is_error;
-
-    is_error = JS_IsError(ctx, exception_val);
-    js_dump_obj(ctx, stderr, exception_val);
-    if (is_error) {
-        val = JS_GetPropertyStr(ctx, exception_val, "stack");
-        if (!JS_IsUndefined(val)) {
-            js_dump_obj(ctx, stderr, val);
-        }
-        JS_FreeValue(ctx, val);
-    }
-}
-
 static void js_std_dbuf_init(JSContext *ctx, DynBuf *s)
 {
     dbuf_init2(s, JS_GetRuntime(ctx), (DynBufReallocFunc *)js_realloc_rt);
@@ -2678,7 +2649,7 @@ static void call_handler(JSContext *ctx, JSValueConst func)
     ret = JS_Call(ctx, func1, JS_UNDEFINED, 0, NULL);
     JS_FreeValue(ctx, func1);
     if (JS_IsException(ret))
-        js_std_dump_error(ctx);
+        QJU_PrintException(ctx, stderr);
     JS_FreeValue(ctx, ret);
 }
 
@@ -2817,7 +2788,7 @@ static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
         JS_FreeValue(ctx, func);
         if (JS_IsException(retval)) {
         fail:
-            js_std_dump_error(ctx);
+            QJU_PrintException(ctx, stderr);
         } else {
             JS_FreeValue(ctx, retval);
         }
@@ -4244,7 +4215,7 @@ static void *worker_func(void *opaque)
     js_std_add_helpers(ctx, -1, NULL);
 
     if (!JS_RunModule(ctx, args->basename, args->filename))
-        js_std_dump_error(ctx);
+        QJU_PrintException(ctx, stderr);
     free(args->filename);
     free(args->basename);
     free(args);
@@ -4907,7 +4878,7 @@ void js_std_add_print(JSContext *ctx)
 void js_std_add_inspect(JSContext *ctx)
 {
     // Creates 'inspect' global
-    js_std_eval_binary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
+    QJU_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
 }
 
 void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv)
@@ -4925,7 +4896,7 @@ void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv)
         JS_SetPropertyStr(ctx, global_obj, "scriptArgs", args);
 
         if (JS_IsException(JS_FreezeObjectValue(ctx, args))) {
-            js_std_dump_error(ctx);
+            QJU_PrintException(ctx, stderr);
         }
     }
 
@@ -5002,7 +4973,7 @@ void js_std_add_timeout(JSContext *ctx)
 void js_std_add_lib(JSContext *ctx)
 {
     // run all the stuff in the src/quickjs-libc/lib folder
-    js_std_eval_binary(ctx, qjsc_lib, qjsc_lib_size, 0);
+    QJU_EvalBinary(ctx, qjsc_lib, qjsc_lib_size, 0);
 }
 
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
@@ -5082,22 +5053,13 @@ void js_std_free_handlers(JSRuntime *rt)
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
 }
 
-void js_std_dump_error(JSContext *ctx)
-{
-    JSValue exception_val;
-
-    exception_val = JS_GetException(ctx);
-    js_std_dump_error1(ctx, exception_val);
-    JS_FreeValue(ctx, exception_val);
-}
-
 void js_std_promise_rejection_tracker(JSContext *ctx, JSValueConst promise,
                                       JSValueConst reason,
                                       BOOL is_handled, void *opaque)
 {
     if (!is_handled) {
         fprintf(stderr, "Possibly unhandled promise rejection: ");
-        js_std_dump_error1(ctx, reason);
+        QJU_PrintError(ctx, stderr, reason);
     }
 }
 
@@ -5113,7 +5075,7 @@ void js_std_loop(JSContext *ctx)
             err = JS_ExecutePendingJob(JS_GetRuntime(ctx), &ctx1);
             if (err <= 0) {
                 if (err < 0) {
-                    js_std_dump_error(ctx1);
+                    QJU_PrintException(ctx1, stderr);
                 }
                 break;
             }
@@ -5121,34 +5083,5 @@ void js_std_loop(JSContext *ctx)
 
         if (!os_poll_func || os_poll_func(ctx))
             break;
-    }
-}
-
-void js_std_eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                        int load_only)
-{
-    JSValue obj, val;
-    obj = JS_ReadObject(ctx, buf, buf_len, JS_READ_OBJ_BYTECODE);
-    if (JS_IsException(obj))
-        goto exception;
-    if (load_only) {
-        if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
-            QJU_SetModuleImportMeta(ctx, obj, FALSE);
-        }
-    } else {
-        if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
-            if (JS_ResolveModule(ctx, obj) < 0) {
-                JS_FreeValue(ctx, obj);
-                goto exception;
-            }
-            QJU_SetModuleImportMeta(ctx, obj, TRUE);
-        }
-        val = JS_EvalFunction(ctx, obj);
-        if (JS_IsException(val)) {
-        exception:
-            js_std_dump_error(ctx);
-            exit(1);
-        }
-        JS_FreeValue(ctx, val);
     }
 }
