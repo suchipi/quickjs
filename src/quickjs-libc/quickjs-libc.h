@@ -57,9 +57,6 @@ extern "C"
   void js_std_loop(JSContext *ctx);
   void js_std_init_handlers(JSRuntime *rt);
   void js_std_free_handlers(JSRuntime *rt);
-  uint8_t *QJU_LoadFile(JSContext *ctx, size_t *pbuf_len, const char *filename);
-  int QJU_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
-                                JS_BOOL is_main);
   JSModuleDef *js_module_loader(JSContext *ctx,
                                 const char *module_name, void *opaque);
   char *js_module_normalize_name(JSContext *ctx,
