@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     JS_SetMemoryLimit(rt, memory_limit);
   }
 
-  JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
+  JS_SetModuleLoaderFunc(rt, QJU_NormalizeModuleName, QJU_ModuleLoader, NULL);
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
   QJU_EvalBinary(ctx, qjsc_loop, qjsc_loop_size, 0);

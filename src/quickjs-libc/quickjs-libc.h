@@ -57,11 +57,6 @@ extern "C"
   void js_std_loop(JSContext *ctx);
   void js_std_init_handlers(JSRuntime *rt);
   void js_std_free_handlers(JSRuntime *rt);
-  JSModuleDef *js_module_loader(JSContext *ctx,
-                                const char *module_name, void *opaque);
-  char *js_module_normalize_name(JSContext *ctx,
-                                 const char *base_name,
-                                 const char *name, void *opaque);
   void js_std_promise_rejection_tracker(JSContext *ctx, JSValueConst promise,
                                         JSValueConst reason,
                                         JS_BOOL is_handled, void *opaque);

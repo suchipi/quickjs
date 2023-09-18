@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <dlfcn.h>
 #include "cutils.h"
 #include "quickjs.h"
 #include "debugprint.h"
@@ -70,5 +71,14 @@ prints the context's current exception to `f`.
 this calls JS_GetException, so the exception will be cleared.
 */
 void QJU_PrintException(JSContext *ctx, FILE *f);
+
+/* a module name normalization function, suitable for passing into JS_SetModuleLoaderFunc. */
+char *QJU_NormalizeModuleName(JSContext *ctx,
+                              const char *base_name,
+                              const char *name, void *opaque);
+
+/* a module loader function, suitable for passing into JS_SetModuleLoaderFunc. */
+JSModuleDef *QJU_ModuleLoader(JSContext *ctx,
+                              const char *module_name, void *opaque);
 
 #endif /* ifndef QUICKJS_UTILS_H */

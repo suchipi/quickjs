@@ -187,7 +187,7 @@ int main(int argc, char **argv)
   js_std_set_worker_new_context_func(JS_NewCustomContext);
   js_std_init_handlers(rt);
   JS_SetMaxStackSize(rt, 8000000);
-  JS_SetModuleLoaderFunc(rt, js_module_normalize_name, js_module_loader, NULL);
+  JS_SetModuleLoaderFunc(rt, QJU_NormalizeModuleName, QJU_ModuleLoader, NULL);
   JS_SetCanBlock(rt, TRUE);
   ctx = JS_NewCustomContext(rt);
   define_qjsbootstrap_offset(ctx);
