@@ -35,6 +35,9 @@ for (const suffix of ["HOST", "TARGET"]) {
   // math functions and constants. <math.h>
   declareOrAppend(`LIBS_${suffix}`, "-lm");
 
+  // zip archive lib; https://libzip.org/. <zip.h>
+  declareOrAppend(`LIBS_${suffix}`, "-lzip");
+
   // multithreading. <pthread.h>
   declareOrAppend(`LIBS_${suffix}`, "-lpthread");
 

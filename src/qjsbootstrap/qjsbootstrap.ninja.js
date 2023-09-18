@@ -1,10 +1,3 @@
-const zip_target_o = build({
-  output: builddir(`intermediate/zip.target.o`),
-  rule: "cc_target",
-  inputs: [rel("zip/zip.c")],
-  implicitInputs: [rel("zip/zip.h"), rel("zip/miniz.h")],
-});
-
 const qjsbootstrap_target_o = build({
   output: builddir(`intermediate/qjsbootstrap.target.o`),
   rule: "cc_target",
@@ -16,7 +9,6 @@ const qjsbootstrap = build({
   rule: "link_target",
   inputs: [
     qjsbootstrap_target_o,
-    zip_target_o,
     builddir("intermediate/quickjs-full.target.a"),
   ],
 });
@@ -51,5 +43,5 @@ const zip_test_target_o = build({
 const zip_test = build({
   output: builddir(`bin/zip_test$PROGRAM_SUFFIX`),
   rule: "link_target",
-  inputs: [zip_test_target_o, zip_target_o],
+  inputs: [zip_test_target_o],
 });

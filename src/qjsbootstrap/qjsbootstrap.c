@@ -95,102 +95,102 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
   return ret;
 }
 
-typedef enum {
-  CODE_KIND_UNKNOWN,
-  CODE_KIND_UTF8,
-  CODE_KIND_BYTECODE,
-} CODE_KIND;
+// typedef enum {
+//   CODE_KIND_UNKNOWN,
+//   CODE_KIND_UTF8,
+//   CODE_KIND_BYTECODE,
+// } CODE_KIND;
 
-typedef struct code_from_zip_result_t {
-  int status;
-  CODE_KIND kind;
-} code_from_zip_result_t;
+// typedef struct code_from_zip_result_t {
+//   int status;
+//   CODE_KIND kind;
+// } code_from_zip_result_t;
 
-#define INSTRUCTIONS "append a zip file to the end of this binary containing either a file named 'main.bin' containing quickjs bytecode or a file named 'main.js' containing UTF-8 encoded JavaScript source code.\n"
+// #define INSTRUCTIONS "append a zip file to the end of this binary containing either a file named 'main.bin' containing quickjs bytecode or a file named 'main.js' containing UTF-8 encoded JavaScript source code.\n"
 
-static code_from_zip_result_t read_code_from_zip(char *argv0, size_t* appended_code_len, void **appended_code)
-{
-  char *self_binary_path;
-  char execpath_error[2048];
-  code_from_zip_result_t ret = { 0, CODE_KIND_UNKNOWN };
-  struct zip_t *zip = NULL;
+// static code_from_zip_result_t read_code_from_zip(char *argv0, size_t* appended_code_len, void **appended_code)
+// {
+//   char *self_binary_path;
+//   char execpath_error[2048];
+//   code_from_zip_result_t ret = { 0, CODE_KIND_UNKNOWN };
+//   struct zip_t *zip = NULL;
 
-  self_binary_path = execpath(argv0, NULL, (char *)&execpath_error);
-  if (self_binary_path == NULL) {
-    printf("failed to find location of self executable: %s\n", execpath_error);
-    ret.status = 1;
-    return ret;
-  }
+//   self_binary_path = execpath(argv0, NULL, (char *)&execpath_error);
+//   if (self_binary_path == NULL) {
+//     printf("failed to find location of self executable: %s\n", execpath_error);
+//     ret.status = 1;
+//     return ret;
+//   }
 
-  {
-    int level;
-    for (level = 0; level < 10; level++) {
-      zip = zip_open(self_binary_path, level, 'r');
-      if (zip != NULL) {
-        break;
-      }
-    }
-  }
-  if (zip == NULL) {
-    printf("failed to open %s as zip file\n" INSTRUCTIONS, self_binary_path);
-    ret.status = 1;
-    free(self_binary_path);
-    return ret;
-  }
-  {
-    int main_bin_result = zip_entry_open(zip, "main.bin");
-    if (main_bin_result == 0) {
-      ret.kind = CODE_KIND_BYTECODE;
-    } else {
-      int main_js_result = zip_entry_open(zip, "main.js");
-      if (main_js_result == 0) {
-        ret.kind = CODE_KIND_UTF8;
-      } else {
-        printf("failed to open %s as zip file\n" INSTRUCTIONS, self_binary_path);
-        ret.status = 1;
-        zip_close(zip);
-        free(self_binary_path);
-        return ret;
-      }
-    }
+//   {
+//     int level;
+//     for (level = 0; level < 10; level++) {
+//       zip = zip_open(self_binary_path, level, 'r');
+//       if (zip != NULL) {
+//         break;
+//       }
+//     }
+//   }
+//   if (zip == NULL) {
+//     printf("failed to open %s as zip file\n" INSTRUCTIONS, self_binary_path);
+//     ret.status = 1;
+//     free(self_binary_path);
+//     return ret;
+//   }
+//   {
+//     int main_bin_result = zip_entry_open(zip, "main.bin");
+//     if (main_bin_result == 0) {
+//       ret.kind = CODE_KIND_BYTECODE;
+//     } else {
+//       int main_js_result = zip_entry_open(zip, "main.js");
+//       if (main_js_result == 0) {
+//         ret.kind = CODE_KIND_UTF8;
+//       } else {
+//         printf("failed to open %s as zip file\n" INSTRUCTIONS, self_binary_path);
+//         ret.status = 1;
+//         zip_close(zip);
+//         free(self_binary_path);
+//         return ret;
+//       }
+//     }
 
-    {
-      ssize_t entry_read_result = zip_entry_read(zip, appended_code, appended_code_len);
-      if (entry_read_result < 0) {
-        const char *entry_name;
-        if (ret.kind == CODE_KIND_BYTECODE) {
-          entry_name = "main.bin";
-        } else {
-          entry_name = "main.js";
-        }
-        printf("failed to read '%s' in zip '%s': %s\n" INSTRUCTIONS, entry_name, self_binary_path, zip_strerror(entry_read_result));
-        ret.status = 1;
-        zip_entry_close(zip);
-        zip_close(zip);
-        free(self_binary_path);
-        return ret;
-      }
-    }
-    zip_entry_close(zip);
-  }
-  zip_close(zip);
+//     {
+//       ssize_t entry_read_result = zip_entry_read(zip, appended_code, appended_code_len);
+//       if (entry_read_result < 0) {
+//         const char *entry_name;
+//         if (ret.kind == CODE_KIND_BYTECODE) {
+//           entry_name = "main.bin";
+//         } else {
+//           entry_name = "main.js";
+//         }
+//         printf("failed to read '%s' in zip '%s': %s\n" INSTRUCTIONS, entry_name, self_binary_path, zip_strerror(entry_read_result));
+//         ret.status = 1;
+//         zip_entry_close(zip);
+//         zip_close(zip);
+//         free(self_binary_path);
+//         return ret;
+//       }
+//     }
+//     zip_entry_close(zip);
+//   }
+//   zip_close(zip);
 
-  free(self_binary_path);
-  return ret;
-}
+//   free(self_binary_path);
+//   return ret;
+// }
 
 int main(int argc, char **argv)
 {
   JSRuntime *rt;
   JSContext *ctx;
-  code_from_zip_result_t zip_result;
+  // code_from_zip_result_t zip_result;
   size_t appended_code_len = 0;
   void *appended_code = NULL;
 
-  zip_result = read_code_from_zip(argv[0], &appended_code_len, &appended_code);
-  if (zip_result.status != 0 || zip_result.kind == CODE_KIND_UNKNOWN) {
-    return 1;
-  }
+  // zip_result = read_code_from_zip(argv[0], &appended_code_len, &appended_code);
+  // if (zip_result.status != 0 || zip_result.kind == CODE_KIND_UNKNOWN) {
+  //   return 1;
+  // }
 
   rt = JS_NewRuntime();
   js_std_set_worker_new_context_func(JS_NewCustomContext);
@@ -202,13 +202,13 @@ int main(int argc, char **argv)
   js_std_add_helpers(ctx, argc, argv);
 
   if (appended_code_len != 0) {
-    if (zip_result.kind == CODE_KIND_BYTECODE) {
-      js_std_eval_binary(ctx, appended_code, appended_code_len, 0);
-    } else {
-      if (eval_buf(ctx, appended_code, appended_code_len, "main.js", JS_EVAL_TYPE_MODULE)) {
-        return 1;
-      }
-    }
+    // if (zip_result.kind == CODE_KIND_BYTECODE) {
+    //   js_std_eval_binary(ctx, appended_code, appended_code_len, 0);
+    // } else {
+    //   if (eval_buf(ctx, appended_code, appended_code_len, "main.js", JS_EVAL_TYPE_MODULE)) {
+    //     return 1;
+    //   }
+    // }
   }
 
   js_std_loop(ctx);
