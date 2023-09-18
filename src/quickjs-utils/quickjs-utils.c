@@ -278,6 +278,11 @@ int QJU_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
     return 0;
 }
 
+// TODO: all the module-related stuff (including the default impl of the Module global)
+// should get moved into its own thing (quickjs-module or etc) instead of being spread
+// across QJU and quickjs-libc
+//
+// ideally, quickjs-libc will eventually be *only* the std and os modules, nothing else
 char *QJU_NormalizeModuleName(JSContext *ctx,
                               const char *base_name,
                               const char *name, void *opaque)
