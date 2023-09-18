@@ -1,6 +1,12 @@
 #ifndef QUICKJS_UTILS_H
 #define QUICKJS_UTILS_H
 
+#include <stdlib.h>
+#include <limits.h>
+#include <errno.h>
+#include <string.h>
+#include <assert.h>
+#include "cutils.h"
 #include "quickjs.h"
 #include "debugprint.h"
 
@@ -26,5 +32,10 @@ QJUForEachPropertyState *QJU_NewForEachPropertyState(JSContext *ctx, JSValue obj
 JSValue QJU_ForEachProperty_Read(JSContext *ctx, JSValue obj, QJUForEachPropertyState *state);
 
 void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state);
+
+uint8_t *QJU_LoadFile(JSContext *ctx, size_t *pbuf_len, const char *filename);
+
+int QJU_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
+                              JS_BOOL is_main);
 
 #endif /* ifndef QUICKJS_UTILS_H */

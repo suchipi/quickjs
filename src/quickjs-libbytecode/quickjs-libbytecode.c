@@ -2,7 +2,7 @@
 #include <errno.h>
 
 #include "quickjs-libbytecode.h"
-#include "quickjs-libc.h"
+#include "quickjs-utils.h"
 #include "cutils.h"
 
 static JSValue js_call_bytecode_func(JSContext *ctx, JSValueConst this_val,
@@ -16,7 +16,7 @@ static JSValue js_call_bytecode_func(JSContext *ctx, JSValueConst this_val,
             JS_FreeValue(ctx, obj);
             return JS_EXCEPTION;
         }
-        js_module_set_import_meta(ctx, obj, FALSE);
+        QJU_SetModuleImportMeta(ctx, obj, FALSE);
     }
     result = JS_EvalFunction(ctx, obj);
     return result;
@@ -234,7 +234,7 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
 
-    buf = js_load_file(ctx, &buf_len, filename);
+    buf = QJU_LoadFile(ctx, &buf_len, filename);
     if (!buf) {
         JS_ThrowError(ctx, "%s (errno = %d, filename = %s)", strerror(errno), errno, filename);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));

@@ -36,6 +36,7 @@ __static_yoink("blink_xnu_aarch64");
 #include <errno.h>
 #include "execpath.h"
 #include "cutils.h"
+#include "quickjs-utils.h"
 #include "quickjs-full-init.h"
 
 static JSContext *JS_NewCustomContext(JSRuntime *rt)
@@ -126,7 +127,7 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
     val = JS_Eval(ctx, buf, buf_len, filename,
                   eval_flags | JS_EVAL_FLAG_COMPILE_ONLY);
     if (!JS_IsException(val)) {
-        js_module_set_import_meta(ctx, val, TRUE);
+        QJU_SetModuleImportMeta(ctx, val, TRUE);
         val = JS_EvalFunction(ctx, val);
     }
   } else {

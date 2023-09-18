@@ -798,7 +798,7 @@ static char *load_file(const char *filename, size_t *lenp)
 {
     char *buf;
     size_t buf_len;
-    buf = (char *)js_load_file(NULL, &buf_len, filename);
+    buf = (char *)QJU_LoadFile(NULL, &buf_len, filename);
     if (!buf)
         perror_exit(1, filename);
     if (lenp)
@@ -814,7 +814,7 @@ static JSModuleDef *js_module_loader_test(JSContext *ctx,
     JSModuleDef *m;
     JSValue func_val;
 
-    buf = js_load_file(ctx, &buf_len, module_name);
+    buf = QJU_LoadFile(ctx, &buf_len, module_name);
     if (!buf) {
         JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
                                module_name);

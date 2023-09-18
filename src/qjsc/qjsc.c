@@ -267,7 +267,7 @@ JSModuleDef *jsc_module_loader(JSContext *ctx,
         JSValue func_val;
         char cname[1024];
 
-        buf = js_load_file(ctx, &buf_len, module_name);
+        buf = QJU_LoadFile(ctx, &buf_len, module_name);
         if (!buf) {
             JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
                                    module_name);
@@ -306,7 +306,7 @@ static void compile_file(JSContext *ctx, FILE *fo,
 
     debugprint("compiling %s. c_name1: %s, module: %d\n", filename, c_name1, module);
 
-    buf = js_load_file(ctx, &buf_len, filename);
+    buf = QJU_LoadFile(ctx, &buf_len, filename);
     if (!buf) {
         fprintf(stderr, "Could not load '%s'\n", filename);
         exit(1);
