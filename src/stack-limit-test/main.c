@@ -65,6 +65,7 @@ int main(int argc, char **argv)
   JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
+  QJMS_AddGlobals(ctx);
   QJMS_EvalBinary(ctx, qjsc_loop, qjsc_loop_size, 0);
   js_std_loop(ctx);
   JS_FreeContext(ctx);

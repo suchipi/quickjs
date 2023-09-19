@@ -142,7 +142,6 @@ declare module "quickjs:context" {
        *
        * NOTE: The following globals, normally part of `js_std_add_helpers`, are NEVER added:
        *
-       * - Module
        * - scriptArgs
        *
        * If you need them in the new context, copy them over from your context's globalThis onto the child context's globalThis.

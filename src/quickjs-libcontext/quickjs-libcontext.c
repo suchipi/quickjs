@@ -5,6 +5,7 @@
 #include "quickjs-libc.h"
 #include "quickjs-libbytecode.h"
 #include "quickjs-libpointer.h"
+#include "quickjs-modulesys.h"
 #include "cutils.h"
 
 static JSClassID js_context_class_id;
@@ -228,8 +229,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         js_std_add_console(target_ctx);
         js_std_add_print(target_ctx);
         // we don't add scriptArgs
-        js_std_add_require(target_ctx);
-        // we don't add Module
+        QJMS_AddGlobals(target_ctx);
         js_std_add_timeout(target_ctx);
         js_std_add_lib(target_ctx);
     }

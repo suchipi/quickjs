@@ -49,8 +49,6 @@ extern "C"
   void js_std_add_console(JSContext *ctx);
   void js_std_add_print(JSContext *ctx);
   void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv);
-  void js_std_add_require(JSContext *ctx);
-  void js_std_add_Module(JSContext *ctx);
   void js_std_add_timeout(JSContext *ctx);
   void js_std_add_lib(JSContext *ctx);
 

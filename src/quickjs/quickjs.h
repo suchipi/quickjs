@@ -952,6 +952,15 @@ typedef JSModuleDef *JSModuleLoaderFunc(JSContext *ctx,
 void JS_SetModuleLoaderFunc(JSRuntime *rt,
                             JSModuleNormalizeFunc *module_normalize,
                             JSModuleLoaderFunc *module_loader, void *opaque);
+
+/* return the value set by JS_SetModuleLoaderFunc. could be NULL. */
+JSModuleNormalizeFunc *JS_GetModuleNormalizeFunc(JSRuntime *rt);
+/* return the value set by JS_SetModuleLoaderFunc. could be NULL but only if
+   JS_SetModuleLoaderFunc was never called. */
+JSModuleLoaderFunc *JS_GetModuleLoaderFunc(JSRuntime *rt);
+/* return the value set by JS_SetModuleLoaderFunc. could be NULL. */
+void *JS_GetModuleLoaderOpaque(JSRuntime *rt);
+
 /* return the import.meta object of a module. you'll have to free it when done */
 JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);
 JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m);

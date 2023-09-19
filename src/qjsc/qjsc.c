@@ -775,7 +775,8 @@ int main(int argc, char **argv)
 
         fprintf(fo,
                 "  ctx = JS_NewCustomContext(rt);\n"
-                "  js_std_add_helpers(ctx, argc, argv);\n");
+                "  js_std_add_helpers(ctx, argc, argv);\n"
+                "  QJMS_AddGlobals(ctx);\n");
 
         for(i = 0; i < cname_list.count; i++) {
             namelist_entry_t *e = &cname_list.array[i];

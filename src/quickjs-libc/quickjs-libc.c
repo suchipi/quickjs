@@ -428,154 +428,26 @@ static JSValue js_std_getFileNameFromStack(JSContext *ctx, JSValueConst this_val
     }
 }
 
-/* load and evaluate a file as a module */
-static JSValue js_require(JSContext *ctx, JSValueConst this_val,
-                          int argc, JSValueConst *argv)
-{
-    JSValue ns;
-    JSAtom cjs_export_atom;
-    int has_cjs_export;
-    JSValue cjs_export_val;
-
-    if (argc != 1) {
-        JS_ThrowTypeError(ctx, "require must be called with exactly one argument");
-        return JS_EXCEPTION;
-    }
-
-    ns = JS_DynamicImportSync(ctx, argv[0]);
-    if (JS_IsException(ns)) {
-        return JS_EXCEPTION;
-    }
-
-    cjs_export_atom = JS_NewAtom(ctx, "__cjsExports");
-    if (cjs_export_atom == JS_ATOM_NULL) {
-        JS_FreeValue(ctx, ns);
-        return JS_EXCEPTION;
-    }
-
-    has_cjs_export = JS_HasProperty(ctx, ns, cjs_export_atom);
-    if (has_cjs_export == -1) {
-        JS_FreeAtom(ctx, cjs_export_atom);
-        JS_FreeValue(ctx, ns);
-        return JS_EXCEPTION;
-    } else if (has_cjs_export == FALSE) {
-        JS_FreeAtom(ctx, cjs_export_atom);
-        return ns;
-    }
-    // otherwise, has_cjs_export is true
-
-    cjs_export_val = JS_GetProperty(ctx, ns, cjs_export_atom);
-    JS_FreeAtom(ctx, cjs_export_atom);
-    if (JS_IsException(cjs_export_val)) {
-        JS_FreeValue(ctx, ns);
-        return JS_EXCEPTION;
-    }
-
-    JS_FreeValue(ctx, ns);
-    return cjs_export_val;
-}
-
-/* resolve the path to a module, using the current caller as the basename */
-static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv)
-{
-    JSAtom basename_atom;
-    const char *basename;
-    JSValue name_val;
-    const char *name;
-    const char *normalized;
-    JSValue normalized_value;
-
-    if (argc != 1) {
-        return JS_ThrowTypeError(ctx, "require.resolve must be called with exactly one argument");
-    }
-
-    basename_atom = JS_GetScriptOrModuleName(ctx, 1);
-    if (basename_atom == JS_ATOM_NULL) {
-        return JS_ThrowError(ctx, "Failed to identify the filename of the code calling require.resolve");
-    } else {
-        basename = JS_AtomToCString(ctx, basename_atom);
-    }
-
-    name_val = JS_ToString(ctx, argv[0]);
-    if (JS_IsException(name_val)) {
-        JS_FreeAtom(ctx, basename_atom);
-        JS_FreeCString(ctx, basename);
-        return name_val;
-    }
-
-    name = JS_ToCString(ctx, name_val);
-
-    // TODO: should call the module normalizer associated with the JSContext
-    // instead of assuming this is the correct one
-    normalized = QJMS_NormalizeModuleName(ctx, basename, name, NULL);
-
-    if (normalized == NULL) {
-        JS_FreeAtom(ctx, basename_atom);
-        JS_FreeCString(ctx, basename);
-        JS_FreeValue(ctx, name_val);
-
-        return JS_ThrowError(ctx, "Failed to normalize module name");
-    }
-
-    normalized_value = JS_NewString(ctx, normalized);
-    // normalized_value could be exception here, but the handling for exception
-    // case and non-exception case is the same (free stuff and return
-    // normalized_value), so we don't have handling using JS_IsException
-
-    JS_FreeAtom(ctx, basename_atom);
-    JS_FreeCString(ctx, basename);
-    JS_FreeValue(ctx, name_val);
-
-    return normalized_value;
-}
-
 /* resolve the absolute path to a module */
 static JSValue js_std_resolveModule(JSContext *ctx, JSValueConst this_val,
                                     int argc, JSValueConst *argv)
 {
     if (argc == 1) {
-        return js_require_resolve(ctx, this_val, argc, argv);
+        JSValue specifier = argv[0];
+        return QJMS_RequireResolve(ctx, specifier);
     } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
-        JSValue name_val;
-        JSValue basename_val;
-        const char *basename;
-        const char *name;
-        const char *normalized;
-        JSValue normalized_value;
+        JSValue result;
+        JSValue specifier = argv[0];
+        JSValue basename_val = argv[1];
 
-        name_val = JS_ToString(ctx, argv[0]);
-        if (JS_IsException(name_val)) {
-            return name_val;
+        JSAtom basename_atom = JS_ValueToAtom(ctx, basename_val);
+        if (basename_atom == JS_ATOM_NULL) {
+            return JS_EXCEPTION;
         }
 
-        basename_val = JS_ToString(ctx, argv[1]);
-        if (JS_IsException(basename_val)) {
-            JS_FreeValue(ctx, name_val);
-            return basename_val;
-        }
-
-        name = JS_ToCString(ctx, name_val);
-        basename = JS_ToCString(ctx, basename_val);
-
-        normalized = QJMS_NormalizeModuleName(ctx, basename, name, NULL);
-
-        if (normalized == NULL) {
-            JS_FreeValue(ctx, name_val);
-            JS_FreeValue(ctx, basename_val);
-
-            return JS_ThrowError(ctx, "Failed to normalize module name");
-        }
-
-        normalized_value = JS_NewString(ctx, normalized);
-        // normalized_value could be exception here, but the handling for exception
-        // case and non-exception case is the same (free stuff and return
-        // normalized_value), so we don't have handling using JS_IsException
-
-        JS_FreeValue(ctx, name_val);
-        JS_FreeValue(ctx, basename_val);
-
-        return normalized_value;
+        result = QJMS_RequireResolve2(ctx, specifier, basename_atom);
+        JS_FreeAtom(ctx, basename_atom);
+        return result;
     } else {
         return JS_ThrowTypeError(ctx, "resolveModule must be called with one or two arguments");
     }
@@ -3958,6 +3830,7 @@ static void *worker_func(void *opaque)
     JS_SetCanBlock(rt, TRUE);
 
     js_std_add_helpers(ctx, -1, NULL);
+    QJMS_AddGlobals(ctx);
 
     if (!JS_RunModule(ctx, args->basename, args->filename))
         QJU_PrintException(ctx, stderr);
@@ -4443,148 +4316,6 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-static JSValue js_Module_hasInstance(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
-{
-    JSValue target;
-    JSClassID class_id;
-
-    if (argc < 1) {
-        return JS_FALSE;
-    }
-
-    target = argv[0];
-
-    class_id = JS_VALUE_GET_CLASS_ID(target);
-
-    if (class_id == JS_CLASS_MODULE_NS) {
-        return JS_TRUE;
-    } else {
-        return JS_FALSE;
-    }
-}
-
-static int js_userdefined_module_init(JSContext *ctx, JSModuleDef *m)
-{
-    JSValueConst *objp;
-    JSValueConst obj;
-    QJUForEachPropertyState *foreach = NULL;
-    int ret = 0;
-
-    objp = (JSValue *)JS_GetModuleUserData(m);
-    if (objp == NULL) {
-        JS_ThrowTypeError(ctx, "user-defined module did not have exports object as userdata");
-        ret = -1;
-        goto end;
-    }
-
-    obj = *objp;
-
-    foreach = QJU_NewForEachPropertyState(ctx, obj, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
-    if (foreach == NULL) { // out of memory
-        ret = -1;
-        goto end;
-    }
-
-    QJU_ForEachProperty(ctx, foreach) {
-        const char *key_str;
-        JSValue read_result = QJU_ForEachProperty_Read(ctx, obj, foreach);
-        if (JS_IsException(read_result)) {
-            ret = -1;
-            goto end;
-        }
-        key_str = JS_AtomToCString(ctx, foreach->key);
-        if (key_str == NULL) {
-            ret = -1;
-            goto end;
-        }
-
-        JS_SetModuleExport(ctx, m, key_str, JS_DupValue(ctx, foreach->val));
-    }
-
-end:
-    QJU_FreeForEachPropertyState(ctx, foreach);
-    JS_SetModuleUserData(m, NULL);
-
-    return ret;
-}
-
-static JSValue js_Module_define(JSContext *ctx, JSValueConst this_val,
-                                int argc, JSValueConst *argv)
-{
-    JSValueConst obj;
-    const char *name = NULL;
-    JSModuleDef *m = NULL;
-    QJUForEachPropertyState *foreach = NULL;
-    JSValue ret = JS_UNDEFINED;
-
-    if (argc < 2) {
-        JS_ThrowError(ctx, "Module.define requires two arguments: a string (module name) and an object (module exports).");
-        ret = JS_EXCEPTION;
-        goto end;
-    }
-
-    name = JS_ToCString(ctx, argv[0]);
-    if (name == NULL) {
-        ret = JS_EXCEPTION;
-        goto end;
-    }
-
-    if (!JS_IsObject(argv[1])) {
-        JS_ThrowError(ctx, "Second argument to Module.define must be an object.");
-        ret = JS_EXCEPTION;
-        goto end;
-    }
-
-    obj = argv[1];
-
-    m = JS_NewCModule(ctx, name, js_userdefined_module_init, &obj);
-    if (m == NULL) {
-        ret = JS_EXCEPTION;
-        goto end;
-    }
-
-    foreach = QJU_NewForEachPropertyState(ctx, obj, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
-    if (foreach == NULL) {
-        ret = JS_EXCEPTION;
-        goto end;
-    }
-
-    QJU_ForEachProperty(ctx, foreach) {
-        const char *key_str;
-
-        JSValue read_result = QJU_ForEachProperty_Read(ctx, obj, foreach);
-        if (JS_IsException(read_result)) {
-            ret = JS_EXCEPTION;
-            goto end;
-        }
-
-        key_str = JS_AtomToCString(ctx, foreach->key);
-        if (key_str == NULL) {
-            ret = JS_EXCEPTION;
-            goto end;
-        }
-
-        JS_AddModuleExport(ctx, m, key_str);
-    }
-
-    // force module instantiation to happen now while &obj is still a valid
-    // pointer. js_userdefined_module_init will set m->user_data to NULL.
-    m = JS_RunModule(ctx, "", name);
-    if (m == NULL) {
-        ret = JS_EXCEPTION;
-        goto end;
-    } else {
-        ret = JS_UNDEFINED;
-    }
-
-end:
-    JS_FreeCString(ctx, name);
-    QJU_FreeForEachPropertyState(ctx, foreach);
-
-    return ret;
-}
-
 void js_std_add_console(JSContext *ctx)
 {
     JSValue global_obj, console;
@@ -4648,57 +4379,6 @@ void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv)
     JS_FreeValue(ctx, global_obj);
 }
 
-void js_std_add_require(JSContext *ctx)
-{
-    JSValue global_obj, require, require_resolve;
-
-    global_obj = JS_GetGlobalObject(ctx);
-
-    require = JS_NewCFunction(ctx, js_require, "require", 1);
-    require_resolve = JS_NewCFunction(ctx, js_require_resolve, "require.resolve", 1);
-    JS_SetPropertyStr(ctx, require, "resolve", require_resolve);
-
-    JS_SetPropertyStr(ctx, global_obj, "require", require);
-
-    JS_FreeValue(ctx, global_obj);
-}
-
-void js_std_add_Module(JSContext *ctx)
-{
-    JSValue global_obj, module, Symbol, hasInstance, search_extensions,
-        compilers;
-
-    global_obj = JS_GetGlobalObject(ctx);
-
-    module = JS_NewObject(ctx);
-
-    Symbol = JS_GetPropertyStr(ctx, global_obj, "Symbol");
-    hasInstance = JS_GetPropertyStr(ctx, Symbol, "hasInstance");
-
-    JS_SetPropertyValue(ctx, module, hasInstance,
-                        JS_NewCFunction(ctx, js_Module_hasInstance,
-                                        "hasInstance", 1), 0);
-
-    JS_FreeValue(ctx, hasInstance);
-    JS_FreeValue(ctx, Symbol);
-
-    search_extensions = JS_NewArray(ctx);
-    JS_DefinePropertyValueUint32(ctx, search_extensions, 0,
-                                 JS_NewString(ctx, ".js"), JS_PROP_C_W_E);
-
-    JS_SetPropertyStr(ctx, module, "searchExtensions", search_extensions);
-
-    compilers = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx, module, "compilers", compilers);
-
-    JS_SetPropertyStr(ctx, module, "define",
-                      JS_NewCFunction(ctx, js_Module_define, "define", 2));
-
-    JS_SetPropertyStr(ctx, global_obj, "Module", module);
-
-    JS_FreeValue(ctx, global_obj);
-}
-
 void js_std_add_timeout(JSContext *ctx)
 {
     JSValue global_obj, setTimeout, clearTimeout;
@@ -4730,8 +4410,6 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     js_std_add_print(ctx);
     js_std_add_scriptArgs(ctx, argc, argv);
 
-    js_std_add_require(ctx);
-    js_std_add_Module(ctx);
     js_std_add_timeout(ctx);
     js_std_add_lib(ctx);
 }
