@@ -3,6 +3,7 @@
 
 #include "quickjs-libbytecode.h"
 #include "quickjs-utils.h"
+#include "quickjs-modulesys.h"
 #include "cutils.h"
 
 static JSValue js_call_bytecode_func(JSContext *ctx, JSValueConst this_val,
@@ -16,7 +17,7 @@ static JSValue js_call_bytecode_func(JSContext *ctx, JSValueConst this_val,
             JS_FreeValue(ctx, obj);
             return JS_EXCEPTION;
         }
-        QJU_SetModuleImportMeta(ctx, obj, FALSE);
+        QJMS_SetModuleImportMeta(ctx, obj, FALSE);
     }
     result = JS_EvalFunction(ctx, obj);
     return result;

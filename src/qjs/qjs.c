@@ -47,6 +47,7 @@ __static_yoink("blink_xnu_aarch64");
 
 #include "cutils.h"
 #include "quickjs-utils.h"
+#include "quickjs-modulesys.h"
 #include "quickjs-full-init.h"
 
 extern const uint8_t qjsc_repl[];
@@ -438,7 +439,7 @@ int main(int argc, char **argv)
     }
 
     /* loader for ES6 modules */
-    JS_SetModuleLoaderFunc(rt, QJU_NormalizeModuleName, QJU_ModuleLoader, NULL);
+    JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);
 
     if (dump_unhandled_promise_rejection) {
         JS_SetHostPromiseRejectionTracker(rt, js_std_promise_rejection_tracker,
@@ -448,7 +449,7 @@ int main(int argc, char **argv)
     if (!empty_run) {
 #ifdef CONFIG_BIGNUM
         if (load_jscalc) {
-            QJU_EvalBinary(ctx, qjsc_qjscalc, qjsc_qjscalc_size, 0);
+            QJMS_EvalBinary(ctx, qjsc_qjscalc, qjsc_qjscalc_size, 0);
         }
 #endif
         js_std_add_helpers(ctx, argc, argv);
@@ -459,16 +460,16 @@ int main(int argc, char **argv)
                 "import * as os from 'quickjs:os';\n"
                 "globalThis.std = std;\n"
                 "globalThis.os = os;\n";
-            QJU_EvalBuf(ctx, str, strlen(str), "<input>", JS_EVAL_TYPE_MODULE);
+            QJMS_EvalBuf(ctx, str, strlen(str), "<input>", JS_EVAL_TYPE_MODULE);
         }
 
         for(i = 0; i < include_count; i++) {
-            if (QJU_EvalFile(ctx, include_list[i], module))
+            if (QJMS_EvalFile(ctx, include_list[i], module))
                 goto fail;
         }
 
         if (expr) {
-            if (QJU_EvalBuf(ctx, expr, strlen(expr), "<cmdline>", 0))
+            if (QJMS_EvalBuf(ctx, expr, strlen(expr), "<cmdline>", 0))
                 goto fail;
         } else
         if (optind >= argc) {
@@ -477,11 +478,11 @@ int main(int argc, char **argv)
         } else {
             const char *filename;
             filename = argv[optind];
-            if (QJU_EvalFile(ctx, filename, module))
+            if (QJMS_EvalFile(ctx, filename, module))
                 goto fail;
         }
         if (interactive) {
-            QJU_EvalBinary(ctx, qjsc_repl, qjsc_repl_size, 0);
+            QJMS_EvalBinary(ctx, qjsc_repl, qjsc_repl_size, 0);
         }
         js_std_loop(ctx);
     }

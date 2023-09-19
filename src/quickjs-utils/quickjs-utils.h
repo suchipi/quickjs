@@ -34,31 +34,8 @@ JSValue QJU_ForEachProperty_Read(JSContext *ctx, JSValue obj, QJUForEachProperty
 
 void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state);
 
+/* reads the contents of the file at `filename` into a buffer. */
 uint8_t *QJU_LoadFile(JSContext *ctx, size_t *pbuf_len, const char *filename);
-
-int QJU_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
-                            JS_BOOL is_main);
-
-/*
-returns 0 on success, nonzero on error.
-in case of error, prints error to stderr before returning.
-*/
-int QJU_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
-                const char *filename, int eval_flags);
-
-/*
-module can be -1 for autodetect.
-returns 0 on success, nonzero on error.
-in case of error, prints error to stderr before returning.
-*/
-int QJU_EvalFile(JSContext *ctx, const char *filename, int module);
-
-/*
-returns 0 on success, nonzero on error.
-in case of error, prints error to stderr before returning.
-*/
-int QJU_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                   int load_only);
 
 /*
 prints `exception_val` to `f`. If `exception_val` is an Error,
@@ -71,14 +48,5 @@ prints the context's current exception to `f`.
 this calls JS_GetException, so the exception will be cleared.
 */
 void QJU_PrintException(JSContext *ctx, FILE *f);
-
-/* a module name normalization function, suitable for passing into JS_SetModuleLoaderFunc. */
-char *QJU_NormalizeModuleName(JSContext *ctx,
-                              const char *base_name,
-                              const char *name, void *opaque);
-
-/* a module loader function, suitable for passing into JS_SetModuleLoaderFunc. */
-JSModuleDef *QJU_ModuleLoader(JSContext *ctx,
-                              const char *module_name, void *opaque);
 
 #endif /* ifndef QUICKJS_UTILS_H */

@@ -37,6 +37,7 @@ __static_yoink("blink_xnu_aarch64");
 #include "execpath.h"
 #include "cutils.h"
 #include "quickjs-utils.h"
+#include "quickjs-modulesys.h"
 #include "quickjs-full-init.h"
 
 static JSContext *JS_NewCustomContext(JSRuntime *rt)
@@ -187,16 +188,16 @@ int main(int argc, char **argv)
   js_std_set_worker_new_context_func(JS_NewCustomContext);
   js_std_init_handlers(rt);
   JS_SetMaxStackSize(rt, 8000000);
-  JS_SetModuleLoaderFunc(rt, QJU_NormalizeModuleName, QJU_ModuleLoader, NULL);
+  JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);
   JS_SetCanBlock(rt, TRUE);
   ctx = JS_NewCustomContext(rt);
   define_qjsbootstrap_offset(ctx);
   js_std_add_helpers(ctx, argc, argv);
 
 #ifdef CONFIG_BYTECODE
-  QJU_EvalBinary(ctx, appended_code, appended_code_len, 0);
+  QJMS_EvalBinary(ctx, appended_code, appended_code_len, 0);
 #else
-    if (QJU_EvalBuf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
+    if (QJMS_EvalBuf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
       free(self_binary_path);
       return 1;
     }

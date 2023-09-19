@@ -36,6 +36,7 @@ __static_yoink("blink_xnu_aarch64");
 #include <errno.h>
 #include "quickjs-full-init.h"
 #include "quickjs-utils.h"
+#include "quickjs-modulesys.h"
 #include "cutils.h"
 
 static JSContext *JS_NewCustomContext(JSRuntime *rt)
@@ -85,12 +86,12 @@ int main(int argc, char **argv)
   js_std_set_worker_new_context_func(JS_NewCustomContext);
   js_std_init_handlers(rt);
   JS_SetMaxStackSize(rt, 8000000);
-  JS_SetModuleLoaderFunc(rt, QJU_NormalizeModuleName, QJU_ModuleLoader, NULL);
+  JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);
   JS_SetCanBlock(rt, TRUE);
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
 
-  if (QJU_EvalFile(ctx, filename, -1)) {
+  if (QJMS_EvalFile(ctx, filename, -1)) {
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
     return 1;

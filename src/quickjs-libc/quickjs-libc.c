@@ -79,6 +79,7 @@ sighandler_t signal(int signum, sighandler_t handler);
 #include "list.h"
 #include "quickjs-libc.h"
 #include "quickjs-utils.h"
+#include "quickjs-modulesys.h"
 #include "debugprint.h"
 #include "execpath.h"
 
@@ -507,7 +508,7 @@ static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
 
     // TODO: should call the module normalizer associated with the JSContext
     // instead of assuming this is the correct one
-    normalized = QJU_NormalizeModuleName(ctx, basename, name, NULL);
+    normalized = QJMS_NormalizeModuleName(ctx, basename, name, NULL);
 
     if (normalized == NULL) {
         JS_FreeAtom(ctx, basename_atom);
@@ -557,7 +558,7 @@ static JSValue js_std_resolveModule(JSContext *ctx, JSValueConst this_val,
         name = JS_ToCString(ctx, name_val);
         basename = JS_ToCString(ctx, basename_val);
 
-        normalized = QJU_NormalizeModuleName(ctx, basename, name, NULL);
+        normalized = QJMS_NormalizeModuleName(ctx, basename, name, NULL);
 
         if (normalized == NULL) {
             JS_FreeValue(ctx, name_val);
@@ -3940,7 +3941,7 @@ static void *worker_func(void *opaque)
     }
     js_std_init_handlers(rt);
 
-    JS_SetModuleLoaderFunc(rt, QJU_NormalizeModuleName, QJU_ModuleLoader, NULL);
+    JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);
 
     /* set the pipe to communicate with the parent */
     ts = JS_GetRuntimeOpaque(rt);
@@ -4622,7 +4623,7 @@ void js_std_add_print(JSContext *ctx)
 void js_std_add_inspect(JSContext *ctx)
 {
     // Creates 'inspect' global
-    QJU_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
+    QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
 }
 
 void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv)
@@ -4717,7 +4718,7 @@ void js_std_add_timeout(JSContext *ctx)
 void js_std_add_lib(JSContext *ctx)
 {
     // run all the stuff in the src/quickjs-libc/lib folder
-    QJU_EvalBinary(ctx, qjsc_lib, qjsc_lib_size, 0);
+    QJMS_EvalBinary(ctx, qjsc_lib, qjsc_lib_size, 0);
 }
 
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
