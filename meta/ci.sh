@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-sudo apt install ninja-build
+sudo apt-get install -y ninja-build
 
 export NVM_DIR="$HOME/.nvm"
 source "$NVM_DIR/nvm.sh"
