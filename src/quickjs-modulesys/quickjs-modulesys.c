@@ -1,5 +1,8 @@
 #include "quickjs-modulesys.h"
 
+extern const uint8_t qjsc_module_impl[];
+extern const uint32_t qjsc_module_impl_size;
+
 int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
                              JS_BOOL is_main)
 {
@@ -769,6 +772,9 @@ void QJMS_AddModuleGlobal(JSContext *ctx)
   module = QJMS_MakeModuleObject(ctx);
 
   JS_SetPropertyStr(ctx, global_obj, "Module", module);
+
+  // Fill in Module.read and Module.resolve
+  QJMS_EvalBinary(ctx, qjsc_module_impl, qjsc_module_impl_size, 0);
 
   JS_FreeValue(ctx, global_obj);
 }

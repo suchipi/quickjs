@@ -20,19 +20,25 @@ const deps_target = [
   builddir("intermediate/quickjs-modulesys.target.o"),
 ];
 
-build({
+const core_host = build({
   output: builddir("intermediate/quickjs-core.host.a"),
   rule: "ar_host",
-  inputs: deps_host,
+  inputs: [
+    ...deps_host,
+    builddir("intermediate/quickjs-modulesys/module-impl-stub.host.o"),
+  ],
 });
 
 const core_target = build({
   output: builddir("intermediate/quickjs-core.target.a"),
   rule: "ar_target",
-  inputs: deps_target,
+  inputs: [
+    ...deps_target,
+    builddir("intermediate/quickjs-modulesys/module-impl-stub.target.o"),
+  ],
 });
 
-build({
+const quickjs_core_a = build({
   output: builddir("lib/quickjs-core.a"),
   rule: "copy",
   inputs: [core_target],
