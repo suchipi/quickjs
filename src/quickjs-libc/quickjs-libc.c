@@ -4476,16 +4476,6 @@ void js_std_free_handlers(JSRuntime *rt)
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
 }
 
-void js_std_promise_rejection_tracker(JSContext *ctx, JSValueConst promise,
-                                      JSValueConst reason,
-                                      BOOL is_handled, void *opaque)
-{
-    if (!is_handled) {
-        fprintf(stderr, "Possibly unhandled promise rejection: ");
-        QJU_PrintError(ctx, stderr, reason);
-    }
-}
-
 /* main loop which calls the user JS callbacks */
 void js_std_loop(JSContext *ctx)
 {

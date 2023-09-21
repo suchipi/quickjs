@@ -442,8 +442,7 @@ int main(int argc, char **argv)
     JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);
 
     if (dump_unhandled_promise_rejection) {
-        JS_SetHostPromiseRejectionTracker(rt, js_std_promise_rejection_tracker,
-                                          NULL);
+        JS_SetHostPromiseRejectionTracker(rt, QJU_PrintPromiseRejection, NULL);
     }
 
     if (!empty_run) {

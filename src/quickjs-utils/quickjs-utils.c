@@ -68,83 +68,100 @@ void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state
 
 uint8_t *QJU_LoadFile(JSContext *ctx, size_t *pbuf_len, const char *filename)
 {
-    FILE *f;
-    uint8_t *buf;
-    size_t buf_len;
-    long lret;
+  FILE *f;
+  uint8_t *buf;
+  size_t buf_len;
+  long lret;
 
-    f = fopen(filename, "rb");
-    if (!f)
-        return NULL;
-    if (fseek(f, 0, SEEK_END) < 0)
-        goto fail;
-    lret = ftell(f);
-    if (lret < 0)
-        goto fail;
-    /* XXX: on Linux, ftell() return LONG_MAX for directories */
-    if (lret == LONG_MAX) {
-        errno = EISDIR;
-        goto fail;
+  f = fopen(filename, "rb");
+  if (!f) {
+    return NULL;
+  }
+  if (fseek(f, 0, SEEK_END) < 0) {
+    goto fail;
+  }
+  lret = ftell(f);
+  if (lret < 0) {
+    goto fail;
+  }
+  /* XXX: on Linux, ftell() return LONG_MAX for directories */
+  if (lret == LONG_MAX) {
+    errno = EISDIR;
+    goto fail;
+  }
+  buf_len = lret;
+  if (fseek(f, 0, SEEK_SET) < 0) {
+    goto fail;
+  }
+  if (ctx) {
+    buf = js_malloc(ctx, buf_len + 1);
+  } else {
+    buf = malloc(buf_len + 1);
+  }
+  if (!buf) {
+    goto fail;
+  }
+  if (fread(buf, 1, buf_len, f) != buf_len) {
+    errno = EIO;
+    if (ctx) {
+      js_free(ctx, buf);
+    } else {
+      free(buf);
     }
-    buf_len = lret;
-    if (fseek(f, 0, SEEK_SET) < 0)
-        goto fail;
-    if (ctx)
-        buf = js_malloc(ctx, buf_len + 1);
-    else
-        buf = malloc(buf_len + 1);
-    if (!buf)
-        goto fail;
-    if (fread(buf, 1, buf_len, f) != buf_len) {
-        errno = EIO;
-        if (ctx)
-            js_free(ctx, buf);
-        else
-            free(buf);
-    fail:
-        fclose(f);
-        return NULL;
-    }
-    buf[buf_len] = '\0';
+fail:
     fclose(f);
-    *pbuf_len = buf_len;
-    return buf;
+    return NULL;
+  }
+  buf[buf_len] = '\0';
+  fclose(f);
+  *pbuf_len = buf_len;
+  return buf;
 }
 
-static void qju_ToStringValueAndPrint(JSContext *ctx, FILE *f, JSValueConst val)
+static void QJU_ToStringValueAndPrint(JSContext *ctx, FILE *f, JSValueConst val)
 {
-    const char *str;
+  const char *str;
 
-    str = JS_ToCString(ctx, val);
-    if (str) {
-        fprintf(f, "%s\n", str);
-        JS_FreeCString(ctx, str);
-    } else {
-        fprintf(f, "[exception]\n");
-    }
+  str = JS_ToCString(ctx, val);
+  if (str) {
+    fprintf(f, "%s\n", str);
+    JS_FreeCString(ctx, str);
+  } else {
+    fprintf(f, "[exception]\n");
+  }
 }
 
 void QJU_PrintError(JSContext *ctx, FILE *f, JSValueConst exception_val)
 {
-    JSValue val;
-    BOOL is_error;
+  JSValue val;
+  BOOL is_error;
 
-    is_error = JS_IsError(ctx, exception_val);
-    qju_ToStringValueAndPrint(ctx, f, exception_val);
-    if (is_error) {
-        val = JS_GetPropertyStr(ctx, exception_val, "stack");
-        if (!JS_IsUndefined(val)) {
-            qju_ToStringValueAndPrint(ctx, f, val);
-        }
-        JS_FreeValue(ctx, val);
+  is_error = JS_IsError(ctx, exception_val);
+  QJU_ToStringValueAndPrint(ctx, f, exception_val);
+  if (is_error) {
+    val = JS_GetPropertyStr(ctx, exception_val, "stack");
+    if (!JS_IsUndefined(val)) {
+      QJU_ToStringValueAndPrint(ctx, f, val);
     }
+    JS_FreeValue(ctx, val);
+  }
 }
 
 void QJU_PrintException(JSContext *ctx, FILE *f)
 {
-    JSValue exception_val;
+  JSValue exception_val;
 
-    exception_val = JS_GetException(ctx);
-    QJU_PrintError(ctx, f, exception_val);
-    JS_FreeValue(ctx, exception_val);
+  exception_val = JS_GetException(ctx);
+  QJU_PrintError(ctx, f, exception_val);
+  JS_FreeValue(ctx, exception_val);
+}
+
+void QJU_PrintPromiseRejection(JSContext *ctx, JSValueConst promise,
+                               JSValueConst reason, BOOL is_handled,
+                               void *opaque)
+{
+  if (!is_handled) {
+    fprintf(stderr, "Possibly unhandled promise rejection: ");
+    QJU_PrintError(ctx, stderr, reason);
+  }
 }

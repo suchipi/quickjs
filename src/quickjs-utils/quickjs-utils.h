@@ -49,4 +49,9 @@ this calls JS_GetException, so the exception will be cleared.
 */
 void QJU_PrintException(JSContext *ctx, FILE *f);
 
+/* an unhandled promise rejection handler suitable for passing into JS_SetHostPromiseRejectionTracker */
+void QJU_PrintPromiseRejection(JSContext *ctx, JSValueConst promise,
+                               JSValueConst reason, BOOL is_handled,
+                               void *opaque);
+
 #endif /* ifndef QUICKJS_UTILS_H */
