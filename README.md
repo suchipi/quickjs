@@ -31,24 +31,8 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - Error messages from `std` and `os` include information in the message such as the path to the file that couldn't be loaded. This info is also available as properties on the Error object.
 - `.js` extensions can now be omitted from import specifiers; they're optional.
 - If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
-
-## Additions to `quickjs-libc`:
-
-- A TypeScript `.d.ts` file is provided for all APIs (globals as well as stuff from `std`/`os`).
-- Synchronous import functions added (`require`, or the more flexible `std.importModule`).
-  - Both of these functions provide the same module record object you would get via dynamic (async) import.
-  - The `require` function is not fully CommonJS-compliant; for instance, `require.main` is not present.
-- Module resolution functions added (`require.resolve`, or `std.resolveModule`).
+- A TypeScript `.d.ts` file is now provided for all APIs (globals as well as stuff from `std`/`os`).
 - A builtin global function `inspect` is added, which pretty-prints any JS value as a string.
-- A builtin global object `Module` is added.
-  - `instanceof Module` can be used to identify module namespace objects.
-  - You can specify additional implicit import specifier extensions by adding to the `Module.searchExtensions` array.
-  - You can transform any file prior to evaluating it as a module by adding a function to the `Module.compilers` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
-  - You can define custom builtin modules using the `Module.define` function.
-  - You can override module name normalization (aka module resolution) by replacing the `Module.resolve` function.
-    - Note that you must handle `Module.searchExtensions` yourself in your replacement implementation.
-  - You can override the method used to load modules by replacing the `Module.read` function.
-    - Note that you must handle `Module.compilers` yourself in your replacement implementation.
 - `os.access` function added (wrapper for libc `access`).
 - `FILE.prototype.sync` method added (wrapper for `fsync`).
 - `FILE.prototype.setvbuf` method added (wrapper for `setvbuf`).
@@ -57,11 +41,15 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `os.{S_IRWXU,S_IRUSR,S_IWUSR,S_IXUSR,S_IRWXG,S_IRGRP,S_IWGRP,S_IXGRP,S_IRWXO,S_IROTH,S_IWOTH,S_IXOTH}` added, for working with file modes.
 - `"b"` mode flag is now allowed in `std.fdopen`.
 - `std.strftime` is now available (wrapper for libc `strftime`).
-- `setTimeout` and `clearTimeout` are now available as globals.
-- `setInterval` and `clearInterval` are now available as globals.
+- Added `std.getuid`, `std.geteuid`, `std.getgid`, and `std.getegid` (wrappers for the libc functions of the same names).
+- Synchronous import function added (`std.importModule`), which provides the same module record object you would get via dynamic (async) import.
+- JS api for using the engine's configured module name normalization function was added (`std.resolveModule`).
+- `setTimeout` and `clearTimeout` are now available as globals (previously they were only available as exports).
+- `setInterval` and `clearInterval` are added, available as globals.
 - `String.cooked` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
 - `String.dedent` is now available (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
-- Added `std.getuid`, `std.geteuid`, `std.getgid`, and `std.getegid` (wrappers for the libc functions of the same names).
+- Several C-side helper functions were moved out of quickjs-libc and into quickjs-utils.
+- Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
 
 ## Changes to the `qjs` repl:
 
@@ -104,20 +92,47 @@ A barebones Module that exports a JS class which can be used to represent an opa
 
 ## New library: `quickjs-utils`
 
-Helper structs, functions, and macros that make it easier to work with QuickJS objects in C code.
+Helper structs, functions, and macros that make it easier to work with QuickJS in C code.
+
+- APIs for looping over every property in a JSValue
+- Helper function for loading a file from disk into char a buffer
+- Helper functions for printing JS errors to stderr
+
+## New library: `quickjs-modulesys`
+
+- Adds the global `require`, a CommonJS-like synchronous module loading function.
+  - The `require` function is not fully CommonJS-compliant; for instance, `require.main` is not present. `require.resolve` is, though.
+- Adds `import.meta.require`
+  - It's the same as the global; it's just added to import.meta for compatibility with bundlers that output `import.meta.require`, like `bun`.
+- Adds the global object `Module`.
+  - `instanceof Module` can be used to identify module namespace objects.
+  - You can specify additional implicit import specifier extensions by adding to the `Module.searchExtensions` array.
+  - You can transform any file prior to evaluating it as a module by adding a function to the `Module.compilers` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
+  - You can define custom builtin modules using the `Module.define` function.
+  - You can override module name normalization (aka module resolution) by replacing the `Module.resolve` function.
+    - Note that you must handle `Module.searchExtensions` yourself in your replacement implementation.
+  - You can override the method used to load modules by replacing the `Module.read` function.
+    - Note that you must handle `Module.compilers` yourself in your replacement implementation.
+- The `eval_*` functions that were duplicated in each of the programs (`eval_buf`, `eval_file`, and `eval_binary`) were moved here
+- The default module loader function from quickjs-libc was moved here and augmented to support the features related to the `Module` global as mentioned above
+- When using `require` to load a module which contains an export named `__cjsExports`, the value of the `__cjsExports` property will be returned from `require` instead of the usual module namespace object. This can be leveraged by user-defined properties on `Module` to add some CommonJS <-> ESM interop. Note, however, that dynamic import and `std.importModule` always receive the usual module namespace object.
 
 ## Changes to project organization
 
 - Stuff is reorganized into separate folders under `src`.
 - Ninja is used instead of make. Ninja build config is generated via `.ninja.js` files which get loaded into [@suchipi/shinobi](https://github.com/suchipi/shinobi).
-- macOS binaries are now cross-compiled from Linux
-- we now compile ARM macOS binaries as well
-  - These should work on both M1/M2/etc macbooks as well as on jailbroken iPhones/iPads
-- we compile aarch64 (arm 64) binaries for linux, too
-  - these are statically linked, so should work on a raspi/etc, in theory. maybe android, too
 - Line endings have been made consistent and trailing whitespace has been removed
-- FreeBSD support added (but there's no cross-compilation set up, so you'll have to compile it yourself from a FreeBSD machine).
-- I'm in the process of converting the tests to a new format (which gets run by jest). But I haven't touched most of the old tests yet.
+- The tests are authored in a new format which leverages jest snapshot testing.
+
+## More target OSes/runtimes
+
+We now include support for more platforms, and cross-compilation scripts to build most of those platforms from any platform where Docker is available.
+
+See the `meta/ninja/envs` folder to see all the supported platforms. The `host` folder represents the machine where compilation is taking place, and the `target` folder represents the target platform for the output binaries.
+
+## Library Archives
+
+We create `.a` files containing all of quickjs as part of the build.
 
 ## Other changes
 
@@ -125,9 +140,19 @@ There are also probably some other miscellaneous changes I forgot to write down 
 
 # Compiling
 
-The repo has stuff set up to compile quickjs binaries for Linux, macOS, iOS, FreeBSD, or Windows.
+The repo has stuff set up to compile quickjs binaries for:
 
-QuickJS itself has no external dependencies outside this repo except pthreads, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes. OS-specific configuration is done by way of config files found in the `meta/ninja/env` folder.
+- Linux (amd64 and aarch64)
+  - glibc
+  - musl
+  - statically-linked
+- macOS/iOS (x86_64 and arm64)
+- Windows (x86_64)
+- FreeBSD (cross-compilation not supported; you need to compile from a FreeBSD host)
+- Cosmopolitan Libc (cross-platform `*.com` binaries). You need the cosmo toolchain installed for this one to work.
+- any arbitrary unix-like OS, if you set env vars for CC, CFLAGS, etc.
+
+QuickJS itself has no external dependencies outside this repo except pthreads, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes.
 
 Linux, macOS, iOS, and Windows binaries can be compiled using Docker. Or, you can compile binaries for just your own unix system, without using Docker.
 
@@ -150,7 +175,3 @@ Or, to compile binaries for just your own unix system:
 - Build artifacts will be placed in the `build` folder. You're probably most interested in stuff in the `build/bin` and `build/lib` folders.
 
 If you are targeting an unsupported OS or would like to use a different compiler, set the environment variables `HOST` and `TARGET` both to "other", and then set the environment variables `CC`, `AR`, `CFLAGS`, and `LDFLAGS` as you see fit. There are some other variables you can set as well; see `meta/ninja/envs/target/other.ninja.js` and `meta/ninja/envs/host/other.ninja.js` for a list.
-
-## Notes
-
-The old tests for std and os aren't working right now; I really haven't touched them yet, so they're still expecting the old function signatures (returning errno, etc).
