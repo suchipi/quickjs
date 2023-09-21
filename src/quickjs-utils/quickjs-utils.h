@@ -6,7 +6,6 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
-#include <dlfcn.h>
 #include "cutils.h"
 #include "quickjs.h"
 #include "debugprint.h"
