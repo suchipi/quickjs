@@ -24,5 +24,5 @@ for DIR in "${IMAGES[@]}"; do
   "/opt/quickjs/meta/docker/$DIR/cmd.sh"
 done
 
-cp -r build/aarch64-apple-darwin/dts build/
+cp -r build/*/dts build/
 rm -rf build/*/dts

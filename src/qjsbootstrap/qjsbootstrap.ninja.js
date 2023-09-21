@@ -25,9 +25,9 @@ for (const bytecode of [false, true]) {
     inputs: [rel("qjsbootstrap.c")],
     ruleVariables: {
       cc_args: [
-        "-O0",
         bytecode ? `-DCONFIG_BYTECODE` : "",
-        "-DBOOTSTRAP_BIN_SIZE=0",
+        // an arbitrary size that's relatively close and should optimize the same way (hopefully)
+        "-DBOOTSTRAP_BIN_SIZE=1221712",
       ].join(" "),
     },
   });
@@ -48,7 +48,6 @@ for (const bytecode of [false, true]) {
     implicitInputs: [qjsbootstrap_zero_target],
     ruleVariables: {
       cc_args: [
-        "-O0",
         bytecode ? `-DCONFIG_BYTECODE` : "",
         `-DBOOTSTRAP_BIN_SIZE=$$(wc -c ${qjsbootstrap_zero_target} | awk '{print $$1}')`,
       ].join(" "),

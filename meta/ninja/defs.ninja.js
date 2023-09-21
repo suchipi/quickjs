@@ -26,10 +26,6 @@ for (const suffix of ["HOST", "TARGET"]) {
     dirsWithHeaderFiles.map((dir) => "-I" + dir).join(" ")
   );
 
-  // disable all compiler optimizations, to ensure that qjsbootstrap binary
-  // size is predictable. TODO: only do this for qjsbootstrap itself
-  declareOrAppend(`CFLAGS_${suffix}`, "-O0");
-
   // Include source debugging info in the binaries
   declareOrAppend(`LDFLAGS_${suffix}`, "-g");
 
