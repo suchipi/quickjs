@@ -10,6 +10,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `Symbol.typeofValue` can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
 - Added support for Error constructor "cause" option (from ES2022).
 - Added support for relative indexing method `.at()` (from ES2022).
+- `String.cooked` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
 - Added function `JS_EvalThis_Privileged`, which allows C code to run eval in Contexts that have eval disabled. With this, you can disable eval in a context for security purposes, but can still execute trusted code within it.
 - Additional functions are exposed that allow importing modules synchronously or asynchronously:
   - `JS_DynamicImportAsync`
@@ -46,7 +47,6 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - JS api for using the engine's configured module name normalization function was added (`std.resolveModule`).
 - `setTimeout` and `clearTimeout` are now available as globals (previously they were only available as exports).
 - `setInterval` and `clearInterval` are added, available as globals.
-- `String.cooked` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
 - `String.dedent` is now available (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
 - Several C-side helper functions were moved out of quickjs-libc and into quickjs-utils.
 - Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
