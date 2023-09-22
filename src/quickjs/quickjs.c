@@ -40715,6 +40715,40 @@ exception:
     return JS_EXCEPTION;
 }
 
+static JSValue js_string_cooked(JSContext *ctx, JSValueConst this_val,
+                                int argc, JSValueConst *argv)
+{
+    // cooked(strings,...values)
+    JSValue cooked, val;
+    StringBuffer b_s, *b = &b_s;
+    int64_t i, n;
+
+    string_buffer_init(ctx, b, 0);
+    cooked = JS_ToObject(ctx, argv[0]);
+    if (JS_IsException(cooked))
+        goto exception;
+    if (js_get_length64(ctx, &n, cooked) < 0)
+        goto exception;
+
+    for (i = 0; i < n; i++) {
+        val = JS_ToStringFree(ctx, JS_GetPropertyInt64(ctx, cooked, i));
+        if (JS_IsException(val))
+            goto exception;
+        string_buffer_concat_value_free(b, val);
+        if (i < n - 1 && i + 1 < argc) {
+            if (string_buffer_concat_value(b, argv[i + 1]))
+                goto exception;
+        }
+    }
+    JS_FreeValue(ctx, cooked);
+    return string_buffer_end(b);
+
+exception:
+    JS_FreeValue(ctx, cooked);
+    string_buffer_free(b);
+    return JS_EXCEPTION;
+}
+
 /* only used in test262 */
 JSValue js_string_codePointRange(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
@@ -42086,6 +42120,7 @@ static const JSCFunctionListEntry js_string_funcs[] = {
     JS_CFUNC_DEF("fromCharCode", 1, js_string_fromCharCode ),
     JS_CFUNC_DEF("fromCodePoint", 1, js_string_fromCodePoint ),
     JS_CFUNC_DEF("raw", 1, js_string_raw ),
+    JS_CFUNC_DEF("cooked", 1, js_string_cooked ),
     //JS_CFUNC_DEF("__toString", 1, js_string___toString ),
     //JS_CFUNC_DEF("__isSpace", 1, js_string___isSpace ),
     //JS_CFUNC_DEF("__toStringCheckObject", 1, js_string___toStringCheckObject ),

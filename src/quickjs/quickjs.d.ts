@@ -19,6 +19,18 @@ interface ObjectConstructor {
   isPrimitive(input: any): boolean;
 }
 
+interface StringConstructor {
+  /**
+   * A no-op template literal tag.
+   *
+   * https://github.com/tc39/proposal-string-cooked
+   */
+  cooked(
+    strings: readonly string[] | ArrayLike<string>,
+    ...substitutions: any[]
+  ): string;
+}
+
 interface SymbolConstructor {
   /**
    * A method that changes the result of using the `typeof` operator on the

@@ -1159,16 +1159,6 @@ declare function clearInterval(interval: Interval): void;
 
 interface StringConstructor {
   /**
-   * A no-op template literal tag.
-   *
-   * https://github.com/tc39/proposal-string-cooked
-   */
-  cooked(
-    strings: readonly string[] | ArrayLike<string>,
-    ...substitutions: any[]
-  ): string;
-
-  /**
    * Remove leading minimum indentation from the string.
    * The first line of the string must be empty.
    *
