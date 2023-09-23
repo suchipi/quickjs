@@ -38,6 +38,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <time.h>
+#include "shm_open_anon.h"
 #if defined(_WIN32)
 #include <windows.h>
 #include <conio.h>
@@ -53,7 +54,7 @@ typedef sig_t sighandler_t;
 #if !defined(environ)
 #include <crt_externs.h>
 #define environ (*_NSGetEnviron())
-#endif
+#endif /* !defined(environ) */
 #endif /* __APPLE__ */
 
 #if defined(__FreeBSD__)
@@ -1127,12 +1128,49 @@ static JSValue js_std_file_sync(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
 
     fd = fileno(f);
+    if (fd == -1) {
+        JS_ThrowTypeError(ctx, "fileno failed: %s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
+    }
 
     #ifdef _WIN32
     _commit(fd);
     #else
     fsync(fd);
     #endif
+
+    return JS_UNDEFINED;
+}
+
+static JSValue js_std_file_truncate(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
+{
+    int fd;
+    off_t length;
+    FILE *f;
+
+    if (JS_ToInt64(ctx, &length, argv[0])) {
+        return JS_EXCEPTION;
+    }
+
+    f = js_std_file_get(ctx, this_val);
+    if (!f) {
+        return JS_EXCEPTION;
+    }
+
+    fd = fileno(f);
+    if (fd == -1) {
+        JS_ThrowTypeError(ctx, "fileno failed: %s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
+    }
+
+    if (ftruncate(fd, length)) {
+        JS_ThrowTypeError(ctx, "ftruncate failed: %s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
+    }
 
     return JS_UNDEFINED;
 }
@@ -1658,6 +1696,7 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
     JS_CFUNC_DEF("printf", 1, js_std_file_printf ),
     JS_CFUNC_DEF("flush", 0, js_std_file_flush ),
     JS_CFUNC_DEF("sync", 0, js_std_file_sync ),
+    JS_CFUNC_DEF("truncate", 1, js_std_file_truncate ),
     JS_CFUNC_MAGIC_DEF("tell", 0, js_std_file_tell, 0 ),
     JS_CFUNC_MAGIC_DEF("tello", 0, js_std_file_tell, 1 ),
     JS_CFUNC_DEF("seek", 2, js_std_file_seek ),
@@ -1834,6 +1873,62 @@ static JSValue js_os_read_write(JSContext *ctx, JSValueConst this_val,
     } else {
         return JS_NewInt64(ctx, ret);
     }
+}
+
+static JSValue js_os_openAnon(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv)
+{
+    int fd, flags, res;
+
+    fd = shm_open_anon();
+    if (fd == -1) {
+        JS_ThrowError(ctx, "shm_open_anon() failed: %s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
+    }
+
+    flags = fcntl(fd, F_GETFD);
+    if (flags == -1) {
+        JS_ThrowError(ctx, "fcntl(fd, F_GETFD) failed: %s (fd = %d, errno = %d)", strerror(errno), fd, errno);
+        JS_AddPropertyToException(ctx, "fd", JS_NewInt32(ctx, fd));
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
+    }
+    // clear the close-on-exec flag so the fd survives across an `exec()`/`execve()` boundary
+    flags &= ~FD_CLOEXEC;
+    res = fcntl(fd, F_SETFD, flags);
+    if (res == -1) {
+        JS_ThrowError(ctx, "fcntl(fd, F_SETFD, flags) failed: %s (fd = %d, flags = %d, errno = %d)", strerror(errno), fd, flags, errno);
+        JS_AddPropertyToException(ctx, "fd", JS_NewInt32(ctx, fd));
+        JS_AddPropertyToException(ctx, "flags", JS_NewInt32(ctx, flags));
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
+    }
+
+    return JS_NewInt32(ctx, fd);
+}
+
+static JSValue js_os_truncate(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv)
+{
+    int fd;
+    off_t length;
+
+    if (JS_ToInt32(ctx, &fd, argv[0])) {
+        return JS_EXCEPTION;
+    }
+
+    if (JS_ToInt64(ctx, &length, argv[1])) {
+        return JS_EXCEPTION;
+    }
+
+    if (ftruncate(fd, length)) {
+        JS_ThrowTypeError(ctx, "ftruncate failed: %s (errno = %d)", strerror(errno), errno);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+        return JS_EXCEPTION;
+    }
+
+    return JS_UNDEFINED;
 }
 
 static JSValue js_os_isatty(JSContext *ctx, JSValueConst this_val,
@@ -2120,7 +2215,7 @@ static JSValue js_os_signal(JSContext *ctx, JSValueConst this_val,
     if (JS_ToUint32(ctx, &sig_num, argv[0]))
         return JS_EXCEPTION;
     if (sig_num >= 64)
-        return JS_ThrowRangeError(ctx, "invalid signal number");
+        return JS_ThrowRangeError(ctx, "invalid signal number: %d", sig_num);
     func = argv[1];
     /* func = null: SIG_DFL, func = undefined, SIG_IGN */
     if (JS_IsNull(func) || JS_IsUndefined(func)) {
@@ -4128,6 +4223,8 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_CFUNC_DEF("seek", 3, js_os_seek ),
     JS_CFUNC_MAGIC_DEF("read", 4, js_os_read_write, 0 ),
     JS_CFUNC_MAGIC_DEF("write", 4, js_os_read_write, 1 ),
+    JS_CFUNC_DEF("openAnon", 0, js_os_openAnon ),
+    JS_CFUNC_DEF("truncate", 2, js_os_truncate ),
     JS_CFUNC_DEF("isatty", 1, js_os_isatty ),
     JS_CFUNC_DEF("ttyGetWinSize", 1, js_os_ttyGetWinSize ),
     JS_CFUNC_DEF("ttySetRaw", 1, js_os_ttySetRaw ),

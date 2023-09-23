@@ -1,0 +1,278 @@
+= shm_open_anon
+
+https://github.com/lassik/shm_open_anon
+
+image::https://api.cirrus-ci.com/github/lassik/shm_open_anon.svg[Build Status, link=https://cirrus-ci.com/github/lassik/shm_open_anon]
+
+== Overview
+
+This library provides a single C function:
+
+    int shm_open_anon(void);
+
+It returns a file descriptor pointing to a shared memory region. On
+failure, `-1` is returned and `errno` is set.
+
+== Details
+
+The region is not bound to any pathname -- it is anonymous like the
+ones you get from `mmap()`. But whereas `mmap()` gives you a pointer,
+this one gives you a file descriptor, which means you can pass it to
+other processes even if they are not direct forks of the process that
+made it.
+
+On arrival, the descriptor has the close-on-exec flag set so it
+doesn't survive an `exec()` boundary. But you can call `fcntl()` to
+unset the `FD_CLOEXEC` flag to make it survive. Then you can freely
+pass it to subprocesses that start other executables. Make sure to
+place it at a known file descriptor number (usually number `3` and up)
+using `dup2()` so the other executable can find it.
+
+You can also use `sendmsg()` with `SCM_RIGHTS` to send a copy of the
+file descriptor to another process over a Unix domain socket. That
+part of the BSD socket API is even more perplexing than the rest of
+it, so there's a convenience wrapper _libancillary_ that offers "fd
+passing for humans".
+
+The region's initial size is zero bytes. You need to use `ftruncate()`
+to grow it, and then you'll probably want to use `mmap()` to get a
+pointer to actually access the memory. `mmap()` needs to know the size
+of the region. If you pass the file descriptor to an unrelated
+process, that process can use `fstat()` and then look at `st_size` in
+the result.
+
+Because the file descriptor is not bound to any file system or shared
+memory pathname, you don't need to worry about a memory leak in case
+your processes terminate abruptly. There's no need to do special
+cleanup -- the operating system removes the shared memory object when
+all file descriptors accessing it are closed.
+
+== Implementation details
+
+=== Linux
+
+==== Current method using memfd
+
+This technique is available in Linux kernel version 3.17 and later.
+
+- Use `memfd_create()` -- problem solved.
+
+- `memfd_create()` is a system call that exists since kernel version
+  3.17.
+
+- Even if the syscall is in your kernel, your libc does not
+  necessarily have a C function (syscall wrapper) for it. GNU libc
+  took years to add a wrapper.
+
+- You can get around that by calling the generic syscall wrapper
+  `syscall(__NR_memfd_create, ...)` instead. Remember to typecast the
+  arguments.
+
+- `__NR_memfd_create` is the Linux syscall number (a small integer).
+  Note that syscall numbers may differ by computer architecture. Use
+  `#include <linux/unistd.h>` to get the right numbers for your
+  architecture.
+
+- Since `\__NR_memfd_create` is a preprocessor definition, you can use
+  `#ifdef __NR_memfd_create` to check whether your Linux headers
+  define it.
+
+- If the syscall is not implemented in the kernel you are running, you
+  get an errno value of `ENOSYS` or `ENOTSUP` (not sure which one).
+
+- http://man7.org/linux/man-pages/man2/memfd_create.2.html
+
+==== Old method using /dev/shm
+
+This technique is not included in the current library since all
+currently maintained Linux kernel versions implement the newer and
+more robust `memfd` API, but it is still useful where compatibility
+with older systems is needed.
+
+- In kernel versions before 3.17, a memory-backed file system was
+  mounted into `/dev/shm` or `/run/shm` depending on the distro. (In
+  fact, distros still mount such a file system, but it's a bit less
+  useful now.)
+
+- You can use perfectly ordinary `open()` and `unlink()` to operate on
+  any files there.
+
+- The safest and easiest way create a tempfile there is `mkostemp()`.
+  It's in fact easier to use this than to use `shm_open()`.
+
+- To force a file to be opened as a memory-backed tempfile instead of
+  a disk file, regardless of which file system its pathname points to,
+  you can give `O_TMPFILE` to `open()` since kernel version 3.11. You
+  really should use `O_RDWR` along with it. Note also that `O_TMPFILE`
+  may not be defined by library headers, but that constant is probably
+  architecture independent so you may be able to get away with
+  defining it yourself.
+
+- http://man7.org/linux/man-pages/man7/shm_overview.7.html
+
+- https://lwn.net/Articles/619146/ (how `O_TMPFILE` came about)
+
+=== FreeBSD
+
+- Use `shm_open(SHM_ANON, O_RDWR, 0)` -- problem solved.
+
+- The constant `SHM_ANON` is defined to be `1` which is an unaligned
+  pointer one byte away from the null pointer `0`.
+
+- You must use the `O_RDWR` flag. If you do not, the default is
+  `O_RDONLY` (value zero) and that's not allowed for shm objects.
+
+- Permission bits can be zero, at least when subprocesses have the
+  same user ID as the parent process that created the fd.
+
+- https://www.freebsd.org/cgi/man.cgi?query=shm_open
+
+- https://github.com/freebsd/freebsd/search?q=SHM_ANON
+
+=== OpenBSD
+
+- `shm_mkstemp()` is the thing to use. You need to `shm_unlink()` the
+  path afterwards.
+
+- Pathnames given to `shm_open()` get translated into
+  `/tmp/<hash>.shm` where `<hash>` is the SHA-256 hash of the pathname
+  you gave. It doesn't matter what slashes, if any, your pathname has.
+
+- `shm_mkstemp()` calls `shm_open()` with `O_RDWR | O_EXCL | O_CREAT`
+  in a loop until it succeeds. Your pathname template gets the X's
+  filled in as with `mktemp()` and then `shm_open()` applies its
+  translation rules to that. So it doesn't much matter what pathname
+  you give.
+
+- `shm_unlink()` translates path to shm path and does `unlink()`.
+
+- http://man.openbsd.org/shm_mkstemp.3
+
+- https://github.com/openbsd/src/blob/master/lib/libc/gen/shm_open.c
+
+=== NetBSD
+
+- `shm_open()` is the best we can do. You need to `shm_unlink()` the
+  path afterwards.
+
+- The pathname given to `shm_open()` must start with a slash. It must
+  *not have any other* slashes.
+
+- If the pathname does not start with a slash, or has other slashes,
+  you get `EINVAL`.
+
+- Each pathname `/foo` is translated into `/var/shm/.shmobj_foo`.
+
+- `/var/shm` is mounted as a tmpfs filesystem. The shm routines check
+  this and if is't not, you get `ENOTSUP`.
+
+- `shm_open()` translates your path to an shm path and then does
+  `open()` with `O_CLOEXEC | O_NOFOLLOW`.
+
+- `shm_unlink()` translates your path to an shm path and then does
+  `unlink()`.
+
+- http://netbsd.gw.com/cgi-bin/man-cgi?shm_open
+
+- https://github.com/NetBSD/src/blob/trunk/lib/librt/shm.c
+
+=== DragonFly BSD
+
+- `shm_open()` is the best we can do. You need to `shm_unlink()` the
+  path afterwards.
+
+- `shm_open()` does `open()` but also uses `fcntl()` to set the
+  undocumented `FPOSIXSHM` flag. It also sets `FD_CLOEXEC`.
+
+- `shm_unlink()` does `unlink()`.
+
+- Before 5.6.0 there was no pathname translation at all. Starting with
+  5.6.0 a tmpfs file system is mounted at `/var/run/shm` during boot,
+  and shm pathnames are taken relative to that directory (with any
+  number of leading slashes removed from the user-supplied pathname).
+
+- To generate the pathname, I couldn't come up with anything better
+  than generating a random filename of the form `/shm-XXXXXXX`.
+
+- https://leaf.dragonflybsd.org/cgi/web-man?command=shm_open&section=3
+
+- https://github.com/DragonFlyBSD/DragonFlyBSD/blob/master/lib/libc/gen/posixshm.c
+
+=== MacOS X
+
+- I didn't find anything better than `shm_open()` and `shm_unlink()`
+  with POSIX semantics.
+
+=== Solaris
+
+- I didn't find anything better than `shm_open()` and `shm_unlink()`
+  with POSIX semantics.
+
+- Pathnames given to `shm_open()` get translated into either
+  `/tmp/.SHMD<path>` or `/tmp/.<hash>/.SHMD/<path>` where `<hash>` is
+  the MD5 hash of the pathname you gave. There are also equivalent
+  `.SHML` lock files.
+
+- https://docs.oracle.com/cd/E26505_01/html/816-5171/shm-open-3rt.html
+
+- https://docs.oracle.com/cd/E26505_01/html/816-5171/shm-unlink-3rt.html
+
+- https://github.com/kofemann/opensolaris/blob/master/usr/src/lib/libc/port/rt/shm.c
+
+- https://github.com/kofemann/opensolaris/blob/master/usr/src/lib/libc/port/rt/pos4obj.c
+
+=== Haiku (BeOS)
+
+- I didn't find anything better than `shm_open()` and `shm_unlink()`.
+
+- Translates your pathname so it goes under the `/var/shared_memory`
+  directory. Removes any number of leading slashes, then escapes `/`
+  by `%s` and `%` by `%%` (these are literal percent signs, not format
+  string magic).
+
+- Othersise `shm_open()` and `shm_unlink()` are just `open()` and
+  `unlink()`. `shm_open()` opens with `FD_CLOEXEC`.
+
+- Not sure whether or not the original BeOS had these same semantics.
+
+- https://github.com/haiku/haiku/blob/master/src/system/libroot/posix/sys/mman.cpp
+
+=== Cygwin
+
+- Probably have to use `shm_open()` and `shm_unlink()`.
+
+- Not sure if clearing the close-on-exec flag and using `dup2()` will
+  have the desired effect.
+
+- Translates your pathname by removing at most one slash from the
+  beginning. Then puts that name under `/dev/shm/` with no escaping of
+  slashes. So it's best to use a name that has only one slash with the
+  start; if you use more slashes, those subdirectories may have to
+  exist under `/dev/shm`.
+
+- As far as I can tell, `/dev/shm` is an ordinary directory on a
+  disk-backed file system, not a special memory-back file system. So
+  expect shared memory to be slow, especially on traditional hard
+  disks.
+
+- Cygwin also supports System V IPC (`shmget()` et.al.) and it seems
+  to be specially implemented by `cygserver` on a better foundation.
+
+- https://github.com/Alexpux/Cygwin/blob/master/newlib/libc/sys/linux/shm_open.c
+
+- http://pipeline.lbl.gov/code/3rd_party/licenses.win/Cygwin/cygserver.README
+
+== Credits
+
+Chris Wellons wrote a thoughtful blog post
+(https://nullprogram.com/blog/2016/04/10/[Mapping Multiple Memory
+Views in User Space], 2016-04-10) detailing how to use `shm_open()`
+without a filename. It also covers Windows API equivalents to
+`shm_open()` and `mmap()`, which are `CreateFileMapping()` and
+`MapViewOfFile()`.
+
+Ludovic P improved Linux portability and helped design the random
+filename generator for `shm_open()`.
+
+Maxim Egorushkin suggested using plain `mkostemp("/dev/shm/..." ,...)`
+instead of `shm_open()` on Linux.

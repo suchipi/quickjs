@@ -74,6 +74,18 @@ declare interface FILE {
   sync(): void;
 
   /**
+   * Truncates the file to a size of exactly `size` bytes.
+   *
+   * If the file previously was larger than this size, the extra data is lost.
+   *
+   * If the file previously was shorter, it is extended, and the extended part
+   * reads as null bytes ('\0').
+   *
+   * Wrapper for C `ftruncate`.
+   */
+  truncate(size: number): void;
+
+  /**
    * Seek to a given file position (whence is `std.SEEK_*`).
    *
    * `offset` can be a number or a bigint.
@@ -468,6 +480,17 @@ declare module "quickjs:os" {
    */
   export function open(filename: string, flags: number, mode?: number): number;
 
+  /**
+   * Open an anonymous file handle, mapped to shared memory.
+   *
+   * The shared memory
+   * will be made available to future child processes spawned via {@link exec},
+   * via the same fd.
+   *
+   * Returns a number; the file descriptor.
+   */
+  export function openAnon(): number;
+
   /** POSIX open flag, used in {@link open}. */
   export var O_RDONLY: number;
 
@@ -532,6 +555,18 @@ declare module "quickjs:os" {
     offset: number,
     length: number
   ): number;
+
+  /**
+   * Truncates the file with descriptor `fd` to a size of exactly `size` bytes.
+   *
+   * If the file previously was larger than this size, the extra data is lost.
+   *
+   * If the file previously was shorter, it is extended, and the extended part
+   * reads as null bytes ('\0').
+   *
+   * Wrapper for C `ftruncate`.
+   */
+  export function truncate(fd: number, size: number): void;
 
   /** Return `true` if the file opened with descriptor `fd` is a TTY (terminal). */
   export function isatty(fd: number): boolean;
