@@ -103,7 +103,9 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 - Adds the global `require`, a CommonJS-like synchronous module loading function.
   - The `require` function is not fully CommonJS-compliant; for instance, `require.main` is not present. `require.resolve` is, though.
 - Adds `import.meta.require`
-  - It's the same as the global; it's just added to import.meta for compatibility with bundlers that output `import.meta.require`, like `bun`.
+  - It's the same as the global `require`; it's just added to import.meta for compatibility with bundlers that output `import.meta.require`, like `bun`.
+- Adds `import.meta.resolve`
+  - Similar to [the one in the browser](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve#specifications), but it's actually just `require.resolve` exposed via `import.meta`.
 - Adds the global object `Module`.
   - `instanceof Module` can be used to identify module namespace objects.
   - You can specify additional implicit import specifier extensions by adding to the `Module.searchExtensions` array.

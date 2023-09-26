@@ -165,5 +165,16 @@ interface ImportMeta {
    */
   require: RequireFunction;
 
-  // TODO: add 'resolve' property that behaves like Node's
+  /**
+   * Resolves a module specifier based on the current module's path.
+   *
+   * Equivalent to `globalThis.require.resolve`.
+   *
+   * Behaves similarly to [the browser import.meta.resolve](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve),
+   * but it does not ensure that the returned string is a valid URL, because it
+   * delegates directly to {@link Module.resolve} to resolve the name. If you
+   * want this to return URL strings, change `Module.resolve` and `Module.read`
+   * to work with URL strings.
+   */
+  resolve: RequireFunction["resolve"];
 }

@@ -8,7 +8,7 @@ int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
 {
   JSModuleDef *m;
   char url_buf[4096];
-  JSValue meta_obj, global_obj, require;
+  JSValue meta_obj, global_obj, require, resolve;
   JSAtom module_name_atom;
   const char *module_name;
 
@@ -31,6 +31,12 @@ int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
   global_obj = JS_GetGlobalObject(ctx);
   require = JS_GetPropertyStr(ctx, global_obj, "require");
   if (JS_IsException(require)) {
+    JS_FreeValue(ctx, global_obj);
+    return -1;
+  }
+  resolve = JS_GetPropertyStr(ctx, require, "resolve");
+  if (JS_IsException(resolve)) {
+    JS_FreeValue(ctx, global_obj);
     return -1;
   }
   JS_FreeValue(ctx, global_obj);
@@ -47,6 +53,8 @@ int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
                             JS_PROP_C_W_E);
   JS_DefinePropertyValueStr(ctx, meta_obj, "require",
                             require, JS_PROP_C_W_E);
+  JS_DefinePropertyValueStr(ctx, meta_obj, "resolve",
+                            resolve, JS_PROP_C_W_E);
   JS_FreeValue(ctx, meta_obj);
   return 0;
 }
@@ -205,7 +213,7 @@ JSModuleDef *QJMS_ModuleLoader(JSContext *ctx,
 {
   // NOTE: this function supports, but does not require,
   // delegating to a JS-global Module.read function,
-  // as specified by quickjs-libc.
+  // like the one found in module-impl.js.
   JSModuleDef *m;
 
   // TODO: delegate the decision about when to use the native module loader
