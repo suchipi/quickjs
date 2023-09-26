@@ -5,12 +5,12 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 ## Changes to `quickjs`:
 
 - A TypeScript `.d.ts` file is provided for all QuickJS-specific APIs (operator overloading APIs, BigInt extensions, BigFloat, BigDecimal, etc).
-- `Object.toPrimitive` is now available (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
-- `Object.isPrimitive` is now available (static method that returns a boolean indicating whether the given value is a primitive).
-- `Symbol.typeofValue` can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
+- Non-standard `Object.toPrimitive` added (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
+- Non-standard `Object.isPrimitive` added (static method that returns a boolean indicating whether the given value is a primitive).
+- Non-standard `Symbol.typeofValue` has been added which can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
 - Added support for Error constructor "cause" option (from ES2022).
 - Added support for relative indexing method `.at()` (from ES2022).
-- `String.cooked` is now available (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
+- `String.cooked` added (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
 - Added function `JS_EvalThis_Privileged`, which allows C code to run eval in Contexts that have eval disabled. With this, you can disable eval in a context for security purposes, but can still execute trusted code within it.
 - Additional functions are exposed that allow importing modules synchronously or asynchronously:
   - `JS_DynamicImportAsync`
@@ -30,8 +30,6 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - APIs in `std` and `os` no longer return errno anywhere; instead, Error objects are thrown. `errno` is available as a property on the thrown Error objects.
 - In places where APIs in `std` or `os` would return null on failure, now an error will be thrown instead.
 - Error messages from `std` and `os` include information in the message such as the path to the file that couldn't be loaded. This info is also available as properties on the Error object.
-- `.js` extensions can now be omitted from import specifiers; they're optional.
-- If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
 - A TypeScript `.d.ts` file is now provided for all APIs (globals as well as stuff from `std`/`os`).
 - A builtin global function `inspect` is added, which pretty-prints any JS value as a string.
 - `os.access` function added (wrapper for libc `access`).
@@ -41,13 +39,14 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `os.{WUNTRACED,WEXITSTATUS,WTERMSIG,WSTOPSIG,WIFEXITED,WIFSIGNALED,WIFSTOPPED,WIFCONTINUED}` added, for working with `os.waitpid`.
 - `os.{S_IRWXU,S_IRUSR,S_IWUSR,S_IXUSR,S_IRWXG,S_IRGRP,S_IWGRP,S_IXGRP,S_IRWXO,S_IROTH,S_IWOTH,S_IXOTH}` added, for working with file modes.
 - `"b"` mode flag is now allowed in `std.fdopen`.
-- `std.strftime` is now available (wrapper for libc `strftime`).
+- `std.strftime` added (wrapper for libc `strftime`).
 - Added `std.getuid`, `std.geteuid`, `std.getgid`, and `std.getegid` (wrappers for the libc functions of the same names).
+- Most module-loading-related code was moved into `quickjs-modulesys`.
 - Synchronous import function added (`std.importModule`), which provides the same module record object you would get via dynamic (async) import.
 - JS api for using the engine's configured module name normalization function was added (`std.resolveModule`).
 - `setTimeout` and `clearTimeout` are now available as globals (previously they were only available as exports).
 - `setInterval` and `clearInterval` are added, available as globals.
-- `String.dedent` is now available (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
+- `String.dedent` added (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
 - Several C-side helper functions were moved out of quickjs-libc and into quickjs-utils.
 - Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
 
@@ -100,6 +99,9 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 
 ## New library: `quickjs-modulesys`
 
+- Module-loading code in `quickjs-libc` was moved into `quickjs-modulesys`, with the following changes:
+  - `.js` extensions can now be omitted from import specifiers; they're optional.
+  - If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
 - Adds the global `require`, a CommonJS-like synchronous module loading function.
   - The `require` function is not fully CommonJS-compliant; for instance, `require.main` is not present. `require.resolve` is, though.
 - Adds `import.meta.require`
