@@ -15,6 +15,7 @@ Changelog
 jest.config.js
 build/*/intermediate
 build/**/.ninja_*
+todo.txt
 
 # non-platform-specific build artifacts (dev builds)
 build/bin
