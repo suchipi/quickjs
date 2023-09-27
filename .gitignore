@@ -6,3 +6,6 @@ build.ninja
 .ninja_*
 microbench.txt
 microbench-new.txt
+cmake-build-debug
+.idea
+

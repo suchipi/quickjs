@@ -515,7 +515,7 @@ typedef struct JSPropertyDescriptor {
 
 typedef struct JSClassExoticMethods {
     /* Return -1 if exception (can only happen in case of Proxy object),
-       FALSE if the property does not exists, TRUE if it exists. If 1 is
+       FALSE if the property does not exist, TRUE if it exists. If 1 is
        returned, the property descriptor 'desc' is filled if != NULL. */
     int (*get_own_property)(JSContext *ctx, JSPropertyDescriptor *desc,
                              JSValueConst obj, JSAtom prop);
