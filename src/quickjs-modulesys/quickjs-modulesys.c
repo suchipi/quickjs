@@ -1,3 +1,11 @@
+#include <assert.h>
+#include <string.h>
+#if !defined(_WIN32) && defined(CONFIG_SHARED_LIBRARY_MODULES)
+#include <dlfcn.h>
+#endif
+#include "cutils.h"
+#include "quickjs.h"
+#include "quickjs-utils.h"
 #include "quickjs-modulesys.h"
 
 extern const uint8_t qjsc_module_impl[];

@@ -1,18 +1,7 @@
 #ifndef QUICKJS_MODULESYS_H
 #define QUICKJS_MODULESYS_H
 
-#include <stdlib.h>
-#include <limits.h>
-#include <errno.h>
-#include <string.h>
-#include <assert.h>
-#if !defined(_WIN32) && defined(CONFIG_SHARED_LIBRARY_MODULES)
-#include <dlfcn.h>
-#endif
-#include "cutils.h"
 #include "quickjs.h"
-#include "quickjs-utils.h"
-#include "debugprint.h"
 
 /* initializes the import.meta object for the provided module function */
 int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,

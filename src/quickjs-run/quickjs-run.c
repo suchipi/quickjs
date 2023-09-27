@@ -31,11 +31,8 @@ __static_yoink("blink_xnu_aarch64");
 #endif
 
 #include <stdio.h>
-#include <sys/stat.h>
 #include <string.h>
-#include <errno.h>
 #include "quickjs-full-init.h"
-#include "quickjs-utils.h"
 #include "quickjs-modulesys.h"
 #include "cutils.h"
 

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "quickjs.h"
 #include "quickjs-libc.h"
 #include "quickjs-modulesys.h"
 

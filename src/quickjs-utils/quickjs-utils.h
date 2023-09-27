@@ -1,14 +1,7 @@
 #ifndef QUICKJS_UTILS_H
 #define QUICKJS_UTILS_H
 
-#include <stdlib.h>
-#include <limits.h>
-#include <errno.h>
-#include <string.h>
-#include <assert.h>
-#include "cutils.h"
 #include "quickjs.h"
-#include "debugprint.h"
 
 typedef struct QJUForEachPropertyState
 {
@@ -50,7 +43,7 @@ void QJU_PrintException(JSContext *ctx, FILE *f);
 
 /* an unhandled promise rejection handler suitable for passing into JS_SetHostPromiseRejectionTracker */
 void QJU_PrintPromiseRejection(JSContext *ctx, JSValueConst promise,
-                               JSValueConst reason, BOOL is_handled,
+                               JSValueConst reason, JS_BOOL is_handled,
                                void *opaque);
 
 #endif /* ifndef QUICKJS_UTILS_H */

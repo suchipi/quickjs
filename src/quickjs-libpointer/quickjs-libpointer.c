@@ -1,10 +1,7 @@
 #include <string.h>
-#include <errno.h>
 
 #include "quickjs-libpointer.h"
-#include "quickjs-libc.h"
 #include "quickjs-libbytecode.h"
-#include "cutils.h"
 
 static JSClassID js_pointer_class_id;
 

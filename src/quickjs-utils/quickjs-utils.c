@@ -1,3 +1,8 @@
+#include <stdlib.h>
+#include <limits.h>
+#include <errno.h>
+#include <string.h>
+#include "cutils.h"
 #include "quickjs-utils.h"
 
 // NOTE: quickjs-utils is not allowed to use stuff from
