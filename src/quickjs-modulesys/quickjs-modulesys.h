@@ -6,7 +6,9 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#if !defined(_WIN32) && defined(CONFIG_SHARED_LIBRARY_MODULES)
 #include <dlfcn.h>
+#endif
 #include "cutils.h"
 #include "quickjs.h"
 #include "quickjs-utils.h"
@@ -23,7 +25,7 @@ char *QJMS_NormalizeModuleName(JSContext *ctx,
 
 /* a module loader function, suitable for passing into JS_SetModuleLoaderFunc. */
 JSModuleDef *QJMS_ModuleLoader(JSContext *ctx,
-                              const char *module_name, void *opaque);
+                               const char *module_name, void *opaque);
 /*
   returns 0 on success, nonzero on error.
   in case of error, prints error to stderr before returning.
