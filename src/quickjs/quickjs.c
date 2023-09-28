@@ -21594,6 +21594,47 @@ static int peek_token(JSParseState *s, BOOL no_line_terminator)
     return simple_next_token(&p, no_line_terminator);
 }
 
+// find ending of one or more shebangs, if present. Some Nix tooling uses two shebang lines
+static off_t shebangs_end_index(char *buf, size_t len)
+{
+    off_t offset = 0;
+    char *p = buf;
+
+    while (strncmp(p, "#!", 2) == 0 && (p - buf < len)) {
+        char *next_carriage_return = strchr(p, '\r');
+        char *next_line_feed = strchr(p, '\n');
+        char *start_of_next_line;
+
+        if (next_line_feed != NULL && next_carriage_return != NULL) {
+            if (next_line_feed > next_carriage_return) {
+                // \r\n line ending
+                start_of_next_line = next_line_feed + 1;
+            } else {
+                // \n\r line ending
+                start_of_next_line = next_carriage_return + 1;
+            }
+        } else if (next_line_feed != NULL) {
+            // \n line ending
+            start_of_next_line = next_line_feed + 1;
+        } else if (next_carriage_return != NULL) {
+            // \r line ending
+            start_of_next_line = next_carriage_return + 1;
+        } else {
+            // reached EOF and all lines were shebangs
+            start_of_next_line = buf + len;
+        }
+
+        p = start_of_next_line;
+    }
+
+    offset = p - buf;
+    if (offset > len) {
+        offset = len;
+    }
+
+    return offset;
+}
+
 /* return true if 'input' contains the source of a module
    (heuristic). 'input' must be a zero terminated.
 
@@ -21602,7 +21643,8 @@ static int peek_token(JSParseState *s, BOOL no_line_terminator)
 */
 BOOL JS_DetectModule(const char *input, size_t input_len)
 {
-    const uint8_t *p = (const uint8_t *)input;
+    off_t shebangs_offset = shebangs_end_index((char *)input, input_len);
+    const uint8_t *p = (const uint8_t *)input + shebangs_offset;
     int tok;
     switch(simple_next_token(&p, FALSE)) {
     case TOK_IMPORT:
@@ -33741,54 +33783,11 @@ JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj)
     return JS_EvalFunctionInternal(ctx, fun_obj, ctx->global_obj, NULL, NULL);
 }
 
-static void skip_shebang(JSParseState *s)
+static void skip_shebangs(JSParseState *s)
 {
     const uint8_t *p = s->buf_ptr;
-    int c;
-    int next_shebang_offset = 0;
-
-    if ((s->buf_end - p >= 2) && p[0] == '#' && p[1] == '!') {
-        next_shebang_offset = 2;
-    }
-
-    // skip one or more shebangs, if present. Some Nix tooling uses two shebang lines
-    while (next_shebang_offset > 0) {
-        int remaining;
-
-        p += next_shebang_offset;
-        while (p < s->buf_end) {
-            if (*p == '\n' || *p == '\r') {
-                break;
-            } else if (*p >= 0x80) {
-                c = unicode_from_utf8(p, UTF8_CHAR_LEN_MAX, &p);
-                if (c == CP_LS || c == CP_PS) {
-                    break;
-                } else if (c == -1) {
-                    p++; /* skip invalid UTF-8 */
-                }
-            } else {
-                p++;
-            }
-        }
-
-        remaining = s->buf_end - p;
-        if (
-            remaining >= 3 &&
-                ((p[0] == '\n' && p[1] == '#' && p[2] == '!') ||
-                (p[0] == '\r' && p[1] == '#' && p[2] == '!'))
-        ) {
-            next_shebang_offset = 3;
-        } else if (
-            remaining >= 4 &&
-            p[0] == '\r' && p[1] == '\n' && p[2] == '#' && p[3] == '!'
-        ) {
-            next_shebang_offset = 4;
-        } else {
-            next_shebang_offset = 0;
-        }
-    }
-
-    s->buf_ptr = p;
+    off_t offset = shebangs_end_index((char *)p, s->buf_end - p);
+    s->buf_ptr = p + offset;
 }
 
 /* 'input' must be zero terminated i.e. input[input_len] = '\0'. */
@@ -33806,7 +33805,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     JSModuleDef *m;
 
     js_parse_init(ctx, s, input, input_len, filename);
-    skip_shebang(s);
+    skip_shebangs(s);
 
     eval_type = flags & JS_EVAL_TYPE_MASK;
     m = NULL;
