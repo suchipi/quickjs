@@ -198,7 +198,7 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
         }
 
         if (JS_IsUndefined(source_type) || JS_IsNull(source_type)) {
-            as_module = 0;
+            as_module = -1;
         } else {
             const char *str = JS_ToCString(ctx, source_type);
             if (str == NULL) {
