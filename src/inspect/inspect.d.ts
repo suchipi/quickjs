@@ -1,4 +1,5 @@
-/** npm: @suchipi/print@2.3.0. License: ISC */
+/** npm: @suchipi/print@2.5.0. License: ISC */
+/* (with some QuickJS-specific modifications) */
 
 /*
 Copyright (c) 2016-2022, John Gardner
@@ -110,6 +111,11 @@ declare interface InspectFunction {
    * @returns A string representation of `value`.
    */
   (value: any, key?: string | symbol, options?: InspectOptions): string;
+
+  /**
+   * A symbol which can be used to customize how an object gets printed.
+   */
+  custom: symbol;
 }
 
 /**
@@ -121,3 +127,18 @@ declare interface InspectFunction {
  * @returns A string representation of `value`.
  */
 declare var inspect: InspectFunction;
+
+declare interface InspectCustomInputs {
+  key: string | symbol;
+  type: string;
+  brackets: [string, string];
+  oneLine: boolean;
+  linesBefore: Array<string>;
+  linesAfter: Array<string>;
+  propLines: Array<string>;
+  readonly tooDeep: boolean;
+  indent: string;
+  typeSuffix: string;
+  opts: InspectOptions;
+  colours: { [Key in keyof Required<InspectColours>]: string };
+}

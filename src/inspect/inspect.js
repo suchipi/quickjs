@@ -1,4 +1,5 @@
-/** npm: @suchipi/print@2.4.0. License: ISC */
+/** npm: @suchipi/print@2.5.0. License: ISC */
+/* (with some QuickJS-specific modifications) */
 
 /*
 Copyright (c) 2016-2022, John Gardner
@@ -648,18 +649,95 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
       }
     }
 
-    // Pick an appropriate pair of brackets
-    let valueParts = isArrayLike
-      ? [punct + "[" + off, "\n", punct + "]" + off]
-      : [punct + "{" + off, "\n", punct + "}" + off];
-
     // If there's nothing of interest in a RegExp or Date object, use a 1-line form
-    const numProps = propLines.length;
-    if (
-      !numProps &&
+    let oneLine =
+      !propLines.length &&
       (type === "RegExp" || type === "Date") &&
-      linesBefore.length === 1
-    ) {
+      linesBefore.length === 1;
+
+    // Pick an appropriate pair of brackets
+    const brackets = isArrayLike ? ["[", "]"] : ["{", "}"];
+
+    const inputs = {
+      key,
+      type,
+      brackets,
+      oneLine,
+      linesBefore,
+      linesAfter,
+      propLines,
+      get tooDeep() {
+        return tooDeep;
+      },
+      indent,
+      typeSuffix,
+      opts,
+      colours: {
+        off,
+        red,
+        grey,
+        green,
+        darkGreen,
+        punct,
+        keys,
+        keyEscape,
+        typeColour,
+        primitive,
+        escape,
+        date,
+        hexBorder,
+        hexValue,
+        hexOffset,
+        reference,
+        srcBorder,
+        srcRowNum,
+        srcRowText,
+        nul,
+        nulProt,
+        undef,
+        noExts,
+        frozen,
+        sealed,
+        regex,
+        string,
+        symbol,
+        symbolFade,
+        braces,
+        quotes,
+        empty,
+        dot,
+      },
+    };
+
+    if (typeof value[inspect.custom] === "function") {
+      // custom function can mutate inputs object to change output
+      value[inspect.custom](inputs);
+    }
+
+    return printFormattedParts(inputs);
+  }
+
+  function printFormattedParts({
+    key,
+    type,
+    oneLine,
+    linesBefore,
+    linesAfter,
+    propLines,
+    tooDeep,
+    indent,
+    typeSuffix,
+    colours: { punct, off, typeColour },
+    brackets,
+  }) {
+    let valueParts = [
+      punct + brackets[0] + off,
+      "\n",
+      punct + brackets[1] + off,
+    ];
+
+    const numProps = propLines.length;
+    if (oneLine) {
       valueParts = linesBefore;
       type = "";
     }
@@ -694,6 +772,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
       valueParts.join("")
     );
   }
+
+  inspect.custom = Symbol("inspect.custom");
 
   globalThis.inspect = inspect;
 })();
