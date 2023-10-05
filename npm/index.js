@@ -18,7 +18,7 @@ function identifyCurrentPlatform() {
   });
 
   if (matchingPlatform) {
-    return matchingPlatform.name;
+    return matchingPlatform;
   } else {
     throw new Error(
       `Unsupported platform: ${process.platform}/${process.arch}`

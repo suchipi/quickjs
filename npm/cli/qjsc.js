@@ -1,4 +1,4 @@
 #!/usr/bin/env node
-const runBinary = require("./run-binary");
+const runBinary = require("../run-binary");
 
 runBinary("qjsc");
