@@ -1,54 +1,28 @@
+const fs = require("fs");
 const path = require("path");
 
-exports.buildArtifactsLocation = function buildArtifactsLocation() {
+function buildArtifactsLocation() {
   return path.resolve(__dirname, "..", "build");
-};
+}
+exports.buildArtifactsLocation = buildArtifactsLocation;
 
-exports.identifyCurrentPlatform = function identifyCurrentPlatform() {
-  const platform = process.platform;
-  switch (platform) {
-    case "darwin":
-    case "linux":
-    case "win32": {
-      break;
-    }
-    default: {
-      throw new Error(`Unsupported platform: ${platform}`);
-    }
-  }
+const platforms = require("./platforms.json");
+exports.platforms = platforms;
 
-  /** @type {string} */
-  let arch = process.arch;
-  switch (arch) {
-    case "arm64": {
-      arch = "aarch64";
-      break;
-    }
-    case "x64": {
-      arch = "x86_64";
-      break;
-    }
-    default: {
-      throw new Error(`Unsupported processor architecture: ${arch}`);
-    }
-  }
+function identifyCurrentPlatform() {
+  const matchingPlatform = platforms.find((platform) => {
+    return (
+      platform.os === process.platform &&
+      platform.architectures.includes(process.arch)
+    );
+  });
 
-  switch (platform) {
-    case "darwin": {
-      return `${arch}-apple-darwin`;
-    }
-    case "win32": {
-      if (arch !== "x86_64") {
-        throw new Error(`Architecture is not supported on Windows: ${arch}`);
-      }
-      return `${arch}-pc-windows-static`;
-    }
-    case "linux": {
-      return `${arch}-unknown-linux-static`;
-    }
-    default: {
-      // should be unreachable
-      throw new Error(`Unsupported platform: ${platform}`);
-    }
+  if (matchingPlatform) {
+    return matchingPlatform.name;
+  } else {
+    throw new Error(
+      `Unsupported platform: ${process.platform}/${process.arch}`
+    );
   }
-};
+}
+exports.identifyCurrentPlatform = identifyCurrentPlatform;

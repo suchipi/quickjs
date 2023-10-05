@@ -1,0 +1,65 @@
+[
+  {
+    "name": "aarch64-apple-darwin",
+    "architectures": ["aarch64", "arm64"],
+    "os": "darwin",
+    "abi": "",
+    "programSuffix": ""
+  },
+  {
+    "name": "aarch64-unknown-linux-gnu",
+    "architectures": ["aarch64", "arm64"],
+    "os": "linux",
+    "abi": "gnu",
+    "programSuffix": ""
+  },
+  {
+    "name": "aarch64-unknown-linux-musl",
+    "architectures": ["aarch64", "arm64"],
+    "os": "linux",
+    "abi": "musl",
+    "programSuffix": ""
+  },
+  {
+    "name": "aarch64-unknown-linux-static",
+    "architectures": ["aarch64", "arm64"],
+    "os": "linux",
+    "abi": "static",
+    "programSuffix": ""
+  },
+  {
+    "name": "x86_64-apple-darwin",
+    "architectures": ["x86_64", "amd64", "x64"],
+    "os": "darwin",
+    "abi": "",
+    "programSuffix": ""
+  },
+  {
+    "name": "x86_64-pc-windows-static",
+    "architectures": ["x86_64", "amd64", "x64"],
+    "os": "windows",
+    "abi": "",
+    "programSuffix": ".exe"
+  },
+  {
+    "name": "x86_64-unknown-linux-gnu",
+    "architectures": ["x86_64", "amd64", "x64"],
+    "os": "linux",
+    "abi": "gnu",
+    "programSuffix": ""
+  },
+  {
+    "name": "x86_64-unknown-linux-musl",
+    "architectures": ["x86_64", "amd64", "x64"],
+    "os": "linux",
+    "abi": "musl",
+    "programSuffix": ""
+  },
+  {
+    "name": "x86_64-unknown-linux-static",
+    "architectures": ["x86_64", "amd64", "x64"],
+    "os": "linux",
+    "abi": "static",
+    "programSuffix": ""
+  }
+]

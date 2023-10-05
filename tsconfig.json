@@ -23,6 +23,7 @@
     "moduleResolution": "node",
     "strictNullChecks": true,
     "esModuleInterop": true,
-    "types": ["jest"]
+    "types": ["jest"],
+    "resolveJsonModule": true
   }
 }
