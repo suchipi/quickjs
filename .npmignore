@@ -8,6 +8,7 @@ tests
 .editorconfig
 .gitignore
 .node-version
+.npm-version
 .npmignore
 .prettierignore
 build.ninja
