@@ -43,3 +43,9 @@ build({
   rule: "cc_target",
   inputs: [rel("quickjs-modulesys.c")],
 });
+
+build({
+  output: builddir("dts/quickjs-modulesys.d.ts"),
+  rule: "copy",
+  inputs: [rel("quickjs-modulesys.d.ts")],
+});
