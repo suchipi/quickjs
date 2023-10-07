@@ -4,9 +4,9 @@
   "version": "0.4.0",
   "main": "./npm/index.js",
   "bin": {
-    "qjs": "./npm/cli/qjs.js",
-    "qjsc": "./npm/cli/qjsc.js",
-    "quickjs-run": "./npm/cli/quickjs-run.js"
+    "qjs": "npm/cli/qjs.js",
+    "qjsc": "npm/cli/qjsc.js",
+    "quickjs-run": "npm/cli/quickjs-run.js"
   },
   "devDependencies": {
     "@babel/core": "^7.20.5",
@@ -29,7 +29,10 @@
   },
   "prettier": {},
   "license": "MIT",
-  "repository": "suchipi/quickjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/suchipi/quickjs.git"
+  },
   "publishConfig": {
     "access": "public"
   }
