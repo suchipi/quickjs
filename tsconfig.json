@@ -12,7 +12,9 @@
     "tests/oldtests/**/*",
     "build/**/*",
     "examples/**/*",
-    "meta/microbench.js"
+    "meta/microbench.js",
+    "src/run-test262/test262",
+    "src/run-test262/test262o"
   ],
   "compilerOptions": {
     "allowJs": true,
