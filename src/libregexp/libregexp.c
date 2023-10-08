@@ -780,7 +780,7 @@ static int get_class_atom(REParseState *s, CharRange *cr,
             if (ret >= 0) {
                 c = ret;
             } else {
-                if (ret == -2 && *p != '\0' && strchr("^$\\.*+?()[]{}|/", *p)) {
+                if (ret == -2 && *p != '\0' && strchr("^$\\.*+?()[]{}|/-", *p)) {
                     /* always valid to escape these characters */
                     goto normal_char;
                 } else if (s->is_utf16) {
