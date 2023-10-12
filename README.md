@@ -49,6 +49,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `String.dedent` added (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
 - Several C-side helper functions were moved out of quickjs-libc and into quickjs-utils.
 - Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
+- Added `std.setExitCode` and made `std.exit`'s parameter optional. The value passed to `std.setExitCode` will be used when the process exits normally, or when `std.exit` is called without any arguments.
 
 ## Changes to the `qjs` repl:
 

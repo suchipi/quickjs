@@ -129,11 +129,34 @@ declare interface FILE {
 
 declare module "quickjs:std" {
   /**
+   * Set the exit code that the process should exit with in the future, if it
+   * exits normally.
+   *
+   * Can only be called from the main thread.
+   *
+   * This exit code will only be used if the process exits "normally", ie, when
+   * there are no more pending JS tasks/listeners. If an unhandled exception is
+   * thrown, the process will always exit with status `1`, regardless of the
+   * status code passed to `setExitCode`. If someone calls {@link exit} and
+   * passes in a status code, that status code will take precedence over the
+   * status code passed to `setExitCode`.
+   *
+   * @param statusCode The future exit code; 0 for success, nonzero for failure.
+   */
+  export function setExitCode(statusCode: number): void;
+
+  /**
    * Exit the process with the provided status code.
+   *
+   * Can only be called from the main thread.
+   *
+   * If `statusCode` is not provided, a value previously passed into
+   * {@link setExitCode} will be used. If no value was previously passed into
+   * setExitCode, `0` will be used.
    *
    * @param statusCode The exit code; 0 for success, nonzero for failure.
    */
-  export function exit(statusCode: number): void;
+  export function exit(statusCode?: number): never;
 
   /**
    * Evaluate the string `code` as a script (global eval).

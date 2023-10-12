@@ -137,9 +137,15 @@ typedef struct JSThreadState {
     struct list_head os_timers; /* list of JSOSTimer.link */
     struct list_head port_list; /* list of JSWorkerMessageHandler.link */
     int eval_script_recurse; /* only used in the main thread */
-    /* not used in the main thread */
-    JSWorkerMessagePipe *recv_pipe, *send_pipe;
+    JSWorkerMessagePipe *recv_pipe, *send_pipe; /* not used in the main thread */
+    int exit_code; /* only used in the main thread */
 } JSThreadState;
+
+static BOOL is_main_thread(JSRuntime *rt)
+{
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    return !ts->recv_pipe;
+}
 
 static uint64_t os_pending_signals;
 static int (*os_poll_func)(JSContext *ctx);
@@ -481,12 +487,61 @@ static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
     return ret;
 }
 
+static JSValue js_std_setExitCode(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv)
+{
+    int status;
+    JSThreadState *ts;
+    JSRuntime *rt;
+
+    rt = JS_GetRuntime(ctx);
+
+    if (!is_main_thread(rt)) {
+        return JS_ThrowError(ctx, "std.setExitCode can only be called from the main thread");
+    }
+
+    if (JS_ToInt32(ctx, &status, argv[0])) {
+        return JS_EXCEPTION;
+    }
+
+    ts = JS_GetRuntimeOpaque(JS_GetRuntime(ctx));
+    if (ts == NULL) {
+        return JS_ThrowError(ctx, "The current JS runtime has no ThreadState object, so the exit code cannot be set. Did you forget to call js_std_init_handlers?");
+    }
+
+    ts->exit_code = status;
+    return JS_UNDEFINED;
+}
+
 static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
 {
     int status;
-    if (JS_ToInt32(ctx, &status, argv[0]))
-        status = -1;
+    JSRuntime *rt;
+    JSThreadState *ts;
+
+    rt = JS_GetRuntime(ctx);
+
+    if (!is_main_thread(rt)) {
+        return JS_ThrowError(ctx, "std.exit can only be called from the main thread");
+    }
+
+    ts = JS_GetRuntimeOpaque(JS_GetRuntime(ctx));
+
+    if (argc == 0 || JS_IsUndefined(argv[0])) {
+        if (ts == NULL) {
+            return JS_ThrowError(ctx, "The current JS runtime has no ThreadState object, so the set exit code cannot be retrieved. Did you forget to call js_std_init_handlers?");
+        }
+        status = ts->exit_code;
+    } else {
+        if (JS_ToInt32(ctx, &status, argv[0])) {
+            status = -1;
+        }
+        if (ts != NULL) {
+            ts->exit_code = status;
+        }
+    }
+
     exit(status);
     return JS_UNDEFINED;
 }
@@ -1613,6 +1668,7 @@ static JSClassDef js_std_file_class = {
 
 static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("exit", 1, js_std_exit ),
+    JS_CFUNC_DEF("setExitCode", 1, js_std_setExitCode ),
     JS_CFUNC_DEF("gc", 0, js_std_gc ),
     JS_CFUNC_DEF("evalScript", 1, js_std_evalScript ),
     JS_CFUNC_DEF("loadScript", 1, js_std_loadScript ),
@@ -2003,12 +2059,6 @@ static JSValue js_os_rename(JSContext *ctx, JSValueConst this_val,
     } else {
         return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
     }
-}
-
-static BOOL is_main_thread(JSRuntime *rt)
-{
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
-    return !ts->recv_pipe;
 }
 
 static JSOSRWHandler *find_rh(JSThreadState *ts, int fd)
@@ -4476,16 +4526,47 @@ void js_std_free_handlers(JSRuntime *rt)
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
 }
 
+static int js_std_get_exit_code(JSRuntime *rt) {
+    if (!is_main_thread(rt)) {
+        return 0;
+    }
+
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    if (ts == NULL) {
+        return 0;
+    }
+    return ts->exit_code;
+}
+
+/* -1 indicates set failed */
+static int js_std_set_exit_code(JSRuntime *rt, int exit_status) {
+    if (!is_main_thread(rt)) {
+        return -1;
+    }
+
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    if (ts == NULL) {
+        return -1;
+    }
+
+    ts->exit_code = exit_status;
+    return 0;
+}
+
+
 /* main loop which calls the user JS callbacks */
-void js_std_loop(JSContext *ctx)
+int js_std_loop(JSContext *ctx)
 {
+    JSRuntime *rt;
     JSContext *ctx1;
     int err;
+
+    rt = JS_GetRuntime(ctx);
 
     for(;;) {
         /* execute the pending jobs */
         for(;;) {
-            err = JS_ExecutePendingJob(JS_GetRuntime(ctx), &ctx1);
+            err = JS_ExecutePendingJob(rt, &ctx1);
             if (err <= 0) {
                 if (err < 0) {
                     QJU_PrintException(ctx1, stderr);
@@ -4497,4 +4578,10 @@ void js_std_loop(JSContext *ctx)
         if (!os_poll_func || os_poll_func(ctx))
             break;
     }
+
+    if (err < 0) {
+        js_std_set_exit_code(rt, 1);
+    }
+
+    return js_std_get_exit_code(rt);
 }

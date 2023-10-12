@@ -352,16 +352,18 @@ static const char main_c_template1[] =
     "{\n"
     "  JSRuntime *rt;\n"
     "  JSContext *ctx;\n"
+    "  int exit_status;\n"
     "  rt = JS_NewRuntime();\n"
     "  js_std_set_worker_new_context_func(JS_NewCustomContext);\n"
     "  js_std_init_handlers(rt);\n"
     ;
 
 static const char main_c_template2[] =
-    "  js_std_loop(ctx);\n"
+    "  exit_status = js_std_loop(ctx);\n"
     "  JS_FreeContext(ctx);\n"
+    "  js_std_free_handlers(rt);\n"
     "  JS_FreeRuntime(rt);\n"
-    "  return 0;\n"
+    "  return exit_status;\n"
     "}\n";
 
 #define PROG_NAME "qjsc"

@@ -151,6 +151,7 @@ int main(int argc, char **argv)
   off_t appended_code_len;
   uint8_t *appended_code;
   char execpath_error[2048];
+  int exit_status;
 
   errno = 0;
   self_binary_path = execpath(argv[0], NULL, (char *)&execpath_error);
@@ -204,9 +205,12 @@ int main(int argc, char **argv)
     }
 #endif
 
-  js_std_loop(ctx);
+  exit_status = js_std_loop(ctx);
+
   JS_FreeContext(ctx);
+  js_std_free_handlers(rt);
   JS_FreeRuntime(rt);
   free(self_binary_path);
-  return 0;
+
+  return exit_status;
 }

@@ -52,7 +52,8 @@ extern "C"
   void js_std_add_timeout(JSContext *ctx);
   void js_std_add_lib(JSContext *ctx);
 
-  void js_std_loop(JSContext *ctx);
+  /* returns the exit status code */
+  int js_std_loop(JSContext *ctx);
   void js_std_init_handlers(JSRuntime *rt);
   void js_std_free_handlers(JSRuntime *rt);
   void js_std_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt));

@@ -33,6 +33,7 @@ int main(int argc, char **argv)
 {
   JSRuntime *rt;
   JSContext *ctx;
+  int exit_status;
 
   if (argc != 3) {
     printf("You must provide two positional arguments: the max stack size (or NONE to skip calling JS_SetMaxStackSize), and the memory limit (or NONE to skip calling JS_SetMemoryLimit).\n");
@@ -68,8 +69,8 @@ int main(int argc, char **argv)
   js_std_add_helpers(ctx, argc, argv);
   QJMS_AddGlobals(ctx);
   QJMS_EvalBinary(ctx, qjsc_loop, qjsc_loop_size, 0);
-  js_std_loop(ctx);
+  exit_status = js_std_loop(ctx);
   JS_FreeContext(ctx);
   JS_FreeRuntime(rt);
-  return 0;
+  return exit_status;
 }

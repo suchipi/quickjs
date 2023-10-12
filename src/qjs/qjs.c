@@ -281,6 +281,7 @@ int main(int argc, char **argv)
     int load_jscalc;
 #endif
     size_t stack_size = 0;
+    int exit_status = 0;
 
 #ifdef CONFIG_BIGNUM
     /* load jscalc runtime if invoked as 'qjscalc' */
@@ -484,7 +485,7 @@ int main(int argc, char **argv)
         if (interactive) {
             QJMS_EvalBinary(ctx, qjsc_repl, qjsc_repl_size, 0);
         }
-        js_std_loop(ctx);
+        exit_status = js_std_loop(ctx);
     }
 
     if (dump_memory) {
@@ -520,7 +521,7 @@ int main(int argc, char **argv)
                best[1] + best[2] + best[3] + best[4],
                best[1], best[2], best[3], best[4]);
     }
-    return 0;
+    return exit_status;
  fail:
     js_std_free_handlers(rt);
     JS_FreeContext(ctx);

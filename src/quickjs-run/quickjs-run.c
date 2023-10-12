@@ -71,6 +71,7 @@ int main(int argc, char **argv)
   JSRuntime *rt;
   JSContext *ctx;
   const char *filename;
+  int exit_status;
 
   if (argc < 2) {
     printf("You must pass a parameter to this binary: The file to run.\n");
@@ -95,8 +96,10 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  js_std_loop(ctx);
+  exit_status = js_std_loop(ctx);
+  js_std_free_handlers(rt);
   JS_FreeContext(ctx);
   JS_FreeRuntime(rt);
-  return 0;
+
+  return exit_status;
 }
