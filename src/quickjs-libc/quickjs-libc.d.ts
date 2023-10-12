@@ -146,6 +146,14 @@ declare module "quickjs:std" {
   export function setExitCode(statusCode: number): void;
 
   /**
+   * Return the exit code that was previously set by {@link setExitCode}, or 0 if
+   * it hasn't yet been set.
+   *
+   * Can only be called from the main thread.
+   */
+  export function getExitCode(): number;
+
+  /**
    * Exit the process with the provided status code.
    *
    * Can only be called from the main thread.

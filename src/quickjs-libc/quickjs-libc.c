@@ -487,30 +487,74 @@ static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
     return ret;
 }
 
-static JSValue js_std_setExitCode(JSContext *ctx, JSValueConst this_val,
+/* returns 0 when code is unavailable */
+static int js_std_get_exit_code(JSRuntime *rt) {
+    if (!is_main_thread(rt)) {
+        return 0;
+    }
+
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    if (ts == NULL) {
+        return 0;
+    }
+    return ts->exit_code;
+}
+
+/* negative return value indicates set failed */
+static int js_std_set_exit_code(JSRuntime *rt, int exit_status) {
+    if (!is_main_thread(rt)) {
+        return -1;
+    }
+
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    if (ts == NULL) {
+        return -2;
+    }
+
+    ts->exit_code = exit_status;
+    return 0;
+}
+
+static JSValue js_std_getExitCode(JSContext *ctx, JSValueConst this_val,
                                   int argc, JSValueConst *argv)
 {
     int status;
-    JSThreadState *ts;
     JSRuntime *rt;
 
     rt = JS_GetRuntime(ctx);
 
     if (!is_main_thread(rt)) {
-        return JS_ThrowError(ctx, "std.setExitCode can only be called from the main thread");
+        return JS_ThrowError(ctx, "std.getExitCode can only be called from the main thread");
     }
+
+    status = js_std_get_exit_code(rt);
+
+    return JS_NewInt32(ctx, status);
+}
+
+static JSValue js_std_setExitCode(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv)
+{
+    int status, set_result;
+    JSRuntime *rt;
 
     if (JS_ToInt32(ctx, &status, argv[0])) {
         return JS_EXCEPTION;
     }
 
-    ts = JS_GetRuntimeOpaque(JS_GetRuntime(ctx));
-    if (ts == NULL) {
-        return JS_ThrowError(ctx, "The current JS runtime has no ThreadState object, so the exit code cannot be set. Did you forget to call js_std_init_handlers?");
-    }
+    rt = JS_GetRuntime(ctx);
+    set_result = js_std_set_exit_code(rt, status);
 
-    ts->exit_code = status;
-    return JS_UNDEFINED;
+    if (set_result == -1) {
+        return JS_ThrowError(ctx, "std.setExitCode can only be called from the main thread");
+    } else if (set_result == -2) {
+        return JS_ThrowError(ctx, "The current JS runtime has no ThreadState object, so the exit code cannot be set. Did you forget to call js_std_init_handlers?");
+    } else if (set_result < 0) {
+        return JS_ThrowError(ctx, "Failed to set that exit code: unknown error, code %d", set_result);
+    } else {
+        // success
+        return JS_UNDEFINED;
+    }
 }
 
 static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
@@ -518,7 +562,6 @@ static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
 {
     int status;
     JSRuntime *rt;
-    JSThreadState *ts;
 
     rt = JS_GetRuntime(ctx);
 
@@ -526,20 +569,13 @@ static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
         return JS_ThrowError(ctx, "std.exit can only be called from the main thread");
     }
 
-    ts = JS_GetRuntimeOpaque(JS_GetRuntime(ctx));
-
     if (argc == 0 || JS_IsUndefined(argv[0])) {
-        if (ts == NULL) {
-            return JS_ThrowError(ctx, "The current JS runtime has no ThreadState object, so the set exit code cannot be retrieved. Did you forget to call js_std_init_handlers?");
-        }
-        status = ts->exit_code;
+        status = js_std_get_exit_code(rt);
     } else {
         if (JS_ToInt32(ctx, &status, argv[0])) {
             status = -1;
         }
-        if (ts != NULL) {
-            ts->exit_code = status;
-        }
+        js_std_set_exit_code(rt, status);
     }
 
     exit(status);
@@ -1667,8 +1703,9 @@ static JSClassDef js_std_file_class = {
 };
 
 static const JSCFunctionListEntry js_std_funcs[] = {
-    JS_CFUNC_DEF("exit", 1, js_std_exit ),
     JS_CFUNC_DEF("setExitCode", 1, js_std_setExitCode ),
+    JS_CFUNC_DEF("getExitCode", 0, js_std_getExitCode ),
+    JS_CFUNC_DEF("exit", 1, js_std_exit ),
     JS_CFUNC_DEF("gc", 0, js_std_gc ),
     JS_CFUNC_DEF("evalScript", 1, js_std_evalScript ),
     JS_CFUNC_DEF("loadScript", 1, js_std_loadScript ),
@@ -4525,34 +4562,6 @@ void js_std_free_handlers(JSRuntime *rt)
     free(ts);
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
 }
-
-static int js_std_get_exit_code(JSRuntime *rt) {
-    if (!is_main_thread(rt)) {
-        return 0;
-    }
-
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
-    if (ts == NULL) {
-        return 0;
-    }
-    return ts->exit_code;
-}
-
-/* -1 indicates set failed */
-static int js_std_set_exit_code(JSRuntime *rt, int exit_status) {
-    if (!is_main_thread(rt)) {
-        return -1;
-    }
-
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
-    if (ts == NULL) {
-        return -1;
-    }
-
-    ts->exit_code = exit_status;
-    return 0;
-}
-
 
 /* main loop which calls the user JS callbacks */
 int js_std_loop(JSContext *ctx)
