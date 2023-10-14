@@ -525,6 +525,7 @@ int main(int argc, char **argv)
     return exit_status;
  fail:
     js_std_free_handlers(rt);
+    QJMS_FreeState(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
     return 1;

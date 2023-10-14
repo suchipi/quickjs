@@ -45,9 +45,13 @@ void QJMS_FreeState(JSRuntime *rt) {
   QJMS_State *state;
 
   state = JS_GetModuleLoaderOpaque(rt);
-  assert(state != NULL);
+  if (state == NULL) {
+    return;
+  }
 
-  js_free_rt(rt, state->main_module);
+  if (state->main_module != NULL) {
+    js_free_rt(rt, state->main_module);
+  }
   js_free_rt(rt, state);
 }
 
@@ -72,7 +76,9 @@ BOOL QJMS_IsMainModule(JSRuntime *rt, const char *module_name) {
   char *main_module;
 
   state = (QJMS_State *) JS_GetModuleLoaderOpaque(rt);
-  assert(state != NULL);
+  if (state == NULL) {
+    return FALSE;
+  }
 
   main_module = state->main_module;
 
