@@ -22,7 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-"use strip";
 
 import * as std from "quickjs:std";
 import * as os from "quickjs:os";
@@ -31,6 +30,11 @@ import * as os from "quickjs:os";
   /* add 'os' and 'std' bindings */
   g.os = os;
   g.std = std;
+
+  /* add bindings for other builtin modules */
+  g.Runtime = require("quickjs:runtime");
+  g.Bytecode = require("quickjs:bytecode");
+  g.ptr = require("quickjs:pointer");
 
   /* close global objects */
   var Object = g.Object;
@@ -1143,7 +1147,7 @@ import * as os from "quickjs:os";
       if (eval_mode === "math") expr = '"use math"; void 0;' + expr;
       var now = new Date().getTime();
       /* eval as a script */
-      result = std.evalScript(expr, { backtraceBarrier: true });
+      result = Runtime.evalScript(expr, { backtraceBarrier: true });
       eval_time = new Date().getTime() - now;
       std.puts(colors[styles.result]);
       print(result);

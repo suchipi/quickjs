@@ -52,6 +52,10 @@ extern "C"
   void js_std_add_timeout(JSContext *ctx);
   void js_std_add_lib(JSContext *ctx);
 
+  JS_BOOL js_std_is_main_thread(JSRuntime *rt);
+  void js_std_interrupt_handler_start(JSContext *ctx);
+  void js_std_interrupt_handler_finish(JSContext *ctx, JSValue ret);
+
   /* returns the exit status code */
   int js_std_loop(JSContext *ctx);
   void js_std_init_handlers(JSRuntime *rt);

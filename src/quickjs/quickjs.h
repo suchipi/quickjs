@@ -752,7 +752,7 @@ static inline JSValue JS_DupValueRT(JSRuntime *rt, JSValueConst v)
     return (JSValue)v;
 }
 
-/* returns -1 when exception has been thrown, 0 when ok */
+/* returns -1 when exception has been thrown, 0 or 1 when ok */
 int JS_ToBool(JSContext *ctx, JSValueConst val);
 /* returns -1 when exception has been thrown, 0 when ok */
 int JS_ToInt32(JSContext *ctx, int32_t *pres, JSValueConst val);

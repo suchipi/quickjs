@@ -21,6 +21,9 @@ static int quickjs_full_init_modules(JSContext *ctx)
     if (js_init_module_pointer(ctx, "quickjs:pointer") == NULL) {
         return -1;
     }
+    if (js_init_module_runtime(ctx, "quickjs:runtime") == NULL) {
+        return -1;
+    }
 
     return 0;
 }

@@ -141,7 +141,7 @@ typedef struct JSThreadState {
     int exit_code; /* only used in the main thread */
 } JSThreadState;
 
-static BOOL is_main_thread(JSRuntime *rt)
+BOOL js_std_is_main_thread(JSRuntime *rt)
 {
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
     return !ts->recv_pipe;
@@ -376,127 +376,6 @@ fail:
     return JS_EXCEPTION;
 }
 
-/* load and evaluate a file as a script */
-static JSValue js_std_loadScript(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
-{
-    uint8_t *buf;
-    const char *filename;
-    JSValue ret;
-    size_t buf_len;
-
-    filename = JS_ToCString(ctx, argv[0]);
-    if (!filename)
-        return JS_EXCEPTION;
-    buf = QJU_LoadFile(ctx, &buf_len, filename);
-    if (!buf) {
-        JS_ThrowReferenceError(ctx, "could not load '%s'", filename);
-        JS_FreeCString(ctx, filename);
-        return JS_EXCEPTION;
-    }
-    ret = JS_Eval(ctx, (char *)buf, buf_len, filename,
-                  JS_EVAL_TYPE_GLOBAL);
-    js_free(ctx, buf);
-    JS_FreeCString(ctx, filename);
-    return ret;
-}
-
-/* load and evaluate a file as a module */
-static JSValue js_std_importModule(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
-{
-    if (argc == 1) {
-        return JS_DynamicImportSync(ctx, argv[0]);
-    } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
-        return JS_DynamicImportSync2(ctx, argv[0], argv[1]);
-    } else {
-        return JS_ThrowTypeError(ctx, "importModule must be called with one or two arguments");
-    }
-}
-
-/* return the name of the calling script or module */
-static JSValue js_std_getFileNameFromStack(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv)
-{
-    int stack_levels = 0;
-    JSAtom filename;
-
-    if (argc == 1) {
-        if (JS_ToInt32(ctx, &stack_levels, argv[0]))
-            return JS_EXCEPTION;
-    }
-
-    filename = JS_GetScriptOrModuleName(ctx, stack_levels + 1);
-    if (filename == JS_ATOM_NULL) {
-        return JS_ThrowError(ctx, "Cannot determine the caller filename for the given stack level. Maybe you're using eval?");
-    } else {
-        return JS_AtomToString(ctx, filename);
-    }
-}
-
-/* resolve the absolute path to a module */
-static JSValue js_std_resolveModule(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    if (argc == 1) {
-        JSValue specifier = argv[0];
-        return QJMS_RequireResolve(ctx, specifier);
-    } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
-        JSValue result;
-        JSValue specifier = argv[0];
-        JSValue basename_val = argv[1];
-
-        JSAtom basename_atom = JS_ValueToAtom(ctx, basename_val);
-        if (basename_atom == JS_ATOM_NULL) {
-            return JS_EXCEPTION;
-        }
-
-        result = QJMS_RequireResolve2(ctx, specifier, basename_atom);
-        JS_FreeAtom(ctx, basename_atom);
-        return result;
-    } else {
-        return JS_ThrowTypeError(ctx, "resolveModule must be called with one or two arguments");
-    }
-}
-
-static JSValue js_std_isMainModule(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    const char *module_name;
-    int result;
-
-    if (argc < 1) {
-        return JS_ThrowTypeError(ctx, "std.isMainModule requires one argument: the resolved module name to check");
-    }
-
-    module_name = JS_ToCString(ctx, argv[0]);
-    if (module_name == NULL) {
-        return JS_EXCEPTION;
-    }
-
-    result = QJMS_IsMainModule(JS_GetRuntime(ctx), module_name);
-    return JS_NewBool(ctx, result);
-}
-
-static JSValue js_std_setMainModule(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    const char *module_name;
-
-    if (argc < 1) {
-        return JS_ThrowTypeError(ctx, "std.setMainModule requires one argument: the resolved module name to set");
-    }
-
-    module_name = JS_ToCString(ctx, argv[0]);
-    if (module_name == NULL) {
-        return JS_EXCEPTION;
-    }
-
-    QJMS_SetMainModule(JS_GetRuntime(ctx), module_name);
-
-    return JS_UNDEFINED;
-}
-
 /* load a file as a UTF-8 encoded string */
 static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
@@ -527,7 +406,7 @@ static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
 
 /* returns 0 when code is unavailable */
 static int js_std_get_exit_code(JSRuntime *rt) {
-    if (!is_main_thread(rt)) {
+    if (!js_std_is_main_thread(rt)) {
         return 0;
     }
 
@@ -540,7 +419,7 @@ static int js_std_get_exit_code(JSRuntime *rt) {
 
 /* negative return value indicates set failed */
 static int js_std_set_exit_code(JSRuntime *rt, int exit_status) {
-    if (!is_main_thread(rt)) {
+    if (!js_std_is_main_thread(rt)) {
         return -1;
     }
 
@@ -561,7 +440,7 @@ static JSValue js_std_getExitCode(JSContext *ctx, JSValueConst this_val,
 
     rt = JS_GetRuntime(ctx);
 
-    if (!is_main_thread(rt)) {
+    if (!js_std_is_main_thread(rt)) {
         return JS_ThrowError(ctx, "std.getExitCode can only be called from the main thread");
     }
 
@@ -603,7 +482,7 @@ static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
 
     rt = JS_GetRuntime(ctx);
 
-    if (!is_main_thread(rt)) {
+    if (!js_std_is_main_thread(rt)) {
         return JS_ThrowError(ctx, "std.exit can only be called from the main thread");
     }
 
@@ -798,60 +677,22 @@ static int get_bool_option(JSContext *ctx, BOOL *pbool,
     return 0;
 }
 
-static JSValue js_std_evalScript(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
+void js_std_interrupt_handler_start(JSContext *ctx)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
-    const char *code;
-    const char *filename = "<evalScript>";
-    BOOL filename_needs_to_be_freed = FALSE;
-    size_t len;
-    JSValue ret;
-    JSValueConst options_obj;
-    JSValueConst filename_val;
-    BOOL backtrace_barrier = FALSE;
-    int flags;
 
-    if (argc >= 2) {
-        options_obj = argv[1];
-        if (get_bool_option(ctx, &backtrace_barrier, options_obj, "backtraceBarrier")) {
-            return JS_EXCEPTION;
-        }
-
-        filename_val = JS_GetPropertyStr(ctx, options_obj, "filename");
-        if (JS_IsException(filename_val)) {
-            return JS_EXCEPTION;
-        }
-
-        if (JS_IsString(filename_val)) {
-            filename = JS_ToCString(ctx, filename_val);
-            if (!filename) {
-                return JS_EXCEPTION;
-            }
-            filename_needs_to_be_freed = TRUE;
-        }
-    }
-
-    code = JS_ToCStringLen(ctx, &len, argv[0]);
-    if (!code) {
-        if (filename_needs_to_be_freed) {
-            JS_FreeCString(ctx, filename);
-        }
-        return JS_EXCEPTION;
-    }
     if (!ts->recv_pipe && ++ts->eval_script_recurse == 1) {
         /* install the interrupt handler */
-        JS_SetInterruptHandler(JS_GetRuntime(ctx), interrupt_handler, NULL);
+        JS_SetInterruptHandler(rt, interrupt_handler, NULL);
     }
-    flags = JS_EVAL_TYPE_GLOBAL;
-    if (backtrace_barrier)
-        flags |= JS_EVAL_FLAG_BACKTRACE_BARRIER;
-    ret = JS_Eval(ctx, code, len, filename, flags);
-    JS_FreeCString(ctx, code);
-    if (filename_needs_to_be_freed) {
-        JS_FreeCString(ctx, filename);
-    }
+}
+
+void js_std_interrupt_handler_finish(JSContext *ctx, JSValue ret)
+{
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+
     if (!ts->recv_pipe && --ts->eval_script_recurse == 0) {
         /* remove the interrupt handler */
         JS_SetInterruptHandler(JS_GetRuntime(ctx), NULL, NULL);
@@ -861,7 +702,6 @@ static JSValue js_std_evalScript(JSContext *ctx, JSValueConst this_val,
         if (JS_IsException(ret))
             JS_ResetUncatchableError(ctx);
     }
-    return ret;
 }
 
 static JSClassID js_std_file_class_id;
@@ -1745,12 +1585,6 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("getExitCode", 0, js_std_getExitCode ),
     JS_CFUNC_DEF("exit", 1, js_std_exit ),
     JS_CFUNC_DEF("gc", 0, js_std_gc ),
-    JS_CFUNC_DEF("evalScript", 1, js_std_evalScript ),
-    JS_CFUNC_DEF("loadScript", 1, js_std_loadScript ),
-    JS_CFUNC_DEF("importModule", 2, js_std_importModule ),
-    JS_CFUNC_DEF("resolveModule", 2, js_std_resolveModule ),
-    JS_CFUNC_DEF("isMainModule", 1, js_std_isMainModule ),
-    JS_CFUNC_DEF("setMainModule", 1, js_std_setMainModule ),
     JS_CFUNC_DEF("getenv", 1, js_std_getenv ),
     JS_CFUNC_DEF("setenv", 1, js_std_setenv ),
     JS_CFUNC_DEF("unsetenv", 1, js_std_unsetenv ),
@@ -1761,7 +1595,6 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("getegid", 0, js_std_getegid ),
     JS_CFUNC_DEF("urlGet", 1, js_std_urlGet ),
     JS_CFUNC_DEF("loadFile", 1, js_std_loadFile ),
-    JS_CFUNC_DEF("getFileNameFromStack", 1, js_std_getFileNameFromStack ),
     JS_CFUNC_DEF("parseExtJSON", 1, js_std_parseExtJSON ),
 
     /* FILE I/O */
@@ -2241,7 +2074,7 @@ static JSValue js_os_signal(JSContext *ctx, JSValueConst this_val,
     JSValueConst func;
     sighandler_t handler;
 
-    if (!is_main_thread(rt))
+    if (!js_std_is_main_thread(rt))
         return JS_ThrowTypeError(ctx, "signal handler can only be set in the main thread");
 
     if (JS_ToUint32(ctx, &sig_num, argv[0]))
@@ -4020,7 +3853,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
 
     /* XXX: in order to avoid problems with resource liberation, we
        don't support creating workers inside workers */
-    if (!is_main_thread(rt))
+    if (!js_std_is_main_thread(rt))
         return JS_ThrowTypeError(ctx, "cannot create a worker inside a worker");
 
     /* base name, assuming the calling function is a normal JS
