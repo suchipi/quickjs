@@ -109,6 +109,9 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
   - It's the same as the global `require`; it's just added to import.meta for compatibility with bundlers that output `import.meta.require`, like `bun`.
 - Adds `import.meta.resolve`
   - Similar to [the one in the browser](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve#specifications), but it's actually just `require.resolve` exposed via `import.meta`.
+- Makes `import.meta.main` configurable
+  - You can use `std.setMainModule` to make `import.meta.main` true within that module's code. Note, however, that it does not work retroactively; only modules loaded after the `setMainModule` call will be affected. To defer module load, use `import()`, `std.importModule`, or `require`.
+  - You can use `std.isMainModule` to check if a given module would be the main module without loading it.
 - Adds the global object `Module`.
   - `instanceof Module` can be used to identify module namespace objects.
   - You can specify additional implicit import specifier extensions by adding to the `Module.searchExtensions` array.
