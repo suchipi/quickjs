@@ -3,18 +3,27 @@
 
 #include "quickjs.h"
 
+typedef struct QJMS_State QJMS_State;
+
+/* initialize and register the module loader system */
+void QJMS_InitState(JSRuntime *rt);
+
+/* free resources allocated by the module loader system */
+void QJMS_FreeState(JSRuntime *rt);
+
+/*
+Affects the value of import.meta.main.
+*/
+void QJMS_SetMainModule(JSRuntime *rt, const char *module_name);
+
+/*
+Check if import.meta.main would be true for this module.
+*/
+JS_BOOL QJMS_IsMainModule(JSRuntime *rt, const char *module_name);
+
 /* initializes the import.meta object for the provided module function */
-int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
-                             JS_BOOL is_main);
+int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val);
 
-/* a module name normalization function, suitable for passing into JS_SetModuleLoaderFunc. */
-char *QJMS_NormalizeModuleName(JSContext *ctx,
-                               const char *base_name,
-                               const char *name, void *opaque);
-
-/* a module loader function, suitable for passing into JS_SetModuleLoaderFunc. */
-JSModuleDef *QJMS_ModuleLoader(JSContext *ctx,
-                               const char *module_name, void *opaque);
 /*
   returns 0 on success, nonzero on error.
   in case of error, prints error to stderr before returning.

@@ -210,6 +210,25 @@ declare module "quickjs:std" {
   export function resolveModule(filename: string, basename?: string): string;
 
   /**
+   * Return whether the provided resolved module path is set as the main module.
+   *
+   * In other words, return what the value of `import.meta.main` would be within
+   * the module.
+   *
+   * The main module can be set via {@link setMainModule}.
+   */
+  export function isMainModule(resolvedFilepath: string): boolean;
+
+  /**
+   * Set the main module to the module with the provided resolved path.
+   *
+   * This will affect the value of `import.meta.main` for modules loaded in the
+   * future, but it will NOT retroactively change the value of
+   * `import.meta.main` in existing already-loaded modules.
+   */
+  export function setMainModule(resolvedFilepath: string): void;
+
+  /**
    * Load the file `filename` and return it as a string assuming UTF-8 encoding.
    *
    * @param filename - The relative or absolute path to the file to load. Relative paths are resolved relative to the process's current working directory.

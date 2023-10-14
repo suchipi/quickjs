@@ -84,7 +84,7 @@ int main(int argc, char **argv)
   js_std_set_worker_new_context_func(JS_NewCustomContext);
   js_std_init_handlers(rt);
   JS_SetMaxStackSize(rt, 8000000);
-  JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);
+  QJMS_InitState(rt);
   JS_SetCanBlock(rt, TRUE);
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
@@ -97,6 +97,7 @@ int main(int argc, char **argv)
   }
 
   exit_status = js_std_loop(ctx);
+  QJMS_FreeState(rt);
   js_std_free_handlers(rt);
   JS_FreeContext(ctx);
   JS_FreeRuntime(rt);

@@ -7,24 +7,99 @@
 #include "quickjs.h"
 #include "quickjs-utils.h"
 #include "quickjs-modulesys.h"
+#include "debugprint.h"
 
 extern const uint8_t qjsc_module_impl[];
 extern const uint32_t qjsc_module_impl_size;
 
-int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
-                             JS_BOOL is_main)
+#define MAIN_MODULE_NAME_SIZE 4096
+
+typedef struct QJMS_State {
+  char *main_module;
+} QJMS_State;
+
+static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
+                                      const char *name, QJMS_State *state);
+
+static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
+                                      QJMS_State *state);
+
+void QJMS_InitState(JSRuntime *rt) {
+  void *opaque;
+  char *main_module;
+  QJMS_State *state;
+
+  opaque = JS_GetModuleLoaderOpaque(rt);
+  assert(opaque == NULL);
+
+  main_module = js_malloc_rt(rt, MAIN_MODULE_NAME_SIZE);
+  state = js_malloc_rt(rt, sizeof(state));
+  state->main_module = main_module;
+
+  JS_SetModuleLoaderFunc(rt, (JSModuleNormalizeFunc *) QJMS_NormalizeModuleName,
+                         (JSModuleLoaderFunc *) QJMS_ModuleLoader,
+                         (void *) state);
+}
+
+void QJMS_FreeState(JSRuntime *rt) {
+  QJMS_State *state;
+
+  state = JS_GetModuleLoaderOpaque(rt);
+  assert(state != NULL);
+
+  js_free_rt(rt, state->main_module);
+  js_free_rt(rt, state);
+}
+
+void QJMS_SetMainModule(JSRuntime *rt, const char *module_name) {
+  QJMS_State* state;
+  char *main_module;
+
+  debugprint("QJMS_SetMainModule %s\n", module_name);
+
+  state = (QJMS_State *) JS_GetModuleLoaderOpaque(rt);
+  assert(state != NULL);
+
+  main_module = state->main_module;
+  memset(main_module, 0, MAIN_MODULE_NAME_SIZE);
+  pstrcpy(main_module, MAIN_MODULE_NAME_SIZE, module_name);
+
+  debugprint("QJMS_SetMainModule after set -> %s\n", main_module);
+}
+
+BOOL QJMS_IsMainModule(JSRuntime *rt, const char *module_name) {
+  QJMS_State* state;
+  char *main_module;
+
+  state = (QJMS_State *) JS_GetModuleLoaderOpaque(rt);
+  assert(state != NULL);
+
+  main_module = state->main_module;
+
+  debugprint("QJMS_IsMainModule checking %s against %s\n", module_name, main_module);
+
+  return strncmp(main_module, module_name, MAIN_MODULE_NAME_SIZE) == 0;
+}
+
+int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val)
 {
   JSModuleDef *m;
   char url_buf[4096];
+  JSRuntime *rt;
   JSValue meta_obj, global_obj, require, resolve;
   JSAtom module_name_atom;
   const char *module_name;
+  BOOL is_main;
 
   assert(JS_VALUE_GET_TAG(func_val) == JS_TAG_MODULE);
   m = JS_VALUE_GET_PTR(func_val);
 
   module_name_atom = JS_GetModuleName(ctx, m);
   module_name = JS_AtomToCString(ctx, module_name_atom);
+
+  rt = JS_GetRuntime(ctx);
+  is_main = QJMS_IsMainModule(rt, module_name);
+
   JS_FreeAtom(ctx, module_name_atom);
   if (!module_name)
     return -1;
@@ -67,9 +142,8 @@ int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
   return 0;
 }
 
-char *QJMS_NormalizeModuleName(JSContext *ctx,
-                               const char *base_name,
-                               const char *name, void *opaque)
+static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
+                                      const char *name, QJMS_State *state)
 {
   JSValue global, Module, resolve;
   JSValue base_name_val, name_val;
@@ -216,8 +290,8 @@ static JSModuleDef *QJMS_ModuleLoader_so(JSContext *ctx,
 #endif /* _WIN32 or CONFIG_SHARED_LIBRARY_MODULES */
 }
 
-JSModuleDef *QJMS_ModuleLoader(JSContext *ctx,
-                              const char *module_name, void *opaque)
+static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
+                                      QJMS_State *state)
 {
   // NOTE: this function supports, but does not require,
   // delegating to a JS-global Module.read function,
@@ -322,7 +396,7 @@ JSModuleDef *QJMS_ModuleLoader(JSContext *ctx,
     }
 
     /* XXX: could propagate the exception */
-    QJMS_SetModuleImportMeta(ctx, func_val, FALSE);
+    QJMS_SetModuleImportMeta(ctx, func_val);
     /* the module is already referenced, so we must free it */
     m = JS_VALUE_GET_PTR(func_val);
     JS_FreeValue(ctx, func_val);
@@ -337,13 +411,12 @@ int QJMS_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
     int ret;
 
     if ((eval_flags & JS_EVAL_TYPE_MASK) == JS_EVAL_TYPE_MODULE) {
-      /* for the modules, we compile then run to be able to set
-          import.meta */
+      /* for the modules, we compile then run to be able to set import.meta */
       val = JS_Eval(ctx, buf, buf_len, filename,
                     eval_flags | JS_EVAL_FLAG_COMPILE_ONLY);
 
       if (!JS_IsException(val)) {
-        QJMS_SetModuleImportMeta(ctx, val, TRUE);
+        QJMS_SetModuleImportMeta(ctx, val);
         val = JS_EvalFunction(ctx, val);
       }
     } else {
@@ -395,7 +468,7 @@ int QJMS_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
     }
     if (load_only) {
       if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
-        QJMS_SetModuleImportMeta(ctx, obj, FALSE);
+        QJMS_SetModuleImportMeta(ctx, obj);
       }
     } else {
       if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
@@ -403,7 +476,7 @@ int QJMS_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
           JS_FreeValue(ctx, obj);
           goto exception;
         }
-        QJMS_SetModuleImportMeta(ctx, obj, TRUE);
+        QJMS_SetModuleImportMeta(ctx, obj);
       }
       val = JS_EvalFunction(ctx, obj);
       if (JS_IsException(val)) {
@@ -537,7 +610,7 @@ JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val, JSAtom 
   module_loader_opaque = JS_GetModuleLoaderOpaque(rt);
   normalize_module_name = JS_GetModuleNormalizeFunc(rt);
   if (normalize_module_name == NULL) {
-    normalize_module_name = QJMS_NormalizeModuleName;
+    normalize_module_name = (JSModuleNormalizeFunc *) QJMS_NormalizeModuleName;
   }
 
   normalized = normalize_module_name(ctx, basename, specifier, module_loader_opaque);

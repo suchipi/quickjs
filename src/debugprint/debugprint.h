@@ -2,9 +2,9 @@
 #define DEBUGPRINT_H
 
 #ifdef DEBUG
-#define debugprint(...) printf (__VA_ARGS__)
+#define debugprint(...); printf (__VA_ARGS__);
 #else
-#define debugprint(...)
+#define debugprint(...);
 #endif
 
 #endif

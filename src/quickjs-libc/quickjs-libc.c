@@ -459,6 +459,44 @@ static JSValue js_std_resolveModule(JSContext *ctx, JSValueConst this_val,
     }
 }
 
+static JSValue js_std_isMainModule(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
+{
+    const char *module_name;
+    int result;
+
+    if (argc < 1) {
+        return JS_ThrowTypeError(ctx, "std.isMainModule requires one argument: the resolved module name to check");
+    }
+
+    module_name = JS_ToCString(ctx, argv[0]);
+    if (module_name == NULL) {
+        return JS_EXCEPTION;
+    }
+
+    result = QJMS_IsMainModule(JS_GetRuntime(ctx), module_name);
+    return JS_NewBool(ctx, result);
+}
+
+static JSValue js_std_setMainModule(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
+{
+    const char *module_name;
+
+    if (argc < 1) {
+        return JS_ThrowTypeError(ctx, "std.setMainModule requires one argument: the resolved module name to set");
+    }
+
+    module_name = JS_ToCString(ctx, argv[0]);
+    if (module_name == NULL) {
+        return JS_EXCEPTION;
+    }
+
+    QJMS_SetMainModule(JS_GetRuntime(ctx), module_name);
+
+    return JS_UNDEFINED;
+}
+
 /* load a file as a UTF-8 encoded string */
 static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
@@ -1711,6 +1749,8 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("loadScript", 1, js_std_loadScript ),
     JS_CFUNC_DEF("importModule", 2, js_std_importModule ),
     JS_CFUNC_DEF("resolveModule", 2, js_std_resolveModule ),
+    JS_CFUNC_DEF("isMainModule", 1, js_std_isMainModule ),
+    JS_CFUNC_DEF("setMainModule", 1, js_std_setMainModule ),
     JS_CFUNC_DEF("getenv", 1, js_std_getenv ),
     JS_CFUNC_DEF("setenv", 1, js_std_setenv ),
     JS_CFUNC_DEF("unsetenv", 1, js_std_unsetenv ),
@@ -3900,7 +3940,7 @@ static void *worker_func(void *opaque)
     }
     js_std_init_handlers(rt);
 
-    JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);
+    QJMS_InitState(rt);
 
     /* set the pipe to communicate with the parent */
     ts = JS_GetRuntimeOpaque(rt);
@@ -3927,6 +3967,7 @@ static void *worker_func(void *opaque)
 
     js_std_loop(ctx);
 
+    QJMS_FreeState(rt);
     JS_FreeContext(ctx);
     js_std_free_handlers(rt);
     JS_FreeRuntime(rt);

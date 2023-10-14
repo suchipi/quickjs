@@ -360,6 +360,7 @@ static const char main_c_template1[] =
 
 static const char main_c_template2[] =
     "  exit_status = js_std_loop(ctx);\n"
+    "  QJMS_FreeState(rt);\n"
     "  JS_FreeContext(ctx);\n"
     "  js_std_free_handlers(rt);\n"
     "  JS_FreeRuntime(rt);\n"
@@ -675,7 +676,7 @@ int main(int argc, char **argv)
 #endif
 
     /* loader for ES6 modules */
-    JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, jsc_module_loader, NULL);
+    JS_SetModuleLoaderFunc(rt, NULL, jsc_module_loader, NULL);
 
     debugprint("writing file header comment and include...\n");
 
@@ -772,7 +773,7 @@ int main(int argc, char **argv)
 
         /* add the module loader if necessary */
         if (feature_bitmap & (1 << FE_MODULE_LOADER)) {
-            fprintf(fo, "  JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);\n");
+            fprintf(fo, "  QJMS_InitState(rt);\n");
         }
 
         fprintf(fo,

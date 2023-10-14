@@ -17,7 +17,7 @@ static JSValue js_call_bytecode_func(JSContext *ctx, JSValueConst this_val,
             JS_FreeValue(ctx, obj);
             return JS_EXCEPTION;
         }
-        QJMS_SetModuleImportMeta(ctx, obj, FALSE);
+        QJMS_SetModuleImportMeta(ctx, obj);
     }
     result = JS_EvalFunction(ctx, obj);
     return result;

@@ -440,7 +440,7 @@ int main(int argc, char **argv)
     }
 
     /* loader for ES6 modules */
-    JS_SetModuleLoaderFunc(rt, QJMS_NormalizeModuleName, QJMS_ModuleLoader, NULL);
+    QJMS_InitState(rt);
 
     if (dump_unhandled_promise_rejection) {
         JS_SetHostPromiseRejectionTracker(rt, QJU_PrintPromiseRejection, NULL);
@@ -494,6 +494,7 @@ int main(int argc, char **argv)
         JS_DumpMemoryUsage(stdout, &stats, rt);
     }
     js_std_free_handlers(rt);
+    QJMS_FreeState(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
 
