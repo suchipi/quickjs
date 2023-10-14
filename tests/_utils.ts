@@ -4,6 +4,7 @@ import type { RunContext } from "first-base";
 
 export const rootDir = pathMarker(path.resolve(__dirname, ".."));
 export const binDir = pathMarker(rootDir("build", "bin"));
+export const fixturesDir = pathMarker(rootDir("tests", "fixtures"));
 
 export function cleanString(str: string): string {
   return str.replaceAll(rootDir(), "<rootDir>");
