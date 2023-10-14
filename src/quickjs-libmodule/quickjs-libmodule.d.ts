@@ -1,4 +1,4 @@
-declare module "quickjs:runtime" {
+declare module "quickjs:module" {
   /**
    * Return whether the provided resolved module path is set as the main module.
    *

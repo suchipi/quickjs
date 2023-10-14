@@ -32,7 +32,7 @@ import * as os from "quickjs:os";
   g.std = std;
 
   /* add bindings for other builtin modules */
-  g.Runtime = require("quickjs:runtime");
+  g.mod = require("quickjs:module");
   g.Bytecode = require("quickjs:bytecode");
   g.ptr = require("quickjs:pointer");
 
@@ -1147,7 +1147,7 @@ import * as os from "quickjs:os";
       if (eval_mode === "math") expr = '"use math"; void 0;' + expr;
       var now = new Date().getTime();
       /* eval as a script */
-      result = Runtime.evalScript(expr, { backtraceBarrier: true });
+      result = mod.evalScript(expr, { backtraceBarrier: true });
       eval_time = new Date().getTime() - now;
       std.puts(colors[styles.result]);
       print(result);

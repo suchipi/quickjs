@@ -7,8 +7,8 @@
 #include "quickjs-modulesys.h"
 #include "cutils.h"
 
-static JSValue js_runtime_isMainModule(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv)
+static JSValue js_module_isMainModule(JSContext *ctx, JSValueConst this_val,
+                                      int argc, JSValueConst *argv)
 {
   const char *module_name;
   int result;
@@ -26,8 +26,8 @@ static JSValue js_runtime_isMainModule(JSContext *ctx, JSValueConst this_val,
   return JS_NewBool(ctx, result);
 }
 
-static JSValue js_runtime_setMainModule(JSContext *ctx, JSValueConst this_val,
-                                        int argc, JSValueConst *argv)
+static JSValue js_module_setMainModule(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv)
 {
   const char *module_name;
 
@@ -46,8 +46,8 @@ static JSValue js_runtime_setMainModule(JSContext *ctx, JSValueConst this_val,
 }
 
 /* load and evaluate a file as a script */
-static JSValue js_runtime_runScript(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
+static JSValue js_module_runScript(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv)
 {
   uint8_t *buf;
   const char *filename;
@@ -72,8 +72,8 @@ static JSValue js_runtime_runScript(JSContext *ctx, JSValueConst this_val,
 }
 
 /* load and evaluate a file as a module */
-static JSValue js_runtime_importModule(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv)
+static JSValue js_module_importModule(JSContext *ctx, JSValueConst this_val,
+                                      int argc, JSValueConst *argv)
 {
   if (argc == 1) {
     return JS_DynamicImportSync(ctx, argv[0]);
@@ -85,8 +85,8 @@ static JSValue js_runtime_importModule(JSContext *ctx, JSValueConst this_val,
 }
 
 /* return the name of the calling script or module */
-static JSValue js_runtime_getFileNameFromStack(JSContext *ctx, JSValueConst this_val,
-                                               int argc, JSValueConst *argv)
+static JSValue js_module_getFileNameFromStack(JSContext *ctx, JSValueConst this_val,
+                                              int argc, JSValueConst *argv)
 {
   int stack_levels = 0;
   JSAtom filename;
@@ -106,8 +106,8 @@ static JSValue js_runtime_getFileNameFromStack(JSContext *ctx, JSValueConst this
 }
 
 /* resolve the absolute path to a module */
-static JSValue js_runtime_resolveModule(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
+static JSValue js_module_resolveModule(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv)
 {
   if (argc == 1) {
     JSValue specifier = argv[0];
@@ -130,8 +130,8 @@ static JSValue js_runtime_resolveModule(JSContext *ctx, JSValueConst this_val,
   }
 }
 
-static JSValue js_runtime_evalScript(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
+static JSValue js_module_evalScript(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
 {
   const char *code;
   const char *filename = "<evalScript>";
@@ -198,25 +198,25 @@ static JSValue js_runtime_evalScript(JSContext *ctx, JSValueConst this_val,
 }
 
 static const JSCFunctionListEntry js_bytecode_funcs[] = {
-  JS_CFUNC_DEF("isMainModule", 1, js_runtime_isMainModule ),
-  JS_CFUNC_DEF("setMainModule", 1, js_runtime_setMainModule ),
-  JS_CFUNC_DEF("runScript", 1, js_runtime_runScript ),
-  JS_CFUNC_DEF("importModule", 2, js_runtime_importModule ),
-  JS_CFUNC_DEF("getFileNameFromStack", 1, js_runtime_getFileNameFromStack ),
-  JS_CFUNC_DEF("resolveModule", 2, js_runtime_resolveModule ),
-  JS_CFUNC_DEF("evalScript", 2, js_runtime_evalScript ),
+  JS_CFUNC_DEF("isMainModule", 1, js_module_isMainModule ),
+  JS_CFUNC_DEF("setMainModule", 1, js_module_setMainModule ),
+  JS_CFUNC_DEF("runScript", 1, js_module_runScript ),
+  JS_CFUNC_DEF("importModule", 2, js_module_importModule ),
+  JS_CFUNC_DEF("getFileNameFromStack", 1, js_module_getFileNameFromStack ),
+  JS_CFUNC_DEF("resolveModule", 2, js_module_resolveModule ),
+  JS_CFUNC_DEF("evalScript", 2, js_module_evalScript ),
 };
 
-static int js_runtime_init(JSContext *ctx, JSModuleDef *m)
+static int js_module_init(JSContext *ctx, JSModuleDef *m)
 {
   return JS_SetModuleExportList(ctx, m, js_bytecode_funcs,
                                 countof(js_bytecode_funcs));
 }
 
-JSModuleDef *js_init_module_runtime(JSContext *ctx, const char *module_name)
+JSModuleDef *js_init_module_module(JSContext *ctx, const char *module_name)
 {
   JSModuleDef *m;
-  m = JS_NewCModule(ctx, module_name, js_runtime_init, NULL);
+  m = JS_NewCModule(ctx, module_name, js_module_init, NULL);
   if (!m) {
     return NULL;
   }
