@@ -1,8 +1,8 @@
-import * as std from "quickjs:std";
+import * as mod from "quickjs:module";
 
 console.log("hi from mod1", import.meta.main);
 
-std.setMainModule(std.resolveModule("./mod3"));
+mod.setMainModule(mod.resolveModule("./mod3"));
 
-std.importModule("./mod2");
-std.importModule("./mod3");
+mod.importModule("./mod2");
+mod.importModule("./mod3");
