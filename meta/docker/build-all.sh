@@ -5,16 +5,16 @@ set -ex
 cd $(dirname "$BASH_SOURCE")
 cd ../..
 
-meta/clean.sh
+# meta/clean.sh
 
-NODE_VERSION=$(cat .node-version)
-docker run --rm -it -v $PWD:/workdir -w /workdir node:${NODE_VERSION/v/} \
-  npm install
+# NODE_VERSION=$(cat .node-version)
+# docker run --rm -it -v $PWD:/workdir -w /workdir node:${NODE_VERSION/v/} \
+#   npm install
 
 # defines IMAGES
 source meta/docker/images.sh
 
-meta/docker/build-images.sh
+# meta/docker/build-images.sh
 
 for DIR in "${IMAGES[@]}"; do
   docker run --rm \
