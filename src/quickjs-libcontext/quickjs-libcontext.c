@@ -4,6 +4,7 @@
 #include "quickjs-libbytecode.h"
 #include "quickjs-libpointer.h"
 #include "quickjs-modulesys.h"
+#include "quickjs-libmodule.h"
 #include "quickjs-libcontext.h"
 
 static JSClassID js_context_class_id;
@@ -61,9 +62,10 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     JSRuntime *rt;
     JSValue ret, options, global;
     JSContext *target_ctx;
-    BOOL date, eval, stringNormalize, regExp, json, proxy, mapSet, typedArrays,
-        promise, bigint, bigfloat, bigdecimal, operators, useMath, stdHelpers,
-        module_std, module_os, module_bytecode, module_context, module_pointer;
+    BOOL date, eval, stringNormalize, stringDedent, regExp, json, proxy, mapSet,
+        typedArrays, promise, bigint, bigfloat, bigdecimal, operators, useMath,
+        inspect, console, print, moduleGlobals, timers, module_std, module_os,
+        module_bytecode, module_context, module_pointer, module_module;
 
     options = argv[0];
     if (get_option_bool(ctx, options, "date", &date, TRUE)) {
@@ -73,6 +75,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "stringNormalize", &stringNormalize, TRUE)) {
+        return JS_EXCEPTION;
+    }
+    if (get_option_bool(ctx, options, "stringDedent", &stringDedent, TRUE)) {
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "regExp", &regExp, TRUE)) {
@@ -108,7 +113,19 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     if (get_option_bool(ctx, options, "useMath", &useMath, TRUE)) {
         return JS_EXCEPTION;
     }
-    if (get_option_bool(ctx, options, "stdHelpers", &stdHelpers, TRUE)) {
+    if (get_option_bool(ctx, options, "inspect", &inspect, TRUE)) {
+        return JS_EXCEPTION;
+    }
+    if (get_option_bool(ctx, options, "console", &console, TRUE)) {
+        return JS_EXCEPTION;
+    }
+    if (get_option_bool(ctx, options, "print", &print, TRUE)) {
+        return JS_EXCEPTION;
+    }
+    if (get_option_bool(ctx, options, "moduleGlobals", &moduleGlobals, TRUE)) {
+        return JS_EXCEPTION;
+    }
+    if (get_option_bool(ctx, options, "timers", &timers, TRUE)) {
         return JS_EXCEPTION;
     }
 
@@ -118,6 +135,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         BOOL module_bytecode_default = TRUE;
         BOOL module_context_default = TRUE;
         BOOL module_pointer_default = TRUE;
+        BOOL module_module_default = TRUE;
 
         if (JS_IsObject(options)) {
             JSValue options_modules = JS_GetPropertyStr(ctx, options, "modules");
@@ -144,6 +162,10 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
             }
+            if (get_option_bool(ctx, options_modules, "quickjs:module", &module_module, module_module_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
 
             JS_FreeValue(ctx, options_modules);
         } else {
@@ -152,6 +174,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
             module_bytecode = module_bytecode_default;
             module_context = module_context_default;
             module_pointer = module_pointer_default;
+            module_module = module_module_default;
         }
     }
 
@@ -169,6 +192,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
     if (stringNormalize) {
         JS_AddIntrinsicStringNormalize(target_ctx);
+    }
+    if (stringDedent) {
+        js_std_add_string_dedent(target_ctx);
     }
     if (regExp) {
         JS_AddIntrinsicRegExp(target_ctx);
@@ -221,15 +247,26 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     if (module_pointer) {
         js_init_module_pointer(target_ctx, "quickjs:pointer");
     }
+    if (module_pointer) {
+        js_init_module_module(target_ctx, "quickjs:module");
+    }
 
-    if (stdHelpers) {
+    if (inspect) {
         js_std_add_inspect(target_ctx);
+    }
+    if (console) {
         js_std_add_console(target_ctx);
+    }
+    if (print) {
         js_std_add_print(target_ctx);
-        // we don't add scriptArgs
-        QJMS_AddGlobals(target_ctx);
+    }
+
+    if (timers) {
         js_std_add_timeout(target_ctx);
-        js_std_add_lib(target_ctx);
+        js_std_add_intervals(target_ctx);
+    }
+    if (moduleGlobals) {
+        QJMS_AddGlobals(target_ctx);
     }
 
     ret = JS_NewObjectClass(ctx, js_context_class_id);

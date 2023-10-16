@@ -816,21 +816,52 @@ JSValue JS_GetPropertyStr(JSContext *ctx, JSValueConst this_obj,
 JSValue JS_GetPropertyUint32(JSContext *ctx, JSValueConst this_obj,
                              uint32_t idx);
 
+/*
+return -1 in case of exception or TRUE or FALSE. Warning: 'val' is
+freed by the function. 'flags' is a bitmask of JS_PROP_NO_ADD,
+JS_PROP_THROW or JS_PROP_THROW_STRICT. If JS_PROP_NO_ADD is set,
+the new property is not added and an error is raised.
+*/
 int JS_SetPropertyInternal(JSContext *ctx, JSValueConst this_obj,
                            JSAtom prop, JSValue val,
                            int flags);
+
+/*
+return -1 in case of exception or TRUE or FALSE. Warning: 'val' is freed by the
+function.
+*/
 static inline int JS_SetProperty(JSContext *ctx, JSValueConst this_obj,
                                  JSAtom prop, JSValue val)
 {
     return JS_SetPropertyInternal(ctx, this_obj, prop, val, JS_PROP_THROW);
 }
+
+/*
+return -1 in case of exception or TRUE or FALSE. Warning: 'val' is freed by the
+function.
+*/
 int JS_SetPropertyUint32(JSContext *ctx, JSValueConst this_obj,
                          uint32_t idx, JSValue val);
+
+/*
+return -1 in case of exception or TRUE or FALSE. Warning: 'val' is freed by the
+function.
+*/
 int JS_SetPropertyInt64(JSContext *ctx, JSValueConst this_obj,
                         int64_t idx, JSValue val);
+
+/*
+return -1 in case of exception or TRUE or FALSE. Warning: 'val' is freed by the
+function.
+*/
 int JS_SetPropertyStr(JSContext *ctx, JSValueConst this_obj,
                       const char *prop, JSValue val);
-/* flags can be JS_PROP_THROW or JS_PROP_THROW_STRICT */
+
+/*
+return -1 in case of exception or TRUE or FALSE. Warning: 'val' is
+freed by the function. 'flags' is a bitmask of JS_PROP_THROW and/or
+JS_PROP_THROW_STRICT.
+*/
 int JS_SetPropertyValue(JSContext *ctx, JSValueConst this_obj,
                         JSValue prop, JSValue val, int flags);
 int JS_HasProperty(JSContext *ctx, JSValueConst this_obj, JSAtom prop);

@@ -44,6 +44,10 @@ declare module "quickjs:context" {
      * - Symbol
      * - eval (but it doesn't work unless the `eval` option is enabled)
      * - globalThis
+     *
+     * Note that new contexts don't have a `scriptArgs` global. If you need one
+     * to be present in the new context, you can add one onto the Context's
+     * `globalThis` property.
      */
     constructor(options?: {
       /** Enables `Date`. Defaults to `true` */
@@ -54,6 +58,9 @@ declare module "quickjs:context" {
 
       /** Enables `String.prototype.normalize`. Defaults to `true`. */
       stringNormalize?: boolean;
+
+      /** Enables `String.dedent`. Defaults to `true`. */
+      stringDedent?: boolean;
 
       /** Enables `RegExp`. Defaults to `true`. */
       regExp?: boolean;
@@ -121,32 +128,22 @@ declare module "quickjs:context" {
        */
       operators?: boolean;
 
-      /** Enables "use math". Defaults to `true`. */
+      /** Enables `"use math"`. Defaults to `true`. */
       useMath?: boolean;
 
+      /** Enables `inspect`. Defaults to `true`. */
+      inspect?: boolean;
+      /** Enables `console`. Defaults to `true`. */
+      console?: boolean;
+      /** Enables `print`. Defaults to `true`. */
+      print?: boolean;
+      /** Enables `require` and `Module`. Defaults to `true`. */
+      moduleGlobals?: boolean;
       /**
-       * Enables:
-       *
-       * - inspect
-       * - console
-       * - print
-       * - require (and require.resolve)
-       * - setTimeout
-       * - clearTimeout
-       * - setInterval
-       * - clearInterval
-       * - String.cooked
-       * - String.dedent
-       *
-       * Defaults to `true`.
-       *
-       * NOTE: The following globals, normally part of `js_std_add_helpers`, are NEVER added:
-       *
-       * - scriptArgs
-       *
-       * If you need them in the new context, copy them over from your context's globalThis onto the child context's globalThis.
+       * Enables `setTimeout`, `clearTimeout`, `setInterval`, and
+       * `clearInterval`. Defaults to `true`.
        */
-      stdHelpers?: boolean;
+      timers?: boolean;
 
       /** Enable builtin modules. */
       modules?: {
@@ -158,6 +155,8 @@ declare module "quickjs:context" {
         "quickjs:bytecode"?: boolean;
         /** Enables the "quickjs:context" module. Defaults to `true`. */
         "quickjs:context"?: boolean;
+        /** Enables the "quickjs:module" module. Defaults to `true`. */
+        "quickjs:module"?: boolean;
       };
     });
 

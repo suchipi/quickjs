@@ -34,23 +34,35 @@ extern "C"
 {
 #endif
 
-  extern const uint8_t qjsc_inspect[];
-  extern const uint32_t qjsc_inspect_size;
-
-  extern const uint8_t qjsc_lib[];
-  extern const uint32_t qjsc_lib_size;
-
   JSModuleDef *js_init_module_std(JSContext *ctx, const char *module_name);
   JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name);
 
+  /*
+    Creates 'inspect', 'console', 'print', 'scriptArgs', 'setTimeout',
+    'setInterval', and 'String.dedent'.
+  */
   void js_std_add_helpers(JSContext *ctx, int argc, char **argv);
 
+  /* Creates 'inspect' global */
   void js_std_add_inspect(JSContext *ctx);
+
+  /* Creates 'console' global */
   void js_std_add_console(JSContext *ctx);
+
+  /* Creates 'print' global */
   void js_std_add_print(JSContext *ctx);
+
+  /* Creates 'scriptArgs' global */
   void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv);
+
+  /* Creates 'setTimeout' and 'clearTimeout' globals */
   void js_std_add_timeout(JSContext *ctx);
-  void js_std_add_lib(JSContext *ctx);
+
+  /* Creates 'setInterval' and 'clearInterval' globals */
+  void js_std_add_intervals(JSContext *ctx);
+
+  /* Adds 'dedent' function to global 'String' constructor */
+  void js_std_add_string_dedent(JSContext *ctx);
 
   JS_BOOL js_std_is_main_thread(JSRuntime *rt);
   void js_std_interrupt_handler_start(JSContext *ctx);

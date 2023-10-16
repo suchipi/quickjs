@@ -15,6 +15,7 @@ const config = {
     ],
   },
   watchPathIgnorePatterns: ["node_modules", path.join(__dirname, "build")],
+  testPathIgnorePatterns: ["run-test262"],
 };
 
 module.exports = config;

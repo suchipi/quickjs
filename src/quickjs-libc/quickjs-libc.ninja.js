@@ -10,34 +10,48 @@ const quickjs_libc_target_o = build({
   inputs: [rel("quickjs-libc.c")],
 });
 
-const filesInLib = glob("**/*.js", { cwd: rel("lib"), absolute: true });
-
-const lib_js = build({
-  output: builddir("intermediate/quickjs-libc/lib.js"),
-  rule: "combine",
-  inputs: filesInLib,
-});
-
-const lib_c = build({
-  output: builddir("intermediate/quickjs-libc/lib.c"),
+const intervals_c = build({
+  output: builddir("intermediate/quickjs-libc/intervals.c"),
   rule: "qjsc",
-  inputs: [lib_js],
+  inputs: [rel("lib/intervals.js")],
   implicitInputs: [builddir("intermediate/qjsc.host")],
   ruleVariables: {
     qjsc_args: `-c -m`,
   },
 });
 
-const lib_target_o = build({
-  output: builddir("intermediate/quickjs-libc/lib.target.o"),
+const intervals_target_o = build({
+  output: builddir("intermediate/quickjs-libc/intervals.target.o"),
   rule: "cc_target",
-  inputs: [lib_c],
+  inputs: [intervals_c],
 });
 
-const lib_host_o = build({
-  output: builddir("intermediate/quickjs-libc/lib.host.o"),
+const intervals_host_o = build({
+  output: builddir("intermediate/quickjs-libc/intervals.host.o"),
   rule: "cc_host",
-  inputs: [lib_c],
+  inputs: [intervals_c],
+});
+
+const string_dedent_c = build({
+  output: builddir("intermediate/quickjs-libc/string-dedent.c"),
+  rule: "qjsc",
+  inputs: [rel("lib/string-dedent.js")],
+  implicitInputs: [builddir("intermediate/qjsc.host")],
+  ruleVariables: {
+    qjsc_args: `-c -m`,
+  },
+});
+
+const string_dedent_target_o = build({
+  output: builddir("intermediate/quickjs-libc/string-dedent.target.o"),
+  rule: "cc_target",
+  inputs: [string_dedent_c],
+});
+
+const string_dedent_host_o = build({
+  output: builddir("intermediate/quickjs-libc/string-dedent.host.o"),
+  rule: "cc_host",
+  inputs: [string_dedent_c],
 });
 
 build({

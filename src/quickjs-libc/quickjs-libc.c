@@ -75,6 +75,15 @@ sighandler_t signal(int signum, sighandler_t handler);
 #include <stdatomic.h>
 #endif
 
+extern const uint8_t qjsc_inspect[];
+extern const uint32_t qjsc_inspect_size;
+
+extern const uint8_t qjsc_intervals[];
+extern const uint32_t qjsc_intervals_size;
+
+extern const uint8_t qjsc_string_dedent[];
+extern const uint32_t qjsc_string_dedent_size;
+
 #include "cutils.h"
 #include "list.h"
 #include "quickjs-libc.h"
@@ -4314,7 +4323,6 @@ void js_std_add_print(JSContext *ctx)
 
 void js_std_add_inspect(JSContext *ctx)
 {
-    // Creates 'inspect' global
     QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
 }
 
@@ -4325,16 +4333,16 @@ void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv)
 
     global_obj = JS_GetGlobalObject(ctx);
 
-    if (argc >= 0) {
-        args = JS_NewArray(ctx);
-        for(i = 0; i < argc; i++) {
-            JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, argv[i]));
-        }
-        JS_SetPropertyStr(ctx, global_obj, "scriptArgs", args);
+    args = JS_NewArray(ctx);
 
-        if (JS_IsException(JS_FreezeObjectValue(ctx, args))) {
-            QJU_PrintException(ctx, stderr);
-        }
+    for (i = 0; i < argc; i++) {
+        JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, argv[i]));
+    }
+
+    JS_SetPropertyStr(ctx, global_obj, "scriptArgs", args);
+
+    if (JS_IsException(JS_FreezeObjectValue(ctx, args))) {
+        QJU_PrintException(ctx, stderr);
     }
 
     JS_FreeValue(ctx, global_obj);
@@ -4355,13 +4363,17 @@ void js_std_add_timeout(JSContext *ctx)
     JS_FreeValue(ctx, global_obj);
 }
 
-// TODO: separate that stuff out so that things can have intervals without the other stuff
-void js_std_add_lib(JSContext *ctx)
+void js_std_add_intervals(JSContext *ctx)
 {
-    // run all the stuff in the src/quickjs-libc/lib folder
-    QJMS_EvalBinary(ctx, qjsc_lib, qjsc_lib_size, 0);
+    QJMS_EvalBinary(ctx, qjsc_intervals, qjsc_intervals_size, 0);
 }
 
+void js_std_add_string_dedent(JSContext *ctx)
+{
+    QJMS_EvalBinary(ctx, qjsc_string_dedent, qjsc_string_dedent_size, 0);
+}
+
+/**/
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
     js_std_add_inspect(ctx);
@@ -4372,7 +4384,8 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     js_std_add_scriptArgs(ctx, argc, argv);
 
     js_std_add_timeout(ctx);
-    js_std_add_lib(ctx);
+    js_std_add_intervals(ctx);
+    js_std_add_string_dedent(ctx);
 }
 
 void js_std_init_handlers(JSRuntime *rt)

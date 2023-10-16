@@ -43,12 +43,14 @@ __static_yoink("blink_xnu_aarch64");
 #include "quickjs-modulesys.h"
 #include "debugprint.h"
 
-// Stub out inspect and lib, which quickjs-libc depends on, but which we can't
-// rely on in qjsc, because those are built with qjsc
+// Stub out inspect, intervals, and string-dedent, which we can't rely on in
+// qjsc, because those are built with qjsc
 const uint32_t qjsc_inspect_size = 0;
 const uint8_t qjsc_inspect[0] = {};
-const uint32_t qjsc_lib_size = 0;
-const uint8_t qjsc_lib[0] = {};
+const uint32_t qjsc_intervals_size = 0;
+const uint8_t qjsc_intervals[0] = {};
+const uint32_t qjsc_string_dedent_size = 0;
+const uint8_t qjsc_string_dedent[0] = {};
 
 typedef struct {
     char *name;
@@ -751,7 +753,12 @@ int main(int argc, char **argv)
                     e->short_name, e->short_name, e->name);
         }
 
-        fprintf(fo, "  QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);\n");
+        fprintf(fo,
+                " {\n"
+                "   extern const uint8_t qjsc_inspect[];\n"
+                "   extern const uint32_t qjsc_inspect_size;\n"
+                "   QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);\n"
+                " }\n");
 
         for(i = 0; i < cname_list.count; i++) {
             namelist_entry_t *e = &cname_list.array[i];
