@@ -384,7 +384,7 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
       JS_FreeValue(ctx, Module);
       JS_FreeValue(ctx, global);
 
-      buf = (char *)QJU_LoadFile(ctx, &buf_len, module_name);
+      buf = (char *)QJU_ReadFile(ctx, &buf_len, module_name);
       if (!buf) {
           JS_ThrowReferenceError(ctx, "could not load module filename '%s'", module_name);
           return NULL;
@@ -444,7 +444,7 @@ int QJMS_EvalFile(JSContext *ctx, const char *filename, int module)
     int ret, eval_flags;
     size_t buf_len;
 
-    buf = QJU_LoadFile(ctx, &buf_len, filename);
+    buf = QJU_ReadFile(ctx, &buf_len, filename);
     if (!buf) {
       perror(filename);
       exit(1);

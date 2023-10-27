@@ -27,7 +27,7 @@ JSValue QJU_ForEachProperty_Read(JSContext *ctx, JSValue obj, QJUForEachProperty
 void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state);
 
 /* reads the contents of the file at `filename` into a buffer. */
-uint8_t *QJU_LoadFile(JSContext *ctx, size_t *pbuf_len, const char *filename);
+uint8_t *QJU_ReadFile(JSContext *ctx, size_t *pbuf_len, const char *filename);
 
 /*
 prints `exception_val` to `f`. If `exception_val` is an Error,

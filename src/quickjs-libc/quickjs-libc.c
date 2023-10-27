@@ -397,7 +397,7 @@ static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
     filename = JS_ToCString(ctx, argv[0]);
     if (!filename)
         return JS_EXCEPTION;
-    buf = QJU_LoadFile(ctx, &buf_len, filename);
+    buf = QJU_ReadFile(ctx, &buf_len, filename);
     if (!buf) {
         JS_ThrowError(ctx, "%s (errno = %d, filename = %s)", strerror(errno), errno, filename);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
