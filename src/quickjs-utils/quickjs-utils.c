@@ -71,7 +71,7 @@ void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state
   js_free(ctx, state);
 }
 
-uint8_t *QJU_LoadFile(JSContext *ctx, size_t *pbuf_len, const char *filename)
+uint8_t *QJU_ReadFile(JSContext *ctx, size_t *pbuf_len, const char *filename)
 {
   FILE *f;
   uint8_t *buf;

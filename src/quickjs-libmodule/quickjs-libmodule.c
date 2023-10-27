@@ -58,7 +58,7 @@ static JSValue js_module_runScript(JSContext *ctx, JSValueConst this_val,
   if (!filename) {
     return JS_EXCEPTION;
   }
-  buf = QJU_LoadFile(ctx, &buf_len, filename);
+  buf = QJU_ReadFile(ctx, &buf_len, filename);
   if (!buf) {
     JS_ThrowReferenceError(ctx, "could not load '%s'", filename);
     JS_FreeCString(ctx, filename);
