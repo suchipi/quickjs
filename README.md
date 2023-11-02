@@ -1,8 +1,21 @@
 # suchipi/quickjs
 
-Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following changes:
+Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 
-## Changes to `quickjs`:
+## High-level List of Most Notable Changes
+
+- APIs from 'std' and 'os' modules were changed to be more idiomatic-to-JS; notably, they throw Errors on failure instead of returning null or errno numbers.
+- TypeScript-format type interface files (`.d.ts` files) were added for everything.
+- Hooks have been added to the module loader that make its functionality more customizable.
+- Some ES2022 features were added, and some non-standard ECMAScript proposals and extensions were added.
+- The way the project is organized and built was changed dramatically.
+- Several new JS bindings for C APIs have been added, such as `strftime`, `access`, `fsync`, `setvbuf`, `getuid`...
+- Scripts were added that cross-compile binaries for several operating systems and architectures
+- FreeBSD support added
+
+## Detailed List of Changes
+
+### Changes to `quickjs`:
 
 - A TypeScript `.d.ts` file is provided for all QuickJS-specific APIs (operator overloading APIs, BigInt extensions, BigFloat, BigDecimal, etc).
 - Non-standard `Object.toPrimitive` added (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
@@ -25,7 +38,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - ModuleDefs now have an optional "user_data" property (pointer to void) which can be accessed during module initialization (via `JS_GetModuleUserData` and `JS_SetModuleUserData`)
 - Added `JS_SetContextOpaqueValue` and `JS_GetContextOpaqueValue`, which let you associate a JSValue with a JSContext, which will be garbage-collected when that JSContext is garbage-collected.
 
-## Changes to `quickjs-libc`:
+### Changes to `quickjs-libc`:
 
 - `std` and `os` builtin modules are now namespaced under "quickjs:". In other words, you have to import them as "quickjs:std" and "quickjs:os".
 - APIs in `std` and `os` no longer return errno anywhere; instead, Error objects are thrown. `errno` is available as a property on the thrown Error objects.
@@ -43,8 +56,6 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - `std.strftime` added (wrapper for libc `strftime`).
 - Added `std.getuid`, `std.geteuid`, `std.getgid`, and `std.getegid` (wrappers for the libc functions of the same names).
 - Most module-loading-related code was moved into `quickjs-modulesys`.
-- Synchronous import function added (`std.importModule`), which provides the same module record object you would get via dynamic (async) import.
-- JS api for using the engine's configured module name normalization function was added (`std.resolveModule`).
 - `setTimeout` and `clearTimeout` are now available as globals (previously they were only available as exports).
 - `setInterval` and `clearInterval` are added, available as globals.
 - `String.dedent` added (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
@@ -52,15 +63,17 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
 - Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
 - Added `std.setExitCode`, `std.getExitCode`, and made `std.exit`'s parameter optional. The value passed to `std.setExitCode` will be used when the process exits normally, or when `std.exit` is called without any arguments. `std.setExitCode`, `std.getExitCode`, and `std.exit` throw if called from a thread other than the main thread (ie. a Worker).
 
-## Changes to the `qjs` repl:
+### Changes to the `qjs` binary:
 
-- The new `inspect` global is used to print results
-- The last error is accessible via the `_error` global
-- If a thrown error has additional properties added onto it, those are printed along with the thrown error
-- Ctrl+W deletes words backwards from the cursor position
 - Blocking the main thread is allowed
+- `-m` (module mode) now affects eval strings passed to `-e`
+- Changes to the repl:
+  - Ctrl+W deletes words backwards from the cursor position
+  - The last error is accessible via the `_error` global
+  - If a thrown error has additional properties added onto it, those are printed along with the thrown error
+  - The new `inspect` global is used to print results
 
-## New binary: `qjsbootstrap`:
+### New binary: `qjsbootstrap`:
 
 Appending some JS code to the end of this binary changes it into a binary that executes that JS code:
 
@@ -75,23 +88,23 @@ You can use this to create distributable binaries that run JS code without needi
 
 > Note: On FreeBSD, `qjsbootstrap` requires procfs. You can mount it with `mount -t procfs proc /proc`. I started some work to use libprocstat instead, but haven't completed it yet.
 
-## New binary: `quickjs-run`:
+### New binary: `quickjs-run`:
 
 Barebones binary for running files, without any of the arg parsing logic from qjs. Good for testing some unusual cases, or writing programs with custom argv parsing logic.
 
-## New module: "quickjs:bytecode"
+### New module: "quickjs:bytecode"
 
 A Module that exposes QuickJS's value <-> bytecode (de)serialization APIs to JavaScript code. Generated bytecode can be combined with `qjsbootstrap-bytecode` in the same way that source code strings can be combined with `qjsbootstrap`.
 
-## New module: "quickjs:context"
+### New module: "quickjs:context"
 
 A Module that allows JS code to create new JS Contexts (Realms). You can create new Contexts and run code inside them. Contexts can have certain features disabled (like eval) for security purposes. You can share values between Contexts. Contexts are destroyed when they get garbage-collected.
 
-## New module: "quickjs:pointer"
+### New module: "quickjs:pointer"
 
 A barebones Module that exports a JS class which can be used to represent an opaque pointer. C modules can use the `js_new_pointer` function provided by this module to pass opaque pointer handles to users without needing to make their own wrapper class for stuff. This is mostly just useful in order to have a codified convention for how FFI libraries and such should represent foreign pointers.
 
-## New library: `quickjs-utils`
+### New library: `quickjs-utils`
 
 Helper structs, functions, and macros that make it easier to work with QuickJS in C code.
 
@@ -99,7 +112,7 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 - Helper function for loading a file from disk into char a buffer
 - Helper functions for printing JS errors to stderr
 
-## Changes to the module loader
+### Changes to the module loader
 
 - `.js` extensions can now be omitted from import specifiers; they're optional.
 - If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
@@ -127,8 +140,10 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
   - The module "quickjs:module" exports an object called `Module`.
   - `something instanceof Module` will be true when `something` is a module namespace object.
 - When using `require` to load a module which contains an export named `__cjsExports`, the value of the `__cjsExports` property will be returned from `require` instead of the usual module namespace object. This can be leveraged by users configuring the module loader to add some CommonJS <-> ESM interop. Note, however, that dynamic import and `"quickjs:module"`'s `importModule` always receive the usual module namespace object.
+- Synchronous import function added (`importModule`), which provides the same module record object you would get via dynamic (async) import.
+- JS api for using the engine's configured module name normalization function was added (`resolveModule`).
 
-## Changes to project organization
+### Changes to project organization
 
 - Stuff is reorganized into separate folders under `src`.
 - Ninja is used instead of make. Ninja build config is generated via `.ninja.js` files which get loaded into [@suchipi/shinobi](https://github.com/suchipi/shinobi).
@@ -137,21 +152,21 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 - Module-loading code in `quickjs-libc` was moved into `quickjs-modulesys` and `quickjs-libmodule`.
 - The `eval_*` functions that were duplicated in each of the programs (`eval_buf`, `eval_file`, and `eval_binary`) were deduplicated and moved into `quickjs-modulesys`.
 
-## More target OSes/runtimes
+### More target OSes/runtimes
 
 We now include support for more platforms, and cross-compilation scripts to build most of those platforms from any platform where Docker is available.
 
 See the `meta/ninja/envs` folder to see all the supported platforms. The `host` folder represents the machine where compilation is taking place, and the `target` folder represents the target platform for the output binaries.
 
-## Library Archives
+### Library Archives
 
 We create `.a` files containing all of quickjs as part of the build.
 
-## Other changes
+### Other changes
 
 There are also probably some other miscellaneous changes I forgot to write down in the README.
 
-# Compiling
+## Compiling
 
 The repo has stuff set up to compile quickjs binaries for:
 
@@ -171,7 +186,7 @@ Linux, macOS, iOS, and Windows binaries can be compiled using Docker. Or, you ca
 
 If you're not gonna use Docker, you'll need to install [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) in order to compile. I use Ninja 1.10.1 and Node.js 18.12.1, but it should work with most versions of both of those.
 
-## Compilation Instructions
+### Compilation Instructions
 
 To compile binaries for Linux, macOS, iOS, and Windows (using Docker):
 
