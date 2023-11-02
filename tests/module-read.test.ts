@@ -31,6 +31,8 @@ describe("Module.read", () => {
       [
         "-e",
         `
+          const { Module } = require("quickjs:module");
+
           Module.read = (path) => {
             console.error(path);
             return "console.log(17);"

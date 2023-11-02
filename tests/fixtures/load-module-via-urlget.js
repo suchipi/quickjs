@@ -1,4 +1,5 @@
 import * as std from "quickjs:std";
+import { Module } from "quickjs:module";
 
 const HTTP_RE = /^https?:\/\//;
 
