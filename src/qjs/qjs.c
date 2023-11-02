@@ -470,7 +470,16 @@ int main(int argc, char **argv)
         }
 
         if (expr) {
-            if (QJMS_EvalBuf(ctx, expr, strlen(expr), "<cmdline>", 0))
+            int eval_flags = 0;
+            if (module == -1) {
+                module = JS_DetectModule((const char *)expr, strlen(expr));
+            }
+            if (module) {
+                eval_flags |= JS_EVAL_TYPE_MODULE;
+            } else {
+                eval_flags |= JS_EVAL_TYPE_GLOBAL;
+            }
+            if (QJMS_EvalBuf(ctx, expr, strlen(expr), "<cmdline>", eval_flags))
                 goto fail;
         } else
         if (optind >= argc) {

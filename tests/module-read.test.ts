@@ -29,9 +29,10 @@ describe("Module.read", () => {
     const run = spawn(
       binDir("qjs"),
       [
+        "-m",
         "-e",
         `
-          const { Module } = require("quickjs:module");
+          import { Module } from "quickjs:module";
 
           Module.read = (path) => {
             console.error(path);

@@ -3,9 +3,10 @@ import { binDir } from "./_utils";
 
 test("Module.define - basic test", async () => {
   const run = spawn(binDir("qjs"), [
+    "-m",
     "-e",
     `
-      const { Module } = require("quickjs:module");
+      import { Module } from "quickjs:module";
 
       Module.define("mymodule", {
         something: 5,
@@ -31,9 +32,10 @@ test("Module.define - basic test", async () => {
 
 test("Module.define - never imported", async () => {
   const run = spawn(binDir("qjs"), [
+    "-m",
     "-e",
     `
-      const { Module } = require("quickjs:module");
+      import { Module } from "quickjs:module";
 
       Module.define("mymodule", {
         something: 5,
