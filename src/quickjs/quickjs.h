@@ -905,6 +905,7 @@ JSValue JS_EvalThis(JSContext *ctx, JSValueConst this_obj,
 JSValue JS_EvalThis_Privileged(JSContext *ctx, JSValueConst this_obj,
                                const char *input, size_t input_len,
                                const char *filename, int eval_flags);
+/* NOTE: you must free it! */
 JSValue JS_GetGlobalObject(JSContext *ctx);
 int JS_IsInstanceOf(JSContext *ctx, JSValueConst val, JSValueConst obj);
 int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
@@ -991,6 +992,10 @@ JSModuleNormalizeFunc *JS_GetModuleNormalizeFunc(JSRuntime *rt);
 JSModuleLoaderFunc *JS_GetModuleLoaderFunc(JSRuntime *rt);
 /* return the value set by JS_SetModuleLoaderFunc. could be NULL. */
 void *JS_GetModuleLoaderOpaque(JSRuntime *rt);
+
+void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value);
+/* NOTE: you must free it! */
+JSValue JS_GetContextOpaqueValue(JSContext *ctx);
 
 /* return the import.meta object of a module. you'll have to free it when done */
 JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);

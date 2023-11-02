@@ -5,19 +5,28 @@
 
 typedef struct QJMS_State QJMS_State;
 
-/* initialize and register the module loader system */
+/*
+  initialize and register the module loader system.
+  call both this (once per runtime) AND QJMS_InitContext (once per context).
+*/
 void QJMS_InitState(JSRuntime *rt);
+
+/*
+  initialize and register the module loader system.
+  call both this (once per context) AND QJMS_InitState (once per runtime).
+*/
+void QJMS_InitContext(JSContext *ctx);
 
 /* free resources allocated by the module loader system */
 void QJMS_FreeState(JSRuntime *rt);
 
 /*
-Affects the value of import.meta.main.
+  Affects the value of import.meta.main.
 */
 void QJMS_SetMainModule(JSRuntime *rt, const char *module_name);
 
 /*
-Check if import.meta.main would be true for this module.
+  Check if import.meta.main would be true for this module.
 */
 JS_BOOL QJMS_IsMainModule(JSRuntime *rt, const char *module_name);
 
@@ -53,29 +62,7 @@ JSValue QJMS_Require2(JSContext *ctx, JSValueConst specifier, JSValueConst basen
 JSValue QJMS_RequireResolve(JSContext *ctx, JSValueConst specifier_val);
 JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val, JSAtom basename_atom);
 
-/*
-  creates a 'require' function (which also has a .resolve property on it) and
-  places it on the provided JSContext's global object.
-
-  unlike Node.js's `require` function, this require function is not "bound"
-  to any particular caller filename. The caller filename gets determined
-  at call time (via the stack). Every module receives the same require
-  function (via its global name) rather than receiving one via a closure.
-*/
-void QJMS_AddRequireGlobal(JSContext *ctx);
-
-/*
-  creates a 'Module' object and adds it to the provided JSContext's global
-  object.
-
-  The 'Module' object provides APIs that allow JS code to change the behavior of
-  the module system: loading, compilers, name normalization (aka module
-  resolution), search extensions, etc.
-*/
-void QJMS_AddModuleGlobal(JSContext *ctx);
-
-/* adds all QJMS-related globals to the global object of the provided context
-   (require, Module, etc) */
-void QJMS_AddGlobals(JSContext *ctx);
+/* returns an object like { require: Function, Module: Object } */
+JSValue QJMS_GetModuleLoaderInternals(JSContext *ctx);
 
 #endif /* ifndef QUICKJS_MODULESYS_H */

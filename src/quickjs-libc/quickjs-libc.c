@@ -3799,7 +3799,7 @@ static void *worker_func(void *opaque)
     JS_SetCanBlock(rt, TRUE);
 
     js_std_add_helpers(ctx, -1, NULL);
-    QJMS_AddGlobals(ctx);
+    QJMS_InitContext(ctx);
 
     if (!JS_RunModule(ctx, args->basename, args->filename))
         QJU_PrintException(ctx, stderr);
