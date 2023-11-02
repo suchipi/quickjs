@@ -23,6 +23,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with the following chan
   - `JS_FreezeObjectValue` (performs Object.freeze)
   - `JS_IsPrimitive`
 - ModuleDefs now have an optional "user_data" property (pointer to void) which can be accessed during module initialization (via `JS_GetModuleUserData` and `JS_SetModuleUserData`)
+- Added `JS_SetContextOpaqueValue` and `JS_GetContextOpaqueValue`, which let you associate a JSValue with a JSContext, which will be garbage-collected when that JSContext is garbage-collected.
 
 ## Changes to `quickjs-libc`:
 
@@ -98,22 +99,19 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 - Helper function for loading a file from disk into char a buffer
 - Helper functions for printing JS errors to stderr
 
-## New library: `quickjs-modulesys`
+## Changes to the module loader
 
-- Module-loading code in `quickjs-libc` was moved into `quickjs-modulesys`, with the following changes:
-  - `.js` extensions can now be omitted from import specifiers; they're optional.
-  - If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
+- `.js` extensions can now be omitted from import specifiers; they're optional.
+- If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
 - Adds the global `require`, a CommonJS-like synchronous module loading function.
   - The `require` function is not fully CommonJS-compliant; for instance, `require.main` is not present. `require.resolve` is, though.
 - Adds `import.meta.require`
   - It's the same as the global `require`; it's just added to import.meta for compatibility with bundlers that output `import.meta.require`, like `bun`.
 - Adds `import.meta.resolve`
   - Similar to [the one in the browser](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve#specifications), but it's actually just `require.resolve` exposed via `import.meta`.
-- Makes `import.meta.main` configurable
-  - You can use `std.setMainModule` to make `import.meta.main` true within that module's code. Note, however, that it does not work retroactively; only modules loaded after the `setMainModule` call will be affected. To defer module load, use `import()`, `std.importModule`, or `require`.
-  - You can use `std.isMainModule` to check if a given module would be the main module without loading it.
-- Adds the global object `Module`.
-  - `instanceof Module` can be used to identify module namespace objects.
+- Module and eval helpers have been moved from "quickjs:std" to the new module "quickjs:module".
+- Makes the module loader's resolution and loading behavior configurable, and allows users to define additional builtin modules
+  - The module "quickjs:module" exports an object called `Module`.
   - You can specify additional implicit import specifier extensions by adding to the `Module.searchExtensions` array.
   - You can transform any file prior to evaluating it as a module by adding a function to the `Module.compilers` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
   - You can define custom builtin modules using the `Module.define` function.
@@ -121,9 +119,14 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
     - Note that you must handle `Module.searchExtensions` yourself in your replacement implementation.
   - You can override the method used to load modules by replacing the `Module.read` function.
     - Note that you must handle `Module.compilers` yourself in your replacement implementation.
-- The `eval_*` functions that were duplicated in each of the programs (`eval_buf`, `eval_file`, and `eval_binary`) were moved here
-- The default module loader function from quickjs-libc was moved here and augmented to support the features related to the `Module` global as mentioned above
-- When using `require` to load a module which contains an export named `__cjsExports`, the value of the `__cjsExports` property will be returned from `require` instead of the usual module namespace object. This can be leveraged by user-defined properties on `Module` to add some CommonJS <-> ESM interop. Note, however, that dynamic import and `std.importModule` always receive the usual module namespace object.
+- Makes `import.meta.main` configurable
+  - The module "quickjs:module" exports two functions named `setMainModule` and `isMainModule`.
+  - You can use `setMainModule` to make `import.meta.main` true within that module's code. Note, however, that it does not work retroactively; only modules loaded after the `setMainModule` call will be affected. To defer module load, use `import()`, `importModule` from "quickjs:module", or `require`.
+  - You can use `isMainModule` to check if a given module would be the main module without loading it.
+- Adds a mechanism for identifying module namespace objects
+  - The module "quickjs:module" exports an object called `Module`.
+  - `something instanceof Module` will be true when `something` is a module namespace object.
+- When using `require` to load a module which contains an export named `__cjsExports`, the value of the `__cjsExports` property will be returned from `require` instead of the usual module namespace object. This can be leveraged by users configuring the module loader to add some CommonJS <-> ESM interop. Note, however, that dynamic import and `"quickjs:module"`'s `importModule` always receive the usual module namespace object.
 
 ## Changes to project organization
 
@@ -131,6 +134,8 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 - Ninja is used instead of make. Ninja build config is generated via `.ninja.js` files which get loaded into [@suchipi/shinobi](https://github.com/suchipi/shinobi).
 - Line endings have been made consistent and trailing whitespace has been removed
 - The tests are authored in a new format which leverages jest snapshot testing.
+- Module-loading code in `quickjs-libc` was moved into `quickjs-modulesys` and `quickjs-libmodule`.
+- The `eval_*` functions that were duplicated in each of the programs (`eval_buf`, `eval_file`, and `eval_binary`) were deduplicated and moved into `quickjs-modulesys`.
 
 ## More target OSes/runtimes
 
