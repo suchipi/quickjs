@@ -390,6 +390,7 @@ struct JSContext {
                              const char *input, size_t input_len,
                              const char *filename, int flags, int scope_idx);
     void *user_opaque;
+    JSValue user_opaque_val;
 };
 
 typedef union JSFloat64Union {
@@ -2091,6 +2092,7 @@ JSContext *JS_NewContextRaw(JSRuntime *rt)
     ctx->array_ctor = JS_NULL;
     ctx->regexp_ctor = JS_NULL;
     ctx->promise_ctor = JS_NULL;
+    ctx->user_opaque_val = JS_NULL;
     init_list_head(&ctx->loaded_modules);
 
     JS_AddIntrinsicBasicObjects(ctx);
@@ -2218,6 +2220,8 @@ static void JS_MarkContext(JSRuntime *rt, JSContext *ctx,
 
     if (ctx->array_shape)
         mark_func(rt, &ctx->array_shape->header);
+
+    JS_MarkValue(rt, ctx->user_opaque_val, mark_func);
 }
 
 void JS_FreeContext(JSContext *ctx)
@@ -2281,6 +2285,8 @@ void JS_FreeContext(JSContext *ctx)
     JS_FreeValue(ctx, ctx->function_proto);
 
     js_free_shape_null(ctx->rt, ctx->array_shape);
+
+    JS_FreeValue(ctx, ctx->user_opaque_val);
 
     list_del(&ctx->link);
     remove_gc_object(&ctx->header);
@@ -27415,6 +27421,17 @@ void JS_SetModuleLoaderFunc(JSRuntime *rt,
     rt->module_normalize_func = module_normalize;
     rt->module_loader_func = module_loader;
     rt->module_loader_opaque = opaque;
+}
+
+void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value)
+{
+    ctx->user_opaque_val = value;
+}
+
+/* NOTE: you must free it! */
+JSValue JS_GetContextOpaqueValue(JSContext *ctx)
+{
+    return JS_DupValue(ctx, ctx->user_opaque_val);
 }
 
 JSModuleNormalizeFunc *JS_GetModuleNormalizeFunc(JSRuntime *rt)

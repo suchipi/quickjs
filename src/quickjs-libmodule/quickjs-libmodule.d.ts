@@ -69,4 +69,13 @@ declare module "quickjs:module" {
    * @param stackLevels - How many levels up the stack to search for a filename. Defaults to 0, which uses the current stack frame.
    */
   export function getFileNameFromStack(stackLevels?: number): string;
+
+  /**
+   * An object which lets you configure the module loader (import/export/require).
+   * You can use these properties to add support for importing new filetypes.
+   *
+   * This object can also be used to identify whether an object is a module
+   * namespace record.
+   */
+  export const Module: Module;
 }

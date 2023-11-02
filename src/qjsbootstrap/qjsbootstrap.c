@@ -194,7 +194,7 @@ int main(int argc, char **argv)
   ctx = JS_NewCustomContext(rt);
   define_qjsbootstrap_offset(ctx);
   js_std_add_helpers(ctx, argc, argv);
-  QJMS_AddGlobals(ctx);
+  QJMS_InitContext(ctx);
 
 #ifdef CONFIG_BYTECODE
   QJMS_EvalBinary(ctx, appended_code, appended_code_len, 0);

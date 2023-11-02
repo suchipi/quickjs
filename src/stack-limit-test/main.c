@@ -67,7 +67,7 @@ int main(int argc, char **argv)
   QJMS_InitState(rt);
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
-  QJMS_AddGlobals(ctx);
+  QJMS_InitContext(ctx);
   QJMS_EvalBinary(ctx, qjsc_loop, qjsc_loop_size, 0);
   exit_status = js_std_loop(ctx);
   QJMS_FreeState(rt);

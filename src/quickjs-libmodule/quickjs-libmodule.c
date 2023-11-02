@@ -209,8 +209,27 @@ static const JSCFunctionListEntry js_bytecode_funcs[] = {
 
 static int js_module_init(JSContext *ctx, JSModuleDef *m)
 {
-  return JS_SetModuleExportList(ctx, m, js_bytecode_funcs,
-                                countof(js_bytecode_funcs));
+  JSValue module_loader_internals, Module;
+
+  if (JS_SetModuleExportList(ctx, m, js_bytecode_funcs,
+                             countof(js_bytecode_funcs)))
+  {
+    return -1;
+  }
+
+  module_loader_internals = QJMS_GetModuleLoaderInternals(ctx);
+  if (JS_IsNull(module_loader_internals)) {
+    return -1;
+  }
+  Module = JS_GetPropertyStr(ctx, module_loader_internals, "Module");
+  if (JS_IsException(Module)) {
+    return -1;
+  }
+  JS_FreeValue(ctx, module_loader_internals);
+
+  JS_SetModuleExport(ctx, m, "Module", Module);
+
+  return 0;
 }
 
 JSModuleDef *js_init_module_module(JSContext *ctx, const char *module_name)
@@ -221,5 +240,6 @@ JSModuleDef *js_init_module_module(JSContext *ctx, const char *module_name)
     return NULL;
   }
   JS_AddModuleExportList(ctx, m, js_bytecode_funcs, countof(js_bytecode_funcs));
+  JS_AddModuleExport(ctx, m, "Module");
   return m;
 }

@@ -88,7 +88,7 @@ int main(int argc, char **argv)
   JS_SetCanBlock(rt, TRUE);
   ctx = JS_NewCustomContext(rt);
   js_std_add_helpers(ctx, argc, argv);
-  QJMS_AddGlobals(ctx);
+  QJMS_InitContext(ctx);
 
   if (QJMS_EvalFile(ctx, filename, -1)) {
     JS_FreeContext(ctx);

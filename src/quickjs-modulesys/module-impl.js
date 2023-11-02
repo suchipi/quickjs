@@ -1,12 +1,9 @@
 import * as std from "quickjs:std";
 import * as os from "quickjs:os";
 
-// Define Module.read
 (() => {
-  if (typeof Module !== "object") return;
-  if (Module == null) return;
+  let Module = __qjms_temp_Module;
 
-  if (typeof Module.read === "function") return;
   Module.read = (moduleName) => {
     if (typeof moduleName !== "string") {
       const err = new Error("moduleName must be a string");
@@ -16,7 +13,7 @@ import * as os from "quickjs:os";
     const matches = moduleName.match(/(\.[^.]+)$/);
     const ext = matches ? matches[1] : "";
 
-    const compilers = globalThis.Module.compilers;
+    const compilers = Module.compilers;
     const userCompiler = compilers[ext];
 
     let fileContent;
@@ -48,28 +45,6 @@ import * as os from "quickjs:os";
       return fileContent;
     }
   };
-})();
-
-// Define Module.resolve
-(() => {
-  if (typeof Module !== "object") return;
-  if (Module == null) return;
-
-  if (typeof Module.resolve === "function") return;
-
-  function isAbsolute(path) {
-    return path[0] === "/" || /[A-Za-z]:[/\\]/.test(path);
-  }
-
-  function isValidFile(path) {
-    try {
-      os.access(path, os.F_OK);
-      const stats = os.stat(path);
-      return (stats.mode & os.S_IFMT) === os.S_IFREG;
-    } catch (err) {
-      return false;
-    }
-  }
 
   Module.resolve = (name, baseName) => {
     try {
@@ -129,4 +104,18 @@ import * as os from "quickjs:os";
       throw newErr;
     }
   };
+
+  function isAbsolute(path) {
+    return path[0] === "/" || /[A-Za-z]:[/\\]/.test(path);
+  }
+
+  function isValidFile(path) {
+    try {
+      os.access(path, os.F_OK);
+      const stats = os.stat(path);
+      return (stats.mode & os.S_IFMT) === os.S_IFREG;
+    } catch (err) {
+      return false;
+    }
+  }
 })();

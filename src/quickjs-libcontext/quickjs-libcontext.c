@@ -266,7 +266,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         js_std_add_intervals(target_ctx);
     }
     if (moduleGlobals) {
-        QJMS_AddGlobals(target_ctx);
+        QJMS_InitContext(target_ctx);
     }
 
     ret = JS_NewObjectClass(ctx, js_context_class_id);

@@ -1,3 +1,5 @@
 - [x] seems module detection (via quickjs-run) always assumes script when there's a shebang line in the file
 - [x] qjsbootstrap binaries are differing in size on linux aarch64
-- [ ] move "Module" global into "quickjs:module"
+- [-] move "Module" global into "quickjs:module"
+  - [ ] mostly done, but module-impl is still in QJMS. Maybe that's fine?
+- [ ] refactor "Module" object so that delegate stuff is separated from instance identification and Module.define

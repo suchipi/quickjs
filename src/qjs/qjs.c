@@ -453,7 +453,7 @@ int main(int argc, char **argv)
         }
 #endif
         js_std_add_helpers(ctx, argc, argv);
-        QJMS_AddGlobals(ctx);
+        QJMS_InitContext(ctx);
 
         /* make 'std' and 'os' visible to non module code */
         if (load_std) {
