@@ -5,6 +5,8 @@ test("Module.define - basic test", async () => {
   const run = spawn(binDir("qjs"), [
     "-e",
     `
+      const { Module } = require("quickjs:module");
+
       Module.define("mymodule", {
         something: 5,
         somethingElse: () => 6
@@ -31,6 +33,8 @@ test("Module.define - never imported", async () => {
   const run = spawn(binDir("qjs"), [
     "-e",
     `
+      const { Module } = require("quickjs:module");
+
       Module.define("mymodule", {
         something: 5,
         somethingElse: () => 6
