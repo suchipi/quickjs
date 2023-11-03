@@ -1177,6 +1177,108 @@ static JSValue js_std_file_fileno(JSContext *ctx, JSValueConst this_val,
     return JS_NewInt32(ctx, fileno(f));
 }
 
+static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv)
+{
+    FILE *self, *target;
+    double bufsize_double;
+    size_t bufsize, total_read, total_written;
+    JSValue ret_obj;
+
+    if (argc != 2) {
+        return JS_ThrowTypeError(ctx, "writeTo must be called with two arguments: 'target' and 'bufferSize'. Instead, it was called with %d argument(s).", argc);
+    }
+
+    self = js_std_file_get(ctx, this_val);
+    if (self == NULL) {
+        return JS_EXCEPTION;
+    }
+    target = js_std_file_get(ctx, argv[0]);
+    if (target == NULL) {
+        return JS_EXCEPTION;
+    }
+    if (JS_ToFloat64(ctx, &bufsize_double, argv[1])) {
+        return JS_EXCEPTION;
+    }
+    bufsize = (size_t) bufsize_double;
+
+    total_read = 0;
+    total_written = 0;
+    {
+        size_t bytes_read, bytes_written;
+        BOOL is_final_write;
+        uint8_t *buf;
+
+        bytes_read = 0;
+        bytes_written = 0;
+        is_final_write = FALSE;
+
+        buf = js_malloc(ctx, bufsize);
+        if (buf == NULL) {
+            return JS_EXCEPTION;
+        }
+
+        while (TRUE) {
+            bytes_read = fread(buf, 1, bufsize, self);
+            total_read += bytes_read;
+            if (bytes_read < bufsize) {
+                if (ferror(self)) {
+                    js_free(ctx, buf);
+                    JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+                    JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+                    JS_AddPropertyToException(ctx, "totalBytesWritten", JS_NewInt64(ctx, total_written));
+                    JS_AddPropertyToException(ctx, "totalBytesRead", JS_NewInt64(ctx, total_read));
+                    return JS_EXCEPTION;
+                } else {
+                    is_final_write = TRUE;
+                }
+            }
+
+            // NOTE: fwrite is a no-op when bytes_read is 0
+            bytes_written = fwrite(buf, 1, bytes_read, target);
+            total_written += bytes_written;
+            if (bytes_written < bytes_read) {
+                if (ferror(target)) {
+                    js_free(ctx, buf);
+                    JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+                    JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
+                    JS_AddPropertyToException(ctx, "totalBytesWritten", JS_NewInt64(ctx, total_written));
+                    JS_AddPropertyToException(ctx, "totalBytesRead", JS_NewInt64(ctx, total_read));
+                    return JS_EXCEPTION;
+                } else {
+                    js_free(ctx, buf);
+                    JS_ThrowError(ctx, "Failed to write file: reached EOF before we were done writing data");
+                    JS_AddPropertyToException(ctx, "attemptedWriteSize", JS_NewInt64(ctx, bytes_read));
+                    JS_AddPropertyToException(ctx, "actualWriteSize", JS_NewInt64(ctx, bytes_written));
+                    JS_AddPropertyToException(ctx, "totalBytesWritten", JS_NewInt64(ctx, total_written));
+                    JS_AddPropertyToException(ctx, "totalBytesRead", JS_NewInt64(ctx, total_read));
+                    return JS_EXCEPTION;
+                }
+            }
+
+            if (is_final_write) {
+                break;
+            }
+        }
+
+        js_free(ctx, buf);
+    }
+
+    ret_obj = JS_NewObject(ctx);
+    if (JS_IsException(ret_obj)) {
+        return JS_EXCEPTION;
+    }
+
+    if (JS_SetPropertyStr(ctx, ret_obj, "totalBytesRead", JS_NewInt64(ctx, total_read)) == -1) {
+        return JS_EXCEPTION;
+    }
+    if (JS_SetPropertyStr(ctx, ret_obj, "totalBytesWritten", JS_NewInt64(ctx, total_written)) == -1) {
+        return JS_EXCEPTION;
+    }
+
+    return ret_obj;
+}
+
 static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
                                       int argc, JSValueConst *argv, int is_write)
 {
@@ -1640,6 +1742,7 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
     JS_CFUNC_DEF("fileno", 0, js_std_file_fileno ),
     JS_CFUNC_MAGIC_DEF("read", 3, js_std_file_read_write, 0 ),
     JS_CFUNC_MAGIC_DEF("write", 3, js_std_file_read_write, 1 ),
+    JS_CFUNC_DEF("writeTo", 3, js_std_file_writeTo ),
     JS_CFUNC_DEF("getline", 0, js_std_file_getline ),
     JS_CFUNC_DEF("readAsString", 0, js_std_file_readAsString ),
     JS_CFUNC_DEF("getByte", 0, js_std_file_getByte ),

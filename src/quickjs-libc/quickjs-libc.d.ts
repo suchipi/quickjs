@@ -99,6 +99,16 @@ declare interface FILE {
   write(buffer: ArrayBuffer, position: number, length: number): number;
 
   /**
+   * Write the entire contents of this file into `target`, using a memory buffer of size `bufferSize`.
+   *
+   * Internally, this allocates a memory buffer of size `bufferSize` and then uses libc `fread` and `fwrite` in a loop until EOF is reached.
+   */
+  writeTo(
+    target: FILE,
+    bufferSize: number
+  ): { totalBytesRead: number; totalBytesWritten: number };
+
+  /**
    * Return the next line from the file, assuming UTF-8 encoding, excluding the trailing line feed or EOF.
    *
    * If the end of the file has been reached, then `null` will be returned instead of a string.
