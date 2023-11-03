@@ -107,12 +107,10 @@ declare interface FILE {
    * A `limit` of 0 is treated the same as not specifying a limit.
    *
    * Internally, this function uses libc `fread` and `fwrite` in a loop.
+   *
+   * Returns the number of bytes read and written.
    */
-  writeTo(
-    target: FILE,
-    bufferSize: number,
-    limit?: number
-  ): { totalBytesRead: number; totalBytesWritten: number };
+  writeTo(target: FILE, bufferSize: number, limit?: number): number;
 
   /**
    * Return the next line from the file, assuming UTF-8 encoding, excluding the trailing line feed or EOF.

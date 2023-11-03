@@ -1183,7 +1183,6 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
     FILE *self, *target;
     double bufsize_double, limit_double;
     size_t bufsize, limit, total_read, total_written;
-    JSValue ret_obj;
 
     if (argc < 2) {
         return JS_ThrowTypeError(ctx, "writeTo must be called with at least two arguments: 'target' and 'bufferSize'. Instead, it was called with %d argument(s).", argc);
@@ -1296,19 +1295,7 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
         js_free(ctx, buf);
     }
 
-    ret_obj = JS_NewObject(ctx);
-    if (JS_IsException(ret_obj)) {
-        return JS_EXCEPTION;
-    }
-
-    if (JS_SetPropertyStr(ctx, ret_obj, "totalBytesRead", JS_NewInt64(ctx, total_read)) == -1) {
-        return JS_EXCEPTION;
-    }
-    if (JS_SetPropertyStr(ctx, ret_obj, "totalBytesWritten", JS_NewInt64(ctx, total_written)) == -1) {
-        return JS_EXCEPTION;
-    }
-
-    return ret_obj;
+    return JS_NewInt64(ctx, total_written);
 }
 
 static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
