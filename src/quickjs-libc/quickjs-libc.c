@@ -1181,12 +1181,12 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
                                    int argc, JSValueConst *argv)
 {
     FILE *self, *target;
-    double bufsize_double;
-    size_t bufsize, total_read, total_written;
+    double bufsize_double, limit_double;
+    size_t bufsize, limit, total_read, total_written;
     JSValue ret_obj;
 
-    if (argc != 2) {
-        return JS_ThrowTypeError(ctx, "writeTo must be called with two arguments: 'target' and 'bufferSize'. Instead, it was called with %d argument(s).", argc);
+    if (argc < 2) {
+        return JS_ThrowTypeError(ctx, "writeTo must be called with at least two arguments: 'target' and 'bufferSize'. Instead, it was called with %d argument(s).", argc);
     }
 
     self = js_std_file_get(ctx, this_val);
@@ -1200,12 +1200,31 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
     if (JS_ToFloat64(ctx, &bufsize_double, argv[1])) {
         return JS_EXCEPTION;
     }
+    if (bufsize_double <= 0) {
+        return JS_ThrowTypeError(ctx, "'bufferSize' must be greater than 0");
+    }
     bufsize = (size_t) bufsize_double;
+
+    if (argc == 3) {
+        if (JS_ToFloat64(ctx, &limit_double, argv[2])) {
+            return JS_EXCEPTION;
+        }
+        if (limit_double < 0) {
+            return JS_ThrowTypeError(ctx, "'limit' cannot be negative");
+        }
+        limit = (size_t) limit_double;
+    } else {
+        limit = 0;
+    }
+
+    if (limit != 0 && limit < bufsize) {
+        bufsize = limit;
+    }
 
     total_read = 0;
     total_written = 0;
     {
-        size_t bytes_read, bytes_written;
+        size_t bytes_to_read, bytes_read, bytes_written;
         BOOL is_final_write;
         uint8_t *buf;
 
@@ -1219,9 +1238,22 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
         }
 
         while (TRUE) {
-            bytes_read = fread(buf, 1, bufsize, self);
+            if (limit == 0) {
+                bytes_to_read = bufsize;
+            } else {
+                bytes_to_read = limit - total_read;
+                if (bytes_to_read > bufsize) {
+                    bytes_to_read = bufsize;
+                }
+            }
+
+            if (bytes_to_read <= 0) {
+                break;
+            }
+
+            bytes_read = fread(buf, 1, bytes_to_read, self);
             total_read += bytes_read;
-            if (bytes_read < bufsize) {
+            if (bytes_read < bytes_to_read) {
                 if (ferror(self)) {
                     js_free(ctx, buf);
                     JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);

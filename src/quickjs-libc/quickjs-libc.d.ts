@@ -99,13 +99,19 @@ declare interface FILE {
   write(buffer: ArrayBuffer, position: number, length: number): number;
 
   /**
-   * Write the entire contents of this file into `target`, using a memory buffer of size `bufferSize`.
+   * Write this file into `target`, using a memory buffer of size `bufferSize`.
    *
-   * Internally, this allocates a memory buffer of size `bufferSize` and then uses libc `fread` and `fwrite` in a loop until EOF is reached.
+   * If `limit` is specified, only that amount of bytes will be read and
+   * written. Otherwise, data is read and written until this file reaches EOF.
+   *
+   * A `limit` of 0 is treated the same as not specifying a limit.
+   *
+   * Internally, this function uses libc `fread` and `fwrite` in a loop.
    */
   writeTo(
     target: FILE,
-    bufferSize: number
+    bufferSize: number,
+    limit?: number
   ): { totalBytesRead: number; totalBytesWritten: number };
 
   /**
