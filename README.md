@@ -49,6 +49,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - `os.access` function added (wrapper for libc `access`).
 - `FILE.prototype.sync` method added (wrapper for `fsync`).
 - `FILE.prototype.setvbuf` method added (wrapper for `setvbuf`).
+- `FILE.prototype.writeTo` method added (pipe data from one FILE to another, given a buffer size and limit).
 - `std.isFILE` function added (returns whether the provided object is a `FILE` (via `js_std_file_class_id`)).
 - `os.{WUNTRACED,WEXITSTATUS,WTERMSIG,WSTOPSIG,WIFEXITED,WIFSIGNALED,WIFSTOPPED,WIFCONTINUED}` added, for working with `os.waitpid`.
 - `os.{S_IRWXU,S_IRUSR,S_IWUSR,S_IXUSR,S_IRWXG,S_IRGRP,S_IWGRP,S_IXGRP,S_IRWXO,S_IROTH,S_IWOTH,S_IXOTH}` added, for working with file modes.
