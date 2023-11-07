@@ -5,7 +5,6 @@ if (env.QUICKJS_EXTRAS === "1") {
     output: builddir("intermediate/stack-limit-test/loop.c"),
     rule: "qjsc",
     inputs: [rel("loop.js")],
-    implicitInputs: [builddir("intermediate/qjsc.host")],
     ruleVariables: {
       qjsc_args: `-c -m`,
     },

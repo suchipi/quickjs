@@ -2,7 +2,6 @@ const inspect_c = build({
   output: builddir("intermediate/inspect.c"),
   rule: "qjsc",
   inputs: [rel("inspect.js")],
-  implicitInputs: [builddir("intermediate/qjsc.host")],
   ruleVariables: {
     qjsc_args: `-c -m`,
   },

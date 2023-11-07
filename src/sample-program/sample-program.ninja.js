@@ -3,7 +3,6 @@ if (env.QUICKJS_EXTRAS === "1") {
     output: builddir("intermediate/sample-program/sum.c"),
     rule: "qjsc",
     inputs: [rel("sum.js")],
-    implicitInputs: [builddir("intermediate/qjsc.host")],
     ruleVariables: {
       qjsc_args: `-e -m`,
     },

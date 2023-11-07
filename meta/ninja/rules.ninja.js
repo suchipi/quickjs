@@ -57,6 +57,7 @@ rule("ar_target", {
 rule("qjsc", {
   command: [builddir("intermediate/qjsc.host"), `$qjsc_args -o $out $in`],
   description: "QJSC $out",
+  implicitInputs: [builddir("intermediate/qjsc.host")],
 });
 
 // copy a file from one place to another

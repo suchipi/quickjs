@@ -2,7 +2,6 @@ const qjscalc_c = build({
   output: builddir("intermediate/qjscalc.c"),
   rule: "qjsc",
   inputs: [rel("qjscalc.js")],
-  implicitInputs: [builddir("intermediate/qjsc.host")],
   ruleVariables: {
     qjsc_args: `-fbignum -c`,
   },

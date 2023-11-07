@@ -14,7 +14,6 @@ const intervals_c = build({
   output: builddir("intermediate/quickjs-libc/intervals.c"),
   rule: "qjsc",
   inputs: [rel("lib/intervals.js")],
-  implicitInputs: [builddir("intermediate/qjsc.host")],
   ruleVariables: {
     qjsc_args: `-c -m`,
   },
@@ -36,7 +35,6 @@ const string_dedent_c = build({
   output: builddir("intermediate/quickjs-libc/string-dedent.c"),
   rule: "qjsc",
   inputs: [rel("lib/string-dedent.js")],
-  implicitInputs: [builddir("intermediate/qjsc.host")],
   ruleVariables: {
     qjsc_args: `-c -m`,
   },

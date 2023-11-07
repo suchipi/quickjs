@@ -2,7 +2,6 @@ const module_impl_c = build({
   output: builddir("intermediate/quickjs-modulesys/module-impl.c"),
   rule: "qjsc",
   inputs: [rel("module-impl.js")],
-  implicitInputs: [builddir("intermediate/qjsc.host")],
   ruleVariables: {
     qjsc_args: `-c -m`,
   },
