@@ -344,6 +344,13 @@ end:
   return ret;
 }
 
+static JSValue js_engine_gc(JSContext *ctx, JSValueConst this_val,
+                            int argc, JSValueConst *argv)
+{
+    JS_RunGC(JS_GetRuntime(ctx));
+    return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry js_bytecode_funcs[] = {
   JS_CFUNC_DEF("isMainModule", 1, js_engine_isMainModule ),
   JS_CFUNC_DEF("setMainModule", 1, js_engine_setMainModule ),
@@ -354,6 +361,7 @@ static const JSCFunctionListEntry js_bytecode_funcs[] = {
   JS_CFUNC_DEF("evalScript", 2, js_engine_evalScript ),
   JS_CFUNC_DEF("isModuleNamespace", 1, js_engine_isModuleNamespace ),
   JS_CFUNC_DEF("defineBuiltinModule", 2, js_engine_defineBuiltinModule ),
+  JS_CFUNC_DEF("gc", 0, js_engine_gc ),
 };
 
 static int js_module_init(JSContext *ctx, JSModuleDef *m)

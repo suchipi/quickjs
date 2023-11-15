@@ -271,9 +271,6 @@ declare module "quickjs:std" {
   /** Constant for {@link FILE.setvbuf}. Declares that the buffer mode should be 'no buffering'. */
   export var _IONBF: number;
 
-  /** Manually invoke the cycle removal algorithm (garbage collector). The cycle removal algorithm is automatically started when needed, so this function is useful in case of specific memory constraints or for testing. */
-  export function gc(): void;
-
   /** Return the value of the environment variable `name` or `undefined` if it is not defined. */
   export function getenv(name: string): string | undefined;
 

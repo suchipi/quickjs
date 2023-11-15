@@ -1241,7 +1241,7 @@ import * as os from "quickjs:os";
     level = 0;
 
     /* run the garbage collector after each command */
-    std.gc();
+    engine.gc();
   }
 
   function colorize_js(str) {

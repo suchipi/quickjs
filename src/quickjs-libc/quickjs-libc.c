@@ -659,13 +659,6 @@ static JSValue js_std_getegid(JSContext *ctx, JSValueConst this_val,
 #endif
 }
 
-static JSValue js_std_gc(JSContext *ctx, JSValueConst this_val,
-                         int argc, JSValueConst *argv)
-{
-    JS_RunGC(JS_GetRuntime(ctx));
-    return JS_UNDEFINED;
-}
-
 static int interrupt_handler(JSRuntime *rt, void *opaque)
 {
     return (os_pending_signals >> SIGINT) & 1;
@@ -1714,7 +1707,6 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("setExitCode", 1, js_std_setExitCode ),
     JS_CFUNC_DEF("getExitCode", 0, js_std_getExitCode ),
     JS_CFUNC_DEF("exit", 1, js_std_exit ),
-    JS_CFUNC_DEF("gc", 0, js_std_gc ),
     JS_CFUNC_DEF("getenv", 1, js_std_getenv ),
     JS_CFUNC_DEF("setenv", 1, js_std_setenv ),
     JS_CFUNC_DEF("unsetenv", 1, js_std_unsetenv ),

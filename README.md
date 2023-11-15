@@ -63,6 +63,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - Several C-side helper functions were moved out of quickjs-libc and into quickjs-utils.
 - Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
 - Added `std.setExitCode`, `std.getExitCode`, and made `std.exit`'s parameter optional. The value passed to `std.setExitCode` will be used when the process exits normally, or when `std.exit` is called without any arguments. `std.setExitCode`, `std.getExitCode`, and `std.exit` throw if called from a thread other than the main thread (ie. a Worker).
+- The manual garbage collection function `std.gc()` was moved to `"quickjs:engine"`.
 
 ### Changes to the `qjs` binary:
 
@@ -113,6 +114,10 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 - Helper function for loading a file from disk into char a buffer
 - Helper functions for printing JS errors to stderr
 
+### New module: "quickjs:engine"
+
+This module contains APIs related to engine internals like script execution, module loading, code eval, filename reflection, and garbage collection. Several parts of quickjs-libc were moved here so that quickjs-libc could be focused on "C standard library" bindings.
+
 ### Changes to the module loader
 
 - `.js` extensions can now be omitted from import specifiers; they're optional.
@@ -148,7 +153,7 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 - Ninja is used instead of make. Ninja build config is generated via `.ninja.js` files which get loaded into [@suchipi/shinobi](https://github.com/suchipi/shinobi).
 - Line endings have been made consistent and trailing whitespace has been removed
 - The tests are authored in a new format which leverages jest snapshot testing.
-- Module-loading code in `quickjs-libc` was moved into `quickjs-modulesys` and `quickjs-libengine`.
+- Some parts of `quickjs-libc` were moved into `quickjs-modulesys` and `quickjs-libengine`.
 - The `eval_*` functions that were duplicated in each of the programs (`eval_buf`, `eval_file`, and `eval_binary`) were deduplicated and moved into `quickjs-modulesys`.
 
 ### More target OSes/runtimes

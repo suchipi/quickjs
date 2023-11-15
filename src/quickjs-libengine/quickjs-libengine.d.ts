@@ -89,4 +89,12 @@ declare module "quickjs:engine" {
    * You can change these properties to add support for importing new filetypes.
    */
   export const ModuleDelegate: ModuleDelegate;
+
+  /**
+   * Manually invoke the cycle removal algorithm (garbage collector).
+   *
+   * The cycle removal algorithm is automatically started when needed, so this
+   * function is useful in case of specific memory constraints or for testing.
+   */
+  export function gc(): void;
 }
