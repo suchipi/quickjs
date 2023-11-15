@@ -138,8 +138,7 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
   - You can use `setMainModule` to make `import.meta.main` true within that module's code. Note, however, that it does not work retroactively; only modules loaded after the `setMainModule` call will be affected. To defer module load, use `import()`, `importModule` from "quickjs:module", or `require`.
   - You can use `isMainModule` to check if a given module would be the main module without loading it.
 - Adds a mechanism for identifying module namespace objects
-  - The module "quickjs:module" exports an object called `Module`.
-  - `something instanceof Module` will be true when `something` is a module namespace object.
+  - The module "quickjs:module" exports a function called `isModuleNamespace`.
 - When using `require` to load a module which contains an export named `__cjsExports`, the value of the `__cjsExports` property will be returned from `require` instead of the usual module namespace object. This can be leveraged by users configuring the module loader to add some CommonJS <-> ESM interop. Note, however, that dynamic import and `"quickjs:module"`'s `importModule` always receive the usual module namespace object.
 - Synchronous import function added (`importModule`), which provides the same module record object you would get via dynamic (async) import.
 - JS api for using the engine's configured module name normalization function was added (`resolveModule`).

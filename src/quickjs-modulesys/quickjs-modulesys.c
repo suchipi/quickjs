@@ -665,27 +665,6 @@ static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
   return QJMS_RequireResolve(ctx, name_val);
 }
 
-/* Symbol.hasInstance property of Module */
-static JSValue js_Module_hasInstance(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
-{
-  JSValue target;
-  JSClassID class_id;
-
-  if (argc < 1) {
-    return JS_FALSE;
-  }
-
-  target = argv[0];
-
-  class_id = JS_VALUE_GET_CLASS_ID(target);
-  if (class_id == JS_CLASS_MODULE_NS) {
-    return JS_TRUE;
-  } else {
-    return JS_FALSE;
-  }
-}
-
 /* for modules created via Module.define */
 static int js_userdefined_module_init(JSContext *ctx, JSModuleDef *m)
 {
@@ -823,23 +802,11 @@ static JSValue QJMS_MakeRequireFunction(JSContext *ctx)
 /* create the 'Module' object, which gets exposed as a global */
 static JSValue QJMS_MakeModuleObject(JSContext *ctx)
 {
-  JSValue global_obj, module, Symbol, hasInstance, search_extensions,
-    compilers;
+  JSValue global_obj, module, search_extensions, compilers;
 
   global_obj = JS_GetGlobalObject(ctx);
 
   module = JS_NewObject(ctx);
-
-  Symbol = JS_GetPropertyStr(ctx, global_obj, "Symbol");
-
-  hasInstance = JS_GetPropertyStr(ctx, Symbol, "hasInstance");
-
-  JS_SetPropertyValue(ctx, module, hasInstance,
-                      JS_NewCFunction(ctx, js_Module_hasInstance,
-                                      "hasInstance", 1), 0);
-
-  JS_FreeValue(ctx, hasInstance);
-  JS_FreeValue(ctx, Symbol);
 
   search_extensions = JS_NewArray(ctx);
   JS_DefinePropertyValueUint32(ctx, search_extensions, 0,

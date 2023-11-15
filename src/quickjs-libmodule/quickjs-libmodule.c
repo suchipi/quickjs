@@ -197,6 +197,30 @@ static JSValue js_module_evalScript(JSContext *ctx, JSValueConst this_val,
   return ret;
 }
 
+static JSValue js_module_isModuleNamespace(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv)
+{
+  JSValue target;
+  JSClassID class_id;
+
+  if (argc < 1) {
+    return JS_FALSE;
+  }
+
+  target = argv[0];
+
+  if (!JS_IsObject(target)) {
+    return JS_FALSE;
+  }
+
+  class_id = JS_VALUE_GET_CLASS_ID(target);
+  if (class_id == JS_CLASS_MODULE_NS) {
+    return JS_TRUE;
+  } else {
+    return JS_FALSE;
+  }
+}
+
 static const JSCFunctionListEntry js_bytecode_funcs[] = {
   JS_CFUNC_DEF("isMainModule", 1, js_module_isMainModule ),
   JS_CFUNC_DEF("setMainModule", 1, js_module_setMainModule ),
@@ -205,6 +229,7 @@ static const JSCFunctionListEntry js_bytecode_funcs[] = {
   JS_CFUNC_DEF("getFileNameFromStack", 1, js_module_getFileNameFromStack ),
   JS_CFUNC_DEF("resolveModule", 2, js_module_resolveModule ),
   JS_CFUNC_DEF("evalScript", 2, js_module_evalScript ),
+  JS_CFUNC_DEF("isModuleNamespace", 1, js_module_isModuleNamespace ),
 };
 
 static int js_module_init(JSContext *ctx, JSModuleDef *m)

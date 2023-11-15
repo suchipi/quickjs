@@ -71,6 +71,11 @@ declare module "quickjs:module" {
   export function getFileNameFromStack(stackLevels?: number): string;
 
   /**
+   * Returns true if `target` is a module namespace object.
+   */
+  export function isModuleNamespace(target: any): boolean;
+
+  /**
    * An object which lets you configure the module loader (import/export/require).
    * You can use these properties to add support for importing new filetypes.
    *

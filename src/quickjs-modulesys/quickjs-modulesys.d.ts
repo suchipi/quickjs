@@ -7,13 +7,6 @@
  */
 interface Module {
   /**
-   * Returns true if `target` is a module namespace object.
-   */
-  [Symbol.hasInstance](target: any): target is {
-    [key: string | number | symbol]: any;
-  };
-
-  /**
    * A list of filetype extensions that may be omitted from an import specifier
    * string.
    *
