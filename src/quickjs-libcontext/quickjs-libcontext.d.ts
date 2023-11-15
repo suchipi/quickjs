@@ -155,8 +155,8 @@ declare module "quickjs:context" {
         "quickjs:bytecode"?: boolean;
         /** Enables the "quickjs:context" module. Defaults to `true`. */
         "quickjs:context"?: boolean;
-        /** Enables the "quickjs:module" module. Defaults to `true`. */
-        "quickjs:module"?: boolean;
+        /** Enables the "quickjs:engine" module. Defaults to `true`. */
+        "quickjs:engine"?: boolean;
       };
     });
 

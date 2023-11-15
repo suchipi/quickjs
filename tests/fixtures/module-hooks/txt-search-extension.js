@@ -1,3 +1,3 @@
-import { ModuleDelegate } from "quickjs:module";
+import { ModuleDelegate } from "quickjs:engine";
 
 ModuleDelegate.searchExtensions.push(".txt");

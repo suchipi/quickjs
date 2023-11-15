@@ -1,4 +1,4 @@
-declare module "quickjs:module" {
+declare module "quickjs:engine" {
   /**
    * Return whether the provided resolved module path is set as the main module.
    *

@@ -7,7 +7,7 @@
 #include "quickjs-libcontext.h"
 #include "quickjs-libpointer.h"
 #include "quickjs-modulesys.h"
-#include "quickjs-libmodule.h"
+#include "quickjs-libengine.h"
 
 /* returns 0 on success, nonzero on failure */
 int quickjs_full_init(JSContext *ctx);

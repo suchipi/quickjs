@@ -6,7 +6,7 @@ test("defineBuiltinModule - basic test", async () => {
     "-m",
     "-e",
     `
-      import { defineBuiltinModule } from "quickjs:module";
+      import { defineBuiltinModule } from "quickjs:engine";
 
       defineBuiltinModule("mymodule", {
         something: 5,
@@ -35,7 +35,7 @@ test("defineBuiltinModule - never imported", async () => {
     "-m",
     "-e",
     `
-      import { defineBuiltinModule } from "quickjs:module";
+      import { defineBuiltinModule } from "quickjs:engine";
 
       defineBuiltinModule("mymodule", {
         something: 5,

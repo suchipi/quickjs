@@ -32,7 +32,7 @@ describe("ModuleDelegate.read", () => {
         "-m",
         "-e",
         `
-          import { ModuleDelegate } from "quickjs:module";
+          import { ModuleDelegate } from "quickjs:engine";
 
           ModuleDelegate.read = (path) => {
             console.error(path);

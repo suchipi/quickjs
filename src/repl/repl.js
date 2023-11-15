@@ -32,7 +32,7 @@ import * as os from "quickjs:os";
   g.std = std;
 
   /* add bindings for other builtin modules */
-  g.mod = require("quickjs:module");
+  g.engine = require("quickjs:engine");
   g.Bytecode = require("quickjs:bytecode");
   g.ptr = require("quickjs:pointer");
 

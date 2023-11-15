@@ -1,8 +1,8 @@
-import * as mod from "quickjs:module";
+import * as engine from "quickjs:engine";
 
 console.log("hi from mod1", import.meta.main);
 
-mod.setMainModule(mod.resolveModule("./mod3"));
+engine.setMainModule(engine.resolveModule("./mod3"));
 
-mod.importModule("./mod2");
-mod.importModule("./mod3");
+engine.importModule("./mod2");
+engine.importModule("./mod3");
