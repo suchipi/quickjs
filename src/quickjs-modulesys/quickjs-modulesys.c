@@ -665,129 +665,6 @@ static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
   return QJMS_RequireResolve(ctx, name_val);
 }
 
-/* for modules created via Module.define */
-static int js_userdefined_module_init(JSContext *ctx, JSModuleDef *m)
-{
-  JSValueConst *objp;
-  JSValueConst obj;
-  QJUForEachPropertyState *foreach = NULL;
-  int ret = 0;
-
-  objp = (JSValue *)JS_GetModuleUserData(m);
-  if (objp == NULL) {
-    JS_ThrowTypeError(ctx, "user-defined module did not have exports object as userdata");
-    ret = -1;
-    goto end;
-  }
-
-  obj = *objp;
-
-  foreach = QJU_NewForEachPropertyState(ctx, obj, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
-  if (foreach == NULL) { // out of memory
-    ret = -1;
-    goto end;
-  }
-
-  QJU_ForEachProperty(ctx, foreach) {
-    const char *key_str;
-    JSValue read_result = QJU_ForEachProperty_Read(ctx, obj, foreach);
-    if (JS_IsException(read_result)) {
-      ret = -1;
-      goto end;
-    }
-    key_str = JS_AtomToCString(ctx, foreach->key);
-    if (key_str == NULL) {
-      ret = -1;
-      goto end;
-    }
-
-    JS_SetModuleExport(ctx, m, key_str, JS_DupValue(ctx, foreach->val));
-  }
-
-end:
-  QJU_FreeForEachPropertyState(ctx, foreach);
-  JS_SetModuleUserData(m, NULL);
-
-  return ret;
-}
-
-/* add a user-defined module into the module cache */
-static JSValue js_Module_define(JSContext *ctx, JSValueConst this_val,
-                                int argc, JSValueConst *argv)
-{
-  JSValueConst obj;
-  const char *name = NULL;
-  JSModuleDef *m = NULL;
-  QJUForEachPropertyState *foreach = NULL;
-  JSValue ret = JS_UNDEFINED;
-
-  if (argc < 2) {
-    JS_ThrowError(ctx, "Module.define requires two arguments: a string (module name) and an object (module exports).");
-    ret = JS_EXCEPTION;
-    goto end;
-  }
-
-  name = JS_ToCString(ctx, argv[0]);
-  if (name == NULL) {
-    ret = JS_EXCEPTION;
-    goto end;
-  }
-
-  if (!JS_IsObject(argv[1])) {
-    JS_ThrowError(ctx, "Second argument to Module.define must be an object.");
-    ret = JS_EXCEPTION;
-    goto end;
-  }
-
-  obj = argv[1];
-
-  m = JS_NewCModule(ctx, name, js_userdefined_module_init, &obj);
-  if (m == NULL) {
-    ret = JS_EXCEPTION;
-    goto end;
-  }
-
-  foreach = QJU_NewForEachPropertyState(ctx, obj, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
-  if (foreach == NULL) {
-    ret = JS_EXCEPTION;
-    goto end;
-  }
-
-  QJU_ForEachProperty(ctx, foreach) {
-    const char *key_str;
-
-    JSValue read_result = QJU_ForEachProperty_Read(ctx, obj, foreach);
-    if (JS_IsException(read_result)) {
-      ret = JS_EXCEPTION;
-      goto end;
-    }
-
-    key_str = JS_AtomToCString(ctx, foreach->key);
-    if (key_str == NULL) {
-      ret = JS_EXCEPTION;
-      goto end;
-    }
-
-    JS_AddModuleExport(ctx, m, key_str);
-  }
-
-  // force module instantiation to happen now while &obj is still a valid
-  // pointer. js_userdefined_module_init will set m->user_data to NULL.
-  m = JS_RunModule(ctx, "", name);
-  if (m == NULL) {
-    ret = JS_EXCEPTION;
-    goto end;
-  } else {
-    ret = JS_UNDEFINED;
-  }
-
-end:
-  JS_FreeCString(ctx, name);
-  QJU_FreeForEachPropertyState(ctx, foreach);
-
-  return ret;
-}
-
 static JSValue QJMS_MakeRequireFunction(JSContext *ctx)
 {
   JSValue require, require_resolve;
@@ -816,9 +693,6 @@ static JSValue QJMS_MakeModuleObject(JSContext *ctx)
 
   compilers = JS_NewObject(ctx);
   JS_SetPropertyStr(ctx, module, "compilers", compilers);
-
-  JS_SetPropertyStr(ctx, module, "define",
-                    JS_NewCFunction(ctx, js_Module_define, "define", 2));
 
   // temporarily make a global so module-impl.js can access it...
   {

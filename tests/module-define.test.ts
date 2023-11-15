@@ -1,14 +1,14 @@
 import { spawn } from "first-base";
 import { binDir } from "./_utils";
 
-test("Module.define - basic test", async () => {
+test("defineBuiltinModule - basic test", async () => {
   const run = spawn(binDir("qjs"), [
     "-m",
     "-e",
     `
-      import { Module } from "quickjs:module";
+      import { defineBuiltinModule } from "quickjs:module";
 
-      Module.define("mymodule", {
+      defineBuiltinModule("mymodule", {
         something: 5,
         somethingElse: () => 6
       });
@@ -30,14 +30,14 @@ test("Module.define - basic test", async () => {
   `);
 });
 
-test("Module.define - never imported", async () => {
+test("defineBuiltinModule - never imported", async () => {
   const run = spawn(binDir("qjs"), [
     "-m",
     "-e",
     `
-      import { Module } from "quickjs:module";
+      import { defineBuiltinModule } from "quickjs:module";
 
-      Module.define("mymodule", {
+      defineBuiltinModule("mymodule", {
         something: 5,
         somethingElse: () => 6
       });

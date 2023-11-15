@@ -62,12 +62,6 @@ interface Module {
   };
 
   /**
-   * Create a virtual built-in module whose exports consist of the own
-   * enumerable properties of `obj`.
-   */
-  define(name: string, obj: { [key: string]: any }): void;
-
-  /**
    * Resolves a require/import request from `fromFile` into a canonicalized
    * path.
    *

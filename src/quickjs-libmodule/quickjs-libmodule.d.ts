@@ -76,11 +76,17 @@ declare module "quickjs:module" {
   export function isModuleNamespace(target: any): boolean;
 
   /**
+   * Create a virtual built-in module whose exports consist of the own
+   * enumerable properties of `obj`.
+   */
+  export function defineBuiltinModule(
+    name: string,
+    obj: { [key: string]: any }
+  ): void;
+
+  /**
    * An object which lets you configure the module loader (import/export/require).
    * You can use these properties to add support for importing new filetypes.
-   *
-   * This object can also be used to identify whether an object is a module
-   * namespace record.
    */
   export const Module: Module;
 }

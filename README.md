@@ -124,11 +124,10 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 - Adds `import.meta.resolve`
   - Similar to [the one in the browser](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve#specifications), but it's actually just `require.resolve` exposed via `import.meta`.
 - Module and eval helpers have been moved from "quickjs:std" to the new module "quickjs:module".
-- Makes the module loader's resolution and loading behavior configurable, and allows users to define additional builtin modules
+- Makes the module loader's resolution and loading behavior configurable
   - The module "quickjs:module" exports an object called `Module`.
   - You can specify additional implicit import specifier extensions by adding to the `Module.searchExtensions` array.
   - You can transform any file prior to evaluating it as a module by adding a function to the `Module.compilers` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
-  - You can define custom builtin modules using the `Module.define` function.
   - You can override module name normalization (aka module resolution) by replacing the `Module.resolve` function.
     - Note that you must handle `Module.searchExtensions` yourself in your replacement implementation.
   - You can override the method used to load modules by replacing the `Module.read` function.
@@ -137,8 +136,8 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
   - The module "quickjs:module" exports two functions named `setMainModule` and `isMainModule`.
   - You can use `setMainModule` to make `import.meta.main` true within that module's code. Note, however, that it does not work retroactively; only modules loaded after the `setMainModule` call will be affected. To defer module load, use `import()`, `importModule` from "quickjs:module", or `require`.
   - You can use `isMainModule` to check if a given module would be the main module without loading it.
-- Adds a mechanism for identifying module namespace objects
-  - The module "quickjs:module" exports a function called `isModuleNamespace`.
+- New `isModuleNamespace` function lets users identify module namespace objects
+- New `defineBuiltinModule` function lets users add their own builtin modules
 - When using `require` to load a module which contains an export named `__cjsExports`, the value of the `__cjsExports` property will be returned from `require` instead of the usual module namespace object. This can be leveraged by users configuring the module loader to add some CommonJS <-> ESM interop. Note, however, that dynamic import and `"quickjs:module"`'s `importModule` always receive the usual module namespace object.
 - Synchronous import function added (`importModule`), which provides the same module record object you would get via dynamic (async) import.
 - JS api for using the engine's configured module name normalization function was added (`resolveModule`).
