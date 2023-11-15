@@ -358,7 +358,7 @@ static const JSCFunctionListEntry js_bytecode_funcs[] = {
 
 static int js_module_init(JSContext *ctx, JSModuleDef *m)
 {
-  JSValue module_loader_internals, Module;
+  JSValue module_loader_internals, module_delegate;
 
   if (JS_SetModuleExportList(ctx, m, js_bytecode_funcs,
                              countof(js_bytecode_funcs)))
@@ -370,13 +370,13 @@ static int js_module_init(JSContext *ctx, JSModuleDef *m)
   if (JS_IsNull(module_loader_internals)) {
     return -1;
   }
-  Module = JS_GetPropertyStr(ctx, module_loader_internals, "Module");
-  if (JS_IsException(Module)) {
+  module_delegate = JS_GetPropertyStr(ctx, module_loader_internals, "ModuleDelegate");
+  if (JS_IsException(module_delegate)) {
     return -1;
   }
   JS_FreeValue(ctx, module_loader_internals);
 
-  JS_SetModuleExport(ctx, m, "Module", Module);
+  JS_SetModuleExport(ctx, m, "ModuleDelegate", module_delegate);
 
   return 0;
 }
@@ -389,6 +389,6 @@ JSModuleDef *js_init_module_module(JSContext *ctx, const char *module_name)
     return NULL;
   }
   JS_AddModuleExportList(ctx, m, js_bytecode_funcs, countof(js_bytecode_funcs));
-  JS_AddModuleExport(ctx, m, "Module");
+  JS_AddModuleExport(ctx, m, "ModuleDelegate");
   return m;
 }

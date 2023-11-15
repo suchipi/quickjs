@@ -1,5 +1,5 @@
-import { Module } from "quickjs:module";
+import { ModuleDelegate } from "quickjs:module";
 
-Module.compilers[".txt"] = (filename, content) => {
+ModuleDelegate.compilers[".txt"] = (filename, content) => {
   return `export default ${JSON.stringify(content)};`;
 };

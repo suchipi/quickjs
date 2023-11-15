@@ -125,13 +125,13 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
   - Similar to [the one in the browser](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve#specifications), but it's actually just `require.resolve` exposed via `import.meta`.
 - Module and eval helpers have been moved from "quickjs:std" to the new module "quickjs:module".
 - Makes the module loader's resolution and loading behavior configurable
-  - The module "quickjs:module" exports an object called `Module`.
-  - You can specify additional implicit import specifier extensions by adding to the `Module.searchExtensions` array.
-  - You can transform any file prior to evaluating it as a module by adding a function to the `Module.compilers` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
-  - You can override module name normalization (aka module resolution) by replacing the `Module.resolve` function.
-    - Note that you must handle `Module.searchExtensions` yourself in your replacement implementation.
-  - You can override the method used to load modules by replacing the `Module.read` function.
-    - Note that you must handle `Module.compilers` yourself in your replacement implementation.
+  - The module "quickjs:module" exports an object called `ModuleDelegate`.
+  - You can specify additional implicit import specifier extensions by adding to the `ModuleDelegate.searchExtensions` array.
+  - You can transform any file prior to evaluating it as a module by adding a function to the `ModuleDelegate.compilers` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
+  - You can override module name normalization (aka module resolution) by replacing the `ModuleDelegate.resolve` function.
+    - Note that you must handle `ModuleDelegate.searchExtensions` yourself in your replacement implementation.
+  - You can override the method used to load modules by replacing the `ModuleDelegate.read` function.
+    - Note that you must handle `ModuleDelegate.compilers` yourself in your replacement implementation.
 - Makes `import.meta.main` configurable
   - The module "quickjs:module" exports two functions named `setMainModule` and `isMainModule`.
   - You can use `setMainModule` to make `import.meta.main` true within that module's code. Note, however, that it does not work retroactively; only modules loaded after the `setMainModule` call will be affected. To defer module load, use `import()`, `importModule` from "quickjs:module", or `require`.

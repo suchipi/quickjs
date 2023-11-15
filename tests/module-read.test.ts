@@ -1,7 +1,7 @@
 import { spawn } from "first-base";
 import { binDir } from "./_utils";
 
-describe("Module.read", () => {
+describe("ModuleDelegate.read", () => {
   test("default impl returns file content", async () => {
     const run = spawn(
       binDir("qjs"),
@@ -32,9 +32,9 @@ describe("Module.read", () => {
         "-m",
         "-e",
         `
-          import { Module } from "quickjs:module";
+          import { ModuleDelegate } from "quickjs:module";
 
-          Module.read = (path) => {
+          ModuleDelegate.read = (path) => {
             console.error(path);
             return "console.log(17);"
           };

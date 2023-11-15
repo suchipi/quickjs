@@ -1,8 +1,8 @@
 /**
  * An object which lets you configure the module loader (import/export/require).
- * You can use these properties to add support for importing new filetypes.
+ * You can change these properties to add support for importing new filetypes.
  */
-interface Module {
+interface ModuleDelegate {
   /**
    * A list of filetype extensions that may be omitted from an import specifier
    * string.
@@ -41,7 +41,7 @@ interface Module {
    * ```js
    * import * as std from "std";
    *
-   * Module.compilers[".txt"] = (filename, content) => {
+   * ModuleDelegate.compilers[".txt"] = (filename, content) => {
    *   return `export default ${JSON.stringify(content)}`;
    * }
    * ```
@@ -67,7 +67,8 @@ interface Module {
    *
    * To change native module resolution behavior, replace this function with
    * your own implementation. Note that you must handle
-   * `Module.searchExtensions` yourself in your replacement implementation.
+   * `ModuleDelegate.searchExtensions` yourself in your replacement
+   * implementation.
    */
   resolve(name: string, fromFile: string): string;
 
@@ -75,8 +76,8 @@ interface Module {
    * Reads the contents of the given resolved module name into a string.
    *
    * To change native module loading behavior, replace this function with your
-   * own implementation. Note that you must handle `Module.compilers` yourself
-   * in your replacement implementation.
+   * own implementation. Note that you must handle `ModuleDelegate.compilers`
+   * yourself in your replacement implementation.
    */
   read(modulePath: string): string;
 }
@@ -89,8 +90,8 @@ interface RequireFunction {
    *
    * If `source` does not have a file extension, and a file without an extension
    * cannot be found, the engine will check for files with the extensions in
-   * {@link Module.searchExtensions}, and use one of those if present. This
-   * behavior also happens when using normal `import` statements.
+   * {@link ModuleDelegate.searchExtensions}, and use one of those if present.
+   * This behavior also happens when using normal `import` statements.
    *
    * For example, if you write:
    *
@@ -99,8 +100,8 @@ interface RequireFunction {
    * ```
    *
    * but there's no file named `somewhere` in the same directory as the file
-   * where that import appears, and `Module.searchExtensions` is the default
-   * value:
+   * where that import appears, and `ModuleDelegate.searchExtensions` is the
+   * default value:
    *
    * ```js
    * [".js"]
@@ -110,9 +111,9 @@ interface RequireFunction {
    * engine will look for `somewhere/index.js`. If *that* doesn't exist, an
    * error will be thrown.
    *
-   * If you add more extensions to `Module.searchExtensions`, then the engine
-   * will use those, too. It will search in the same order as the strings appear
-   * in the `Module.searchExtensions` array.
+   * If you add more extensions to `ModuleDelegate.searchExtensions`, then the
+   * engine will use those, too. It will search in the same order as the strings
+   * appear in the `ModuleDelegate.searchExtensions` array.
    */
   (source: string): any;
 
@@ -152,11 +153,12 @@ interface ImportMeta {
    *
    * Equivalent to `globalThis.require.resolve`.
    *
-   * Behaves similarly to [the browser import.meta.resolve](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve),
+   * Behaves similarly to [the browser
+   * import.meta.resolve](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta/resolve),
    * but it does not ensure that the returned string is a valid URL, because it
-   * delegates directly to {@link Module.resolve} to resolve the name. If you
-   * want this to return URL strings, change `Module.resolve` and `Module.read`
-   * to work with URL strings.
+   * delegates directly to {@link ModuleDelegate.resolve} to resolve the name.
+   * If you want this to return URL strings, change `ModuleDelegate.resolve` and
+   * `ModuleDelegate.read` to work with URL strings.
    */
   resolve: RequireFunction["resolve"];
 }

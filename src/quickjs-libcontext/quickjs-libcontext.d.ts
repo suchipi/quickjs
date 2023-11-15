@@ -137,7 +137,7 @@ declare module "quickjs:context" {
       console?: boolean;
       /** Enables `print`. Defaults to `true`. */
       print?: boolean;
-      /** Enables `require` and `Module`. Defaults to `true`. */
+      /** Enables `require`. Defaults to `true`. */
       moduleGlobals?: boolean;
       /**
        * Enables `setTimeout`, `clearTimeout`, `setInterval`, and

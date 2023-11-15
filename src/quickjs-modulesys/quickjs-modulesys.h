@@ -62,7 +62,7 @@ JSValue QJMS_Require2(JSContext *ctx, JSValueConst specifier, JSValueConst basen
 JSValue QJMS_RequireResolve(JSContext *ctx, JSValueConst specifier_val);
 JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val, JSAtom basename_atom);
 
-/* returns an object like { require: Function, Module: Object } */
+/* returns an object like { require: Function, ModuleDelegate: Object } */
 JSValue QJMS_GetModuleLoaderInternals(JSContext *ctx);
 
 #endif /* ifndef QUICKJS_MODULESYS_H */

@@ -86,7 +86,7 @@ declare module "quickjs:module" {
 
   /**
    * An object which lets you configure the module loader (import/export/require).
-   * You can use these properties to add support for importing new filetypes.
+   * You can change these properties to add support for importing new filetypes.
    */
-  export const Module: Module;
+  export const ModuleDelegate: ModuleDelegate;
 }

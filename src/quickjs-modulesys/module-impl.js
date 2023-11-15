@@ -2,9 +2,9 @@ import * as std from "quickjs:std";
 import * as os from "quickjs:os";
 
 (() => {
-  let Module = __qjms_temp_Module;
+  let ModuleDelegate = __qjms_temp_ModuleDelegate;
 
-  Module.read = (moduleName) => {
+  ModuleDelegate.read = (moduleName) => {
     if (typeof moduleName !== "string") {
       const err = new Error("moduleName must be a string");
       err.moduleName = moduleName;
@@ -13,7 +13,7 @@ import * as os from "quickjs:os";
     const matches = moduleName.match(/(\.[^.]+)$/);
     const ext = matches ? matches[1] : "";
 
-    const compilers = Module.compilers;
+    const compilers = ModuleDelegate.compilers;
     const userCompiler = compilers[ext];
 
     let fileContent;
@@ -27,7 +27,7 @@ import * as os from "quickjs:os";
     if (userCompiler) {
       if (typeof userCompiler !== "function") {
         const err = new Error(
-          `Module.compilers[${JSON.stringify(ext)}] was not a function`
+          `ModuleDelegate.compilers[${JSON.stringify(ext)}] was not a function`
         );
         err.compiler = userCompiler;
         throw err;
@@ -35,7 +35,7 @@ import * as os from "quickjs:os";
       const result = userCompiler(moduleName, fileContent);
       if (typeof result !== "string") {
         const err = new Error(
-          `Module.compilers[${JSON.stringify(ext)}] returned non-string`
+          `ModuleDelegate.compilers[${JSON.stringify(ext)}] returned non-string`
         );
         err.result = result;
         throw err;
@@ -46,7 +46,7 @@ import * as os from "quickjs:os";
     }
   };
 
-  Module.resolve = (name, baseName) => {
+  ModuleDelegate.resolve = (name, baseName) => {
     try {
       if (name.includes(":")) {
         // namespaced module
@@ -54,7 +54,7 @@ import * as os from "quickjs:os";
       }
 
       if (name[0] !== ".") {
-        // maybe something made with Module.define
+        // maybe something made with ModuleDelegate.define
         return name;
       }
 
@@ -77,9 +77,11 @@ import * as os from "quickjs:os";
         return os.realpath(request);
       }
 
-      for (const ext of Module.searchExtensions) {
+      for (const ext of ModuleDelegate.searchExtensions) {
         if (typeof ext !== "string") {
-          throw new Error("Module.searchExtensions contained a non-string");
+          throw new Error(
+            "ModuleDelegate.searchExtensions contained a non-string"
+          );
         }
 
         if (isValidFile(request + ext)) {
@@ -93,7 +95,7 @@ import * as os from "quickjs:os";
 
       throw new Error(
         `No such file: '${request}' (using search extensions: ${JSON.stringify(
-          Module.searchExtensions
+          ModuleDelegate.searchExtensions
         )})`
       );
     } catch (err) {

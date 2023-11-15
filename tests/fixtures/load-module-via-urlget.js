@@ -1,18 +1,18 @@
 import * as std from "quickjs:std";
-import { Module } from "quickjs:module";
+import { ModuleDelegate } from "quickjs:module";
 
 const HTTP_RE = /^https?:\/\//;
 
-const defaultResolve = Module.resolve;
-Module.resolve = (name, fromFile) => {
+const defaultResolve = ModuleDelegate.resolve;
+ModuleDelegate.resolve = (name, fromFile) => {
   if (HTTP_RE.test(name)) {
     return name;
   }
   return defaultResolve(name, fromFile);
 };
 
-const defaultRead = Module.read;
-Module.read = (moduleName) => {
+const defaultRead = ModuleDelegate.read;
+ModuleDelegate.read = (moduleName) => {
   if (HTTP_RE.test(moduleName)) {
     return std.urlGet(moduleName);
   }

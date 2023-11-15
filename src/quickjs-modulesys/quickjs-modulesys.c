@@ -164,7 +164,7 @@ int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val)
 static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
                                       const char *name, QJMS_State *state)
 {
-  JSValue module_loader_internals, Module, resolve;
+  JSValue module_loader_internals, module_delegate, resolve;
   JSValue base_name_val, name_val;
   JSValue result_val;
   const char *result;
@@ -176,40 +176,40 @@ static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
     return NULL;
   }
 
-  Module = JS_GetPropertyStr(ctx, module_loader_internals, "Module");
-  if (JS_IsException(Module)) {
+  module_delegate = JS_GetPropertyStr(ctx, module_loader_internals, "ModuleDelegate");
+  if (JS_IsException(module_delegate)) {
     JS_FreeValue(ctx, module_loader_internals);
     return NULL;
   }
 
-  if (!JS_IsObject(Module)) {
+  if (!JS_IsObject(module_delegate)) {
     JS_FreeValue(ctx, module_loader_internals);
     // Return the original string as-is, so that qjsc is able to access
     // builtins
     return js_strdup(ctx, name);
   }
 
-  resolve = JS_GetPropertyStr(ctx, Module, "resolve");
+  resolve = JS_GetPropertyStr(ctx, module_delegate, "resolve");
   if (JS_IsException(resolve)) {
-    JS_FreeValue(ctx, Module);
+    JS_FreeValue(ctx, module_delegate);
     JS_FreeValue(ctx, module_loader_internals);
     return NULL;
   }
 
   if (!JS_IsFunction(ctx, resolve)) {
     JS_FreeValue(ctx, resolve);
-    JS_FreeValue(ctx, Module);
+    JS_FreeValue(ctx, module_delegate);
     JS_FreeValue(ctx, module_loader_internals);
 
     // Return the original string as-is, so that the file which defines
-    // Module.resolve is able to access builtins
+    // ModuleDelegate.resolve is able to access builtins
     return js_strdup(ctx, name);
   }
 
   base_name_val = JS_NewString(ctx, base_name);
   if (JS_IsException(base_name_val)) {
     JS_FreeValue(ctx, resolve);
-    JS_FreeValue(ctx, Module);
+    JS_FreeValue(ctx, module_delegate);
     JS_FreeValue(ctx, module_loader_internals);
     return NULL;
   }
@@ -218,7 +218,7 @@ static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
   if (JS_IsException(name_val)) {
     JS_FreeValue(ctx, base_name_val);
     JS_FreeValue(ctx, resolve);
-    JS_FreeValue(ctx, Module);
+    JS_FreeValue(ctx, module_delegate);
     JS_FreeValue(ctx, module_loader_internals);
     return NULL;
   }
@@ -226,12 +226,12 @@ static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
   argv[0] = name_val;
   argv[1] = base_name_val;
 
-  result_val = JS_Call(ctx, resolve, Module, argc, argv);
+  result_val = JS_Call(ctx, resolve, module_delegate, argc, argv);
 
   JS_FreeValue(ctx, name_val);
   JS_FreeValue(ctx, base_name_val);
   JS_FreeValue(ctx, resolve);
-  JS_FreeValue(ctx, Module);
+  JS_FreeValue(ctx, module_delegate);
   JS_FreeValue(ctx, module_loader_internals);
 
   if (JS_IsException(result_val)) {
@@ -319,7 +319,7 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
   if (has_suffix(module_name, ".so")) {
     m = QJMS_ModuleLoader_so(ctx, module_name);
   } else {
-    JSValue module_loader_internals, Module, read;
+    JSValue module_loader_internals, module_delegate, read;
     JSValue func_val;
 
     module_loader_internals = QJMS_GetModuleLoaderInternals(ctx);
@@ -327,15 +327,15 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
       return NULL;
     }
 
-    Module = JS_GetPropertyStr(ctx, module_loader_internals, "Module");
-    if (JS_IsException(Module)) {
+    module_delegate = JS_GetPropertyStr(ctx, module_loader_internals, "ModuleDelegate");
+    if (JS_IsException(module_delegate)) {
       JS_FreeValue(ctx, module_loader_internals);
       return NULL;
     }
 
-    read = JS_GetPropertyStr(ctx, Module, "read");
+    read = JS_GetPropertyStr(ctx, module_delegate, "read");
     if (JS_IsException(read)) {
-      JS_FreeValue(ctx, Module);
+      JS_FreeValue(ctx, module_delegate);
       JS_FreeValue(ctx, module_loader_internals);
       return NULL;
     }
@@ -351,17 +351,17 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
       module_name_val = JS_NewString(ctx, module_name);
       if (JS_IsException(module_name_val)) {
         JS_FreeValue(ctx, read);
-        JS_FreeValue(ctx, Module);
+        JS_FreeValue(ctx, module_delegate);
         JS_FreeValue(ctx, module_loader_internals);
         return NULL;
       }
 
       argv[0] = module_name_val;
-      result = JS_Call(ctx, read, Module, argc, argv);
+      result = JS_Call(ctx, read, module_delegate, argc, argv);
       JS_FreeValue(ctx, module_name_val);
 
       JS_FreeValue(ctx, read);
-      JS_FreeValue(ctx, Module);
+      JS_FreeValue(ctx, module_delegate);
       JS_FreeValue(ctx, module_loader_internals);
 
       if (JS_IsException(result)) {
@@ -369,7 +369,7 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
       }
 
       if (!JS_IsString(result)) {
-        JS_ThrowTypeError(ctx, "Module.read returned non-string");
+        JS_ThrowTypeError(ctx, "ModuleDelegate.read returned non-string");
         JS_FreeValue(ctx, result);
         return NULL;
       }
@@ -391,7 +391,7 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
       size_t buf_len;
 
       JS_FreeValue(ctx, read);
-      JS_FreeValue(ctx, Module);
+      JS_FreeValue(ctx, module_delegate);
       JS_FreeValue(ctx, module_loader_internals);
 
       buf = (char *)QJU_ReadFile(ctx, &buf_len, module_name);
@@ -676,29 +676,29 @@ static JSValue QJMS_MakeRequireFunction(JSContext *ctx)
   return JS_DupValue(ctx, require);
 }
 
-/* create the 'Module' object, which gets exposed as a global */
-static JSValue QJMS_MakeModuleObject(JSContext *ctx)
+/* create the 'ModuleDelegate' object */
+static JSValue QJMS_MakeModuleDelegateObject(JSContext *ctx)
 {
-  JSValue global_obj, module, search_extensions, compilers;
+  JSValue global_obj, module_delegate, search_extensions, compilers;
 
   global_obj = JS_GetGlobalObject(ctx);
 
-  module = JS_NewObject(ctx);
+  module_delegate = JS_NewObject(ctx);
 
   search_extensions = JS_NewArray(ctx);
   JS_DefinePropertyValueUint32(ctx, search_extensions, 0,
                                JS_NewString(ctx, ".js"), JS_PROP_C_W_E);
 
-  JS_SetPropertyStr(ctx, module, "searchExtensions", search_extensions);
+  JS_SetPropertyStr(ctx, module_delegate, "searchExtensions", search_extensions);
 
   compilers = JS_NewObject(ctx);
-  JS_SetPropertyStr(ctx, module, "compilers", compilers);
+  JS_SetPropertyStr(ctx, module_delegate, "compilers", compilers);
 
   // temporarily make a global so module-impl.js can access it...
   {
-    JSAtom temp_atom = JS_NewAtom(ctx, "__qjms_temp_Module");
-    JS_SetProperty(ctx, global_obj, temp_atom, module);
-    // Fill in Module.read and Module.resolve
+    JSAtom temp_atom = JS_NewAtom(ctx, "__qjms_temp_ModuleDelegate");
+    JS_SetProperty(ctx, global_obj, temp_atom, module_delegate);
+    // Fill in ModuleDelegate.read and ModuleDelegate.resolve
     QJMS_EvalBinary(ctx, qjsc_module_impl, qjsc_module_impl_size, 0);
     // remove the global we made for module-impl.js
     JS_DeleteProperty(ctx, global_obj, temp_atom, 0);
@@ -707,12 +707,12 @@ static JSValue QJMS_MakeModuleObject(JSContext *ctx)
 
   JS_FreeValue(ctx, global_obj);
 
-  return JS_DupValue(ctx, module);
+  return JS_DupValue(ctx, module_delegate);
 }
 
 void QJMS_InitContext(JSContext *ctx)
 {
-  JSValue global_obj, module_loader_internals, require, module;
+  JSValue global_obj, module_loader_internals, require, module_delegate;
 
   global_obj = JS_GetGlobalObject(ctx);
 
@@ -722,8 +722,8 @@ void QJMS_InitContext(JSContext *ctx)
   require = QJMS_MakeRequireFunction(ctx);
   JS_SetPropertyStr(ctx, module_loader_internals, "require", require);
 
-  module = QJMS_MakeModuleObject(ctx);
-  JS_SetPropertyStr(ctx, module_loader_internals, "Module", module);
+  module_delegate = QJMS_MakeModuleDelegateObject(ctx);
+  JS_SetPropertyStr(ctx, module_loader_internals, "ModuleDelegate", module_delegate);
 
   // make require available as a global, too
   JS_SetPropertyStr(ctx, global_obj, "require", require);

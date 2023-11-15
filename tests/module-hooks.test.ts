@@ -1,7 +1,7 @@
 import { spawn } from "first-base";
 import { binDir, rootDir } from "./_utils";
 
-test("Module.compilers and Module.searchExtensions", async () => {
+test("ModuleDelegate.compilers and ModuleDelegate.searchExtensions", async () => {
   const run = spawn(
     binDir("qjs"),
     ["tests/fixtures/module-hooks/load-txt.js"],
