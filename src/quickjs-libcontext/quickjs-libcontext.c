@@ -193,9 +193,6 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     if (stringNormalize) {
         JS_AddIntrinsicStringNormalize(target_ctx);
     }
-    if (stringDedent) {
-        js_std_add_string_dedent(target_ctx);
-    }
     if (regExp) {
         JS_AddIntrinsicRegExp(target_ctx);
     }
@@ -207,6 +204,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
     if (mapSet) {
         JS_AddIntrinsicMapSet(target_ctx);
+    }
+    if (stringDedent) {
+        js_std_add_string_dedent(target_ctx);
     }
     if (typedArrays) {
         JS_AddIntrinsicTypedArrays(target_ctx);
