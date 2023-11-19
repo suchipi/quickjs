@@ -11,7 +11,8 @@ import * as std from "quickjs:std";
 import * as Bytecode from "quickjs:bytecode";
 
 function main() {
-  const [_quickjsRun, _thisScript, inputFile, outputFile] = scriptArgs;
+  let [_quickjsRun, _thisScript, inputFile, outputFile, encodedFileName] =
+    scriptArgs;
 
   if (!(inputFile && outputFile)) {
     throw new Error(
@@ -19,7 +20,11 @@ function main() {
     );
   }
 
-  const bytecode = Bytecode.fromFile(inputFile);
+  if (!encodedFileName) {
+    encodedFileName = inputFile;
+  }
+
+  const bytecode = Bytecode.fromFile(inputFile, { encodedFileName });
   const out = std.open(outputFile, "wb");
   out.write(bytecode, 0, bytecode.byteLength);
 }

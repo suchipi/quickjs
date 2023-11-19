@@ -176,11 +176,15 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
     int eval_flags;
     int as_module;
     int byte_swap;
+    const char *encoded_filename;
     JSValue obj;
     JSValue ret;
+    BOOL should_free_encoded_filename;
 
     as_module = -1;
     byte_swap = 0;
+    encoded_filename = NULL;
+    should_free_encoded_filename = FALSE;
 
     if (argc < 1) {
         return JS_ThrowError(ctx, "fromFile requires at least 1 argument");
@@ -190,6 +194,7 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
         JSValue opts_obj;
         JSValue source_type;
         JSValue byte_swap_val;
+        JSValue encoded_filename_val;
 
         opts_obj = argv[1];
         source_type = JS_GetPropertyStr(ctx, opts_obj, "sourceType");
@@ -228,11 +233,32 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
             JS_FreeValue(ctx, byte_swap_val);
             return JS_EXCEPTION;
         }
+
+        encoded_filename_val = JS_GetPropertyStr(ctx, opts_obj, "encodedFileName");
+        if (JS_IsException(encoded_filename_val)) {
+            return JS_EXCEPTION;
+        }
+        if (JS_IsString(encoded_filename_val)) {
+            encoded_filename = JS_ToCString(ctx, encoded_filename_val);
+            if (encoded_filename == NULL) {
+                return JS_EXCEPTION;
+            }
+            should_free_encoded_filename = TRUE;
+        } else if (!JS_IsUndefined(encoded_filename_val) && !JS_IsNull(encoded_filename_val)) {
+            return JS_ThrowError(ctx, "when present, 'encodedFileName' option must be a string");
+        }
     }
 
     filename = JS_ToCString(ctx, argv[0]);
     if (!filename) {
+        if (should_free_encoded_filename) {
+            JS_FreeCString(ctx, encoded_filename);
+        }
         return JS_EXCEPTION;
+    }
+
+    if (encoded_filename == NULL) {
+        encoded_filename = filename;
     }
 
     buf = QJU_ReadFile(ctx, &buf_len, filename);
@@ -241,6 +267,9 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
 
+        if (should_free_encoded_filename) {
+            JS_FreeCString(ctx, encoded_filename);
+        }
         JS_FreeCString(ctx, filename);
 
         return JS_EXCEPTION;
@@ -257,13 +286,14 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
         eval_flags |= JS_EVAL_TYPE_GLOBAL;
     }
 
-    obj = JS_Eval(ctx, (const char *)buf, buf_len, filename, eval_flags);
+    obj = JS_Eval(ctx, (const char *)buf, buf_len, encoded_filename, eval_flags);
+    if (should_free_encoded_filename) {
+        JS_FreeCString(ctx, encoded_filename);
+    }
     js_free(ctx, buf);
     if (JS_IsException(obj)) {
         return JS_EXCEPTION;
     }
-
-
 
     ret = js_obj_to_bytecode_arraybuf(ctx, obj, byte_swap);
     JS_FreeValue(ctx, obj);

@@ -6,7 +6,11 @@ declare module "quickjs:bytecode" {
    */
   export function fromFile(
     path: string,
-    options?: { byteSwap?: boolean; sourceType?: "module" | "script" }
+    options?: {
+      byteSwap?: boolean;
+      sourceType?: "module" | "script";
+      encodedFileName?: string;
+    }
   ): ArrayBuffer;
 
   /**
