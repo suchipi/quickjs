@@ -14,6 +14,9 @@ const dirsWithHeaderFiles = Array.from(
 );
 
 for (const suffix of ["HOST", "TARGET"]) {
+  // Standard safe compiler optimizations
+  declareOrAppend(`CFLAGS_${suffix}`, "-O2");
+
   // Show all warnings.
   declareOrAppend(`CFLAGS_${suffix}`, "-Wall");
 
@@ -57,9 +60,15 @@ for (const suffix of ["HOST", "TARGET"]) {
   // include full unicode tables
   declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_ALL_UNICODE");
 
+  // always treat chars as unsigned for consistent bytecode
+  declareOrAppend(`CFLAGS_${suffix}`, "-funsigned-char");
+
   if (getVar(`LDEXPORT_${suffix}`)?.match(/-rdynamic/)) {
     // Enable importing *.so library modules from JS code.
     declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_SHARED_LIBRARY_MODULES");
+    // the dynamic linker API
     declareOrAppend(`LIBS_${suffix}`, "-ldl");
+    // Position-independent code; needed for shared libraries.
+    declareOrAppend(`CFLAGS_${suffix}`, "-fPIC");
   }
 }
