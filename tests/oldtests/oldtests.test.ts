@@ -87,18 +87,12 @@ describe("oldtests", () => {
     `);
   });
 
-  // NOTE: I haven't updated this test after changing the API for std
   test("test_std.js", async () => {
     expect(await qjs(["./test_std.js"])).toMatchInlineSnapshot(`
       {
-        "code": 1,
+        "code": 0,
         "error": false,
-        "stderr": "Error: assertion failed: got |false|, expected |true|
-          at assert (./test_std.js:18)
-          at test_os (./test_std.js:146)
-          at <anonymous> (./test_std.js:278)
-
-      ",
+        "stderr": "",
         "stdout": "",
       }
     `);
