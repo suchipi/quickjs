@@ -77,3 +77,8 @@ rule("combine_into_executable", {
   command: "cat $in > $out && chmod +x $out",
   description: "COMBINE $out",
 });
+
+rule("render-markdown", {
+  command: "npx mark-applier --origin http://localhost:8080 -i $in -o $out",
+  description: "RENDER_MARKDOWN $out",
+});

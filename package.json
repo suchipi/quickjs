@@ -19,13 +19,17 @@
     "@types/shelljs": "^0.8.11",
     "babel-jest": "^29.3.1",
     "first-base": "^0.2.0",
+    "http-server": "^14.1.1",
     "jest": "^29.3.1",
+    "mark-applier": "^0.4.0",
     "path-less-traveled": "^2.0.0",
     "prettier": "^2.8.1",
     "shelljs": "^0.8.5"
   },
   "scripts": {
-    "test": "jest --runInBand"
+    "build": "env QUICKJS_EXTRAS=1 meta/build.sh",
+    "test": "jest --runInBand",
+    "serve-docs": "http-server -p 8080 build/docs-site"
   },
   "prettier": {},
   "license": "MIT",
