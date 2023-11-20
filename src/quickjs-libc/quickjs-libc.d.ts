@@ -921,7 +921,7 @@ declare module "quickjs:os" {
   export function dup2(oldfd: number, newfd: number): number;
 
   /** `pipe` Unix system call. Return two handles as `[read_fd, write_fd]`. */
-  export function pipe(): null | [number, number];
+  export function pipe(): [number, number];
 
   /** Sleep for `delay_ms` milliseconds. */
   export function sleep(delay_ms: number): void;

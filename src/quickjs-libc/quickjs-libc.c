@@ -3535,7 +3535,7 @@ static JSValue js_os_WIFCONTINUED(JSContext *ctx, JSValueConst this_val,
 #endif
 }
 
-/* pipe() -> [read_fd, write_fd] or null if error */
+/* pipe() -> [read_fd, write_fd] */
 static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
 {
