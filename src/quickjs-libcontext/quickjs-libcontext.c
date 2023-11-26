@@ -65,7 +65,8 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     BOOL date, eval, stringNormalize, stringDedent, regExp, json, proxy, mapSet,
         typedArrays, promise, bigint, bigfloat, bigdecimal, operators, useMath,
         inspect, console, print, moduleGlobals, timers, module_std, module_os,
-        module_bytecode, module_context, module_pointer, module_engine;
+        module_bytecode, module_context, module_pointer, module_engine,
+        module_encoding;
 
     options = argv[0];
     if (get_option_bool(ctx, options, "date", &date, TRUE)) {
@@ -136,6 +137,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         BOOL module_context_default = TRUE;
         BOOL module_pointer_default = TRUE;
         BOOL module_engine_default = TRUE;
+        BOOL module_encoding_default = TRUE;
 
         if (JS_IsObject(options)) {
             JSValue options_modules = JS_GetPropertyStr(ctx, options, "modules");
@@ -166,6 +168,10 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
             }
+            if (get_option_bool(ctx, options_modules, "quickjs:encoding", &module_encoding, module_encoding_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
 
             JS_FreeValue(ctx, options_modules);
         } else {
@@ -175,6 +181,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
             module_context = module_context_default;
             module_pointer = module_pointer_default;
             module_engine = module_engine_default;
+            module_encoding = module_encoding_default;
         }
     }
 
