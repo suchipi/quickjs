@@ -38269,20 +38269,29 @@ static JSValue js_error_constructor(JSContext *ctx, JSValueConst new_target,
     }
 
     if (JS_IsObject(options)) {
-        int has_cause = JS_HasProperty(ctx, options, JS_ATOM_cause);
-        if (has_cause == -1) {
+        uint32_t len;
+        uint32_t i;
+        JSPropertyEnum *tab;
+        JSAtom key;
+        JSValue val;
+
+        if (JS_GetOwnPropertyNames(ctx, &tab, &len, options,
+                                   JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) < 0)
+        {
             goto exception;
         }
 
-        if (has_cause) {
+        for (i = 0; i < len; i++) {
             int define_property_result = 0;
-            JSValue cause = JS_GetProperty(ctx, options, JS_ATOM_cause);
-            if (JS_IsException(cause)) {
+
+            key = tab[i].atom;
+            val = JS_GetProperty(ctx, options, key);
+            if (JS_IsException(val)) {
                 goto exception;
             }
 
-            define_property_result = JS_DefinePropertyValue(ctx, obj, JS_ATOM_cause, cause,
-                                                            JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+            define_property_result = JS_DefinePropertyValue(ctx, obj, key, val,
+                                                            JS_PROP_C_W_E);
 
             if (define_property_result == -1) {
                 goto exception;

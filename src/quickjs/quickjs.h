@@ -876,7 +876,7 @@ JSValue JS_GetPrototype(JSContext *ctx, JSValueConst val);
 #define JS_GPN_PRIVATE_MASK (1 << 2)
 /* only include the enumerable properties */
 #define JS_GPN_ENUM_ONLY    (1 << 4)
-/* set theJSPropertyEnum.is_enumerable field */
+/* set the JSPropertyEnum.is_enumerable field */
 #define JS_GPN_SET_ENUM     (1 << 5)
 
 int JS_GetOwnPropertyNames(JSContext *ctx, JSPropertyEnum **ptab,
