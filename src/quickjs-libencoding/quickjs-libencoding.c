@@ -22,8 +22,25 @@ static JSValue js_encoding_toUtf8(JSContext *ctx, JSValueConst this_val,
   return JS_NewStringLen(ctx, (char *)buf, len);
 }
 
+static JSValue js_encoding_fromUtf8(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
+{
+  size_t len;
+  JSValue input;
+  const char *buf;
+
+  input = argv[0];
+  buf = JS_ToCStringLen2(ctx, &len, input, 1);
+  if (buf == NULL) {
+    return JS_ThrowError(ctx, "input must be a string");
+  }
+
+  return JS_NewArrayBufferCopy(ctx, (uint8_t*) buf, len);
+}
+
 static const JSCFunctionListEntry js_encoding_funcs[] = {
   JS_CFUNC_DEF("toUtf8", 1, js_encoding_toUtf8 ),
+  JS_CFUNC_DEF("fromUtf8", 1, js_encoding_fromUtf8 ),
 };
 
 static int js_encoding_init(JSContext *ctx, JSModuleDef *m)

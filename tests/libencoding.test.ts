@@ -1,7 +1,7 @@
 import { spawn } from "first-base";
 import { binDir, fixturesDir } from "./_utils";
 
-test("quickjs:encoding", async () => {
+test("quickjs:encoding - basic test", async () => {
   const run = spawn(binDir("qjs"), [
     "-e",
     `
@@ -34,6 +34,42 @@ test("quickjs:encoding", async () => {
     }
     {
     	asStr: "あ\\n\\0\\0\\0\\0"
+    }
+    ",
+    }
+  `);
+});
+
+test("quickjs:encoding - fromUtf8 is inverse of toUtf8", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import * as encoding from "quickjs:encoding";
+
+      const input = "hi あ";
+      const fromUtf8 = encoding.fromUtf8(input);
+      const toUtf8 = encoding.toUtf8(fromUtf8);
+      console.log(
+        inspect({
+          input,
+          fromUtf8,
+          toUtf8,
+        })
+      );
+  `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "{
+    	input: "hi あ"
+    	fromUtf8: ArrayBuffer {
+    		│0x00000000│ 68 69 20 E3 81 82
+    	}
+    	toUtf8: "hi あ"
     }
     ",
     }
