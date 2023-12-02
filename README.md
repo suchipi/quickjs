@@ -108,7 +108,7 @@ A barebones Module that exports a JS class which can be used to represent an opa
 
 ### New module: "quickjs:encoding"
 
-Text encoding/decoding functions. Currently just exports an ArrayBuffer-to-utf8-string function.
+Text encoding/decoding functions. Exports functions for converting between utf-8 and ArrayBuffer.
 
 ### New library: `quickjs-utils`
 
