@@ -1,7 +1,7 @@
 {
   "name": "@suchipi/quickjs",
   "description": "Suchipi's QuickJS Fork",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "main": "./npm/index.js",
   "bin": {
     "qjs": "npm/cli/qjs.js",
