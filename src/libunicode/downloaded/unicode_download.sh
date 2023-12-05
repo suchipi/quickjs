@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-URL="ftp://ftp.unicode.org/Public/14.0.0/ucd"
+URL="ftp://ftp.unicode.org/Public/15.0.0/ucd"
 
 wget "$URL/CaseFolding.txt" -O "./CaseFolding.txt"
 wget "$URL/DerivedNormalizationProps.txt" -O "./DerivedNormalizationProps.txt"
