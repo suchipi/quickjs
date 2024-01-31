@@ -206,6 +206,10 @@ To compile binaries for Linux, macOS, iOS, and Windows (using Docker):
 Or, to compile binaries for just your own unix system:
 
 - Make sure you have both [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) installed. I use Ninja 1.10.1 and Node.js 18.18.0, but it should work with most versions of both of those.
+- Make sure you have [bash](https://www.gnu.org/software/bash/) 4 or higher.
+
+  > Almost all modern Linux systems have bash 5, but macOS still has bash 3. To get a newer version of bash on macOS, install either [Homebrew](https://brew.sh/) or [MacPorts](https://www.macports.org/) (your preference), then run `brew install bash` or `sudo port install bash`, respectively. You may also need to ensure your shell's [PATH environment variable](https://superuser.com/a/284351) is set correctly; running `which bash` should print the location of the _newer_ bash binary, installed by Homebrew/MacPorts.
+
 - Clone the repo and cd to its folder
 - Run `meta/build.sh`
 - Build artifacts will be placed in the `build` folder. You're probably most interested in stuff in the `build/bin` and `build/lib` folders.
