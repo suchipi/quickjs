@@ -1,3 +1,4 @@
+- [ ] pull in upstream changes: https://github.com/suchipi/quickjs/compare/main...bellard%3Aquickjs%3Amaster
 - [x] seems module detection (via quickjs-run) always assumes script when there's a shebang line in the file
 - [x] qjsbootstrap binaries are differing in size on linux aarch64
 - [x] move "Module" global into "quickjs:module"
