@@ -2,7 +2,9 @@
 set -e
 
 if [[ "$(uname)" == "Darwin" ]]; then
-  brew install ninja nvm
+  brew install ninja
+  # install nvm
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 elif [[ "$(uname)" == "Linux" ]]; then
   sudo apt-get install -y ninja-build
 fi
