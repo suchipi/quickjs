@@ -2,6 +2,8 @@
 set -e
 
 if [[ "$(uname)" == "Darwin" ]]; then
+  # Note: we install a newer version of bash because macOS ships with bash 3,
+  # which doesn't support "shopt -s globstar", which we use.
   brew install ninja bash
   # install nvm
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
