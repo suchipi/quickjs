@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-sudo apt-get install -y ninja-build
+if [[ "$(uname)" == "Darwin" ]]; then
+  brew install ninja
+elif [[ "$(uname)" == "Linux" ]]; then
+  sudo apt-get install -y ninja-build
+fi
 
 export NVM_DIR="$HOME/.nvm"
 source "$NVM_DIR/nvm.sh"

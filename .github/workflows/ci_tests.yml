@@ -8,10 +8,17 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  build-and-test:
+  build-and-test-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Build and Test (Ubuntu)
+        run: meta/ci.sh
 
-      - name: Build and Test
+  build-and-test-macos:
+    # Note: 14 image uses M1 (arm) processor
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and Test (macOS)
         run: meta/ci.sh
