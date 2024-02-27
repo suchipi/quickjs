@@ -1,8 +1,11 @@
 ///<reference path="../quickjs-libbytecode/quickjs-libbytecode.d.ts" />
 ///<reference path="../quickjs-libc/quickjs-libc.d.ts" />
+///<reference path="../quickjs-modulesys/quickjs-modulesys.d.ts" />
+///<reference path="../quickjs-libengine/quickjs-libengine.d.ts" />
 
 import * as ByteCode from "quickjs:bytecode";
 import * as std from "quickjs:std";
+import * as engine from "quickjs:engine";
 
 const leadingArgsToSkip = basename(scriptArgs[0]) === "qjs" ? 2 : 1;
 main([...scriptArgs].slice(leadingArgsToSkip));
@@ -17,6 +20,8 @@ function main(args) {
    * @property byteSwap {boolean}
    * @property sourceType {"module" | "script" | undefined} undefined means auto
    * @property name {string | null}
+   * @property stackSize {number | null}
+   * @property enableBigNum {boolean} enable BigFloat, BigDecimal, and operator overloading
    */
 
   /** @type {Options} */
@@ -28,6 +33,8 @@ function main(args) {
     byteSwap: false,
     sourceType: undefined,
     name: null,
+    stackSize: null,
+    enableBigNum: false,
   };
 
   let arg;
@@ -81,6 +88,24 @@ function main(args) {
         }
         break;
       }
+      case "-S": {
+        const nextArg = args[0];
+        if (nextArg) {
+          const asNum = parseInt(nextArg);
+          if (Number.isNaN(asNum)) {
+            throw new Error("Expected numeric arg after '-S' (the stack size)");
+          }
+          options.stackSize = asNum;
+          args.shift();
+        } else {
+          throw new Error("Expected numeric arg after '-S' (the stack size)");
+        }
+        break;
+      }
+      case "-fbignum": {
+        options.enableBigNum = true;
+        break;
+      }
       // TODO: the other options
       default: {
         if (options.inputFile === null) {
@@ -93,6 +118,24 @@ function main(args) {
   }
 
   const encodedFileName = options.name || basename(options.inputFile);
+
+  const modulesToInit = [];
+
+  // Hook module loader before load so we know which modules to include
+  const originalResolve = engine.ModuleDelegate.resolve;
+  engine.ModuleDelegate.resolve = function patchedResolve(name, fromFile) {
+    if (name.includes(":")) {
+      modulesToInit.push({
+        modName: name,
+        varName: name.replace(/^quickjs:/, ""),
+      });
+    } else {
+      throw new Error(
+        "Relative module import isn't supported by this implementation of qjsc"
+      );
+    }
+    return originalResolve.call(this, name, fromFile);
+  };
 
   const fileByteCode = ByteCode.fromFile(options.inputFile, {
     byteSwap: options.byteSwap,
@@ -116,7 +159,87 @@ function main(args) {
       break;
     }
     case "programSource": {
-      throw new Error("TODO");
+      out += '#include "quickjs-libc.h"\n';
+      out += '#include "quickjs-utils.h"\n';
+      out += '#include "quickjs-modulesys.h"\n';
+      out += "\n\n";
+
+      out += `const uint32_t ${cname}_size = ${length};\n\n`;
+      out += `const uint8_t ${cname}[${length}] = {\n`;
+      out += dumpHex(fileByteCode);
+      out += "};\n\n";
+
+      out += "static JSContext *JS_NewCustomContext(JSRuntime *rt)\n";
+      out += "{\n";
+      out += "  JSContext *ctx = JS_NewContextRaw(rt);\n";
+      out += "  if (!ctx) {\n";
+      out += "    return NULL;\n";
+      out += "  }\n";
+      out += "  JS_AddIntrinsicBaseObjects(ctx);\n";
+      out += "  JS_AddIntrinsicDate(ctx);\n";
+      out += "  JS_AddIntrinsicEval(ctx);\n";
+      out += "  JS_AddIntrinsicStringNormalize(ctx);\n";
+      out += "  JS_AddIntrinsicRegExp(ctx);\n";
+      out += "  JS_AddIntrinsicJSON(ctx);\n";
+      out += "  JS_AddIntrinsicProxy(ctx);\n";
+      out += "  JS_AddIntrinsicMapSet(ctx);\n";
+      out += "  JS_AddIntrinsicTypedArrays(ctx);\n";
+      out += "  JS_AddIntrinsicPromise(ctx);\n";
+
+      if (options.enableBigNum) {
+        out += "  JS_AddIntrinsicBigFloat(ctx);\n";
+        out += "  JS_AddIntrinsicBigDecimal(ctx);\n";
+        out += "  JS_AddIntrinsicOperators(ctx);\n";
+        out += "  JS_EnableBignumExt(ctx, 1);\n";
+      }
+
+      for (const { varName, modName } of modulesToInit) {
+        out += "  {\n";
+        out += `    extern JSModuleDef *js_init_module_${varName}(JSContext *ctx, const char *name);\n`;
+        out += `    js_init_module_${varName}(ctx, ${JSON.stringify(
+          modName
+        )});\n`;
+        out += "  }\n";
+      }
+
+      out += " {\n";
+      out += "   extern const uint8_t qjsc_inspect[];\n";
+      out += "   extern const uint32_t qjsc_inspect_size;\n";
+      out += "   QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);\n";
+      out += " }\n";
+
+      out += "  return ctx;\n";
+      out += "}\n\n";
+
+      out += "int main(int argc, char **argv)\n";
+      out += "{\n";
+      out += "  JSRuntime *rt;\n";
+      out += "  JSContext *ctx;\n";
+      out += "  int exit_status;\n";
+      out += "  rt = JS_NewRuntime();\n";
+      out += "  js_std_set_worker_new_context_func(JS_NewCustomContext);\n";
+      out += "  js_std_init_handlers(rt);\n";
+
+      if (options.stackSize != null) {
+        out += `  JS_SetMaxStackSize(rt, ${options.stackSize});\n`;
+      }
+
+      out += "  QJMS_InitState(rt);\n";
+      out += "  ctx = JS_NewCustomContext(rt);\n";
+      out += "  js_std_add_helpers(ctx, argc, argv);\n";
+      out += "  QJMS_InitContext(ctx);\n";
+
+      // This is where we actually load the compiled bytecode
+      out += `  QJMS_EvalBinary(ctx, ${cname}, ${cname}_size, 0);\n`;
+
+      out += "  exit_status = js_std_loop(ctx);\n";
+      out += "  QJMS_FreeState(rt);\n";
+      out += "  JS_FreeContext(ctx);\n";
+      out += "  js_std_free_handlers(rt);\n";
+      out += "  JS_FreeRuntime(rt);\n";
+      out += "  return exit_status;\n";
+      out += "}\n";
+
       break;
     }
   }
