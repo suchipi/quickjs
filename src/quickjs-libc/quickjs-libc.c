@@ -89,6 +89,7 @@ extern const uint32_t qjsc_string_dedent_size;
 #include "quickjs-libc.h"
 #include "quickjs-utils.h"
 #include "quickjs-modulesys.h"
+#include "quickjs-print.h"
 #include "debugprint.h"
 #include "execpath.h"
 
@@ -4370,71 +4371,6 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
 
 /**********************************************************/
 
-static JSValue js_print(JSContext *ctx, JSValueConst this_val,
-                        int argc, JSValueConst *argv, int magic)
-{
-    int i;
-    const char *str;
-    size_t len;
-    FILE *out;
-
-    if (magic == 1) {
-        out = stdout;
-    } else if (magic == 2) {
-        out = stderr;
-    } else {
-        return JS_ThrowInternalError(ctx, "js_print called with incorrect 'magic' value. This is a bug in quickjs-libc.");
-    }
-
-    for(i = 0; i < argc; i++) {
-        if (i != 0) {
-            putc(' ', out);
-        }
-        str = JS_ToCStringLen(ctx, &len, argv[i]);
-        if (!str)
-            return JS_EXCEPTION;
-        fwrite(str, 1, len, out);
-        JS_FreeCString(ctx, str);
-    }
-    putc('\n', out);
-    return JS_UNDEFINED;
-}
-
-void js_std_add_console(JSContext *ctx)
-{
-    JSValue global_obj, console;
-
-    global_obj = JS_GetGlobalObject(ctx);
-
-    console = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx, console, "log",
-                      JS_NewCFunctionMagic(ctx, js_print, "log", 1,
-                                           JS_CFUNC_generic_magic, 1));
-    JS_SetPropertyStr(ctx, console, "info",
-                      JS_NewCFunctionMagic(ctx, js_print, "info", 1,
-                                           JS_CFUNC_generic_magic, 1));
-    JS_SetPropertyStr(ctx, console, "warn",
-                      JS_NewCFunctionMagic(ctx, js_print, "warn", 1,
-                                           JS_CFUNC_generic_magic, 2));
-    JS_SetPropertyStr(ctx, console, "error",
-                      JS_NewCFunctionMagic(ctx, js_print, "error", 1,
-                                           JS_CFUNC_generic_magic, 2));
-    JS_SetPropertyStr(ctx, global_obj, "console", console);
-
-    JS_FreeValue(ctx, global_obj);
-}
-
-void js_std_add_print(JSContext *ctx)
-{
-    JSValue global_obj = JS_GetGlobalObject(ctx);
-
-    JS_SetPropertyStr(ctx, global_obj, "print",
-                      JS_NewCFunctionMagic(ctx, js_print, "print", 1,
-                                           JS_CFUNC_generic_magic, 1));
-
-    JS_FreeValue(ctx, global_obj);
-}
-
 void js_std_add_inspect(JSContext *ctx)
 {
     QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
@@ -4491,10 +4427,10 @@ void js_std_add_string_dedent(JSContext *ctx)
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
     js_std_add_inspect(ctx);
-    js_std_add_console(ctx);
+    js_print_add_console_global(ctx);
 
     /* scriptArgs and print are the same as in the mozilla JS shell */
-    js_std_add_print(ctx);
+    js_print_add_print_global(ctx);
     js_std_add_scriptArgs(ctx, argc, argv);
 
     js_std_add_timeout(ctx);

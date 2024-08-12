@@ -55,15 +55,9 @@ rule("ar_target", {
 
 // use qjsc to make a .c file containing a byte array of bytecode for a .js file
 rule("qjsc", {
-  command: [
-    builddir("intermediate/quickjs-core-run.host$PROGRAM_SUFFIX"),
-    rel("../../src/qjsc/qjsc.js"),
-    `$qjsc_args -o $out $in`,
-  ],
+  command: [builddir("intermediate/qjsc.host"), `$qjsc_args -o $out $in`],
   description: "QJSC $out",
-  implicitInputs: [
-    builddir("intermediate/quickjs-core-run.host$PROGRAM_SUFFIX"),
-  ],
+  implicitInputs: [builddir("intermediate/qjsc.host")],
 });
 
 // copy a file from one place to another

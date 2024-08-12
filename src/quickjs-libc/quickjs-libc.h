@@ -46,12 +46,6 @@ extern "C"
   /* Creates 'inspect' global */
   void js_std_add_inspect(JSContext *ctx);
 
-  /* Creates 'console' global */
-  void js_std_add_console(JSContext *ctx);
-
-  /* Creates 'print' global */
-  void js_std_add_print(JSContext *ctx);
-
   /* Creates 'scriptArgs' global */
   void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv);
 
