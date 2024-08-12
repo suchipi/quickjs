@@ -7,6 +7,7 @@
 #include "quickjs-libengine.h"
 #include "quickjs-libcontext.h"
 #include "quickjs-print.h"
+#include "quickjs-inspect.h"
 
 static JSClassID js_context_class_id;
 
@@ -260,7 +261,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
 
     if (inspect) {
-        js_std_add_inspect(target_ctx);
+        js_inspect_add_inspect_global(target_ctx);
     }
     if (console) {
         js_print_add_console_global(target_ctx);

@@ -2,6 +2,8 @@
 #define QUICKJS_FULL_INIT_H
 
 #include "quickjs.h"
+#include "quickjs-print.h"
+#include "quickjs-inspect.h"
 #include "quickjs-libc.h"
 #include "quickjs-libbytecode.h"
 #include "quickjs-libcontext.h"

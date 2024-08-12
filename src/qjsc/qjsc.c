@@ -43,6 +43,7 @@ __static_yoink("blink_xnu_aarch64");
 #include "quickjs-modulesys.h"
 #include "debugprint.h"
 
+// TODO: clean this up
 // Stub out inspect, intervals, and string-dedent, which we can't rely on in
 // qjsc, because those are built with qjsc
 const uint32_t qjsc_inspect_size = 0;
@@ -687,6 +688,7 @@ int main(int argc, char **argv)
     if (output_type != OUTPUT_C) {
         fprintf(fo, "#include \"quickjs-libc.h\"\n"
                 "#include \"quickjs-utils.h\"\n"
+                "#include \"quickjs-print.h\"\n"
                 "#include \"quickjs-modulesys.h\"\n"
                 "\n"
                 );
@@ -753,9 +755,7 @@ int main(int argc, char **argv)
 
         fprintf(fo,
                 " {\n"
-                "   extern const uint8_t qjsc_inspect[];\n"
-                "   extern const uint32_t qjsc_inspect_size;\n"
-                "   QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);\n"
+                "   \n"
                 " }\n");
 
         for(i = 0; i < cname_list.count; i++) {
@@ -784,6 +784,8 @@ int main(int argc, char **argv)
         fprintf(fo,
                 "  ctx = JS_NewCustomContext(rt);\n"
                 "  js_std_add_helpers(ctx, argc, argv);\n"
+                "  js_print_add_print_global(ctx);\n"
+                "  js_print_add_console_global(ctx);\n"
                 "  QJMS_InitContext(ctx);\n");
 
         for(i = 0; i < cname_list.count; i++) {

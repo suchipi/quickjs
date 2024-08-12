@@ -1,8 +1,5 @@
 #include "quickjs-full-init.h"
 
-extern const uint8_t qjsc_inspect[];
-extern const uint32_t qjsc_inspect_size;
-
 /* returns 0 on success, nonzero on failure */
 static int quickjs_full_init_modules(JSContext *ctx)
 {
@@ -33,7 +30,14 @@ static int quickjs_full_init_modules(JSContext *ctx)
 
 static int quickjs_full_init_globals(JSContext *ctx)
 {
-    return QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
+    if (js_inspect_add_inspect_global(ctx)) {
+        return -1;
+    }
+
+    js_print_add_print_global(ctx);
+    js_print_add_console_global(ctx);
+
+    return 0;
 }
 
 int quickjs_full_init(JSContext *ctx)

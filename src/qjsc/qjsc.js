@@ -161,6 +161,8 @@ function main(args) {
     case "programSource": {
       out += '#include "quickjs-libc.h"\n';
       out += '#include "quickjs-utils.h"\n';
+      out += '#include "quickjs-print.h"\n';
+      out += '#include "quickjs-inspect.h"\n';
       out += '#include "quickjs-modulesys.h"\n';
       out += "\n\n";
 
@@ -202,11 +204,7 @@ function main(args) {
         out += "  }\n";
       }
 
-      out += " {\n";
-      out += "   extern const uint8_t qjsc_inspect[];\n";
-      out += "   extern const uint32_t qjsc_inspect_size;\n";
-      out += "   QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);\n";
-      out += " }\n";
+      out += " js_inspect_add_inspect_global(ctx);\n";
 
       out += "  return ctx;\n";
       out += "}\n\n";
@@ -227,6 +225,8 @@ function main(args) {
       out += "  QJMS_InitState(rt);\n";
       out += "  ctx = JS_NewCustomContext(rt);\n";
       out += "  js_std_add_helpers(ctx, argc, argv);\n";
+      out += "  js_print_add_print_global(ctx);\n";
+      out += "  js_print_add_console_global(ctx);\n";
       out += "  QJMS_InitContext(ctx);\n";
 
       // This is where we actually load the compiled bytecode

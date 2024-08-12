@@ -75,9 +75,6 @@ sighandler_t signal(int signum, sighandler_t handler);
 #include <stdatomic.h>
 #endif
 
-extern const uint8_t qjsc_inspect[];
-extern const uint32_t qjsc_inspect_size;
-
 extern const uint8_t qjsc_intervals[];
 extern const uint32_t qjsc_intervals_size;
 
@@ -89,7 +86,6 @@ extern const uint32_t qjsc_string_dedent_size;
 #include "quickjs-libc.h"
 #include "quickjs-utils.h"
 #include "quickjs-modulesys.h"
-#include "quickjs-print.h"
 #include "debugprint.h"
 #include "execpath.h"
 
@@ -3914,6 +3910,12 @@ static void *worker_func(void *opaque)
     JS_SetCanBlock(rt, TRUE);
 
     js_std_add_helpers(ctx, -1, NULL);
+    // TODO: print and console should go here, but I want to untangle libc from
+    // the rest, so I don't want libc to depend on print right now
+    //
+    // js_print_add_print_global(ctx);
+    // js_print_add_console_global(ctx);
+    // js_inspect_add_inspect_global(ctx);
     QJMS_InitContext(ctx);
 
     if (!JS_RunModule(ctx, args->basename, args->filename))
@@ -4371,11 +4373,6 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
 
 /**********************************************************/
 
-void js_std_add_inspect(JSContext *ctx)
-{
-    QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0);
-}
-
 void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv)
 {
     JSValue global_obj, args;
@@ -4426,13 +4423,7 @@ void js_std_add_string_dedent(JSContext *ctx)
 /**/
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
-    js_std_add_inspect(ctx);
-    js_print_add_console_global(ctx);
-
-    /* scriptArgs and print are the same as in the mozilla JS shell */
-    js_print_add_print_global(ctx);
     js_std_add_scriptArgs(ctx, argc, argv);
-
     js_std_add_timeout(ctx);
     js_std_add_intervals(ctx);
     js_std_add_string_dedent(ctx);
