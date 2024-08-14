@@ -1010,11 +1010,6 @@ declare module "quickjs:os" {
 declare var setTimeout: typeof import("quickjs:os").setTimeout;
 declare var clearTimeout: typeof import("quickjs:os").clearTimeout;
 
-declare type Interval = { [Symbol.toStringTag]: "Interval" };
-
-declare function setInterval(func: (...args: any) => any, ms: number): Interval;
-declare function clearInterval(interval: Interval): void;
-
 interface StringConstructor {
   /**
    * Remove leading minimum indentation from the string.

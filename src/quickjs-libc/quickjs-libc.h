@@ -38,7 +38,7 @@ extern "C"
   JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name);
 
   /*
-    Creates 'scriptArgs', 'setTimeout', 'setInterval', and 'String.dedent'.
+    Creates 'scriptArgs', 'setTimeout', and 'String.dedent'.
   */
   void js_std_add_helpers(JSContext *ctx, int argc, char **argv);
 
@@ -47,9 +47,6 @@ extern "C"
 
   /* Creates 'setTimeout' and 'clearTimeout' globals */
   void js_std_add_timeout(JSContext *ctx);
-
-  /* Creates 'setInterval' and 'clearInterval' globals */
-  void js_std_add_intervals(JSContext *ctx);
 
   /* Adds 'dedent' function to global 'String' constructor */
   void js_std_add_string_dedent(JSContext *ctx);

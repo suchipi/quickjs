@@ -9,6 +9,7 @@ const deps_host = [
   builddir("intermediate/quickjs-modulesys.host.o"),
   builddir("intermediate/quickjs-print.host.o"),
   builddir("intermediate/quickjs-inspect.host.o"),
+  builddir("intermediate/quickjs-intervals.host.o"),
 ];
 
 const deps_target = [
@@ -22,6 +23,7 @@ const deps_target = [
   builddir("intermediate/quickjs-modulesys.target.o"),
   builddir("intermediate/quickjs-print.target.o"),
   builddir("intermediate/quickjs-inspect.target.o"),
+  builddir("intermediate/quickjs-intervals.target.o"),
 ];
 
 const core_host = build({

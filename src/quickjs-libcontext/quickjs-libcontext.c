@@ -8,6 +8,7 @@
 #include "quickjs-libcontext.h"
 #include "quickjs-print.h"
 #include "quickjs-inspect.h"
+#include "quickjs-intervals.h"
 
 static JSClassID js_context_class_id;
 
@@ -272,7 +273,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
 
     if (timers) {
         js_std_add_timeout(target_ctx);
-        js_std_add_intervals(target_ctx);
+        js_intervals_add_setInterval_clearInterval_globals(target_ctx);
     }
     if (moduleGlobals) {
         QJMS_InitContext(target_ctx);

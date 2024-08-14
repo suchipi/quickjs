@@ -75,9 +75,6 @@ sighandler_t signal(int signum, sighandler_t handler);
 #include <stdatomic.h>
 #endif
 
-extern const uint8_t qjsc_intervals[];
-extern const uint32_t qjsc_intervals_size;
-
 extern const uint8_t qjsc_string_dedent[];
 extern const uint32_t qjsc_string_dedent_size;
 
@@ -3916,6 +3913,7 @@ static void *worker_func(void *opaque)
     // js_print_add_print_global(ctx);
     // js_print_add_console_global(ctx);
     // js_inspect_add_inspect_global(ctx);
+    // js_intervals_add_setInterval_clearInterval_globals(ctx);
     QJMS_InitContext(ctx);
 
     if (!JS_RunModule(ctx, args->basename, args->filename))
@@ -4410,11 +4408,6 @@ void js_std_add_timeout(JSContext *ctx)
     JS_FreeValue(ctx, global_obj);
 }
 
-void js_std_add_intervals(JSContext *ctx)
-{
-    QJMS_EvalBinary(ctx, qjsc_intervals, qjsc_intervals_size, 0);
-}
-
 void js_std_add_string_dedent(JSContext *ctx)
 {
     QJMS_EvalBinary(ctx, qjsc_string_dedent, qjsc_string_dedent_size, 0);
@@ -4425,7 +4418,6 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
     js_std_add_scriptArgs(ctx, argc, argv);
     js_std_add_timeout(ctx);
-    js_std_add_intervals(ctx);
     js_std_add_string_dedent(ctx);
 }
 

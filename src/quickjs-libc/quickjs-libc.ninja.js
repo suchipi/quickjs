@@ -10,27 +10,6 @@ const quickjs_libc_target_o = build({
   inputs: [rel("quickjs-libc.c")],
 });
 
-const intervals_c = build({
-  output: builddir("intermediate/quickjs-libc/intervals.c"),
-  rule: "qjsc",
-  inputs: [rel("lib/intervals.js")],
-  ruleVariables: {
-    qjsc_args: `-c -m`,
-  },
-});
-
-const intervals_target_o = build({
-  output: builddir("intermediate/quickjs-libc/intervals.target.o"),
-  rule: "cc_target",
-  inputs: [intervals_c],
-});
-
-const intervals_host_o = build({
-  output: builddir("intermediate/quickjs-libc/intervals.host.o"),
-  rule: "cc_host",
-  inputs: [intervals_c],
-});
-
 const string_dedent_c = build({
   output: builddir("intermediate/quickjs-libc/string-dedent.c"),
   rule: "qjsc",
