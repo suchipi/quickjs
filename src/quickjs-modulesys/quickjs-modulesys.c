@@ -59,13 +59,34 @@ void QJMS_FreeState(JSRuntime *rt)
 
 JSValue QJMS_GetModuleLoaderInternals(JSContext *ctx)
 {
-  return JS_GetContextOpaqueValue(ctx);
+  JSValue ctx_opaque_val, internals;
+
+  ctx_opaque_val = JS_GetContextOpaqueValue(ctx);
+  if (JS_IsNull(ctx_opaque_val)) {
+    return JS_NULL;
+  }
+
+  internals = JS_GetPropertyStr(ctx, ctx_opaque_val, "ModuleLoaderInternals");
+  JS_FreeValue(ctx, ctx_opaque_val);
+
+  return internals;
 }
 
 static void QJMS_SetModuleLoaderInternals(JSContext *ctx,
                                           JSValue module_loader_internals)
 {
-  JS_SetContextOpaqueValue(ctx, module_loader_internals);
+  JSValue ctx_opaque_val;
+
+  ctx_opaque_val = JS_GetContextOpaqueValue(ctx);
+  if (!JS_IsObject(ctx_opaque_val)) {
+    ctx_opaque_val = JS_NewObjectProto(ctx, JS_NULL);
+    if (JS_IsException(ctx_opaque_val)) {
+      return;
+    }
+    JS_SetContextOpaqueValue(ctx, ctx_opaque_val);
+  }
+
+  JS_SetPropertyStr(ctx, ctx_opaque_val, "ModuleLoaderInternals", module_loader_internals);
 }
 
 void QJMS_SetMainModule(JSRuntime *rt, const char *module_name) {
