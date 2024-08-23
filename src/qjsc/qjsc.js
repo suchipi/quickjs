@@ -163,6 +163,7 @@ function main(args) {
       out += '#include "quickjs-utils.h"\n';
       out += '#include "quickjs-print.h"\n';
       out += '#include "quickjs-inspect.h"\n';
+      out += '#include "quickjs-intervals.h"\n';
       out += '#include "quickjs-modulesys.h"\n';
       out += "\n\n";
 
@@ -204,7 +205,8 @@ function main(args) {
         out += "  }\n";
       }
 
-      out += " js_inspect_add_inspect_global(ctx);\n";
+      out += "  js_inspect_add_inspect_global(ctx);\n";
+      out += "  js_intervals_add_setInterval_clearInterval_globals(ctx);\n";
 
       out += "  return ctx;\n";
       out += "}\n\n";
