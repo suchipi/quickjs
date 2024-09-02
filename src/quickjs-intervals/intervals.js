@@ -5,7 +5,28 @@
   globalThis.setInterval = function setInterval(fn, ms) {
     const interval = new Interval();
     const wrappedFn = () => {
-      fn();
+      try {
+        fn();
+      } catch (err) {
+        let consoleErrorWorked = false;
+        try {
+          if (
+            typeof console === "object" &&
+            console != null &&
+            typeof console.error === "function"
+          ) {
+            console.error(err);
+            consoleErrorWorked = true;
+          }
+        } catch (err2) {}
+        if (!consoleErrorWorked) {
+          try {
+            if (typeof print === "function") {
+              print(err);
+            }
+          } catch (err3) {}
+        }
+      }
       const timer = setTimeout(wrappedFn, ms);
       timerMap.set(interval, timer);
     };
