@@ -1,6 +1,6 @@
 const qjscalc_c = build({
   output: builddir("intermediate/qjscalc.c"),
-  rule: "qjsc",
+  rule: "qjsc-minimal",
   inputs: [rel("qjscalc.js")],
   ruleVariables: {
     qjsc_args: `-fbignum -c`,

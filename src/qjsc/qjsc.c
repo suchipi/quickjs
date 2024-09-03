@@ -43,12 +43,16 @@ __static_yoink("blink_xnu_aarch64");
 #include "quickjs-modulesys.h"
 #include "debugprint.h"
 
+#ifdef QJSC_MINIMAL
 // Stub out inspect and intervals, which we can't rely on in
-// qjsc, because those are built with qjsc
+// qjsc-minimal, because those are built with qjsc-minimal
 const uint32_t qjsc_inspect_size = 0;
 const uint8_t qjsc_inspect[0] = {};
 const uint32_t qjsc_intervals_size = 0;
 const uint8_t qjsc_intervals[0] = {};
+#else
+#include "quickjs-full-init.h"
+#endif
 
 typedef struct {
     char *name;
@@ -542,6 +546,13 @@ int main(int argc, char **argv)
     /* add system modules */
     namelist_add(&cmodule_list, "quickjs:std", "std", 0);
     namelist_add(&cmodule_list, "quickjs:os", "os", 0);
+    #ifndef QJSC_MINIMAL
+        namelist_add(&cmodule_list, "quickjs:bytecode", "bytecode", 0);
+        namelist_add(&cmodule_list, "quickjs:context", "context", 0);
+        namelist_add(&cmodule_list, "quickjs:pointer", "pointer", 0);
+        namelist_add(&cmodule_list, "quickjs:engine", "engine", 0);
+        namelist_add(&cmodule_list, "quickjs:encoding", "encoding", 0);
+    #endif
 
     for(;;) {
         c = getopt(argc, argv, "ho:cN:f:mxevM:p:S:D:");
@@ -685,10 +696,7 @@ int main(int argc, char **argv)
             );
 
     if (output_type != OUTPUT_C) {
-        fprintf(fo, "#include \"quickjs-libc.h\"\n"
-                "#include \"quickjs-utils.h\"\n"
-                "#include \"quickjs-print.h\"\n"
-                "#include \"quickjs-modulesys.h\"\n"
+        fprintf(fo, "#include \"quickjs-full-init.h\"\n"
                 "\n"
                 );
     } else {
@@ -754,7 +762,9 @@ int main(int argc, char **argv)
 
         fprintf(fo,
                 " {\n"
-                "   \n"
+                "   if (quickjs_full_init(ctx)) {\n"
+                "     exit(1);\n"
+                "   }\n"
                 " }\n");
 
         for(i = 0; i < cname_list.count; i++) {

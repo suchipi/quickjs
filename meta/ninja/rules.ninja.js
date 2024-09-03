@@ -60,6 +60,15 @@ rule("qjsc", {
   implicitInputs: [builddir("intermediate/qjsc.host")],
 });
 
+rule("qjsc-minimal", {
+  command: [
+    builddir("intermediate/qjsc-minimal.host"),
+    `$qjsc_args -o $out $in`,
+  ],
+  description: "QJSC $out",
+  implicitInputs: [builddir("intermediate/qjsc-minimal.host")],
+});
+
 // copy a file from one place to another
 rule("copy", {
   command: `cp $in $out`,

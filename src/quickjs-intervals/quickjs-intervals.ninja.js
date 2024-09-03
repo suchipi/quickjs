@@ -14,7 +14,7 @@ build({
 // C bytecode file generated from js
 const intervals_c = build({
   output: builddir("intermediate/intervals.c"),
-  rule: "qjsc",
+  rule: "qjsc-minimal",
   inputs: [rel("intervals.js")],
   ruleVariables: {
     qjsc_args: `-c -m`,

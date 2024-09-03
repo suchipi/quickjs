@@ -3894,8 +3894,9 @@ static void *worker_func(void *opaque)
     ts->recv_pipe = args->recv_pipe;
     ts->send_pipe = args->send_pipe;
 
-    /* function pointer to avoid linking the whole JS_NewContext() if
-       not needed */
+    // function pointer to avoid linking the whole JS_NewContext() if not needed,
+    // but also it gives people a place to put
+    // js_print_add_print_global, js_inspect_add_inspect_global, etc
     ctx = js_worker_new_context_func(rt);
     if (ctx == NULL) {
         fprintf(stderr, "JS_NewContext failure");
@@ -3904,13 +3905,6 @@ static void *worker_func(void *opaque)
     JS_SetCanBlock(rt, TRUE);
 
     js_std_add_helpers(ctx, -1, NULL);
-    // TODO: print and console should go here, but I want to untangle libc from
-    // the rest, so I don't want libc to depend on print right now
-    //
-    // js_print_add_print_global(ctx);
-    // js_print_add_console_global(ctx);
-    // js_inspect_add_inspect_global(ctx);
-    // js_intervals_add_setInterval_clearInterval_globals(ctx);
     QJMS_InitContext(ctx);
 
     if (!JS_RunModule(ctx, args->basename, args->filename))
@@ -4405,7 +4399,6 @@ void js_std_add_timeout(JSContext *ctx)
     JS_FreeValue(ctx, global_obj);
 }
 
-/**/
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
     js_std_add_scriptArgs(ctx, argc, argv);

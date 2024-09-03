@@ -1,6 +1,6 @@
 const repl_c = build({
   output: builddir("intermediate/repl.c"),
-  rule: "qjsc",
+  rule: "qjsc-minimal",
   inputs: [rel("repl.js")],
   ruleVariables: {
     qjsc_args: `-c -m`,

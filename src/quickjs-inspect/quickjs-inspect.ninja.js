@@ -14,7 +14,7 @@ build({
 // C bytecode file generated from js
 const inspect_c = build({
   output: builddir("intermediate/inspect.c"),
-  rule: "qjsc",
+  rule: "qjsc-minimal",
   inputs: [rel("inspect.js")],
   ruleVariables: {
     qjsc_args: `-c -m`,
