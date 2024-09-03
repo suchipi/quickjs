@@ -235,6 +235,7 @@ struct JSRuntime {
     uint32_t operator_count;
 #endif
     void *user_opaque;
+    JSValue user_opaque_val;
 };
 
 struct JSClass {
@@ -1593,6 +1594,7 @@ JSRuntime *JS_NewRuntime2(const JSMallocFunctions *mf, void *opaque)
     JS_UpdateStackTop(rt);
 
     rt->current_exception = JS_NULL;
+    rt->user_opaque_val = JS_NULL;
 
     return rt;
  fail:
@@ -1608,6 +1610,17 @@ void *JS_GetRuntimeOpaque(JSRuntime *rt)
 void JS_SetRuntimeOpaque(JSRuntime *rt, void *opaque)
 {
     rt->user_opaque = opaque;
+}
+
+void JS_SetRuntimeOpaqueValue(JSRuntime *rt, JSValue value)
+{
+    rt->user_opaque_val = value;
+}
+
+/* NOTE: you must free it! */
+JSValue JS_GetRuntimeOpaqueValue(JSRuntime *rt)
+{
+    return JS_DupValueRT(rt, rt->user_opaque_val);
 }
 
 /* default memory allocation functions with memory limitation */
@@ -1867,6 +1880,7 @@ void JS_FreeRuntime(JSRuntime *rt)
     int i;
 
     JS_FreeValueRT(rt, rt->current_exception);
+    JS_FreeValueRT(rt, rt->user_opaque_val);
 
     list_for_each_safe(el, el1, &rt->job_list) {
         JSJobEntry *e = list_entry(el, JSJobEntry, link);
@@ -2116,6 +2130,17 @@ void *JS_GetContextOpaque(JSContext *ctx)
 void JS_SetContextOpaque(JSContext *ctx, void *opaque)
 {
     ctx->user_opaque = opaque;
+}
+
+void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value)
+{
+    ctx->user_opaque_val = value;
+}
+
+/* NOTE: you must free it! */
+JSValue JS_GetContextOpaqueValue(JSContext *ctx)
+{
+    return JS_DupValue(ctx, ctx->user_opaque_val);
 }
 
 /* set the new value and free the old value after (freeing the value
@@ -27099,17 +27124,6 @@ void JS_SetModuleLoaderOpaque(JSRuntime *rt, void *opaque)
 void *JS_GetModuleLoaderOpaque(JSRuntime *rt)
 {
     return rt->module_loader_opaque;
-}
-
-void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value)
-{
-    ctx->user_opaque_val = value;
-}
-
-/* NOTE: you must free it! */
-JSValue JS_GetContextOpaqueValue(JSContext *ctx)
-{
-    return JS_DupValue(ctx, ctx->user_opaque_val);
 }
 
 /* default module filename normalizer */

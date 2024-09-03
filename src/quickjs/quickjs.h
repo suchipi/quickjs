@@ -410,6 +410,9 @@ JSRuntime *JS_NewRuntime2(const JSMallocFunctions *mf, void *opaque);
 void JS_FreeRuntime(JSRuntime *rt);
 void *JS_GetRuntimeOpaque(JSRuntime *rt);
 void JS_SetRuntimeOpaque(JSRuntime *rt, void *opaque);
+void JS_SetRuntimeOpaqueValue(JSRuntime *rt, JSValue value);
+/* NOTE: you must free it! */
+JSValue JS_GetRuntimeOpaqueValue(JSRuntime *rt);
 typedef void JS_MarkFunc(JSRuntime *rt, JSGCObjectHeader *gp);
 void JS_MarkValue(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func);
 void JS_RunGC(JSRuntime *rt);
@@ -420,6 +423,9 @@ void JS_FreeContext(JSContext *s);
 JSContext *JS_DupContext(JSContext *ctx);
 void *JS_GetContextOpaque(JSContext *ctx);
 void JS_SetContextOpaque(JSContext *ctx, void *opaque);
+void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value);
+/* NOTE: you must free it! */
+JSValue JS_GetContextOpaqueValue(JSContext *ctx);
 JSRuntime *JS_GetRuntime(JSContext *ctx);
 void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj);
 JSValue JS_GetClassProto(JSContext *ctx, JSClassID class_id);
@@ -992,10 +998,6 @@ JSModuleNormalizeFunc *JS_GetModuleNormalizeFunc(JSRuntime *rt);
 void JS_SetModuleLoaderOpaque(JSRuntime *rt, void *opaque);
 /* return the value set by JS_SetModuleLoaderOpaque. could be NULL. */
 void *JS_GetModuleLoaderOpaque(JSRuntime *rt);
-
-void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value);
-/* NOTE: you must free it! */
-JSValue JS_GetContextOpaqueValue(JSContext *ctx);
 
 /* return the import.meta object of a module. you'll have to free it when done */
 JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);
