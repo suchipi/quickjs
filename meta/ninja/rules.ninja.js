@@ -53,13 +53,14 @@ rule("ar_target", {
   description: "AR_TARGET $out",
 });
 
-// use qjsc to make a .c file containing a byte array of bytecode for a .js file
+// uses the user-facing "full" qjsc
 rule("qjsc", {
   command: [builddir("intermediate/qjsc.host"), `$qjsc_args -o $out $in`],
   description: "QJSC $out",
   implicitInputs: [builddir("intermediate/qjsc.host")],
 });
 
+// this one only has std and os. used to compile the bytecode for other things
 rule("qjsc-minimal", {
   command: [
     builddir("intermediate/qjsc-minimal.host"),
