@@ -977,18 +977,20 @@ typedef char *JSModuleNormalizeFunc(JSContext *ctx,
 typedef JSModuleDef *JSModuleLoaderFunc(JSContext *ctx,
                                         const char *module_name, void *opaque);
 
+void JS_SetModuleLoaderFunc(JSRuntime *rt,
+                            JSModuleLoaderFunc *module_loader);
+/* return the value set by JS_SetModuleLoaderFunc. could be NULL. */
+JSModuleLoaderFunc *JS_GetModuleLoaderFunc(JSRuntime *rt);
+
 /* module_normalize = NULL is allowed and invokes the default module
    filename normalizer */
-void JS_SetModuleLoaderFunc(JSRuntime *rt,
-                            JSModuleNormalizeFunc *module_normalize,
-                            JSModuleLoaderFunc *module_loader, void *opaque);
-
-/* return the value set by JS_SetModuleLoaderFunc. could be NULL. */
+void JS_SetModuleNormalizeFunc(JSRuntime *rt,
+                               JSModuleNormalizeFunc *module_normalize);
+/* return the value set by JS_SetModuleNormalizeFunc. could be NULL. */
 JSModuleNormalizeFunc *JS_GetModuleNormalizeFunc(JSRuntime *rt);
-/* return the value set by JS_SetModuleLoaderFunc. could be NULL but only if
-   JS_SetModuleLoaderFunc was never called. */
-JSModuleLoaderFunc *JS_GetModuleLoaderFunc(JSRuntime *rt);
-/* return the value set by JS_SetModuleLoaderFunc. could be NULL. */
+
+void JS_SetModuleLoaderOpaque(JSRuntime *rt, void *opaque);
+/* return the value set by JS_SetModuleLoaderOpaque. could be NULL. */
 void *JS_GetModuleLoaderOpaque(JSRuntime *rt);
 
 void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value);

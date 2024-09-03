@@ -37,9 +37,9 @@ void QJMS_InitState(JSRuntime *rt)
   state = js_malloc_rt(rt, sizeof(state));
   state->main_module = main_module;
 
-  JS_SetModuleLoaderFunc(rt, (JSModuleNormalizeFunc *) QJMS_NormalizeModuleName,
-                         (JSModuleLoaderFunc *) QJMS_ModuleLoader,
-                         (void *) state);
+  JS_SetModuleNormalizeFunc(rt, (JSModuleNormalizeFunc *) QJMS_NormalizeModuleName);
+  JS_SetModuleLoaderFunc(rt, (JSModuleLoaderFunc *) QJMS_ModuleLoader);
+  JS_SetModuleLoaderOpaque(rt, (void *) state);
 }
 
 void QJMS_FreeState(JSRuntime *rt)

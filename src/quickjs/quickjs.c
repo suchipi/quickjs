@@ -27070,12 +27070,35 @@ int JS_SetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name,
 }
 
 void JS_SetModuleLoaderFunc(JSRuntime *rt,
-                            JSModuleNormalizeFunc *module_normalize,
-                            JSModuleLoaderFunc *module_loader, void *opaque)
+                            JSModuleLoaderFunc *module_loader)
+{
+    rt->module_loader_func = module_loader;
+}
+
+JSModuleLoaderFunc *JS_GetModuleLoaderFunc(JSRuntime *rt)
+{
+    return rt->module_loader_func;
+}
+
+void JS_SetModuleNormalizeFunc(JSRuntime *rt,
+                               JSModuleNormalizeFunc *module_normalize)
 {
     rt->module_normalize_func = module_normalize;
-    rt->module_loader_func = module_loader;
+}
+
+JSModuleNormalizeFunc *JS_GetModuleNormalizeFunc(JSRuntime *rt)
+{
+    return rt->module_normalize_func;
+}
+
+void JS_SetModuleLoaderOpaque(JSRuntime *rt, void *opaque)
+{
     rt->module_loader_opaque = opaque;
+}
+
+void *JS_GetModuleLoaderOpaque(JSRuntime *rt)
+{
+    return rt->module_loader_opaque;
 }
 
 void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value)
@@ -27087,21 +27110,6 @@ void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value)
 JSValue JS_GetContextOpaqueValue(JSContext *ctx)
 {
     return JS_DupValue(ctx, ctx->user_opaque_val);
-}
-
-JSModuleNormalizeFunc *JS_GetModuleNormalizeFunc(JSRuntime *rt)
-{
-    return rt->module_normalize_func;
-}
-
-JSModuleLoaderFunc *JS_GetModuleLoaderFunc(JSRuntime *rt)
-{
-    return rt->module_loader_func;
-}
-
-void *JS_GetModuleLoaderOpaque(JSRuntime *rt)
-{
-    return rt->module_loader_opaque;
 }
 
 /* default module filename normalizer */

@@ -675,7 +675,9 @@ int main(int argc, char **argv)
 #endif
 
     /* loader for ES6 modules */
-    JS_SetModuleLoaderFunc(rt, NULL, jsc_module_loader, NULL);
+    JS_SetModuleNormalizeFunc(rt, NULL);
+    JS_SetModuleLoaderFunc(rt, jsc_module_loader);
+    JS_SetModuleLoaderOpaque(rt, NULL);
 
     debugprint("writing file header comment and include...\n");
 
