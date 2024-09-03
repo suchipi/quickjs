@@ -2,6 +2,7 @@
 #include <string.h>
 #include "quickjs.h"
 #include "quickjs-libc.h"
+#include "quickjs-print.h"
 #include "quickjs-modulesys.h"
 
 extern const uint32_t qjsc_loop_size;
@@ -23,6 +24,8 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   JS_AddIntrinsicTypedArrays(ctx);
   JS_AddIntrinsicPromise(ctx);
   JS_AddIntrinsicBigInt(ctx);
+  js_print_add_print_global(ctx);
+  js_print_add_console_global(ctx);
   js_init_module_os(ctx, "quickjs:os");
   js_init_module_std(ctx, "quickjs:std");
 
