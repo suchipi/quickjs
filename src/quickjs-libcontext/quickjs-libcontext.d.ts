@@ -59,9 +59,6 @@ declare module "quickjs:context" {
       /** Enables `String.prototype.normalize`. Defaults to `true`. */
       stringNormalize?: boolean;
 
-      /** Enables `String.dedent`. Defaults to `true`. */
-      stringDedent?: boolean;
-
       /** Enables `RegExp`. Defaults to `true`. */
       regExp?: boolean;
 

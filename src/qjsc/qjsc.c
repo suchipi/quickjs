@@ -44,14 +44,12 @@ __static_yoink("blink_xnu_aarch64");
 #include "debugprint.h"
 
 // TODO: clean this up
-// Stub out inspect, intervals, and string-dedent, which we can't rely on in
+// Stub out inspect and intervals, which we can't rely on in
 // qjsc, because those are built with qjsc
 const uint32_t qjsc_inspect_size = 0;
 const uint8_t qjsc_inspect[0] = {};
 const uint32_t qjsc_intervals_size = 0;
 const uint8_t qjsc_intervals[0] = {};
-const uint32_t qjsc_string_dedent_size = 0;
-const uint8_t qjsc_string_dedent[0] = {};
 
 typedef struct {
     char *name;

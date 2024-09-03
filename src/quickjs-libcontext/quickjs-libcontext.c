@@ -65,9 +65,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     JSRuntime *rt;
     JSValue ret, options, global;
     JSContext *target_ctx;
-    BOOL date, eval, stringNormalize, stringDedent, regExp, json, proxy, mapSet,
-        typedArrays, promise, bigint, bigfloat, bigdecimal, operators, useMath,
-        inspect, console, print, moduleGlobals, timers, module_std, module_os,
+    BOOL date, eval, stringNormalize, regExp, json, proxy, mapSet, typedArrays,
+        promise, bigint, bigfloat, bigdecimal, operators, useMath, inspect,
+        console, print, moduleGlobals, timers, module_std, module_os,
         module_bytecode, module_context, module_pointer, module_engine,
         module_encoding;
 
@@ -79,9 +79,6 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "stringNormalize", &stringNormalize, TRUE)) {
-        return JS_EXCEPTION;
-    }
-    if (get_option_bool(ctx, options, "stringDedent", &stringDedent, TRUE)) {
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "regExp", &regExp, TRUE)) {
@@ -214,9 +211,6 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
     if (mapSet) {
         JS_AddIntrinsicMapSet(target_ctx);
-    }
-    if (stringDedent) {
-        js_std_add_string_dedent(target_ctx);
     }
     if (typedArrays) {
         JS_AddIntrinsicTypedArrays(target_ctx);

@@ -75,9 +75,6 @@ sighandler_t signal(int signum, sighandler_t handler);
 #include <stdatomic.h>
 #endif
 
-extern const uint8_t qjsc_string_dedent[];
-extern const uint32_t qjsc_string_dedent_size;
-
 #include "cutils.h"
 #include "list.h"
 #include "quickjs-libc.h"
@@ -4408,17 +4405,11 @@ void js_std_add_timeout(JSContext *ctx)
     JS_FreeValue(ctx, global_obj);
 }
 
-void js_std_add_string_dedent(JSContext *ctx)
-{
-    QJMS_EvalBinary(ctx, qjsc_string_dedent, qjsc_string_dedent_size, 0);
-}
-
 /**/
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
     js_std_add_scriptArgs(ctx, argc, argv);
     js_std_add_timeout(ctx);
-    js_std_add_string_dedent(ctx);
 }
 
 void js_std_init_handlers(JSRuntime *rt)

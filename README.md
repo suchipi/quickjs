@@ -59,7 +59,6 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - Most module-loading-related code was moved into `quickjs-modulesys`.
 - `setTimeout` and `clearTimeout` are now available as globals (previously they were only available as exports).
 - `setInterval` and `clearInterval` are added, available as globals.
-- `String.dedent` added (template tag function, like the proposed [String.dedent](https://github.com/tc39/proposal-string-dedent)).
 - Several C-side helper functions were moved out of quickjs-libc and into quickjs-utils.
 - Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
 - Added `std.setExitCode`, `std.getExitCode`, and made `std.exit`'s parameter optional. The value passed to `std.setExitCode` will be used when the process exits normally, or when `std.exit` is called without any arguments. `std.setExitCode`, `std.getExitCode`, and `std.exit` throw if called from a thread other than the main thread (ie. a Worker).

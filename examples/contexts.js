@@ -21,7 +21,6 @@ const c3 = new Context({
   date: false,
   eval: false,
   stringNormalize: false,
-  stringDedent: false,
   regExp: false,
   json: false,
   proxy: false,
