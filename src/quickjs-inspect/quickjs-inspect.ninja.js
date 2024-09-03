@@ -39,3 +39,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-inspect.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-inspect.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-inspect.h")],
+});

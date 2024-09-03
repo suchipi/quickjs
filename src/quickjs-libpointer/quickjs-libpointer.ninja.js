@@ -15,3 +15,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-libpointer.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-libpointer.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-libpointer.h")],
+});

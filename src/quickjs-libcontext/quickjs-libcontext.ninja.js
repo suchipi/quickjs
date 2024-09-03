@@ -15,3 +15,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-libcontext.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-libcontext.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-libcontext.h")],
+});

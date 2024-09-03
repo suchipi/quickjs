@@ -9,3 +9,9 @@ build({
   rule: "cc_target",
   inputs: [rel("quickjs-utils.c")],
 });
+
+build({
+  output: builddir("include/quickjs-utils.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-utils.h")],
+});

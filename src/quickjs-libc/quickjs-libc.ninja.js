@@ -15,3 +15,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-libc.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-libc.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-libc.h")],
+});

@@ -48,3 +48,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-modulesys.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-modulesys.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-modulesys.h")],
+});

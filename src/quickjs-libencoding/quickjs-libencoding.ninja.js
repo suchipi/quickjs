@@ -15,3 +15,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-libencoding.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-libencoding.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-libencoding.h")],
+});

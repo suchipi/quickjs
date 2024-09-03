@@ -15,3 +15,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-print.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-print.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-print.h")],
+});

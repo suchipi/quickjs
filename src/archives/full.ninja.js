@@ -57,3 +57,9 @@ const quickjs_full_a = build({
   rule: "copy",
   inputs: [full_target],
 });
+
+build({
+  output: builddir("include/quickjs-full-init.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-full-init.h")],
+});

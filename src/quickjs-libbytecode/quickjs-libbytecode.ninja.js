@@ -15,3 +15,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-libbytecode.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-libbytecode.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-libbytecode.h")],
+});

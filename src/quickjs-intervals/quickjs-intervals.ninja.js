@@ -39,3 +39,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-intervals.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-intervals.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-intervals.h")],
+});

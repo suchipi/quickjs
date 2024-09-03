@@ -15,3 +15,9 @@ build({
   rule: "copy",
   inputs: [rel("quickjs-libengine.d.ts")],
 });
+
+build({
+  output: builddir("include/quickjs-libengine.h"),
+  rule: "copy",
+  inputs: [rel("quickjs-libengine.h")],
+});
