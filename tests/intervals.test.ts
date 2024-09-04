@@ -1,6 +1,10 @@
 import { spawn } from "first-base";
 import { binDir } from "./_utils";
 
+// GitHub actions CPU is slow enough that these aren't deterministic unless we
+// make all the timings longer
+const WAIT_TIME_MULTIPLIER = process.env.CI ? 10 : 1;
+
 test("setInterval and clearInterval are present", async () => {
   const run = spawn(
     binDir("qjs"),
@@ -37,12 +41,12 @@ test("setTimeout and setInterval work", async () => {
         let i = 0;
         setInterval(() => {
           console.log("hello!", i++);
-        }, 40);
+        }, ${40 * WAIT_TIME_MULTIPLIER});
 
         setTimeout(() => {
           console.log("exiting");
           require("quickjs:std").exit(0);
-        }, 150);
+        }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
     { cwd: __dirname }
@@ -70,12 +74,12 @@ test("setInterval callback continues to re-run even if it errors", async () => {
       `
         setInterval(() => {
           throw new Error("uh oh! an error!");
-        }, 40);
+        }, ${40 * WAIT_TIME_MULTIPLIER});
 
         setTimeout(() => {
           console.log("exiting");
           require("quickjs:std").exit(0);
-        }, 150);
+        }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
     { cwd: __dirname }
@@ -108,13 +112,13 @@ test("failure in setInterval callback uses console.error", async () => {
 
         setInterval(() => {
           throw new Error("uh oh! an error!");
-        }, 40);
+        }, ${40 * WAIT_TIME_MULTIPLIER});
 
         setTimeout(() => {
           console.log("receivedArgs.length:", receivedArgs.length);
           console.log("exiting");
           require("quickjs:std").exit(0);
-        }, 150);
+        }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
     { cwd: __dirname }
@@ -151,14 +155,14 @@ test("setInterval callback falls back to print if console.error isn't present", 
         setInterval(() => {
           timesIntervalCallbackRan++;
           throw new Error("uh oh! an error!");
-        }, 40);
+        }, ${40 * WAIT_TIME_MULTIPLIER});
 
         setTimeout(() => {
           console.log("times print called:", timesPrintCalled);
           console.log("times interval callback ran:", timesIntervalCallbackRan);
           console.log("exiting");
           require("quickjs:std").exit(0);
-        }, 150);
+        }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
     { cwd: __dirname }
@@ -201,14 +205,14 @@ test("setInterval callback falls back to print if console.error errors", async (
         setInterval(() => {
           timesIntervalCallbackRan++;
           throw new Error("uh oh! an error!");
-        }, 40);
+        }, ${40 * WAIT_TIME_MULTIPLIER});
 
         setTimeout(() => {
           console.log("times print called:", timesPrintCalled);
           console.log("times interval callback ran:", timesIntervalCallbackRan);
           console.log("exiting");
           require("quickjs:std").exit(0);
-        }, 150);
+        }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
     { cwd: __dirname }
@@ -243,13 +247,13 @@ test("setInterval callback still runs even if console.error and print aren't ava
         setInterval(() => {
           timesIntervalCallbackRan++;
           throw new Error("uh oh! an error!");
-        }, 40);
+        }, ${40 * WAIT_TIME_MULTIPLIER});
 
         setTimeout(() => {
           console.log("times interval callback ran:", timesIntervalCallbackRan);
           console.log("exiting");
           require("quickjs:std").exit(0);
-        }, 150);
+        }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
     { cwd: __dirname }
@@ -284,13 +288,13 @@ test("setInterval callback still runs even if console.error and print both fail"
         setInterval(() => {
           timesIntervalCallbackRan++;
           throw new Error("uh oh! an error!");
-        }, 40);
+        }, ${40 * WAIT_TIME_MULTIPLIER});
 
         setTimeout(() => {
           console.log("times interval callback ran:", timesIntervalCallbackRan);
           console.log("exiting");
           require("quickjs:std").exit(0);
-        }, 150);
+        }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
     { cwd: __dirname }
