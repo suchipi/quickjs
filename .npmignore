@@ -23,4 +23,5 @@ todo.txt
 build/bin
 build/intermediate
 build/lib
+build/include
 build/extras
