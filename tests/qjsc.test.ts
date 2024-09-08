@@ -48,6 +48,7 @@ test("qjsc-compiled program has access to both std and bytecode", async () => {
     ownWorkDir("uses-std-and-bytecode"),
     ownWorkDir("uses-std-and-bytecode.c"),
     rootDir("build/lib/quickjs-full.a"),
+    "-lm",
   ]);
   await run2.completion;
   expect(cleanResult(run2.result)).toMatchInlineSnapshot(`
