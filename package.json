@@ -15,7 +15,7 @@
     "@suchipi/print": "^2.5.0",
     "@suchipi/shinobi": "^1.0.0",
     "@types/jest": "^29.2.4",
-    "@types/node": "^18.11.9",
+    "@types/node": "^22.5.4",
     "@types/shelljs": "^0.8.11",
     "babel-jest": "^29.3.1",
     "first-base": "^0.2.0",
