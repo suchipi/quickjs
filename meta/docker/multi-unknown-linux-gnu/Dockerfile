@@ -1,4 +1,4 @@
-FROM node:18-bullseye as node
+FROM node:22-bullseye as node
 
 FROM ubuntu:20.04
 
