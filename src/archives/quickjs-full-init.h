@@ -8,7 +8,7 @@
 #include "quickjs-libc.h"
 #include "quickjs-libbytecode.h"
 #include "quickjs-libcontext.h"
-#include "quickjs-libpointer.h"
+#include "quickjs-pointer.h"
 #include "quickjs-modulesys.h"
 #include "quickjs-libengine.h"
 #include "quickjs-libencoding.h"

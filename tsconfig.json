@@ -5,7 +5,7 @@
     "./src/quickjs-libc/quickjs-libc.d.ts",
     "./src/quickjs-libbytecode/quickjs-libbytecode.d.ts",
     "./src/quickjs-libcontext/quickjs-libcontext.d.ts",
-    "./src/quickjs-libpointer/quickjs-libpointer.d.ts"
+    "./src/quickjs-pointer/quickjs-pointer.d.ts"
   ],
   "include": ["./**/*.js", "./**/*.ts"],
   "exclude": [

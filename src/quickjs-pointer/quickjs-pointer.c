@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "quickjs-libpointer.h"
+#include "quickjs-pointer.h"
 #include "quickjs-libbytecode.h"
 
 static JSClassID js_pointer_class_id;
