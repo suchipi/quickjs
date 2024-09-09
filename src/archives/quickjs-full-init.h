@@ -11,7 +11,7 @@
 #include "quickjs-pointer.h"
 #include "quickjs-modulesys.h"
 #include "quickjs-libengine.h"
-#include "quickjs-libencoding.h"
+#include "quickjs-encoding.h"
 
 /* returns 0 on success, nonzero on failure */
 int quickjs_full_init(JSContext *ctx);

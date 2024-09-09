@@ -2,7 +2,7 @@
 #include <errno.h>
 
 #include "cutils.h"
-#include "quickjs-libencoding.h"
+#include "quickjs-encoding.h"
 
 static JSValue js_encoding_toUtf8(JSContext *ctx, JSValueConst this_val,
                                   int argc, JSValueConst *argv)
