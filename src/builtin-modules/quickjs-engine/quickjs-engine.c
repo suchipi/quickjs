@@ -1,7 +1,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "quickjs-libengine.h"
+#include "quickjs-engine.h"
 #include "quickjs-libc.h"
 #include "quickjs-utils.h"
 #include "quickjs-modulesys.h"

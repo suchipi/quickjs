@@ -4,7 +4,7 @@
 #include "quickjs-bytecode.h"
 #include "quickjs-pointer.h"
 #include "quickjs-modulesys.h"
-#include "quickjs-libengine.h"
+#include "quickjs-engine.h"
 #include "quickjs-context.h"
 #include "quickjs-print.h"
 #include "quickjs-inspect.h"

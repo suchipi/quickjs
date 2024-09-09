@@ -156,7 +156,7 @@ This module contains APIs related to engine internals like script execution, mod
 - Ninja is used instead of make. Ninja build config is generated via `.ninja.js` files which get loaded into [@suchipi/shinobi](https://github.com/suchipi/shinobi).
 - Line endings have been made consistent and trailing whitespace has been removed
 - The tests are authored in a new format which leverages jest snapshot testing.
-- Some parts of `quickjs-libc` were moved into `quickjs-modulesys` and `quickjs-libengine`.
+- Some parts of `quickjs-libc` were moved into `quickjs-modulesys` and `quickjs-engine`.
 - The `eval_*` functions that were duplicated in each of the programs (`eval_buf`, `eval_file`, and `eval_binary`) were deduplicated and moved into `quickjs-modulesys`.
 
 ### More target OSes/runtimes

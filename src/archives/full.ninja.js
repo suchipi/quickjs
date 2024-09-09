@@ -21,7 +21,7 @@ const deps_target = [
   builddir("intermediate/quickjs-context.target.o"),
   builddir("intermediate/quickjs-bytecode.target.o"),
   builddir("intermediate/quickjs-pointer.target.o"),
-  builddir("intermediate/quickjs-libengine.target.o"),
+  builddir("intermediate/quickjs-engine.target.o"),
   builddir("intermediate/quickjs-encoding.target.o"),
   builddir("intermediate/quickjs-modulesys/module-impl.target.o"),
 ];
@@ -41,7 +41,7 @@ const deps_host = [
   builddir("intermediate/quickjs-context.host.o"),
   builddir("intermediate/quickjs-bytecode.host.o"),
   builddir("intermediate/quickjs-pointer.host.o"),
-  builddir("intermediate/quickjs-libengine.host.o"),
+  builddir("intermediate/quickjs-engine.host.o"),
   builddir("intermediate/quickjs-encoding.host.o"),
   builddir("intermediate/quickjs-modulesys/module-impl.host.o"),
 ];

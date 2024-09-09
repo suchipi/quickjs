@@ -10,7 +10,7 @@
 #include "quickjs-context.h"
 #include "quickjs-pointer.h"
 #include "quickjs-modulesys.h"
-#include "quickjs-libengine.h"
+#include "quickjs-engine.h"
 #include "quickjs-encoding.h"
 
 /* returns 0 on success, nonzero on failure */
