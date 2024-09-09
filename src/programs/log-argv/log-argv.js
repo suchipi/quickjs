@@ -1,6 +1,6 @@
 if (env.QUICKJS_EXTRAS === "1") {
   const log_argv_target_o = build({
-    output: builddir("intermediate/util/log-argv.target.o"),
+    output: builddir("intermediate/log-argv.target.o"),
     rule: "cc_target",
     inputs: [rel("log-argv.c")],
   });
