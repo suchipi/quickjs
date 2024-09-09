@@ -6,7 +6,7 @@ declare module "quickjs:pointer" {
     static NULL: Pointer;
 
     /** Returns a boolean indicating whether the provided value is a `Pointer` object. */
-    static isPointer(value: any): boolean;
+    static isPointer(value: any): value is Pointer;
 
     /** For debug logging purposes only; format can vary from platform to platform and is not guaranteed to be present or consistent. */
     _info?: string;
