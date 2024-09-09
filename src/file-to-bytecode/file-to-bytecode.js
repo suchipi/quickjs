@@ -4,8 +4,8 @@
 // the bytecode to a new file.
 
 /// <reference path="../quickjs/quickjs.d.ts" />
-/// <reference path="../quickjs-libc/quickjs-libc.d.ts" />
-/// <reference path="../quickjs-libbytecode/quickjs-libbytecode.d.ts" />
+/// <reference path="../builtin-modules/quickjs-libc/quickjs-libc.d.ts" />
+/// <reference path="../builtin-modules/quickjs-bytecode/quickjs-bytecode.d.ts" />
 
 import * as std from "quickjs:std";
 import * as Bytecode from "quickjs:bytecode";

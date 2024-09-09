@@ -2,7 +2,7 @@
 #include <errno.h>
 
 #include "quickjs-libc.h"
-#include "quickjs-libbytecode.h"
+#include "quickjs-bytecode.h"
 #include "quickjs-utils.h"
 #include "quickjs-modulesys.h"
 #include "cutils.h"
