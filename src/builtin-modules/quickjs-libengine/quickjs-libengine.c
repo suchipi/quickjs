@@ -1,8 +1,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include "quickjs-libengine.h"
 #include "quickjs-libc.h"
-#include "quickjs-bytecode.h"
 #include "quickjs-utils.h"
 #include "quickjs-modulesys.h"
 #include "cutils.h"
@@ -14,7 +14,7 @@ static JSValue js_engine_isMainModule(JSContext *ctx, JSValueConst this_val,
   int result;
 
   if (argc < 1) {
-    return JS_ThrowTypeError(ctx, "std.isMainModule requires one argument: the resolved module name to check");
+    return JS_ThrowTypeError(ctx, "isMainModule requires one argument: the resolved module name to check");
   }
 
   module_name = JS_ToCString(ctx, argv[0]);
@@ -32,7 +32,7 @@ static JSValue js_engine_setMainModule(JSContext *ctx, JSValueConst this_val,
   const char *module_name;
 
   if (argc < 1) {
-    return JS_ThrowTypeError(ctx, "std.setMainModule requires one argument: the resolved module name to set");
+    return JS_ThrowTypeError(ctx, "setMainModule requires one argument: the resolved module name to set");
   }
 
   module_name = JS_ToCString(ctx, argv[0]);
@@ -351,7 +351,7 @@ static JSValue js_engine_gc(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-static const JSCFunctionListEntry js_bytecode_funcs[] = {
+static const JSCFunctionListEntry js_engine_funcs[] = {
   JS_CFUNC_DEF("isMainModule", 1, js_engine_isMainModule ),
   JS_CFUNC_DEF("setMainModule", 1, js_engine_setMainModule ),
   JS_CFUNC_DEF("runScript", 1, js_engine_runScript ),
@@ -368,8 +368,8 @@ static int js_module_init(JSContext *ctx, JSModuleDef *m)
 {
   JSValue module_loader_internals, module_delegate;
 
-  if (JS_SetModuleExportList(ctx, m, js_bytecode_funcs,
-                             countof(js_bytecode_funcs)))
+  if (JS_SetModuleExportList(ctx, m, js_engine_funcs,
+                             countof(js_engine_funcs)))
   {
     return -1;
   }
@@ -396,7 +396,7 @@ JSModuleDef *js_init_module_engine(JSContext *ctx, const char *module_name)
   if (!m) {
     return NULL;
   }
-  JS_AddModuleExportList(ctx, m, js_bytecode_funcs, countof(js_bytecode_funcs));
+  JS_AddModuleExportList(ctx, m, js_engine_funcs, countof(js_engine_funcs));
   JS_AddModuleExport(ctx, m, "ModuleDelegate");
   return m;
 }

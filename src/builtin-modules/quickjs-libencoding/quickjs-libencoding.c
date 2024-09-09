@@ -1,10 +1,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "quickjs-bytecode.h"
-#include "quickjs-utils.h"
-#include "quickjs-modulesys.h"
 #include "cutils.h"
+#include "quickjs-libencoding.h"
 
 static JSValue js_encoding_toUtf8(JSContext *ctx, JSValueConst this_val,
                                   int argc, JSValueConst *argv)
