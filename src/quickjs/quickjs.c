@@ -1892,7 +1892,7 @@ void JS_FreeRuntime(JSRuntime *rt)
 
     JS_RunGC(rt);
     // Need to run GC twice in order to handle any Context objects created by
-    // quickjs-libcontext... TODO: surely there is a better way to handle this.
+    // quickjs-context... TODO: surely there is a better way to handle this.
     JS_RunGC(rt);
 
 #ifdef DUMP_LEAKS

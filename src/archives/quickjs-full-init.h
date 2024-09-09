@@ -7,7 +7,7 @@
 #include "quickjs-intervals.h"
 #include "quickjs-libc.h"
 #include "quickjs-bytecode.h"
-#include "quickjs-libcontext.h"
+#include "quickjs-context.h"
 #include "quickjs-pointer.h"
 #include "quickjs-modulesys.h"
 #include "quickjs-libengine.h"
