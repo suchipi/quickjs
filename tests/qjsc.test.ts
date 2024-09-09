@@ -37,11 +37,6 @@ test("qjsc-compiled program has access to both std and bytecode", async () => {
     }
   `);
 
-  if (process.env.CI) {
-    // Not worth dealing with the C compiler parts of this in CI
-    return;
-  }
-
   const run2 = spawn("cc", [
     `-I${rootDir("build/include")}`,
     "-o",
