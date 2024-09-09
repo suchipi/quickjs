@@ -125,6 +125,8 @@ This module contains APIs related to engine internals like script execution, mod
 
 - `.js` extensions can now be omitted from import specifiers; they're optional.
 - If your import specifier points to a folder, it will attempt to load `index.js` from that folder.
+- Synchronous import function added (`importModule`), which provides the same module record object you would get via dynamic (async) import.
+- JS api for using the engine's configured module name normalization function was added (`resolveModule`).
 - Adds the global `require`, a CommonJS-like synchronous module loading function.
   - The `require` function is not fully CommonJS-compliant; for instance, `require.main` is not present. `require.resolve` is, though.
 - Adds `import.meta.require`
@@ -135,7 +137,7 @@ This module contains APIs related to engine internals like script execution, mod
 - Makes the module loader's resolution and loading behavior configurable
   - The module "quickjs:engine" exports an object called `ModuleDelegate`.
   - You can specify additional implicit import specifier extensions by adding to the `ModuleDelegate.searchExtensions` array.
-  - You can transform any file prior to evaluating it as a module by adding a function to the `ModuleDelegate.compilers` object. Useful for compile-to-ts languages like TypeScript, Coffeescript, etc.
+  - You can transform any file prior to evaluating it as a module by adding a function to the `ModuleDelegate.compilers` object. Useful for compile-to-js languages like TypeScript, Coffeescript, etc.
   - You can override module name normalization (aka module resolution) by replacing the `ModuleDelegate.resolve` function.
     - Note that you must handle `ModuleDelegate.searchExtensions` yourself in your replacement implementation.
   - You can override the method used to load modules by replacing the `ModuleDelegate.read` function.
@@ -147,8 +149,6 @@ This module contains APIs related to engine internals like script execution, mod
 - New `isModuleNamespace` function lets users identify module namespace objects
 - New `defineBuiltinModule` function lets users add their own builtin modules
 - When using `require` to load a module which contains an export named `__cjsExports`, the value of the `__cjsExports` property will be returned from `require` instead of the usual module namespace object. This can be leveraged by users configuring the module loader to add some CommonJS <-> ESM interop. Note, however, that dynamic import and `"quickjs:engine"`'s `importModule` always receive the usual module namespace object.
-- Synchronous import function added (`importModule`), which provides the same module record object you would get via dynamic (async) import.
-- JS api for using the engine's configured module name normalization function was added (`resolveModule`).
 
 ### Changes to project organization
 
