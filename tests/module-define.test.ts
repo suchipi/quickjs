@@ -6,12 +6,17 @@ test("defineBuiltinModule - basic test", async () => {
     "-m",
     "-e",
     `
-      import { defineBuiltinModule } from "quickjs:engine";
+      import { defineBuiltinModule, ModuleDelegate } from "quickjs:engine";
+
+      console.log("builtins contains mymodule:", ModuleDelegate.builtinModuleNames.includes("mymodule"));
 
       defineBuiltinModule("mymodule", {
         something: 5,
         somethingElse: () => 6
       });
+
+      console.log("builtins contains mymodule:", ModuleDelegate.builtinModuleNames.includes("mymodule"));
+
       const mod = require("mymodule");
       console.log(mod.something);
       console.log(mod.somethingElse());
@@ -23,7 +28,9 @@ test("defineBuiltinModule - basic test", async () => {
       "code": 0,
       "error": false,
       "stderr": "",
-      "stdout": "5
+      "stdout": "builtins contains mymodule: false
+    builtins contains mymodule: true
+    5
     6
     ",
     }
@@ -35,12 +42,16 @@ test("defineBuiltinModule - never imported", async () => {
     "-m",
     "-e",
     `
-      import { defineBuiltinModule } from "quickjs:engine";
+      import { defineBuiltinModule, ModuleDelegate } from "quickjs:engine";
+
+      console.log("builtins contains mymodule:", ModuleDelegate.builtinModuleNames.includes("mymodule"));
 
       defineBuiltinModule("mymodule", {
         something: 5,
         somethingElse: () => 6
       });
+
+      console.log("builtins contains mymodule:", ModuleDelegate.builtinModuleNames.includes("mymodule"));
     `,
   ]);
   await run.completion;
@@ -49,7 +60,9 @@ test("defineBuiltinModule - never imported", async () => {
       "code": 0,
       "error": false,
       "stderr": "",
-      "stdout": "",
+      "stdout": "builtins contains mymodule: false
+    builtins contains mymodule: true
+    ",
     }
   `);
 });

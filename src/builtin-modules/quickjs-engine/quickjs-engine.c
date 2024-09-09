@@ -271,7 +271,7 @@ end:
 static JSValue js_engine_defineBuiltinModule(JSContext *ctx, JSValueConst this_val,
                                        int argc, JSValueConst *argv)
 {
-  JSValueConst obj;
+  JSValueConst obj, name_val;
   const char *name = NULL;
   JSModuleDef *m = NULL;
   QJUForEachPropertyState *foreach = NULL;
@@ -283,19 +283,20 @@ static JSValue js_engine_defineBuiltinModule(JSContext *ctx, JSValueConst this_v
     goto end;
   }
 
-  name = JS_ToCString(ctx, argv[0]);
+  name_val = argv[0];
+  obj = argv[1];
+
+  name = JS_ToCString(ctx, name_val);
   if (name == NULL) {
     ret = JS_EXCEPTION;
     goto end;
   }
 
-  if (!JS_IsObject(argv[1])) {
+  if (!JS_IsObject(obj)) {
     JS_ThrowError(ctx, "Second argument to defineBuiltinModule must be an object.");
     ret = JS_EXCEPTION;
     goto end;
   }
-
-  obj = argv[1];
 
   m = JS_NewCModule(ctx, name, js_userdefined_module_init, &obj);
   if (m == NULL) {
@@ -334,7 +335,60 @@ static JSValue js_engine_defineBuiltinModule(JSContext *ctx, JSValueConst this_v
     ret = JS_EXCEPTION;
     goto end;
   } else {
-    ret = JS_UNDEFINED;
+    // Add module name to ModuleDelegate.builtinModuleNames, if available.
+    JSValue module_loader_internals;
+
+    module_loader_internals = QJMS_GetModuleLoaderInternals(ctx);
+    if (JS_IsObject(module_loader_internals)) {
+      JSValue module_delegate, builtins_array, builtins_array_length_val;
+      int64_t builtins_array_length;
+
+      module_delegate = JS_GetPropertyStr(ctx, module_loader_internals,
+                                          "ModuleDelegate");
+      if (JS_IsException(module_delegate)) {
+        JS_FreeValue(ctx, module_loader_internals);
+        ret = JS_EXCEPTION;
+        goto end;
+      }
+
+      builtins_array = JS_GetPropertyStr(ctx, module_delegate,
+                                         "builtinModuleNames");
+      if (JS_IsException(builtins_array)) {
+        JS_FreeValue(ctx, module_delegate);
+        JS_FreeValue(ctx, module_loader_internals);
+        ret = JS_EXCEPTION;
+        goto end;
+      }
+
+      builtins_array_length_val = JS_GetPropertyStr(ctx, builtins_array, "length");
+      if (JS_IsException(builtins_array_length_val)) {
+        JS_FreeValue(ctx, builtins_array);
+        JS_FreeValue(ctx, module_delegate);
+        JS_FreeValue(ctx, module_loader_internals);
+        ret = JS_EXCEPTION;
+        goto end;
+      }
+
+      if (JS_ToInt64(ctx, &builtins_array_length, builtins_array_length_val)) {
+        JS_FreeValue(ctx, builtins_array_length_val);
+        JS_FreeValue(ctx, builtins_array);
+        JS_FreeValue(ctx, module_delegate);
+        JS_FreeValue(ctx, module_loader_internals);
+        ret = JS_EXCEPTION;
+        goto end;
+      }
+
+      if (JS_SetPropertyInt64(ctx, builtins_array, builtins_array_length,
+                              JS_DupValue(ctx, name_val)) == -1) {
+        ret = JS_EXCEPTION;
+        // fall-through to frees
+      }
+
+      JS_FreeValue(ctx, builtins_array_length_val);
+      JS_FreeValue(ctx, builtins_array);
+      JS_FreeValue(ctx, module_delegate);
+      JS_FreeValue(ctx, module_loader_internals);
+    }
   }
 
 end:

@@ -107,6 +107,16 @@ import * as os from "quickjs:os";
     }
   };
 
+  ModuleDelegate.builtinModuleNames = [
+    "quickjs:std",
+    "quickjs:os",
+    "quickjs:bytecode",
+    "quickjs:context",
+    "quickjs:pointer",
+    "quickjs:engine",
+    "quickjs:encoding",
+  ];
+
   function isAbsolute(path) {
     return path[0] === "/" || /[A-Za-z]:[/\\]/.test(path);
   }

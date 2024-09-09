@@ -62,6 +62,15 @@ interface ModuleDelegate {
   };
 
   /**
+   * An Array containing the names of all the built-in modules, such as
+   * "quickjs:std", "quickjs:bytecode", etc.
+   *
+   * `quickjs:engine`'s `defineBuiltinModule` function adds to the end of this
+   * array.
+   */
+  builtinModuleNames: Array<string>;
+
+  /**
    * Resolves a require/import request from `fromFile` into a canonicalized
    * path.
    *
