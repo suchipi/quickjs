@@ -1,4 +1,5 @@
-/// <reference path="../quickjs-libc/quickjs-libc.d.ts" />
+/// <reference path="../../quickjs/quickjs.d.ts" />
+/// <reference path="../../builtin-modules/quickjs-libc/quickjs-libc.d.ts" />
 import * as os from "quickjs:os";
 
 const file1 = scriptArgs[2];
