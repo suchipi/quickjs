@@ -3,7 +3,7 @@ import { binDir } from "./_utils";
 
 // GitHub actions CPU is slow enough that these aren't deterministic unless we
 // make all the timings longer
-const WAIT_TIME_MULTIPLIER = process.env.CI ? 12 : 1;
+const WAIT_TIME_MULTIPLIER = process.env.CI ? 15 : 1;
 
 test("setInterval and clearInterval are present", async () => {
   const run = spawn(
