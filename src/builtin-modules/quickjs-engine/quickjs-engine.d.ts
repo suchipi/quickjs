@@ -62,13 +62,26 @@ declare module "quickjs:engine" {
   export function resolveModule(filename: string, basename?: string): string;
 
   /**
-   * Read the script of module filename from an active stack frame, then return it as a string.
+   * Read the script or module filename from an active stack frame, then return it as a string.
    *
    * If there isn't a valid filename for the specified stack frame, an error will be thrown.
    *
    * @param stackLevels - How many levels up the stack to search for a filename. Defaults to 0, which uses the current stack frame.
    */
   export function getFileNameFromStack(stackLevels?: number): string;
+
+  /**
+   * Get info from an active stack frame.
+   *
+   * If there isn't info for the specified stack frame offset, an error will be thrown.
+   *
+   * @param stackLevels - How many levels up the stack to get info for. Defaults to 0, which uses the current stack frame.
+   */
+  export function getStackFrameInfo(stackLevels?: number): {
+    filename: string | null;
+    lineNumber: number;
+    source: string | null;
+  };
 
   /**
    * Returns true if `target` is a module namespace object.

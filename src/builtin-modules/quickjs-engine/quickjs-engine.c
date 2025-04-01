@@ -105,6 +105,73 @@ static JSValue js_engine_getFileNameFromStack(JSContext *ctx, JSValueConst this_
   }
 }
 
+/* return an object with info about the stack frame */
+static JSValue js_engine_getStackFrameInfo(JSContext *ctx, JSValueConst this_val,
+                                           int argc, JSValueConst *argv)
+{
+  int stack_levels = 0;
+  JSStackFrameInfo *info;
+  JSValue info_val;
+
+  if (argc == 1) {
+    if (JS_ToInt32(ctx, &stack_levels, argv[0])) {
+      return JS_EXCEPTION;
+    }
+  }
+
+  info = JS_GetStackFrameInfo(ctx, stack_levels + 1);
+  if (info == NULL) {
+    // out-of-memory case
+    return JS_EXCEPTION;
+  }
+
+  info_val = JS_NewObject(ctx);
+  {
+    JSAtom atom_filename;
+    JSAtom atom_lineNumber;
+    JSAtom atom_source;
+
+    atom_filename = JS_NewAtom(ctx, "filename");
+    if (atom_filename == JS_ATOM_NULL) {
+      goto fail;
+    }
+    atom_lineNumber = JS_NewAtom(ctx, "lineNumber");
+    if (atom_lineNumber == JS_ATOM_NULL) {
+      goto fail;
+    }
+    atom_source = JS_NewAtom(ctx, "source");
+    if (atom_source == JS_ATOM_NULL) {
+      goto fail;
+    }
+
+    if (info->filename == JS_ATOM_NULL) {
+      JS_SetProperty(ctx, info_val, atom_filename, JS_NULL);
+    } else {
+      JS_SetProperty(ctx, info_val, atom_filename, JS_AtomToString(ctx, info->filename));
+    }
+
+    JS_SetProperty(ctx, info_val, atom_lineNumber, JS_NewInt32(ctx, info->line_number));
+
+    if (info->source == NULL || info->source_len < 0) {
+      JS_SetProperty(ctx, info_val, atom_source, JS_NULL);
+    } else {
+      JS_SetProperty(ctx, info_val, atom_source,
+                     JS_NewStringLen(ctx, info->source, info->source_len));
+    }
+
+    JS_FreeAtom(ctx, atom_filename);
+    JS_FreeAtom(ctx, atom_lineNumber);
+    JS_FreeAtom(ctx, atom_source);
+  }
+
+  JS_FreeStackFrameInfo(ctx, info);
+  return info_val;
+
+fail:
+  JS_FreeStackFrameInfo(ctx, info);
+  return JS_EXCEPTION;
+}
+
 /* resolve the absolute path to a module */
 static JSValue js_engine_resolveModule(JSContext *ctx, JSValueConst this_val,
                                        int argc, JSValueConst *argv)
@@ -411,6 +478,7 @@ static const JSCFunctionListEntry js_engine_funcs[] = {
   JS_CFUNC_DEF("runScript", 1, js_engine_runScript ),
   JS_CFUNC_DEF("importModule", 2, js_engine_importModule ),
   JS_CFUNC_DEF("getFileNameFromStack", 1, js_engine_getFileNameFromStack ),
+  JS_CFUNC_DEF("getStackFrameInfo", 1, js_engine_getStackFrameInfo ),
   JS_CFUNC_DEF("resolveModule", 2, js_engine_resolveModule ),
   JS_CFUNC_DEF("evalScript", 2, js_engine_evalScript ),
   JS_CFUNC_DEF("isModuleNamespace", 1, js_engine_isModuleNamespace ),

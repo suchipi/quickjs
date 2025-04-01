@@ -28026,14 +28026,17 @@ JSStackFrameInfo *JS_GetStackFrameInfo(JSContext *ctx, int n_stack_levels)
     if (!b->has_debug)
         return info;
 
-    source_len = b->debug.source_len;
-    out_source = js_mallocz(ctx, sizeof(char) * (source_len + 1));
-    if (!out_source) {
-        js_free(ctx, info);
-        return NULL;
+    source_len = b->debug.source_len - 1 /* -1 because debug struct includes null terminator */;
+    if (source_len > 0) {
+        out_source = js_mallocz(ctx, sizeof(char) * source_len);
+        if (!out_source) {
+            js_free(ctx, info);
+            return NULL;
+        }
+        pstrcpy(out_source, source_len, b->debug.source);
+    } else {
+        out_source = NULL;
     }
-    pstrcpy(out_source, source_len, b->debug.source);
-    out_source[source_len] = '\0';
 
     info->filename = JS_DupAtom(ctx, b->debug.filename);
     info->line_number = b->debug.line_num;
