@@ -47,6 +47,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
+#include <pwd.h>
 
 #if defined(__APPLE__)
 typedef sig_t sighandler_t;
@@ -647,6 +648,83 @@ static JSValue js_std_getegid(JSContext *ctx, JSValueConst this_val,
 #else
     int32_t gid = getegid();
     return JS_NewInt32(ctx, gid);
+#endif
+}
+
+static JSValue js_std_getpwuid(JSContext *ctx, JSValueConst this_val,
+    int argc, JSValueConst *argv)
+{
+#ifdef _WIN32
+    return JS_ThrowError(ctx, "getpwuid is not supported on Windows");
+#else
+    uid_t id = -1;
+    struct passwd *pwd = {0};
+    JSValue result_val = JS_NULL;
+    JSValue name_val = JS_NULL;
+    JSValue passwd_val = JS_NULL;
+    JSValue uid_val = JS_NULL;
+    JSValue gid_val = JS_NULL;
+    JSValue gecos_val = JS_NULL;
+    JSValue dir_val = JS_NULL;
+    JSValue shell_val = JS_NULL;
+
+    if (JS_ToUint32(ctx, &id, argv[0])) {
+        return JS_EXCEPTION;
+    }
+
+    pwd = getpwuid(id);
+    result_val = JS_NewObject(ctx);
+    if (JS_IsException(result_val)) {
+        goto fail;
+    }
+
+    name_val = JS_NewString(ctx, pwd->pw_name);
+    if (JS_IsException(name_val)) {
+        goto fail;
+    }
+    JS_DefinePropertyValueStr(ctx, result_val, "name", name_val, JS_PROP_C_W_E);
+
+    passwd_val = JS_NewString(ctx, pwd->pw_passwd);
+    if (JS_IsException(passwd_val)) {
+        goto fail;
+    }
+    JS_DefinePropertyValueStr(ctx, result_val, "passwd", passwd_val, JS_PROP_C_W_E);
+
+    uid_val = JS_NewUint32(ctx, pwd->pw_uid);
+    JS_DefinePropertyValueStr(ctx, result_val, "uid", uid_val, JS_PROP_C_W_E);
+
+    gid_val = JS_NewUint32(ctx, pwd->pw_gid);
+    JS_DefinePropertyValueStr(ctx, result_val, "gid", gid_val, JS_PROP_C_W_E);
+
+    gecos_val = JS_NewString(ctx, pwd->pw_gecos);
+    if (JS_IsException(gecos_val)) {
+        goto fail;
+    }
+    JS_DefinePropertyValueStr(ctx, result_val, "gecos", gecos_val, JS_PROP_C_W_E);
+
+    dir_val = JS_NewString(ctx, pwd->pw_dir);
+    if (JS_IsException(dir_val)) {
+        goto fail;
+    }
+    JS_DefinePropertyValueStr(ctx, result_val, "dir", dir_val, JS_PROP_C_W_E);
+
+    shell_val = JS_NewString(ctx, pwd->pw_shell);
+    if (JS_IsException(shell_val)) {
+        goto fail;
+    }
+    JS_DefinePropertyValueStr(ctx, result_val, "shell", shell_val, JS_PROP_C_W_E);
+
+    return result_val;
+fail:
+    JS_FreeValue(ctx, shell_val);
+    JS_FreeValue(ctx, dir_val);
+    JS_FreeValue(ctx, gecos_val);
+    JS_FreeValue(ctx, gid_val);
+    JS_FreeValue(ctx, uid_val);
+    JS_FreeValue(ctx, passwd_val);
+    JS_FreeValue(ctx, name_val);
+    JS_FreeValue(ctx, result_val);
+    return JS_EXCEPTION;
 #endif
 }
 
@@ -1706,6 +1784,7 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_CFUNC_DEF("geteuid", 0, js_std_geteuid ),
     JS_CFUNC_DEF("getgid", 0, js_std_getgid ),
     JS_CFUNC_DEF("getegid", 0, js_std_getegid ),
+    JS_CFUNC_DEF("getpwuid", 1, js_std_getpwuid ),
     JS_CFUNC_DEF("urlGet", 1, js_std_urlGet ),
     JS_CFUNC_DEF("loadFile", 1, js_std_loadFile ),
     JS_CFUNC_DEF("parseExtJSON", 1, js_std_parseExtJSON ),
