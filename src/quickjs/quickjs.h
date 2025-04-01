@@ -1036,7 +1036,25 @@ JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj);
    returns a module. returns 0 on success, -1 on error. */
 int JS_ResolveModule(JSContext *ctx, JSValueConst obj);
 
+/* some info not always available (eval, bytecode, etc) */
+typedef struct JSStackFrameInfo {
+    /* -1 if unavailable */
+    int line_number;
+    /* JS_ATOM_NULL if unavailable */
+    JSAtom filename;
+    /* NULL if unavailable */
+    char *source;
+    /* -1 if source is unavailable */
+    int source_len;
+} JSStackFrameInfo;
+
+/* returns NULL if out of memory was thrown. Only works with non-stripped bytecode functions. */
+JSStackFrameInfo *JS_GetStackFrameInfo(JSContext *ctx, int n_stack_levels);
+void JS_FreeStackFrameInfo(JSContext *ctx, JSStackFrameInfo *info);
+
+/* shortcut for JS_GetStackFrameInfo()->filename with the frees taken care of */
 JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels);
+
 JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
                           const char *filename);
 

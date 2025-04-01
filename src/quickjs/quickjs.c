@@ -27986,33 +27986,100 @@ static int js_link_module(JSContext *ctx, JSModuleDef *m)
     return -1;
 }
 
-/* return JS_ATOM_NULL if the name cannot be found. Only works with
-   not striped bytecode functions. */
-JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels)
+JSStackFrameInfo *JS_GetStackFrameInfo(JSContext *ctx, int n_stack_levels)
 {
     JSStackFrame *sf;
     JSFunctionBytecode *b;
     JSObject *p;
+    int source_len;
+    char *out_source;
+    JSStackFrameInfo *info;
+
+    source_len = -1;
+
+    info = js_mallocz(ctx, sizeof(*info));
+    if (!info) {
+        return NULL;
+    }
+    info->line_number = -1;
+    info->filename = JS_ATOM_NULL;
+    info->source = NULL;
+    info->source_len = -1;
+
     /* XXX: currently we just use the filename of the englobing
        function. It does not work for eval(). Need to add a
        ScriptOrModule info in JSFunctionBytecode */
     sf = ctx->rt->current_stack_frame;
     if (!sf)
-        return JS_ATOM_NULL;
+        return info;
     while (n_stack_levels-- > 0) {
         sf = sf->prev_frame;
         if (!sf)
-            return JS_ATOM_NULL;
+            return info;
     }
     if (JS_VALUE_GET_TAG(sf->cur_func) != JS_TAG_OBJECT)
-        return JS_ATOM_NULL;
+        return info;
     p = JS_VALUE_GET_OBJ(sf->cur_func);
     if (!js_class_has_bytecode(p->class_id))
-        return JS_ATOM_NULL;
+        return info;
     b = p->u.func.function_bytecode;
     if (!b->has_debug)
+        return info;
+
+    source_len = b->debug.source_len;
+    out_source = js_mallocz(ctx, sizeof(char) * (source_len + 1));
+    if (!out_source) {
+        js_free(ctx, info);
+        return NULL;
+    }
+    pstrcpy(out_source, source_len, b->debug.source);
+    out_source[source_len] = '\0';
+
+    info->filename = JS_DupAtom(ctx, b->debug.filename);
+    info->line_number = b->debug.line_num;
+    info->source = out_source;
+    info->source_len = source_len;
+
+    return info;
+}
+
+void JS_FreeStackFrameInfo(JSContext *ctx, JSStackFrameInfo *info)
+{
+    if (info == NULL) {
+        return;
+    }
+
+    if (info->filename != JS_ATOM_NULL) {
+        JS_FreeAtom(ctx, info->filename);
+    }
+
+    if (info->source != NULL) {
+        js_free(ctx, info->source);
+    }
+
+    js_free(ctx, info);
+}
+
+JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels)
+{
+    JSStackFrameInfo *info;
+    JSAtom filename;
+
+    filename = JS_ATOM_NULL;
+
+    info = JS_GetStackFrameInfo(ctx, n_stack_levels);
+    if (info == NULL) {
         return JS_ATOM_NULL;
-    return JS_DupAtom(ctx, b->debug.filename);
+    }
+
+    if (info->filename == JS_ATOM_NULL) {
+        JS_FreeStackFrameInfo(ctx, info);
+        return JS_ATOM_NULL;
+    }
+
+    filename = JS_DupAtom(ctx, info->filename);
+    JS_FreeStackFrameInfo(ctx, info);
+    return filename;
 }
 
 JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m)
