@@ -7,6 +7,13 @@
     "programSuffix": ""
   },
   {
+    "name": "aarch64-unknown-linux-static",
+    "architectures": ["aarch64", "arm64"],
+    "os": "linux",
+    "abi": "static",
+    "programSuffix": ""
+  },
+  {
     "name": "aarch64-unknown-linux-gnu",
     "architectures": ["aarch64", "arm64"],
     "os": "linux",
@@ -18,13 +25,6 @@
     "architectures": ["aarch64", "arm64"],
     "os": "linux",
     "abi": "musl",
-    "programSuffix": ""
-  },
-  {
-    "name": "aarch64-unknown-linux-static",
-    "architectures": ["aarch64", "arm64"],
-    "os": "linux",
-    "abi": "static",
     "programSuffix": ""
   },
   {
