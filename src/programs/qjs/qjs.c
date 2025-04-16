@@ -22,11 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifdef __COSMO__
-__static_yoink("blink_linux_aarch64");
-__static_yoink("blink_xnu_aarch64");
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
