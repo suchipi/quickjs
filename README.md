@@ -56,6 +56,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - `"b"` mode flag is now allowed in `std.fdopen`.
 - `std.strftime` added (wrapper for libc `strftime`).
 - Added `std.getuid`, `std.geteuid`, `std.getgid`, `std.getegid`, and `std.getpwuid` (wrappers for the libc/posix functions of the same names).
+- `os.gethostname` added (wrapper for POSIX `gethostname`).
 - Most module-loading-related code was moved into `quickjs-modulesys`.
 - `setTimeout` and `clearTimeout` are now available as globals (previously they were only available as exports).
 - `setInterval` and `clearInterval` are added, available as globals.

@@ -1026,6 +1026,9 @@ declare module "quickjs:os" {
 
   /** changes the access permission bits of the file at `path` using the octal number `mode`. */
   export function chmod(path: string, mode: number): void;
+
+  /** wrapper for POSIX `gethostname`; returns the system hostname */
+  export function gethostname(): string;
 }
 
 declare var setTimeout: typeof import("quickjs:os").setTimeout;

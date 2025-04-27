@@ -35,6 +35,13 @@
 #include <time.h>
 #include <signal.h>
 #include <limits.h>
+
+// HOST_NAME_MAX comes from limits.h but only if __USE_POSIX is defined and I don't
+// wanna fuck with that
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+
 #include <sys/stat.h>
 #include <dirent.h>
 #include <time.h>
@@ -3804,6 +3811,23 @@ static JSValue js_os_chmod(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+static JSValue js_os_gethostname(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
+{
+    int ret = 0;
+    char hostname[HOST_NAME_MAX] = {0};
+
+    ret = gethostname(hostname, HOST_NAME_MAX);
+    if (ret != 0) {
+        JS_ThrowError(ctx, "Failed to obtain hostname (result = %d)", ret);
+        JS_AddPropertyToException(ctx, "result", JS_NewInt32(ctx, ret));
+
+        return JS_EXCEPTION;
+    }
+
+    return JS_NewString(ctx, hostname);
+}
+
 #ifdef USE_WORKER
 
 /* Worker */
@@ -4373,6 +4397,7 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_CFUNC_DEF("access", 2, js_os_access ),
     JS_CFUNC_DEF("execPath", 0, js_os_execPath ),
     JS_CFUNC_DEF("chmod", 2, js_os_chmod ),
+    JS_CFUNC_DEF("gethostname", 0, js_os_gethostname ),
     /* constants for access */
     OS_FLAG(R_OK),
     OS_FLAG(W_OK),
