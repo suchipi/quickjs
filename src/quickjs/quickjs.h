@@ -1179,6 +1179,8 @@ int JS_SetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name,
                        JSValue val);
 int JS_SetModuleExportList(JSContext *ctx, JSModuleDef *m,
                            const JSCFunctionListEntry *tab, int len);
+int JS_HasModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name);
+JSValue JS_GetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name);
 
 /* module-related addons */
 JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier);
