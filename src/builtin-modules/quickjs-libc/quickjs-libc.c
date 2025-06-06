@@ -3982,7 +3982,6 @@ static void *worker_func(void *opaque)
     JSRuntime *rt;
     JSThreadState *ts;
     JSContext *ctx;
-    JSModuleDef *m;
 
     rt = JS_NewRuntime();
     if (rt == NULL) {
@@ -4011,48 +4010,8 @@ static void *worker_func(void *opaque)
     js_std_add_helpers(ctx, -1, NULL);
     QJMS_InitContext(ctx);
 
-    m = JS_RunModule(ctx, args->basename, args->filename);
-    if (!m) {
+    if (!JS_RunModule(ctx, args->basename, args->filename))
         QJU_PrintException(ctx, stderr);
-    } else {
-        JSValue init_func = JS_NULL;
-        JSValue global_obj = JS_NULL;
-        JSValue result = JS_NULL;
-
-        if (!JS_HasModuleExport(ctx, m, "__init_worker")) {
-            goto end_of_init_worker_handling;
-        }
-
-        init_func = JS_GetModuleExport(ctx, m, "__init_worker");
-        if (JS_IsException(init_func)) {
-            QJU_PrintException(ctx, stderr);
-            goto end_of_init_worker_handling;
-        }
-
-        if (!JS_IsFunction(ctx, init_func)) {
-            JS_ThrowTypeError(ctx, "'__init_worker' export was not a function");
-            QJU_PrintException(ctx, stderr);
-            goto end_of_init_worker_handling;
-        }
-
-        global_obj = JS_GetGlobalObject(ctx);
-        if (JS_IsException(global_obj)) {
-            QJU_PrintException(ctx, stderr);
-            goto end_of_init_worker_handling;
-        }
-
-        result = JS_Call(ctx, init_func, global_obj, 0, NULL);
-
-        if (JS_IsException(result)) {
-            QJU_PrintException(ctx, stderr);
-        }
-
-end_of_init_worker_handling:
-        JS_FreeValue(ctx, result);
-        JS_FreeValue(ctx, init_func);
-        JS_FreeValue(ctx, global_obj);
-    }
-
     free(args->filename);
     free(args->basename);
     free(args);

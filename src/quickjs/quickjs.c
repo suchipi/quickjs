@@ -27094,43 +27094,6 @@ int JS_SetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name,
     return -1;
 }
 
-int JS_HasModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name)
-{
-    JSAtom name;
-
-    name = JS_NewAtom(ctx, export_name);
-    if (name == JS_ATOM_NULL)
-        return -1;
-
-    if (find_export_entry(ctx, m, name)) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-JSValue JS_GetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name)
-{
-    JSExportEntry *me;
-    JSAtom name;
-    JSValue val;
-
-    name = JS_NewAtom(ctx, export_name);
-    if (name == JS_ATOM_NULL) {
-        return JS_EXCEPTION;
-    }
-
-    me = find_export_entry(ctx, m, name);
-    JS_FreeAtom(ctx, name);
-    if (!me) {
-        return JS_EXCEPTION;
-    }
-
-    val = *(me->u.local.var_ref->pvalue);
-    JS_DupValue(ctx, val);
-    return val;
-}
-
 void JS_SetModuleLoaderFunc(JSRuntime *rt,
                             JSModuleLoaderFunc *module_loader)
 {

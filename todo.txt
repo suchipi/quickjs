@@ -6,4 +6,3 @@
 - [x] refactor "Module" object so that delegate stuff is separated from instance identification and Module.define
 - [ ] get test262 stuff working and passing again
 - [ ] TextEncoder and TextDecoder
-- [ ] Worker stuff seems wonky; parent not getting response from child, etc
