@@ -66,3 +66,36 @@ test("defineBuiltinModule - never imported", async () => {
     }
   `);
 });
+
+test("defineBuiltinModule - bypasses toplevel module resolution", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-m",
+    "-e",
+    `
+      import { defineBuiltinModule, ModuleDelegate } from "quickjs:engine";
+
+      let called = false;
+      ModuleDelegate.resolve = (name, fromFile) => {
+        called = true;
+        return name;
+      }
+
+      defineBuiltinModule("mymodule", {
+        something: 5,
+        somethingElse: () => 6
+      });
+
+      console.log("called", called);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "called false
+    ",
+    }
+  `);
+});

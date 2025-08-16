@@ -330,7 +330,7 @@ static JSValue js_engine_defineBuiltinModule(JSContext *ctx, JSValueConst this_v
 
   // force module instantiation to happen now while &obj is still a valid
   // pointer. js_userdefined_module_init will set m->user_data to NULL.
-  m = JS_RunModule(ctx, "", name);
+  m = JS_RunModule(ctx, NULL, name);
   if (m == NULL) {
     ret = JS_EXCEPTION;
     goto end;

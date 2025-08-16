@@ -27201,21 +27201,33 @@ static JSModuleDef *js_find_loaded_module(JSContext *ctx, JSAtom name)
 /* return NULL in case of exception (e.g. module could not be loaded) */
 static JSModuleDef *js_host_resolve_imported_module(JSContext *ctx,
                                                     const char *base_cname,
-                                                    const char *cname1)
+                                                    const char *cname1,
+                                                    JS_BOOL skip_resolution)
 {
     JSRuntime *rt = ctx->rt;
     JSModuleDef *m;
     char *cname;
     JSAtom module_name;
 
-    if (!rt->module_normalize_func) {
-        cname = js_default_module_normalize_name(ctx, base_cname, cname1);
+    if (!skip_resolution) {
+        if (!rt->module_normalize_func) {
+            cname = js_default_module_normalize_name(ctx, base_cname, cname1);
+        } else {
+            cname = rt->module_normalize_func(ctx, base_cname, cname1,
+                                              rt->module_loader_opaque);
+        }
     } else {
-        cname = rt->module_normalize_func(ctx, base_cname, cname1,
-                                          rt->module_loader_opaque);
+        int len = strlen(cname1) + 1;
+        cname = js_malloc(ctx, len);
+        if (cname == NULL) {
+            return NULL;
+        }
+        pstrcpy(cname, len, cname1);
     }
-    if (!cname)
+
+    if (!cname) {
         return NULL;
+    }
 
     module_name = JS_NewAtom(ctx, cname);
     if (module_name == JS_ATOM_NULL) {
@@ -27249,7 +27261,8 @@ static JSModuleDef *js_host_resolve_imported_module(JSContext *ctx,
 
 static JSModuleDef *js_host_resolve_imported_module_atom(JSContext *ctx,
                                                     JSAtom base_module_name,
-                                                    JSAtom module_name1)
+                                                    JSAtom module_name1,
+                                                    JS_BOOL skip_resolution)
 {
     const char *base_cname, *cname;
     JSModuleDef *m;
@@ -27262,7 +27275,7 @@ static JSModuleDef *js_host_resolve_imported_module_atom(JSContext *ctx,
         JS_FreeCString(ctx, base_cname);
         return NULL;
     }
-    m = js_host_resolve_imported_module(ctx, base_cname, cname);
+    m = js_host_resolve_imported_module(ctx, base_cname, cname, skip_resolution);
     JS_FreeCString(ctx, base_cname);
     JS_FreeCString(ctx, cname);
     return m;
@@ -27704,7 +27717,7 @@ static int js_resolve_module(JSContext *ctx, JSModuleDef *m)
     for(i = 0; i < m->req_module_entries_count; i++) {
         JSReqModuleEntry *rme = &m->req_module_entries[i];
         m1 = js_host_resolve_imported_module_atom(ctx, m->module_name,
-                                                  rme->module_name);
+                                                  rme->module_name, 0);
         if (!m1)
             return -1;
         rme->module = m1;
@@ -28062,7 +28075,7 @@ JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
     JSModuleDef *m;
     JSValue ret, func_obj;
 
-    m = js_host_resolve_imported_module(ctx, basename, filename);
+    m = js_host_resolve_imported_module(ctx, basename, filename, basename == NULL);
     if (!m)
         return NULL;
 
