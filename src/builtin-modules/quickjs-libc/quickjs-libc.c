@@ -4267,6 +4267,20 @@ static const JSCFunctionListEntry js_worker_proto_funcs[] = {
     JS_CGETSET_DEF("onmessage", js_worker_get_onmessage, js_worker_set_onmessage ),
 };
 
+#else
+// Stub versions
+
+static JSClassID js_worker_class_id;
+
+static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
+                              int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "the Worker class is not supported on this platform");
+}
+
+static JSClassDef js_worker_class = {
+    "Worker",
+};
 #endif /* USE_WORKER */
 
 void js_std_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt))
@@ -4419,33 +4433,38 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
                                countof(js_os_timer_proto_funcs));
     JS_SetClassProto(ctx, js_os_timer_class_id, timer_proto);
 
-#ifdef USE_WORKER
     {
+#ifdef USE_WORKER
         JSRuntime *rt = JS_GetRuntime(ctx);
         JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+#endif /* USE_WORKER */
         JSValue proto, obj;
         /* Worker class */
         JS_NewClassID(&js_worker_class_id);
         JS_NewClass(JS_GetRuntime(ctx), js_worker_class_id, &js_worker_class);
         proto = JS_NewObject(ctx);
+#ifdef USE_WORKER
         JS_SetPropertyFunctionList(ctx, proto, js_worker_proto_funcs, countof(js_worker_proto_funcs));
+#endif /* USE_WORKER */
 
         obj = JS_NewCFunction2(ctx, js_worker_ctor, "Worker", 1,
-                               JS_CFUNC_constructor, 0);
+                                JS_CFUNC_constructor, 0);
         JS_SetConstructor(ctx, obj, proto);
 
         JS_SetClassProto(ctx, js_worker_class_id, proto);
 
+#ifdef USE_WORKER
         /* set 'Worker.parent' if necessary */
         if (ts->recv_pipe && ts->send_pipe) {
             JS_DefinePropertyValueStr(ctx, obj, "parent",
                                       js_worker_ctor_internal(ctx, JS_UNDEFINED, ts->recv_pipe, ts->send_pipe),
                                       JS_PROP_C_W_E);
         }
+#endif /* USE_WORKER */
 
         JS_SetModuleExport(ctx, m, "Worker", obj);
     }
-#endif /* USE_WORKER */
+
 
     return JS_SetModuleExportList(ctx, m, js_os_funcs,
                                   countof(js_os_funcs));
@@ -4458,9 +4477,7 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
     if (!m)
         return NULL;
     JS_AddModuleExportList(ctx, m, js_os_funcs, countof(js_os_funcs));
-#ifdef USE_WORKER
     JS_AddModuleExport(ctx, m, "Worker");
-#endif
     return m;
 }
 

@@ -596,8 +596,10 @@ declare module "quickjs:os" {
    * - `ctime`
    *
    * The times are specified in milliseconds since 1970. `lstat()` is the same as `stat()` except that it returns information about the link itself.
+   *
+   * NOTE: this function is not present on windows
    */
-  export function lstat(path: string): Stats;
+  export var lstat: undefined | ((path: string) => Stats);
 
   /**
    * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
@@ -768,11 +770,19 @@ declare module "quickjs:os" {
    */
   export function utimes(path: string, atime: number, mtime: number): void;
 
-  /** Create a link at `linkpath` containing the string `target`. */
-  export function symlink(target: string, linkpath: string): void;
+  /**
+   * Create a link at `linkpath` containing the string `target`.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var symlink: undefined | ((target: string, linkpath: string) => void);
 
-  /** Return the link target. */
-  export function readlink(path: string): string;
+  /**
+   * Return the link target.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var readlink: undefined | ((path: string) => string);
 
   /** Return an array of strings containing the filenames of the directory `path`. */
   export function readdir(path: string): Array<string>;
@@ -840,8 +850,12 @@ declare module "quickjs:os" {
   /** POSIX signal number. NOTE: this signal is not present on windows. */
   export var SIGTTOU: number | undefined;
 
-  /** Send the signal `sig` to the process `pid`. Use `os.SIG*` constants. */
-  export function kill(pid: number, sig: number): void;
+  /**
+   * Send the signal `sig` to the process `pid`. Use `os.SIG*` constants.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var kill: undefined | ((pid: number, sig: number) => void);
 
   export type ExecOptions = {
     /** Boolean (default = true). If true, wait until the process is terminated. In this case, `exec` returns the exit code if positive or the negated signal number if the process was interrupted by a signal. If false, do not block and return the process id of the child. */
@@ -875,8 +889,14 @@ declare module "quickjs:os" {
     gid?: number;
   };
 
-  /** Execute a process with the arguments args, and the provided options (if any). */
-  export function exec(args: Array<string>, options?: ExecOptions): number;
+  /**
+   * Execute a process with the arguments args, and the provided options (if any).
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var exec:
+    | undefined
+    | ((args: Array<string>, options?: ExecOptions) => number);
 
   /**
    * `waitpid` Unix system call. Returns the array [ret, status].
@@ -884,38 +904,96 @@ declare module "quickjs:os" {
    * From man waitpid(2):
    *
    * waitpid(): on success, returns the process ID of the child whose state has changed; if WNOHANG was specified and one or more child(ren) specified by pid exist, but have not yet changed state, then 0 is returned.
+   *
+   * NOTE: this function is not present on windows
    */
-  export function waitpid(pid: number, options?: number): [number, number];
+  export var waitpid:
+    | undefined
+    | ((pid: number, options?: number) => [number, number]);
 
-  /** Constant for the `options` argument of `waitpid`. */
-  export var WNOHANG: number;
-  /** Constant for the `options` argument of `waitpid`. */
-  export var WUNTRACED: number;
+  /**
+   * Constant for the `options` argument of `waitpid`.
+   *
+   * NOTE: this property is not present on windows
+   */
+  export var WNOHANG: number | undefined;
 
-  /** Function to be used to interpret the 'status' return value of `waitpid`. */
-  export function WEXITSTATUS(status: number): number;
-  /** Function to be used to interpret the 'status' return value of `waitpid`. */
-  export function WTERMSIG(status: number): number;
-  /** Function to be used to interpret the 'status' return value of `waitpid`. */
-  export function WSTOPSIG(status: number): number;
+  /**
+   * Constant for the `options` argument of `waitpid`.
+   *
+   * NOTE: this property is not present on windows
+   */
+  export var WUNTRACED: number | undefined;
 
-  /** Function to be used to interpret the 'status' return value of `waitpid`. */
-  export function WIFEXITED(status: number): boolean;
-  /** Function to be used to interpret the 'status' return value of `waitpid`. */
-  export function WIFSIGNALED(status: number): boolean;
-  /** Function to be used to interpret the 'status' return value of `waitpid`. */
-  export function WIFSTOPPED(status: number): boolean;
-  /** Function to be used to interpret the 'status' return value of `waitpid`. */
-  export function WIFCONTINUED(status: number): boolean;
+  /**
+   * Function to be used to interpret the 'status' return value of `waitpid`.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var WEXITSTATUS: undefined | ((status: number) => number);
 
-  /** `dup` Unix system call. */
-  export function dup(fd: number): number;
+  /**
+   * Function to be used to interpret the 'status' return value of `waitpid`.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var WTERMSIG: undefined | ((status: number) => number);
 
-  /** `dup2` Unix system call. */
-  export function dup2(oldfd: number, newfd: number): number;
+  /**
+   * Function to be used to interpret the 'status' return value of `waitpid`.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var WSTOPSIG: undefined | ((status: number) => number);
 
-  /** `pipe` Unix system call. Return two handles as `[read_fd, write_fd]`. */
-  export function pipe(): [number, number];
+  /**
+   * Function to be used to interpret the 'status' return value of `waitpid`.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var WIFEXITED: undefined | ((status: number) => boolean);
+
+  /**
+   * Function to be used to interpret the 'status' return value of `waitpid`.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var WIFSIGNALED: undefined | ((status: number) => boolean);
+
+  /**
+   * Function to be used to interpret the 'status' return value of `waitpid`.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var WIFSTOPPED: undefined | ((status: number) => boolean);
+
+  /**
+   * Function to be used to interpret the 'status' return value of `waitpid`.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var WIFCONTINUED: undefined | ((status: number) => boolean);
+
+  /**
+   * `dup` Unix system call.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var dup: undefined | ((fd: number) => number);
+
+  /**
+   * `dup2` Unix system call.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var dup2: undefined | ((oldfd: number, newfd: number) => number);
+
+  /**
+   * `pipe` Unix system call. Return two handles as `[read_fd, write_fd]`.
+   *
+   * NOTE: this function is not present on windows
+   */
+  export var pipe: undefined | (() => [number, number]);
 
   /** Sleep for `delay_ms` milliseconds. */
   export function sleep(delay_ms: number): void;
@@ -971,6 +1049,11 @@ declare module "quickjs:os" {
     // | Set<StructuredClonable>
     | { [key: string | number]: StructuredClonable };
 
+  /**
+   * Web-Worker-like threads API.
+   *
+   * NOTE: this functionality is not available on windows. The class is present, but its constructor throws.
+   */
   export class Worker {
     /**
      * Constructor to create a new thread (worker) with an API close to the

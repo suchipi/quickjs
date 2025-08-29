@@ -17,3 +17,7 @@ declare("LDEXPORT_TARGET", "-static");
 declare("PROGRAM_SUFFIX", ".exe");
 
 declare("SKIP_SHARED_LIBS", true);
+
+// Without this, we get a linking error "undefined reference to __imp_gethostname".
+// But it's not clear why we weren't getting that error before...
+declareOrAppend("LIBS_TARGET", "-lws2_32");
