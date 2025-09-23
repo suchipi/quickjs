@@ -3182,6 +3182,7 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
 }
 #endif // !defined(_WIN32)
 
+#if !defined(_WIN32)
 static char **build_envp(JSContext *ctx, JSValueConst obj)
 {
     uint32_t len, i;
@@ -3494,6 +3495,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
     ret_val = JS_EXCEPTION;
     goto done;
 }
+#endif // !defined(_WIN32)
 
 #if !defined(_WIN32)
 /* waitpid(pid, block) -> [pid, status] */
