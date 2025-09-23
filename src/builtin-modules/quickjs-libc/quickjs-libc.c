@@ -3145,7 +3145,9 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
         return JS_UNDEFINED;
     }
 }
+#endif // !defined(_WIN32)
 
+#if !defined(_WIN32)
 static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
@@ -3178,6 +3180,7 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
         return JS_NewString(ctx, buf);
     }
 }
+#endif // !defined(_WIN32)
 
 static char **build_envp(JSContext *ctx, JSValueConst obj)
 {
@@ -3492,6 +3495,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
     goto done;
 }
 
+#if !defined(_WIN32)
 /* waitpid(pid, block) -> [pid, status] */
 static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
@@ -3611,7 +3615,9 @@ static JSValue js_os_WIFCONTINUED(JSContext *ctx, JSValueConst this_val,
     return JS_ThrowError(ctx, "WIFCONTINUED is not available on this platform");
 #endif
 }
+#endif // !defined(_WIN32)
 
+#if !defined(_WIN32)
 /* pipe() -> [read_fd, write_fd] */
 static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
@@ -3635,7 +3641,9 @@ static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
                                  JS_PROP_C_W_E);
     return obj;
 }
+#endif // !defined(_WIN32)
 
+#if !defined(_WIN32)
 /* kill(pid, sig) */
 static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
@@ -3655,7 +3663,9 @@ static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val,
         return JS_UNDEFINED;
     }
 }
+#endif // !defined(_WIN32)
 
+#if !defined(_WIN32)
 /* dup(fd) */
 static JSValue js_os_dup(JSContext *ctx, JSValueConst this_val,
                          int argc, JSValueConst *argv)
@@ -3674,7 +3684,9 @@ static JSValue js_os_dup(JSContext *ctx, JSValueConst this_val,
         return JS_NewInt32(ctx, ret);
     }
 }
+#endif // !defined(_WIN32)
 
+#if !defined(_WIN32)
 /* dup2(fd) */
 static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
                          int argc, JSValueConst *argv)
@@ -3696,8 +3708,7 @@ static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
         return JS_NewInt32(ctx, ret);
     }
 }
-
-#endif /* !_WIN32 */
+#endif // !defined(_WIN32)
 
 static JSValue js_os_access(JSContext *ctx, JSValueConst this_val,
                             int argc, JSValueConst *argv)
