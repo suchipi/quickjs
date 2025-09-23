@@ -8,7 +8,13 @@ cd ../..
 meta/clean.sh
 
 NODE_VERSION=$(cat .node-version)
-docker run --rm -it -v $PWD:/workdir -w /workdir node:${NODE_VERSION/v/} \
+HEREDIR="$PWD"
+if command -v cygpath >/dev/null 2>&1; then
+  HEREDIR="$(cygpath -m "$PWD")"
+fi
+
+env MSYS2_ARG_CONV_EXCL="/workdir" \
+  docker run --rm -it -v $HEREDIR:/workdir -w /workdir node:${NODE_VERSION/v/} \
   npm install
 
 # defines IMAGES
@@ -18,7 +24,7 @@ meta/docker/build-images.sh
 
 for DIR in "${IMAGES[@]}"; do
   docker run --rm \
-  -v $PWD:/opt/quickjs \
+  -v $HEREDIR:/opt/quickjs \
   -e QUICKJS_EXTRAS=1 \
   "suchipi/quickjs-builder-${DIR}" \
   "/opt/quickjs/meta/docker/$DIR/cmd.sh"
