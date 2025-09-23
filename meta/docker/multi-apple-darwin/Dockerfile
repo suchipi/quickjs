@@ -38,3 +38,6 @@ ENV LD_LIBRARY_PATH="/osxcross/lib:$LD_LIBRARY_PATH"
 
 # The intent is that you volume-mount the repo into /opt/quickjs.
 WORKDIR /opt/quickjs
+
+# Silence volume ownership warnings caused by Docker Desktop nonsense
+RUN git config --global --add safe.directory /opt/quickjs

@@ -11,10 +11,10 @@ NODE_VERSION=$(cat .node-version)
 HEREDIR="$PWD"
 if command -v cygpath >/dev/null 2>&1; then
   HEREDIR="$(cygpath -m "$PWD")"
+  export MSYS2_ARG_CONV_EXCL="*"
 fi
 
-env MSYS2_ARG_CONV_EXCL="/workdir" \
-  docker run --rm -it -v $HEREDIR:/workdir -w /workdir node:${NODE_VERSION/v/} \
+docker run --rm -it -v $HEREDIR:/workdir -w /workdir node:${NODE_VERSION/v/} \
   npm install
 
 # defines IMAGES
