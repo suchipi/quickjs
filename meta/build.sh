@@ -8,6 +8,8 @@ elif [[ "$(uname)" == "FreeBSD" ]]; then
   HOST_OS="freebsd"
 elif [[ "$(uname)" == "Linux" ]]; then
   HOST_OS="linux"
+elif [[ "$MSYSTEM" != "" ]]; then
+  HOST_OS="msys2"
 else
   HOST_OS="other"
 fi
