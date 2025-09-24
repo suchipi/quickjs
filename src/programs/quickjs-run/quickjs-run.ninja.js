@@ -5,7 +5,7 @@ const quickjs_run_target_o = build({
 });
 
 build({
-  output: builddir("bin/quickjs-run$PROGRAM_SUFFIX"),
+  output: builddir("bin/quickjs-run$PROGRAM_SUFFIX_TARGET"),
   rule: "link_target",
   inputs: [
     quickjs_run_target_o,
@@ -20,7 +20,7 @@ const quickjs_run_host_o = build({
 });
 
 build({
-  output: builddir("intermediate/quickjs-run.host$PROGRAM_SUFFIX"),
+  output: builddir("intermediate/quickjs-run.host$PROGRAM_SUFFIX_HOST"),
   rule: "link_host",
   inputs: [quickjs_run_host_o, builddir("intermediate/quickjs-full.host.a")],
 });

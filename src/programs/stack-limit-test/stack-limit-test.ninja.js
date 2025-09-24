@@ -27,7 +27,7 @@ if (env.QUICKJS_EXTRAS === "1") {
   // program
 
   build({
-    output: builddir("extras/stack-limit-test$PROGRAM_SUFFIX"),
+    output: builddir("extras/stack-limit-test$PROGRAM_SUFFIX_TARGET"),
     rule: "link_target",
     inputs: [
       main_target_o,

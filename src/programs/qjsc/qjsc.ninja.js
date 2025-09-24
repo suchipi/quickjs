@@ -42,7 +42,7 @@ const qjsc_target = build({
 });
 
 build({
-  output: builddir("bin/qjsc$PROGRAM_SUFFIX"),
+  output: builddir("bin/qjsc$PROGRAM_SUFFIX_TARGET"),
   rule: "copy",
   inputs: [qjsc_target],
 });

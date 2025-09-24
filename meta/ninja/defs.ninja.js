@@ -1,10 +1,5 @@
 const path = require("path");
 
-// PROGRAM_SUFFIX is ".exe" on windows or ".com" when targeting Cosmopolitan Libc
-if (getVar("PROGRAM_SUFFIX") == null) {
-  declare("PROGRAM_SUFFIX", "");
-}
-
 const headerFiles = glob("**/*.h", {
   cwd: path.resolve(__dirname, "../.."),
 });
@@ -14,6 +9,11 @@ const dirsWithHeaderFiles = Array.from(
 );
 
 for (const suffix of ["HOST", "TARGET"]) {
+  // ".exe" on windows or ".com" when targeting Cosmopolitan Libc
+  if (getVar(`PROGRAM_SUFFIX_${suffix}`) == null) {
+    declare(`PROGRAM_SUFFIX_${suffix}`, "");
+  }
+
   // Standard safe compiler optimizations
   declareOrAppend(`CFLAGS_${suffix}`, "-O2");
 

@@ -6,13 +6,13 @@
 let qjsbootstrapForExample;
 
 const qjsbootstrap_size_check_rule = rule("qjsbootstrap_size_check", {
-  command: `${builddir("intermediate/quickjs-run.host$PROGRAM_SUFFIX")} ${rel(
-    "size_check.js"
-  )} $in > $out`,
+  command: `${builddir(
+    "intermediate/quickjs-run.host$PROGRAM_SUFFIX_HOST"
+  )} ${rel("size_check.js")} $in > $out`,
   description: "SIZE_CHECK $in",
 });
 const qjsbootstrap_size_check_rule_implicit_inputs = [
-  builddir("intermediate/quickjs-run.host$PROGRAM_SUFFIX"),
+  builddir("intermediate/quickjs-run.host$PROGRAM_SUFFIX_HOST"),
   rel("size_check.js"),
 ];
 
@@ -73,7 +73,7 @@ for (const bytecode of [false, true]) {
   });
 
   const qjsbootstrap = build({
-    output: builddir(`bin/qjsbootstrap${dashByteCode}$PROGRAM_SUFFIX`),
+    output: builddir(`bin/qjsbootstrap${dashByteCode}$PROGRAM_SUFFIX_TARGET`),
     rule: "copy",
     inputs: [qjsbootstrap_fill_target],
   });
@@ -85,7 +85,7 @@ for (const bytecode of [false, true]) {
 
 if (env.QUICKJS_EXTRAS === "1") {
   const is_stdin_a_tty = build({
-    output: builddir("extras/is-stdin-a-tty$PROGRAM_SUFFIX"),
+    output: builddir("extras/is-stdin-a-tty$PROGRAM_SUFFIX_TARGET"),
     rule: "combine_into_executable",
     inputs: [qjsbootstrapForExample, rel("is-stdin-a-tty.js")],
   });

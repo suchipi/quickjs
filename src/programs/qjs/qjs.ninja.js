@@ -5,7 +5,7 @@ const qjs_target_o = build({
 });
 
 build({
-  output: builddir("bin/qjs$PROGRAM_SUFFIX"),
+  output: builddir("bin/qjs$PROGRAM_SUFFIX_TARGET"),
   rule: "link_target",
   inputs: [
     qjs_target_o,

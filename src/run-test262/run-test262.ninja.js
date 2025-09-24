@@ -6,7 +6,7 @@ if (env.QUICKJS_EXTRAS === "1") {
   });
 
   build({
-    output: builddir("extras/run-test262$PROGRAM_SUFFIX"),
+    output: builddir("extras/run-test262$PROGRAM_SUFFIX_TARGET"),
     rule: "link_target",
     inputs: [
       run_test262_target_o,
