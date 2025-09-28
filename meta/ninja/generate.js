@@ -31,7 +31,7 @@ if (QUICKJS_SHINOBI_EXTRA_FILES) {
 
 files.push(...process.argv.slice(2));
 
-const shinobi = new Shinobi();
+const shinobi = new Shinobi(undefined, "/");
 
 for (const file of files) {
   shinobi.load(file);
