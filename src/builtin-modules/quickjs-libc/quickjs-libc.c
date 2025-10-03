@@ -50,6 +50,7 @@
 #include <conio.h>
 #include <utime.h>
 #include <io.h>
+#include <tchar.h>
 #else
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -3182,7 +3183,113 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
 }
 #endif // !defined(_WIN32)
 
-#if !defined(_WIN32)
+#if defined(_WIN32)
+// (commandLine, { moduleName, flags, cwd, env }) => idk yet
+static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv)
+{
+    STARTUPINFO startup_info = {0};
+    PROCESS_INFORMATION process_info = {0};
+    BOOL create_process_result;
+    const char *module_name = NULL;
+    char *command_line = NULL;
+    uint32_t flags = 0;
+    char *env_block = NULL;
+    const char *current_dir = NULL;
+    
+    startup_info.cb = sizeof(cb);
+
+    if (argc == 0) {
+        return JS_ThrowTypeError(ctx, "Invalid number of arguments. At least one (command line) is required");
+    } else if (argc == 1) {
+        command_line = JS_ToCString(ctx, argv[0]);
+        if (command_line == NULL) {
+            return JS_EXCEPTION;
+        }
+        module_name = NULL;
+        env_block = NULL;
+        current_dir = NULL;
+    } else if (argc == 2) {
+        if (JS_IsNull(argv[0])) {
+            command_line = NULL;
+        } else {
+            command_line = JS_ToCString(ctx, argv[0]);
+            if (command_line == NULL) {
+                goto fail;
+            }
+        }
+
+        if (JS_IsObject(argv[1])) {
+            JSValue options_val = argv[1];
+
+            JSAtom module_name_atom = JS_NewAtom(ctx, "moduleName");
+            if (JS_HasProperty(ctx, options_val, module_name_atom)) {
+                JSValue module_name_val = JS_GetProperty(ctx, options_val, module_name_atom);
+                JS_FreeAtom(ctx, module_name_atom);
+
+                if (JS_IsException(module_name_val)) {
+                    goto fail;
+                }
+                module_name = JS_ToCString(ctx, module_name_val);
+                if (module_name == NULL) {
+                    goto fail;
+                }
+            }
+            
+            JSAtom flags_atom = JS_NewAtom(ctx, "flags");
+            if (JS_HasProperty(ctx, options_val, flags_atom)) {
+                JSValue flags_val = JS_GetProperty(ctx, options_val, flags_atom);
+                JS_FreeAtom(ctx, flags_atom);
+
+                if (JS_IsException(flags_val)) {
+                    goto fail;
+                }
+
+                if (JS_ToUint32(ctx, &flags, flags_val)) {
+                    goto fail;
+                }
+            }
+
+            // TODO: cwd
+
+            // TODO: env
+            // js_std_dbuf_init(ctx, &env_block_dbuf);
+        }
+    }
+
+
+    create_process_result = CreateProcess(
+        module_name,
+        command_line,
+        NULL,           // Process handle not inheritable
+        NULL,           // Thread handle not inheritable
+        FALSE,          // Set handle inheritance to FALSE
+        flags,
+        env_block,
+        current_dir,
+        &startup_info,
+        &process_info
+    );
+
+    if (!create_process_result) {
+        // TODO: Get nice error message with FormatMessage. See 
+        JS_ThrowError(ctx, "CreateProcess failed. Error code was: %d", GetLastError());
+        goto fail;
+    }
+
+    // TODO: return struct or number or something that can be awaited with WaitForSingleObject
+    // See https://learn.microsoft.com/en-us/windows/win32/procthread/creating-processes
+
+fail:
+    if (command_line != NULL) {
+        JS_FreeCString(ctx, command_line);
+    }
+    if (module_name != NULL) {
+        JS_FreeCString(ctx, module_name);
+    }
+    return JS_EXCEPTION;
+}
+#else // defined(_WIN32)
 static char **build_envp(JSContext *ctx, JSValueConst obj)
 {
     uint32_t len, i;
