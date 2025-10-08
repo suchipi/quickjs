@@ -3192,9 +3192,9 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
     PROCESS_INFORMATION process_info = {0};
     BOOL create_process_result;
     const char *module_name = NULL;
-    char *command_line = NULL;
+    const char *command_line = NULL;
     uint32_t flags = 0;
-    char *env_block = NULL;
+    const char *env_block = NULL;
     const char *current_dir = NULL;
     
     startup_info.cb = sizeof(cb);
@@ -3206,9 +3206,6 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
         if (command_line == NULL) {
             return JS_EXCEPTION;
         }
-        module_name = NULL;
-        env_block = NULL;
-        current_dir = NULL;
     } else if (argc == 2) {
         if (JS_IsNull(argv[0])) {
             command_line = NULL;
@@ -3234,6 +3231,8 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                 if (module_name == NULL) {
                     goto fail;
                 }
+            } else {
+                JS_FreeAtom(ctx, module_name_atom);
             }
             
             JSAtom flags_atom = JS_NewAtom(ctx, "flags");
@@ -3248,12 +3247,77 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                 if (JS_ToUint32(ctx, &flags, flags_val)) {
                     goto fail;
                 }
+            } else {
+                JS_FreeAtom(ctx, flags_atom);
             }
 
-            // TODO: cwd
+            JSAtom cwd_atom = JS_NewAtom(ctx, "cwd");
+            if (JS_HasProperty(ctx, options_val, cwd_atom)) {
+                JSValue cwd_val = JS_GetProperty(ctx, options_val, cwd_atom);
+                JS_FreeAtom(ctx, cwd_atom);
 
-            // TODO: env
-            // js_std_dbuf_init(ctx, &env_block_dbuf);
+                if (JS_IsException(cwd_val)) {
+                    goto fail;
+                }
+
+                current_dir = JS_ToCString(ctx, cwd_val);
+                if (current_dir == NULL) {
+                    goto fail;
+                }
+            } else {
+                JS_FreeAtom(ctx, cwd_atom);
+            }
+
+            JSAtom env_atom = JS_NewAtom(ctx, "env");
+            if (JS_HasProperty(ctx, options_val, env_atom)) {
+                JSValue env_val = JS_GetProperty(ctx, options_val, env_atom);
+                JS_FreeAtom(ctx, env_atom);
+
+                if (JS_IsException(env_val)) {
+                    goto fail;
+                }
+
+                if (!JS_IsObject(env_val)) {
+                    JS_ThrowTypeError(ctx, "'env' option must be an object");
+                    goto fail;
+                }
+
+                QJUForEachPropertyState foreach = QJU_NewForEachPropertyState(ctx, env_val, JS_PROP_ENUMERABLE);
+                if (foreach == NULL) {
+                    // out of memory
+                    goto fail;
+                }
+                QJU_ForEachProperty(ctx, foreach) {
+                    JSValue read_result = QJU_ForEachProperty_Read(ctx, env_val, foreach);
+                    if (JS_IsException(read_result)) {
+                        QJU_FreeForEachPropertyState(ctx, foreach);
+                        goto fail;
+                    }
+
+                    if (foreach->key == JS_ATOM_NULL) {
+                        JS_ThrowTypeError(ctx, "'env' option had null key?");
+                        QJU_FreeForEachPropertyState(ctx, foreach);
+                        goto fail;
+                    }
+
+                    const char *key_str = JS_AtomToCString(ctx, foreach->key);
+                    if (key_str == NULL) {
+                        JS_ThrowTypeError(ctx, "failed to convert key of env option object to string");
+                        QJU_FreeForEachPropertyState(ctx, foreach);
+                        goto fail;
+                    }
+
+                    // TODO left off here. make dbuf and fill it up
+
+                    if (!JS_IsString(foreach->val)) {
+
+                        JS_ThrowTypeError(ctx, "'env' option must be an object");
+                    }
+
+                }
+            } else {
+                JS_FreeAtom(ctx, env_atom);
+            }
         }
     }
 
@@ -3286,6 +3350,9 @@ fail:
     }
     if (module_name != NULL) {
         JS_FreeCString(ctx, module_name);
+    }
+    if (current_dir != NULL) {
+        JS_FreeCString(ctx, current_dir);
     }
     return JS_EXCEPTION;
 }
