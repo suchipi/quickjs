@@ -3191,18 +3191,18 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
     STARTUPINFO startup_info = {0};
     PROCESS_INFORMATION process_info = {0};
     BOOL create_process_result;
-    const char *module_name = NULL;
-    const char *command_line = NULL;
+    char *module_name = NULL;
+    char *command_line = NULL;
     uint32_t flags = 0;
-    const char *env_block = NULL;
-    const char *current_dir = NULL;
+    char *env_block = NULL;
+    char *current_dir = NULL;
     
-    startup_info.cb = sizeof(cb);
+    startup_info.cb = sizeof(startup_info);
 
     if (argc == 0) {
         return JS_ThrowTypeError(ctx, "Invalid number of arguments. At least one (command line) is required");
     } else if (argc == 1) {
-        command_line = JS_ToCString(ctx, argv[0]);
+        command_line = (char *)JS_ToCString(ctx, argv[0]);
         if (command_line == NULL) {
             return JS_EXCEPTION;
         }
@@ -3210,7 +3210,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
         if (JS_IsNull(argv[0])) {
             command_line = NULL;
         } else {
-            command_line = JS_ToCString(ctx, argv[0]);
+            command_line = (char *)JS_ToCString(ctx, argv[0]);
             if (command_line == NULL) {
                 goto fail;
             }
@@ -3227,7 +3227,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                 if (JS_IsException(module_name_val)) {
                     goto fail;
                 }
-                module_name = JS_ToCString(ctx, module_name_val);
+                module_name = (char *)JS_ToCString(ctx, module_name_val);
                 if (module_name == NULL) {
                     goto fail;
                 }
@@ -3260,7 +3260,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                     goto fail;
                 }
 
-                current_dir = JS_ToCString(ctx, cwd_val);
+                current_dir = (char *)JS_ToCString(ctx, cwd_val);
                 if (current_dir == NULL) {
                     goto fail;
                 }
@@ -3281,21 +3281,27 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                     JS_ThrowTypeError(ctx, "'env' option must be an object");
                     goto fail;
                 }
+                
+                DynBuf env_dbuf;
+                js_std_dbuf_init(ctx, &env_dbuf);
 
-                QJUForEachPropertyState foreach = QJU_NewForEachPropertyState(ctx, env_val, JS_PROP_ENUMERABLE);
+                QJUForEachPropertyState *foreach = QJU_NewForEachPropertyState(ctx, env_val, JS_PROP_ENUMERABLE);
                 if (foreach == NULL) {
                     // out of memory
+                    dbuf_free(&env_dbuf);
                     goto fail;
                 }
                 QJU_ForEachProperty(ctx, foreach) {
                     JSValue read_result = QJU_ForEachProperty_Read(ctx, env_val, foreach);
                     if (JS_IsException(read_result)) {
+                        dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
                         goto fail;
                     }
 
                     if (foreach->key == JS_ATOM_NULL) {
                         JS_ThrowTypeError(ctx, "'env' option had null key?");
+                        dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
                         goto fail;
                     }
@@ -3303,26 +3309,78 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                     const char *key_str = JS_AtomToCString(ctx, foreach->key);
                     if (key_str == NULL) {
                         JS_ThrowTypeError(ctx, "failed to convert key of env option object to string");
+                        dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
                         goto fail;
                     }
 
-                    // TODO left off here. make dbuf and fill it up
-
                     if (!JS_IsString(foreach->val)) {
-
-                        JS_ThrowTypeError(ctx, "'env' option must be an object");
+                        JS_ThrowTypeError(ctx, "'env' option's values must be strings, but the property for key %s had a non-string value", key_str);
+                        dbuf_free(&env_dbuf);
+                        QJU_FreeForEachPropertyState(ctx, foreach);
+                        JS_FreeCString(ctx, key_str);
+                        goto fail;
                     }
 
+                    if (dbuf_put(&env_dbuf, (const uint8_t *)key_str, strnlen(key_str, 4096))) {
+                        JS_ThrowTypeError(ctx, "failed to allocate sufficient memory to build environment variables block");
+                        dbuf_free(&env_dbuf);
+                        QJU_FreeForEachPropertyState(ctx, foreach);
+                        JS_FreeCString(ctx, key_str);
+                        goto fail;
+                    }
+                    JS_FreeCString(ctx, key_str);
+
+                    if (dbuf_put(&env_dbuf, (const uint8_t *)"=", 1)) {
+                        JS_ThrowTypeError(ctx, "failed to allocate sufficient memory to build environment block");
+                        dbuf_free(&env_dbuf);
+                        QJU_FreeForEachPropertyState(ctx, foreach);
+                        goto fail;
+                    }
+
+                    const char *val_str = JS_ToCString(ctx, foreach->val);
+                    if (val_str == NULL) {
+                        // out of memory
+                        dbuf_free(&env_dbuf);
+                        QJU_FreeForEachPropertyState(ctx, foreach);
+                        goto fail;
+                    }
+
+                    if (dbuf_put(&env_dbuf, (const uint8_t *)val_str, strnlen(key_str, 32768))) {
+                        JS_ThrowTypeError(ctx, "failed to allocate sufficient memory to build environment block");
+                        dbuf_free(&env_dbuf);
+                        QJU_FreeForEachPropertyState(ctx, foreach);
+                        JS_FreeCString(ctx, val_str);
+                        goto fail;
+                    }
+                    JS_FreeCString(ctx, val_str);
+
+                    if (dbuf_put(&env_dbuf, (const uint8_t *)"\0", 1)) {
+                        JS_ThrowTypeError(ctx, "failed to allocate sufficient memory to build environment block");
+                        dbuf_free(&env_dbuf);
+                        QJU_FreeForEachPropertyState(ctx, foreach);
+                        goto fail;
+                    }
                 }
+                QJU_FreeForEachPropertyState(ctx, foreach);
+
+                if (dbuf_put(&env_dbuf, (const uint8_t *)"\0", 1)) {
+                    JS_ThrowTypeError(ctx, "failed to allocate sufficient memory to build environment block");
+                    dbuf_free(&env_dbuf);
+                    goto fail;
+                }
+
+                env_block = js_malloc(ctx, env_dbuf.size);
+                strncpy(env_block, (char *)env_dbuf.buf, env_dbuf.size);
+                dbuf_free(&env_dbuf);
             } else {
                 JS_FreeAtom(ctx, env_atom);
             }
         }
     }
 
-
-    create_process_result = CreateProcess(
+    // TODO: CreateProcessW would be nice, but we'd have to convert utf-8 to utf-16
+    create_process_result = CreateProcessA(
         module_name,
         command_line,
         NULL,           // Process handle not inheritable
@@ -3336,13 +3394,30 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
     );
 
     if (!create_process_result) {
-        // TODO: Get nice error message with FormatMessage. See 
-        JS_ThrowError(ctx, "CreateProcess failed. Error code was: %d", GetLastError());
+        // TODO: Get nice error message with FormatMessage.
+        JS_ThrowError(ctx, "CreateProcess failed. Error code was: %ld", GetLastError());
         goto fail;
     }
 
     // TODO: return struct or number or something that can be awaited with WaitForSingleObject
     // See https://learn.microsoft.com/en-us/windows/win32/procthread/creating-processes
+    WaitForSingleObject(process_info.hProcess, INFINITE);
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
+
+    if (command_line != NULL) {
+        JS_FreeCString(ctx, command_line);
+    }
+    if (module_name != NULL) {
+        JS_FreeCString(ctx, module_name);
+    }
+    if (current_dir != NULL) {
+        JS_FreeCString(ctx, current_dir);
+    }
+    if (env_block != NULL) {
+        js_free(ctx, env_block);
+    }
+    return JS_UNDEFINED;
 
 fail:
     if (command_line != NULL) {
@@ -3353,6 +3428,9 @@ fail:
     }
     if (current_dir != NULL) {
         JS_FreeCString(ctx, current_dir);
+    }
+    if (env_block != NULL) {
+        js_free(ctx, env_block);
     }
     return JS_EXCEPTION;
 }
@@ -4572,7 +4650,9 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_CFUNC_DEF("utimes", 3, js_os_utimes ),
     JS_CFUNC_DEF("sleep", 1, js_os_sleep ),
     JS_CFUNC_DEF("realpath", 1, js_os_realpath ),
-#if !defined(_WIN32)
+#if defined(_WIN32)
+    JS_CFUNC_DEF("CreateProcess", 2, js_os_CreateProcess ),
+#else
     JS_CFUNC_MAGIC_DEF("lstat", 1, js_os_stat, 1 ),
     JS_CFUNC_DEF("symlink", 2, js_os_symlink ),
     JS_CFUNC_DEF("readlink", 1, js_os_readlink ),
