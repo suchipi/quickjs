@@ -1089,6 +1089,215 @@ declare module "quickjs:os" {
     onmessage: null | ((event: { data: StructuredClonable }) => void);
   }
 
+  /** An opaque wrapper around a Win32 HANDLE. */
+  export interface Win32Handle {
+    [Symbol.toStringTag]: "Win32Handle";
+  }
+
+  /**
+   * Constructor for Win32Handle. Always throws; Win32Handle objects cannot be
+   * created directly from JavaScript code. They are created by native
+   * functions like {@link CreateProcess} and {@link CreatePipe}.
+   *
+   * NOTE: this class is only present on windows
+   */
+  export var Win32Handle: undefined | (new () => never);
+
+  export type CreateProcessOptions = {
+    /** The name of the module to be executed (maps to lpApplicationName). */
+    moduleName?: string;
+
+    /** Process creation flags (maps to dwCreationFlags). */
+    flags?: number;
+
+    /** The working directory of the new process. */
+    cwd?: string;
+
+    /** Environment variables for the new process. If not specified, the parent's environment is inherited. Values must be strings. */
+    env?: { [key: string]: string };
+
+    /** Win32 HANDLE to use for the child's stdin. */
+    stdin?: Win32Handle;
+
+    /** Win32 HANDLE to use for the child's stdout. */
+    stdout?: Win32Handle;
+
+    /** Win32 HANDLE to use for the child's stderr. */
+    stderr?: Win32Handle;
+  };
+
+  export type CreateProcessResult = {
+    /** The process ID of the newly created process. */
+    pid: number;
+
+    /** A Win32Handle for the process. */
+    processHandle: Win32Handle;
+
+    /** The thread ID of the primary thread of the newly created process. */
+    tid: number;
+
+    /** A Win32Handle for the primary thread. */
+    threadHandle: Win32Handle;
+  };
+
+  /**
+   * Create a new process using the Win32 `CreateProcessW` API.
+   *
+   * @param commandLine - The command line to execute.
+   * @param options - Optional settings for module name, flags, cwd, env, and stdio redirection.
+   * @returns An object with `pid`, `processHandle`, `tid`, and `threadHandle`.
+   *
+   * NOTE: this function is only present on windows
+   */
+  export var CreateProcess:
+    | undefined
+    | ((
+        commandLine: string | null,
+        options?: CreateProcessOptions
+      ) => CreateProcessResult);
+
+  /**
+   * Wait for a Win32 handle to be signaled (wrapper for Win32 `WaitForSingleObject`).
+   *
+   * @param handle - The handle to wait on.
+   * @param timeoutMs - Timeout in milliseconds. Defaults to `Infinity` (INFINITE). Pass `Infinity` to wait indefinitely.
+   * @returns One of the `WAIT_*` constants.
+   *
+   * NOTE: this function is only present on windows
+   */
+  export var WaitForSingleObject:
+    | undefined
+    | ((handle: Win32Handle, timeoutMs?: number) => number);
+
+  /**
+   * Retrieve the exit code of a process (wrapper for Win32 `GetExitCodeProcess`).
+   *
+   * @param handle - A process handle.
+   * @returns The exit code of the process.
+   *
+   * NOTE: this function is only present on windows
+   */
+  export var GetExitCodeProcess:
+    | undefined
+    | ((handle: Win32Handle) => number);
+
+  /**
+   * Terminate a process (wrapper for Win32 `TerminateProcess`).
+   *
+   * @param handle - A process handle.
+   * @param exitCode - The exit code to assign to the process.
+   *
+   * NOTE: this function is only present on windows
+   */
+  export var TerminateProcess:
+    | undefined
+    | ((handle: Win32Handle, exitCode: number) => void);
+
+  /**
+   * Close a Win32 handle. The handle will automatically be closed when the
+   * Win32Handle object is garbage-collected, but it's safe to close it
+   * yourself as well; a handle that has already been closed will not be
+   * closed again during garbage collection.
+   *
+   * @param handle - The handle to close.
+   *
+   * NOTE: this function is only present on windows
+   */
+  export var CloseHandle:
+    | undefined
+    | ((handle: Win32Handle) => void);
+
+  export type CreatePipeOptions = {
+    /** Whether the pipe handles should be inheritable. Defaults to true. */
+    inheritHandle?: boolean;
+  };
+
+  export type CreatePipeResult = {
+    /** The read end of the pipe (a Win32Handle). */
+    readEnd: Win32Handle;
+
+    /** The write end of the pipe (a Win32Handle). */
+    writeEnd: Win32Handle;
+  };
+
+  /**
+   * Create an anonymous pipe (wrapper for Win32 `CreatePipe`).
+   *
+   * @param options - Optional settings. `inheritHandle` defaults to true.
+   * @returns An object with `readEnd` and `writeEnd` Win32Handle properties.
+   *
+   * NOTE: this function is only present on windows
+   */
+  export var CreatePipe:
+    | undefined
+    | ((options?: CreatePipeOptions) => CreatePipeResult);
+
+  interface OsReadFileHandle {
+    /**
+     * Read data from a Win32 HANDLE (wrapper for Win32 `ReadFile`).
+     *
+     * @param handle - The handle to read from.
+     * @param maxBytes - Maximum number of bytes to read.
+     * @returns The data read as a string.
+     */
+    (handle: Win32Handle, maxBytes: number): string;
+
+    /**
+     * Read data from a Win32 HANDLE (wrapper for Win32 `ReadFile`).
+     *
+     * @param handle - The handle to read from.
+     * @param maxBytes - Maximum number of bytes to read.
+     * @param options - Pass `{ binary: false }` to explicitly get a string.
+     * @returns The data read as a string.
+     */
+    (handle: Win32Handle, maxBytes: number, options: { binary: false }): string;
+
+    /**
+     * Read data from a Win32 HANDLE (wrapper for Win32 `ReadFile`).
+     *
+     * @param handle - The handle to read from.
+     * @param maxBytes - Maximum number of bytes to read.
+     * @param options - Pass `{ binary: true }` to get an ArrayBuffer.
+     * @returns The data read as an ArrayBuffer.
+     */
+    (handle: Win32Handle, maxBytes: number, options: { binary: true }): ArrayBuffer;
+  }
+
+  /**
+   * Read data from a Win32 HANDLE (wrapper for Win32 `ReadFile`).
+   *
+   * NOTE: this function is only present on windows
+   */
+  export var ReadFileHandle: undefined | OsReadFileHandle;
+
+  /**
+   * Win32 wait result constant: the object was signaled.
+   *
+   * NOTE: this property is only present on windows
+   */
+  export var WAIT_OBJECT_0: number | undefined;
+
+  /**
+   * Win32 wait result constant: the object was an abandoned mutex.
+   *
+   * NOTE: this property is only present on windows
+   */
+  export var WAIT_ABANDONED: number | undefined;
+
+  /**
+   * Win32 wait result constant: the wait timed out.
+   *
+   * NOTE: this property is only present on windows
+   */
+  export var WAIT_TIMEOUT: number | undefined;
+
+  /**
+   * Win32 wait result constant: the function call failed.
+   *
+   * NOTE: this property is only present on windows
+   */
+  export var WAIT_FAILED: number | undefined;
+
   /** constant for {@link access}(); test for read permission. */
   export var R_OK: number;
 
