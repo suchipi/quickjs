@@ -1401,7 +1401,7 @@ static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         return JS_EXCEPTION;
     }
-    if (feof(f) != 0) {
+    if (ret == 0 && feof(f) != 0) {
         ret = 0;
     }
 
@@ -3312,6 +3312,50 @@ static int js_close_win32_handle(JSContext *ctx, JSValueConst val)
     return 0;
 }
 
+/* Extract a Win32 HANDLE from a stdio argument for CreateProcess.
+   Accepts: FILE object (JSSTDFile) or number (fd).
+   Returns INVALID_HANDLE_VALUE and throws on failure. */
+static HANDLE js_get_handle_from_stdio_arg(JSContext *ctx, JSValueConst val)
+{
+    /* Try FILE object first (JSSTDFile class) */
+    if (JS_IsObject(val)) {
+        JSSTDFile *s = JS_GetOpaque(val, js_std_file_class_id);
+        if (s) {
+            if (!s->f) {
+                JS_ThrowError(ctx, "FILE object has been closed");
+                return INVALID_HANDLE_VALUE;
+            }
+            int fd = fileno(s->f);
+            if (fd < 0) {
+                JS_ThrowError(ctx, "failed to get fd from FILE object (fileno returned %d)", fd);
+                return INVALID_HANDLE_VALUE;
+            }
+            HANDLE h = (HANDLE)_get_osfhandle(fd);
+            if (h == INVALID_HANDLE_VALUE) {
+                JS_ThrowError(ctx, "_get_osfhandle failed for FILE object (fd %d)", fd);
+                return INVALID_HANDLE_VALUE;
+            }
+            return h;
+        }
+    }
+
+    /* Try number (raw fd) */
+    if (JS_IsNumber(val)) {
+        int fd;
+        if (JS_ToInt32(ctx, &fd, val))
+            return INVALID_HANDLE_VALUE;
+        HANDLE h = (HANDLE)_get_osfhandle(fd);
+        if (h == INVALID_HANDLE_VALUE) {
+            JS_ThrowError(ctx, "_get_osfhandle failed for fd %d", fd);
+            return INVALID_HANDLE_VALUE;
+        }
+        return h;
+    }
+
+    JS_ThrowTypeError(ctx, "expected a FILE object or file descriptor number");
+    return INVALID_HANDLE_VALUE;
+}
+
 static void *js_malloc_for_utf_conv(size_t size, void *opaque)
 {
     return js_malloc((JSContext *)opaque, size);
@@ -3564,7 +3608,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                 JS_FreeAtom(ctx, env_atom);
             }
 
-            /* stdio redirection: stdin, stdout, stderr options (Pointer handles) */
+            /* stdio redirection: stdin, stdout, stderr options (FILE objects or fd numbers) */
             static const char *std_names[3] = { "stdin", "stdout", "stderr" };
             HANDLE std_handles[3] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE };
             for (int std_i = 0; std_i < 3; std_i++) {
@@ -3574,7 +3618,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                     JS_FreeAtom(ctx, std_atom);
                     if (JS_IsException(std_val))
                         goto fail;
-                    std_handles[std_i] = js_get_handle(ctx, std_val);
+                    std_handles[std_i] = js_get_handle_from_stdio_arg(ctx, std_val);
                     JS_FreeValue(ctx, std_val);
                     if (std_handles[std_i] == INVALID_HANDLE_VALUE)
                         goto fail;
@@ -3782,7 +3826,7 @@ static JSValue js_os_CloseHandle(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-// os.CreatePipe(options?) => { readEnd: Pointer, writeEnd: Pointer }
+// os.CreatePipe(options?) => { readEnd: FILE, writeEnd: FILE }
 //   options.inheritHandle: boolean (default true)
 static JSValue js_os_CreatePipe(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv)
@@ -3813,80 +3857,50 @@ static JSValue js_os_CreatePipe(JSContext *ctx, JSValueConst this_val,
         return js_throw_win32_error(ctx, "CreatePipe failed", GetLastError());
     }
 
-    JSValue result_obj = JS_NewObject(ctx);
-    if (JS_IsException(result_obj)) {
+    /* Convert read HANDLE to FILE* via CRT fd */
+    int read_fd = _open_osfhandle((intptr_t)read_handle, _O_RDONLY | _O_BINARY);
+    if (read_fd == -1) {
         CloseHandle(read_handle);
         CloseHandle(write_handle);
+        return JS_ThrowError(ctx, "CreatePipe: _open_osfhandle failed for read end (errno %d)", errno);
+    }
+    FILE *read_file = fdopen(read_fd, "rb");
+    if (!read_file) {
+        _close(read_fd); /* also closes read_handle */
+        CloseHandle(write_handle);
+        return JS_ThrowError(ctx, "CreatePipe: fdopen failed for read end (errno %d)", errno);
+    }
+
+    /* Convert write HANDLE to FILE* via CRT fd */
+    int write_fd = _open_osfhandle((intptr_t)write_handle, _O_WRONLY | _O_BINARY);
+    if (write_fd == -1) {
+        fclose(read_file); /* closes read_fd and read_handle */
+        CloseHandle(write_handle);
+        return JS_ThrowError(ctx, "CreatePipe: _open_osfhandle failed for write end (errno %d)", errno);
+    }
+    FILE *write_file = fdopen(write_fd, "wb");
+    if (!write_file) {
+        fclose(read_file);
+        _close(write_fd); /* also closes write_handle */
+        return JS_ThrowError(ctx, "CreatePipe: fdopen failed for write end (errno %d)", errno);
+    }
+
+    JSValue result_obj = JS_NewObject(ctx);
+    if (JS_IsException(result_obj)) {
+        fclose(read_file);
+        fclose(write_file);
         return JS_EXCEPTION;
     }
 
-    JS_DefinePropertyValueStr(ctx, result_obj, "readEnd",
-        js_new_win32_handle(ctx, read_handle), JS_PROP_C_W_E);
-    JS_DefinePropertyValueStr(ctx, result_obj, "writeEnd",
-        js_new_win32_handle(ctx, write_handle), JS_PROP_C_W_E);
+    JSValue read_file_val = js_new_std_file(ctx, read_file, TRUE, FALSE);
+    JS_SetPropertyStr(ctx, read_file_val, "target", JS_NewString(ctx, "pipe:read"));
+    JS_DefinePropertyValueStr(ctx, result_obj, "readEnd", read_file_val, JS_PROP_C_W_E);
+
+    JSValue write_file_val = js_new_std_file(ctx, write_file, TRUE, FALSE);
+    JS_SetPropertyStr(ctx, write_file_val, "target", JS_NewString(ctx, "pipe:write"));
+    JS_DefinePropertyValueStr(ctx, result_obj, "writeEnd", write_file_val, JS_PROP_C_W_E);
 
     return result_obj;
-}
-
-// os.ReadFileHandle(handle, maxBytes, options?)
-//   options.binary: true => ArrayBuffer, false (default) => string
-static JSValue js_os_ReadFileHandle(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    if (argc < 2) {
-        return JS_ThrowTypeError(ctx, "ReadFileHandle requires at least 2 arguments (handle, maxBytes)");
-    }
-
-    HANDLE handle = js_get_handle(ctx, argv[0]);
-    if (handle == INVALID_HANDLE_VALUE)
-        return JS_EXCEPTION;
-
-    uint32_t max_bytes;
-    if (JS_ToUint32(ctx, &max_bytes, argv[1]))
-        return JS_EXCEPTION;
-
-    int binary = 0;
-    if (argc >= 3 && JS_IsObject(argv[2])) {
-        JSAtom binary_atom = JS_NewAtom(ctx, "binary");
-        if (JS_HasProperty(ctx, argv[2], binary_atom)) {
-            JSValue binary_val = JS_GetProperty(ctx, argv[2], binary_atom);
-            JS_FreeAtom(ctx, binary_atom);
-            if (JS_IsException(binary_val))
-                return JS_EXCEPTION;
-            binary = JS_ToBool(ctx, binary_val);
-            JS_FreeValue(ctx, binary_val);
-        } else {
-            JS_FreeAtom(ctx, binary_atom);
-        }
-    }
-
-    uint8_t *buf = js_malloc(ctx, max_bytes);
-    if (buf == NULL)
-        return JS_EXCEPTION;
-
-    DWORD bytes_read;
-    if (!ReadFile(handle, buf, max_bytes, &bytes_read, NULL)) {
-        DWORD err = GetLastError();
-        js_free(ctx, buf);
-        /* ERROR_BROKEN_PIPE means the write end was closed (EOF) */
-        if (err == ERROR_BROKEN_PIPE) {
-            if (binary) {
-                return JS_NewArrayBufferCopy(ctx, NULL, 0);
-            } else {
-                return JS_NewStringLen(ctx, "", 0);
-            }
-        }
-        return js_throw_win32_error(ctx, "ReadFile failed", err);
-    }
-
-    JSValue result;
-    if (binary) {
-        result = JS_NewArrayBufferCopy(ctx, buf, bytes_read);
-    } else {
-        result = JS_NewStringLen(ctx, (const char *)buf, bytes_read);
-    }
-    js_free(ctx, buf);
-    return result;
 }
 
 #else // defined(_WIN32)
@@ -4131,7 +4145,6 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
     }
     if (pid == 0) {
         /* child */
-        int fd_max = sysconf(_SC_OPEN_MAX);
 
         /* remap the stdin/stdout/stderr handles if necessary */
         for(i = 0; i < 3; i++) {
@@ -4141,8 +4154,31 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             }
         }
 
-        for(i = 3; i < fd_max; i++)
-            close(i);
+        /* Close all file descriptors >= 3. We read /dev/fd to find
+           only the actually-open fds, since sysconf(_SC_OPEN_MAX)
+           can return a huge value on macOS (up to LLONG_MAX when
+           ulimit is unlimited), making a naive loop hang. /dev/fd
+           is a virtual filesystem reflecting this process's own fds. */
+        {
+            DIR *dir = opendir("/dev/fd");
+            if (dir) {
+                int dir_fd = dirfd(dir);
+                struct dirent *entry;
+                while ((entry = readdir(dir)) != NULL) {
+                    int fd = atoi(entry->d_name);
+                    if (fd >= 3 && fd != dir_fd)
+                        close(fd);
+                }
+                closedir(dir);
+            } else {
+                /* fallback: use a bounded iteration */
+                int fd_max = (int)sysconf(_SC_OPEN_MAX);
+                if (fd_max < 0 || fd_max > 65536)
+                    fd_max = 65536;
+                for(i = 3; i < fd_max; i++)
+                    close(i);
+            }
+        }
         if (cwd) {
             if (chdir(cwd) < 0)
                 _exit(127);
@@ -5112,7 +5148,6 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_CFUNC_DEF("TerminateProcess", 2, js_os_TerminateProcess ),
     JS_CFUNC_DEF("CloseHandle", 1, js_os_CloseHandle ),
     JS_CFUNC_DEF("CreatePipe", 1, js_os_CreatePipe ),
-    JS_CFUNC_DEF("ReadFileHandle", 3, js_os_ReadFileHandle ),
     OS_FLAG(WAIT_OBJECT_0),
     OS_FLAG(WAIT_ABANDONED),
     OS_FLAG(WAIT_TIMEOUT),

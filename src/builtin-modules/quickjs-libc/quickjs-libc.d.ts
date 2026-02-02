@@ -1116,14 +1116,14 @@ declare module "quickjs:os" {
     /** Environment variables for the new process. If not specified, the parent's environment is inherited. Values must be strings. */
     env?: { [key: string]: string };
 
-    /** Win32 HANDLE to use for the child's stdin. */
-    stdin?: Win32Handle;
+    /** FILE object or file descriptor number to use for the child's stdin. */
+    stdin?: FILE | number;
 
-    /** Win32 HANDLE to use for the child's stdout. */
-    stdout?: Win32Handle;
+    /** FILE object or file descriptor number to use for the child's stdout. */
+    stdout?: FILE | number;
 
-    /** Win32 HANDLE to use for the child's stderr. */
-    stderr?: Win32Handle;
+    /** FILE object or file descriptor number to use for the child's stderr. */
+    stderr?: FILE | number;
   };
 
   export type CreateProcessResult = {
@@ -1213,62 +1213,29 @@ declare module "quickjs:os" {
   };
 
   export type CreatePipeResult = {
-    /** The read end of the pipe (a Win32Handle). */
-    readEnd: Win32Handle;
+    /** The read end of the pipe (a FILE object opened in binary read mode). */
+    readEnd: FILE;
 
-    /** The write end of the pipe (a Win32Handle). */
-    writeEnd: Win32Handle;
+    /** The write end of the pipe (a FILE object opened in binary write mode). */
+    writeEnd: FILE;
   };
 
   /**
    * Create an anonymous pipe (wrapper for Win32 `CreatePipe`).
    *
+   * Returns FILE objects for both ends of the pipe. The read end is opened in
+   * binary read mode ("rb") and the write end in binary write mode ("wb").
+   * You can use all standard FILE methods (readAsString, getline, puts, write,
+   * read, close, etc.) on the returned objects.
+   *
    * @param options - Optional settings. `inheritHandle` defaults to true.
-   * @returns An object with `readEnd` and `writeEnd` Win32Handle properties.
+   * @returns An object with `readEnd` and `writeEnd` FILE properties.
    *
    * NOTE: this function is only present on windows
    */
   export var CreatePipe:
     | undefined
     | ((options?: CreatePipeOptions) => CreatePipeResult);
-
-  interface OsReadFileHandle {
-    /**
-     * Read data from a Win32 HANDLE (wrapper for Win32 `ReadFile`).
-     *
-     * @param handle - The handle to read from.
-     * @param maxBytes - Maximum number of bytes to read.
-     * @returns The data read as a string.
-     */
-    (handle: Win32Handle, maxBytes: number): string;
-
-    /**
-     * Read data from a Win32 HANDLE (wrapper for Win32 `ReadFile`).
-     *
-     * @param handle - The handle to read from.
-     * @param maxBytes - Maximum number of bytes to read.
-     * @param options - Pass `{ binary: false }` to explicitly get a string.
-     * @returns The data read as a string.
-     */
-    (handle: Win32Handle, maxBytes: number, options: { binary: false }): string;
-
-    /**
-     * Read data from a Win32 HANDLE (wrapper for Win32 `ReadFile`).
-     *
-     * @param handle - The handle to read from.
-     * @param maxBytes - Maximum number of bytes to read.
-     * @param options - Pass `{ binary: true }` to get an ArrayBuffer.
-     * @returns The data read as an ArrayBuffer.
-     */
-    (handle: Win32Handle, maxBytes: number, options: { binary: true }): ArrayBuffer;
-  }
-
-  /**
-   * Read data from a Win32 HANDLE (wrapper for Win32 `ReadFile`).
-   *
-   * NOTE: this function is only present on windows
-   */
-  export var ReadFileHandle: undefined | OsReadFileHandle;
 
   /**
    * Win32 wait result constant: the object was signaled.

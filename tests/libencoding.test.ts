@@ -27,7 +27,7 @@ test("quickjs:encoding - basic test", async () => {
       "error": false,
       "stderr": "",
       "stdout": "{
-    	result: 0
+    	result: 4
     	buffer: ArrayBuffer {
     		│0x00000000│ E3 81 82 0A 00 00 00 00
     	}

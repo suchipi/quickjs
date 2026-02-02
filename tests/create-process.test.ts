@@ -170,11 +170,11 @@ test("CreatePipe and stdout redirection", async () => {
         const proc = os.CreateProcess('cmd.exe /c echo hello from pipe', {
           stdout: pipe.writeEnd,
         });
-        os.CloseHandle(pipe.writeEnd);
+        pipe.writeEnd.close();
         os.WaitForSingleObject(proc.processHandle, Infinity);
-        const output = os.ReadFileHandle(pipe.readEnd, 4096);
+        const output = pipe.readEnd.readAsString();
         console.log("output:", JSON.stringify(output.trim()));
-        os.CloseHandle(pipe.readEnd);
+        pipe.readEnd.close();
         os.CloseHandle(proc.processHandle);
         os.CloseHandle(proc.threadHandle);
       `,
@@ -201,12 +201,12 @@ test("CreatePipe with inheritHandle false", async () => {
       "-e",
       `
         const os = require("quickjs:os");
-        const { Win32Handle } = require("quickjs:os");
+        const std = require("quickjs:std");
         const pipe = os.CreatePipe({ inheritHandle: false });
-        console.log("has readEnd:", pipe.readEnd instanceof Win32Handle);
-        console.log("has writeEnd:", pipe.writeEnd instanceof Win32Handle);
-        os.CloseHandle(pipe.readEnd);
-        os.CloseHandle(pipe.writeEnd);
+        console.log("has readEnd:", std.isFILE(pipe.readEnd));
+        console.log("has writeEnd:", std.isFILE(pipe.writeEnd));
+        pipe.readEnd.close();
+        pipe.writeEnd.close();
         console.log("done");
       `,
     ],
@@ -226,7 +226,7 @@ test("CreatePipe with inheritHandle false", async () => {
   `);
 });
 
-test("ReadFileHandle with binary option", async () => {
+test("CreatePipe read end binary read", async () => {
   const run = spawn(
     "wine",
     [
@@ -234,16 +234,19 @@ test("ReadFileHandle with binary option", async () => {
       "-e",
       `
         const os = require("quickjs:os");
+        const { toUtf8 } = require("quickjs:encoding");
         const pipe = os.CreatePipe();
         const proc = os.CreateProcess('cmd.exe /c echo binary test', {
           stdout: pipe.writeEnd,
         });
-        os.CloseHandle(pipe.writeEnd);
+        pipe.writeEnd.close();
         os.WaitForSingleObject(proc.processHandle, Infinity);
-        const output = os.ReadFileHandle(pipe.readEnd, 4096, { binary: true });
-        console.log("is ArrayBuffer:", output instanceof ArrayBuffer);
-        console.log("byteLength > 0:", output.byteLength > 0);
-        os.CloseHandle(pipe.readEnd);
+        const buf = new ArrayBuffer(4096);
+        const bytesRead = pipe.readEnd.read(buf, 0, 4096);
+        console.log("bytesRead > 0:", bytesRead > 0);
+        const str = toUtf8(buf.slice(0, bytesRead));
+        console.log("content:", JSON.stringify(str.trim()));
+        pipe.readEnd.close();
         os.CloseHandle(proc.processHandle);
         os.CloseHandle(proc.threadHandle);
       `,
@@ -256,8 +259,8 @@ test("ReadFileHandle with binary option", async () => {
       "code": 0,
       "error": false,
       "stderr": "",
-      "stdout": "is ArrayBuffer: true
-    byteLength > 0: true
+      "stdout": "bytesRead > 0: true
+    content: "binary test"
     ",
     }
   `);
@@ -275,11 +278,11 @@ test("stderr redirection", async () => {
         const proc = os.CreateProcess('cmd.exe /c echo stderr output 1>&2', {
           stderr: pipe.writeEnd,
         });
-        os.CloseHandle(pipe.writeEnd);
+        pipe.writeEnd.close();
         os.WaitForSingleObject(proc.processHandle, Infinity);
-        const output = os.ReadFileHandle(pipe.readEnd, 4096);
+        const output = pipe.readEnd.readAsString();
         console.log("stderr:", JSON.stringify(output.trim()));
-        os.CloseHandle(pipe.readEnd);
+        pipe.readEnd.close();
         os.CloseHandle(proc.processHandle);
         os.CloseHandle(proc.threadHandle);
       `,
