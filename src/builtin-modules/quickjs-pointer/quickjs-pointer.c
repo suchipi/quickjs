@@ -2,7 +2,7 @@
 
 #include "quickjs-pointer.h"
 
-static JSClassID js_pointer_class_id;
+JSClassID js_pointer_class_id;
 
 static JSClassDef js_pointer_class = {
     "Pointer",

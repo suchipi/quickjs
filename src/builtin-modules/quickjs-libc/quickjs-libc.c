@@ -35,6 +35,7 @@
 #include <time.h>
 #include <signal.h>
 #include <limits.h>
+#include <math.h>
 
 // HOST_NAME_MAX comes from limits.h but only if __USE_POSIX is defined and I don't
 // wanna fuck with that
@@ -88,6 +89,8 @@ sighandler_t signal(int signum, sighandler_t handler);
 #include "list.h"
 #include "quickjs-libc.h"
 #include "quickjs-utils.h"
+#include "utf-conv.h"
+#include "quickjs-pointer.h"
 #include "quickjs-modulesys.h"
 #include "debugprint.h"
 #include "execpath.h"
@@ -3184,33 +3187,202 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
 #endif // !defined(_WIN32)
 
 #if defined(_WIN32)
-// (commandLine, { moduleName, flags, cwd, env }) => idk yet
+
+/* Throw a JS error using FormatMessageW for the given Win32 error code. */
+static JSValue js_throw_win32_error(JSContext *ctx, const char *prefix, DWORD error_code)
+{
+    WCHAR *msg_buf = NULL;
+    DWORD msg_len = FormatMessageW(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPWSTR)&msg_buf, 0, NULL);
+
+    if (msg_len > 0 && msg_buf != NULL) {
+        /* trim trailing \r\n */
+        while (msg_len > 0 && (msg_buf[msg_len - 1] == L'\r' || msg_buf[msg_len - 1] == L'\n'))
+            msg_buf[--msg_len] = L'\0';
+
+        char *utf8_msg = utf16_to_utf8((const uint16_t *)msg_buf, msg_len,
+                                        NULL, NULL, NULL, NULL, NULL);
+        LocalFree(msg_buf);
+
+        if (utf8_msg != NULL) {
+            JS_ThrowError(ctx, "%s: %s (error code %lu)", prefix, utf8_msg, (unsigned long)error_code);
+            free(utf8_msg);
+        } else {
+            JS_ThrowError(ctx, "%s: error code %lu", prefix, (unsigned long)error_code);
+        }
+    } else {
+        if (msg_buf != NULL)
+            LocalFree(msg_buf);
+        JS_ThrowError(ctx, "%s: error code %lu", prefix, (unsigned long)error_code);
+    }
+    return JS_EXCEPTION;
+}
+
+static JSClassID js_win32_handle_class_id;
+
+static void js_win32_handle_finalizer(JSRuntime *rt, JSValue val)
+{
+    HANDLE *handle_ptr = JS_GetOpaque(val, js_win32_handle_class_id);
+    if (handle_ptr) {
+        if (*handle_ptr != INVALID_HANDLE_VALUE) {
+            CloseHandle(*handle_ptr);
+        }
+        js_free_rt(rt, handle_ptr);
+    }
+}
+
+static JSClassDef js_win32_handle_class = {
+    "Win32Handle",
+    .finalizer = js_win32_handle_finalizer,
+};
+
+static JSValue js_win32_handle_ctor(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "Win32Handle objects cannot be created by JavaScript code. They are created by native functions like CreateProcess and CreatePipe.");
+}
+
+/* Create a new Win32Handle JS object wrapping a native HANDLE.
+   The handle will be automatically closed when the object is GC'd. */
+static JSValue js_new_win32_handle(JSContext *ctx, HANDLE handle)
+{
+    JSValue obj = JS_NewObjectClass(ctx, js_win32_handle_class_id);
+    if (JS_IsException(obj))
+        return obj;
+
+    HANDLE *handle_ptr = js_malloc(ctx, sizeof(HANDLE));
+    if (handle_ptr == NULL) {
+        JS_FreeValue(ctx, obj);
+        return JS_EXCEPTION;
+    }
+    *handle_ptr = handle;
+    JS_SetOpaque(obj, handle_ptr);
+    return obj;
+}
+
+/* Extract a native HANDLE from a Win32Handle JS object.
+   Returns INVALID_HANDLE_VALUE and throws on failure. */
+static HANDLE js_get_handle(JSContext *ctx, JSValueConst val)
+{
+    HANDLE *handle_ptr;
+
+    if (!JS_IsObject(val)) {
+        JS_ThrowTypeError(ctx, "expected a Win32Handle object");
+        return INVALID_HANDLE_VALUE;
+    }
+
+    /* Try Win32Handle class first, then Pointer class */
+    if (JS_VALUE_GET_CLASS_ID(val) == js_win32_handle_class_id) {
+        handle_ptr = JS_GetOpaque(val, js_win32_handle_class_id);
+        if (handle_ptr == NULL) {
+            JS_ThrowTypeError(ctx, "invalid Win32Handle object");
+            return INVALID_HANDLE_VALUE;
+        }
+        return *handle_ptr;
+    } else if (JS_VALUE_GET_CLASS_ID(val) == js_pointer_class_id) {
+        return (HANDLE)JS_GetOpaque(val, js_pointer_class_id);
+    }
+
+    JS_ThrowTypeError(ctx, "expected a Win32Handle or Pointer object");
+    return INVALID_HANDLE_VALUE;
+}
+
+/* Close a Win32Handle and mark it as invalid so the finalizer won't double-close. */
+static int js_close_win32_handle(JSContext *ctx, JSValueConst val)
+{
+    if (!JS_IsObject(val) || JS_VALUE_GET_CLASS_ID(val) != js_win32_handle_class_id) {
+        JS_ThrowTypeError(ctx, "expected a Win32Handle object");
+        return -1;
+    }
+
+    HANDLE *handle_ptr = JS_GetOpaque(val, js_win32_handle_class_id);
+    if (handle_ptr == NULL || *handle_ptr == INVALID_HANDLE_VALUE) {
+        JS_ThrowError(ctx, "handle is already closed");
+        return -1;
+    }
+
+    if (!CloseHandle(*handle_ptr)) {
+        js_throw_win32_error(ctx, "CloseHandle failed", GetLastError());
+        return -1;
+    }
+
+    *handle_ptr = INVALID_HANDLE_VALUE;
+    return 0;
+}
+
+static void *js_malloc_for_utf_conv(size_t size, void *opaque)
+{
+    return js_malloc((JSContext *)opaque, size);
+}
+
+/* Convert a JS string value to a UTF-16 wide string using js_malloc.
+   Returns NULL and throws a JS exception on failure. */
+static WCHAR *js_to_wstring(JSContext *ctx, JSValueConst val)
+{
+    const char *utf8 = JS_ToCString(ctx, val);
+    if (utf8 == NULL)
+        return NULL;
+
+    int conv_error;
+    size_t conv_error_offset;
+    WCHAR *wide = (WCHAR *)utf8_to_utf16(utf8, NULL, &conv_error,
+                                          &conv_error_offset,
+                                          js_malloc_for_utf_conv, ctx);
+    JS_FreeCString(ctx, utf8);
+    if (wide == NULL) {
+        JS_ThrowError(ctx, "UTF-8 to UTF-16 conversion failed at byte offset %lu: %s",
+                      (unsigned long)conv_error_offset, utf_conv_strerror(conv_error));
+    }
+    return wide;
+}
+
+/* Convert a UTF-8 C string to a UTF-16 wide string using js_malloc.
+   Returns NULL and throws a JS exception on failure. */
+static WCHAR *cstr_to_wstring(JSContext *ctx, const char *utf8)
+{
+    int conv_error;
+    size_t conv_error_offset;
+    WCHAR *wide = (WCHAR *)utf8_to_utf16(utf8, NULL, &conv_error,
+                                          &conv_error_offset,
+                                          js_malloc_for_utf_conv, ctx);
+    if (wide == NULL) {
+        JS_ThrowError(ctx, "UTF-8 to UTF-16 conversion failed at byte offset %lu: %s",
+                      (unsigned long)conv_error_offset, utf_conv_strerror(conv_error));
+    }
+    return wide;
+}
+
+// CreateProcess(commandLine, { moduleName, flags, cwd, env, stdin, stdout, stderr })
+//   => { pid, processHandle, tid, threadHandle }
 static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                                    int argc, JSValueConst *argv)
 {
-    STARTUPINFO startup_info = {0};
+    STARTUPINFOW startup_info = {0};
     PROCESS_INFORMATION process_info = {0};
     BOOL create_process_result;
-    char *module_name = NULL;
-    char *command_line = NULL;
+    const char *module_name = NULL;
+    const char *command_line = NULL;
+    WCHAR *module_name_wide = NULL;
+    WCHAR *command_line_wide = NULL;
     uint32_t flags = 0;
     char *env_block = NULL;
-    char *current_dir = NULL;
-    
+    WCHAR *current_dir_wide = NULL;
+    BOOL inherit_handles = FALSE;
+
     startup_info.cb = sizeof(startup_info);
 
     if (argc == 0) {
         return JS_ThrowTypeError(ctx, "Invalid number of arguments. At least one (command line) is required");
     } else if (argc == 1) {
-        command_line = (char *)JS_ToCString(ctx, argv[0]);
+        command_line = JS_ToCString(ctx, argv[0]);
         if (command_line == NULL) {
             return JS_EXCEPTION;
         }
     } else if (argc == 2) {
-        if (JS_IsNull(argv[0])) {
-            command_line = NULL;
-        } else {
-            command_line = (char *)JS_ToCString(ctx, argv[0]);
+        if (!JS_IsNull(argv[0])) {
+            command_line = JS_ToCString(ctx, argv[0]);
             if (command_line == NULL) {
                 goto fail;
             }
@@ -3227,14 +3399,15 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                 if (JS_IsException(module_name_val)) {
                     goto fail;
                 }
-                module_name = (char *)JS_ToCString(ctx, module_name_val);
+                module_name = JS_ToCString(ctx, module_name_val);
+                JS_FreeValue(ctx, module_name_val);
                 if (module_name == NULL) {
                     goto fail;
                 }
             } else {
                 JS_FreeAtom(ctx, module_name_atom);
             }
-            
+
             JSAtom flags_atom = JS_NewAtom(ctx, "flags");
             if (JS_HasProperty(ctx, options_val, flags_atom)) {
                 JSValue flags_val = JS_GetProperty(ctx, options_val, flags_atom);
@@ -3245,8 +3418,10 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                 }
 
                 if (JS_ToUint32(ctx, &flags, flags_val)) {
+                    JS_FreeValue(ctx, flags_val);
                     goto fail;
                 }
+                JS_FreeValue(ctx, flags_val);
             } else {
                 JS_FreeAtom(ctx, flags_atom);
             }
@@ -3260,8 +3435,9 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                     goto fail;
                 }
 
-                current_dir = (char *)JS_ToCString(ctx, cwd_val);
-                if (current_dir == NULL) {
+                current_dir_wide = js_to_wstring(ctx, cwd_val);
+                JS_FreeValue(ctx, cwd_val);
+                if (current_dir_wide == NULL) {
                     goto fail;
                 }
             } else {
@@ -3279,16 +3455,17 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
 
                 if (!JS_IsObject(env_val)) {
                     JS_ThrowTypeError(ctx, "'env' option must be an object");
+                    JS_FreeValue(ctx, env_val);
                     goto fail;
                 }
-                
+
                 DynBuf env_dbuf;
                 js_std_dbuf_init(ctx, &env_dbuf);
 
                 QJUForEachPropertyState *foreach = QJU_NewForEachPropertyState(ctx, env_val, JS_PROP_ENUMERABLE);
                 if (foreach == NULL) {
-                    // out of memory
                     dbuf_free(&env_dbuf);
+                    JS_FreeValue(ctx, env_val);
                     goto fail;
                 }
                 QJU_ForEachProperty(ctx, foreach) {
@@ -3296,6 +3473,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                     if (JS_IsException(read_result)) {
                         dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
+                        JS_FreeValue(ctx, env_val);
                         goto fail;
                     }
 
@@ -3303,6 +3481,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                         JS_ThrowTypeError(ctx, "'env' option had null key?");
                         dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
+                        JS_FreeValue(ctx, env_val);
                         goto fail;
                     }
 
@@ -3311,6 +3490,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                         JS_ThrowTypeError(ctx, "failed to convert key of env option object to string");
                         dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
+                        JS_FreeValue(ctx, env_val);
                         goto fail;
                     }
 
@@ -3319,6 +3499,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                         dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
                         JS_FreeCString(ctx, key_str);
+                        JS_FreeValue(ctx, env_val);
                         goto fail;
                     }
 
@@ -3327,6 +3508,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                         dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
                         JS_FreeCString(ctx, key_str);
+                        JS_FreeValue(ctx, env_val);
                         goto fail;
                     }
                     JS_FreeCString(ctx, key_str);
@@ -3335,22 +3517,24 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                         JS_ThrowTypeError(ctx, "failed to allocate sufficient memory to build environment block");
                         dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
+                        JS_FreeValue(ctx, env_val);
                         goto fail;
                     }
 
                     const char *val_str = JS_ToCString(ctx, foreach->val);
                     if (val_str == NULL) {
-                        // out of memory
                         dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
+                        JS_FreeValue(ctx, env_val);
                         goto fail;
                     }
 
-                    if (dbuf_put(&env_dbuf, (const uint8_t *)val_str, strnlen(key_str, 32768))) {
+                    if (dbuf_put(&env_dbuf, (const uint8_t *)val_str, strnlen(val_str, 32768))) {
                         JS_ThrowTypeError(ctx, "failed to allocate sufficient memory to build environment block");
                         dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
                         JS_FreeCString(ctx, val_str);
+                        JS_FreeValue(ctx, env_val);
                         goto fail;
                     }
                     JS_FreeCString(ctx, val_str);
@@ -3359,6 +3543,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                         JS_ThrowTypeError(ctx, "failed to allocate sufficient memory to build environment block");
                         dbuf_free(&env_dbuf);
                         QJU_FreeForEachPropertyState(ctx, foreach);
+                        JS_FreeValue(ctx, env_val);
                         goto fail;
                     }
                 }
@@ -3367,73 +3552,343 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
                 if (dbuf_put(&env_dbuf, (const uint8_t *)"\0", 1)) {
                     JS_ThrowTypeError(ctx, "failed to allocate sufficient memory to build environment block");
                     dbuf_free(&env_dbuf);
+                    JS_FreeValue(ctx, env_val);
                     goto fail;
                 }
 
                 env_block = js_malloc(ctx, env_dbuf.size);
-                strncpy(env_block, (char *)env_dbuf.buf, env_dbuf.size);
+                memcpy(env_block, env_dbuf.buf, env_dbuf.size);
                 dbuf_free(&env_dbuf);
+                JS_FreeValue(ctx, env_val);
             } else {
                 JS_FreeAtom(ctx, env_atom);
+            }
+
+            /* stdio redirection: stdin, stdout, stderr options (Pointer handles) */
+            static const char *std_names[3] = { "stdin", "stdout", "stderr" };
+            HANDLE std_handles[3] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE };
+            for (int std_i = 0; std_i < 3; std_i++) {
+                JSAtom std_atom = JS_NewAtom(ctx, std_names[std_i]);
+                if (JS_HasProperty(ctx, options_val, std_atom)) {
+                    JSValue std_val = JS_GetProperty(ctx, options_val, std_atom);
+                    JS_FreeAtom(ctx, std_atom);
+                    if (JS_IsException(std_val))
+                        goto fail;
+                    std_handles[std_i] = js_get_handle(ctx, std_val);
+                    JS_FreeValue(ctx, std_val);
+                    if (std_handles[std_i] == INVALID_HANDLE_VALUE)
+                        goto fail;
+                } else {
+                    JS_FreeAtom(ctx, std_atom);
+                }
+            }
+
+            if (std_handles[0] != INVALID_HANDLE_VALUE ||
+                std_handles[1] != INVALID_HANDLE_VALUE ||
+                std_handles[2] != INVALID_HANDLE_VALUE) {
+                startup_info.dwFlags |= STARTF_USESTDHANDLES;
+                startup_info.hStdInput = std_handles[0] != INVALID_HANDLE_VALUE
+                    ? std_handles[0] : GetStdHandle(STD_INPUT_HANDLE);
+                startup_info.hStdOutput = std_handles[1] != INVALID_HANDLE_VALUE
+                    ? std_handles[1] : GetStdHandle(STD_OUTPUT_HANDLE);
+                startup_info.hStdError = std_handles[2] != INVALID_HANDLE_VALUE
+                    ? std_handles[2] : GetStdHandle(STD_ERROR_HANDLE);
+                inherit_handles = TRUE;
             }
         }
     }
 
-    // TODO: CreateProcessW would be nice, but we'd have to convert utf-8 to utf-16
-    create_process_result = CreateProcessA(
-        module_name,
-        command_line,
+    /* convert UTF-8 strings to UTF-16 for CreateProcessW */
+    if (module_name != NULL) {
+        module_name_wide = cstr_to_wstring(ctx, module_name);
+        if (module_name_wide == NULL)
+            goto fail;
+    }
+    if (command_line != NULL) {
+        command_line_wide = cstr_to_wstring(ctx, command_line);
+        if (command_line_wide == NULL)
+            goto fail;
+    }
+
+    create_process_result = CreateProcessW(
+        module_name_wide,
+        command_line_wide,
         NULL,           // Process handle not inheritable
         NULL,           // Thread handle not inheritable
-        FALSE,          // Set handle inheritance to FALSE
+        inherit_handles,
         flags,
         env_block,
-        current_dir,
+        current_dir_wide,
         &startup_info,
         &process_info
     );
 
     if (!create_process_result) {
-        // TODO: Get nice error message with FormatMessage.
-        JS_ThrowError(ctx, "CreateProcess failed. Error code was: %ld", GetLastError());
+        js_throw_win32_error(ctx, "CreateProcess failed", GetLastError());
         goto fail;
     }
 
-    // TODO: return struct or number or something that can be awaited with WaitForSingleObject
-    // See https://learn.microsoft.com/en-us/windows/win32/procthread/creating-processes
-    WaitForSingleObject(process_info.hProcess, INFINITE);
+    /* build result: { pid, processHandle, tid, threadHandle } */
+    JSValue result_obj = JS_NewObject(ctx);
+    if (JS_IsException(result_obj))
+        goto fail_after_create;
+
+    JS_DefinePropertyValueStr(ctx, result_obj, "pid",
+        JS_NewUint32(ctx, process_info.dwProcessId), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, result_obj, "processHandle",
+        js_new_win32_handle(ctx, process_info.hProcess), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, result_obj, "tid",
+        JS_NewUint32(ctx, process_info.dwThreadId), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, result_obj, "threadHandle",
+        js_new_win32_handle(ctx, process_info.hThread), JS_PROP_C_W_E);
+
+    if (command_line != NULL)
+        JS_FreeCString(ctx, command_line);
+    if (module_name != NULL)
+        JS_FreeCString(ctx, module_name);
+    if (command_line_wide != NULL)
+        js_free(ctx, command_line_wide);
+    if (module_name_wide != NULL)
+        js_free(ctx, module_name_wide);
+    if (current_dir_wide != NULL)
+        js_free(ctx, current_dir_wide);
+    if (env_block != NULL)
+        js_free(ctx, env_block);
+    return result_obj;
+
+fail_after_create:
     CloseHandle(process_info.hProcess);
     CloseHandle(process_info.hThread);
-
-    if (command_line != NULL) {
-        JS_FreeCString(ctx, command_line);
-    }
-    if (module_name != NULL) {
-        JS_FreeCString(ctx, module_name);
-    }
-    if (current_dir != NULL) {
-        JS_FreeCString(ctx, current_dir);
-    }
-    if (env_block != NULL) {
-        js_free(ctx, env_block);
-    }
-    return JS_UNDEFINED;
-
 fail:
-    if (command_line != NULL) {
+    if (command_line != NULL)
         JS_FreeCString(ctx, command_line);
-    }
-    if (module_name != NULL) {
+    if (module_name != NULL)
         JS_FreeCString(ctx, module_name);
-    }
-    if (current_dir != NULL) {
-        JS_FreeCString(ctx, current_dir);
-    }
-    if (env_block != NULL) {
+    if (command_line_wide != NULL)
+        js_free(ctx, command_line_wide);
+    if (module_name_wide != NULL)
+        js_free(ctx, module_name_wide);
+    if (current_dir_wide != NULL)
+        js_free(ctx, current_dir_wide);
+    if (env_block != NULL)
         js_free(ctx, env_block);
-    }
     return JS_EXCEPTION;
 }
+
+// os.WaitForSingleObject(handle, timeoutMs?)
+//   timeoutMs defaults to INFINITE; accepts JS Infinity for INFINITE
+static JSValue js_os_WaitForSingleObject(JSContext *ctx, JSValueConst this_val,
+                                         int argc, JSValueConst *argv)
+{
+    if (argc < 1) {
+        return JS_ThrowTypeError(ctx, "WaitForSingleObject requires at least 1 argument (handle)");
+    }
+
+    HANDLE handle = js_get_handle(ctx, argv[0]);
+    if (handle == INVALID_HANDLE_VALUE)
+        return JS_EXCEPTION;
+
+    DWORD timeout_ms = INFINITE;
+    if (argc >= 2 && !JS_IsUndefined(argv[1])) {
+        double timeout_val;
+        if (JS_ToFloat64(ctx, &timeout_val, argv[1]))
+            return JS_EXCEPTION;
+        if (isinf(timeout_val) && timeout_val > 0) {
+            timeout_ms = INFINITE;
+        } else if (timeout_val < 0) {
+            return JS_ThrowRangeError(ctx, "timeout must be non-negative");
+        } else {
+            timeout_ms = (DWORD)timeout_val;
+        }
+    }
+
+    DWORD result = WaitForSingleObject(handle, timeout_ms);
+    if (result == WAIT_FAILED) {
+        return js_throw_win32_error(ctx, "WaitForSingleObject failed", GetLastError());
+    }
+
+    return JS_NewUint32(ctx, result);
+}
+
+// os.GetExitCodeProcess(handle) => number
+static JSValue js_os_GetExitCodeProcess(JSContext *ctx, JSValueConst this_val,
+                                        int argc, JSValueConst *argv)
+{
+    if (argc < 1) {
+        return JS_ThrowTypeError(ctx, "GetExitCodeProcess requires 1 argument (handle)");
+    }
+
+    HANDLE handle = js_get_handle(ctx, argv[0]);
+    if (handle == INVALID_HANDLE_VALUE)
+        return JS_EXCEPTION;
+
+    DWORD exit_code;
+    if (!GetExitCodeProcess(handle, &exit_code)) {
+        return js_throw_win32_error(ctx, "GetExitCodeProcess failed", GetLastError());
+    }
+
+    return JS_NewUint32(ctx, exit_code);
+}
+
+// os.TerminateProcess(handle, exitCode)
+static JSValue js_os_TerminateProcess(JSContext *ctx, JSValueConst this_val,
+                                      int argc, JSValueConst *argv)
+{
+    if (argc < 2) {
+        return JS_ThrowTypeError(ctx, "TerminateProcess requires 2 arguments (handle, exitCode)");
+    }
+
+    HANDLE handle = js_get_handle(ctx, argv[0]);
+    if (handle == INVALID_HANDLE_VALUE)
+        return JS_EXCEPTION;
+
+    uint32_t exit_code;
+    if (JS_ToUint32(ctx, &exit_code, argv[1]))
+        return JS_EXCEPTION;
+
+    if (!TerminateProcess(handle, exit_code)) {
+        return js_throw_win32_error(ctx, "TerminateProcess failed", GetLastError());
+    }
+
+    return JS_UNDEFINED;
+}
+
+// os.CloseHandle(handle)
+static JSValue js_os_CloseHandle(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
+{
+    if (argc < 1) {
+        return JS_ThrowTypeError(ctx, "CloseHandle requires 1 argument (handle)");
+    }
+
+    /* For Win32Handle objects, use the special close that marks the handle
+       as invalid to prevent double-close in the finalizer. */
+    if (JS_IsObject(argv[0]) &&
+        JS_VALUE_GET_CLASS_ID(argv[0]) == js_win32_handle_class_id) {
+        if (js_close_win32_handle(ctx, argv[0]) < 0)
+            return JS_EXCEPTION;
+        return JS_UNDEFINED;
+    }
+
+    /* Fall back to plain Pointer-based handle closing */
+    HANDLE handle = js_get_handle(ctx, argv[0]);
+    if (handle == INVALID_HANDLE_VALUE)
+        return JS_EXCEPTION;
+
+    if (!CloseHandle(handle)) {
+        return js_throw_win32_error(ctx, "CloseHandle failed", GetLastError());
+    }
+
+    return JS_UNDEFINED;
+}
+
+// os.CreatePipe(options?) => { readEnd: Pointer, writeEnd: Pointer }
+//   options.inheritHandle: boolean (default true)
+static JSValue js_os_CreatePipe(JSContext *ctx, JSValueConst this_val,
+                                int argc, JSValueConst *argv)
+{
+    HANDLE read_handle, write_handle;
+    SECURITY_ATTRIBUTES sec_attrs;
+    BOOL inherit_handle = TRUE;
+
+    if (argc >= 1 && JS_IsObject(argv[0])) {
+        JSAtom inherit_atom = JS_NewAtom(ctx, "inheritHandle");
+        if (JS_HasProperty(ctx, argv[0], inherit_atom)) {
+            JSValue inherit_val = JS_GetProperty(ctx, argv[0], inherit_atom);
+            JS_FreeAtom(ctx, inherit_atom);
+            if (JS_IsException(inherit_val))
+                return JS_EXCEPTION;
+            inherit_handle = JS_ToBool(ctx, inherit_val) ? TRUE : FALSE;
+            JS_FreeValue(ctx, inherit_val);
+        } else {
+            JS_FreeAtom(ctx, inherit_atom);
+        }
+    }
+
+    sec_attrs.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sec_attrs.bInheritHandle = inherit_handle;
+    sec_attrs.lpSecurityDescriptor = NULL;
+
+    if (!CreatePipe(&read_handle, &write_handle, &sec_attrs, 0)) {
+        return js_throw_win32_error(ctx, "CreatePipe failed", GetLastError());
+    }
+
+    JSValue result_obj = JS_NewObject(ctx);
+    if (JS_IsException(result_obj)) {
+        CloseHandle(read_handle);
+        CloseHandle(write_handle);
+        return JS_EXCEPTION;
+    }
+
+    JS_DefinePropertyValueStr(ctx, result_obj, "readEnd",
+        js_new_win32_handle(ctx, read_handle), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, result_obj, "writeEnd",
+        js_new_win32_handle(ctx, write_handle), JS_PROP_C_W_E);
+
+    return result_obj;
+}
+
+// os.ReadFileHandle(handle, maxBytes, options?)
+//   options.binary: true => ArrayBuffer, false (default) => string
+static JSValue js_os_ReadFileHandle(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
+{
+    if (argc < 2) {
+        return JS_ThrowTypeError(ctx, "ReadFileHandle requires at least 2 arguments (handle, maxBytes)");
+    }
+
+    HANDLE handle = js_get_handle(ctx, argv[0]);
+    if (handle == INVALID_HANDLE_VALUE)
+        return JS_EXCEPTION;
+
+    uint32_t max_bytes;
+    if (JS_ToUint32(ctx, &max_bytes, argv[1]))
+        return JS_EXCEPTION;
+
+    int binary = 0;
+    if (argc >= 3 && JS_IsObject(argv[2])) {
+        JSAtom binary_atom = JS_NewAtom(ctx, "binary");
+        if (JS_HasProperty(ctx, argv[2], binary_atom)) {
+            JSValue binary_val = JS_GetProperty(ctx, argv[2], binary_atom);
+            JS_FreeAtom(ctx, binary_atom);
+            if (JS_IsException(binary_val))
+                return JS_EXCEPTION;
+            binary = JS_ToBool(ctx, binary_val);
+            JS_FreeValue(ctx, binary_val);
+        } else {
+            JS_FreeAtom(ctx, binary_atom);
+        }
+    }
+
+    uint8_t *buf = js_malloc(ctx, max_bytes);
+    if (buf == NULL)
+        return JS_EXCEPTION;
+
+    DWORD bytes_read;
+    if (!ReadFile(handle, buf, max_bytes, &bytes_read, NULL)) {
+        DWORD err = GetLastError();
+        js_free(ctx, buf);
+        /* ERROR_BROKEN_PIPE means the write end was closed (EOF) */
+        if (err == ERROR_BROKEN_PIPE) {
+            if (binary) {
+                return JS_NewArrayBufferCopy(ctx, NULL, 0);
+            } else {
+                return JS_NewStringLen(ctx, "", 0);
+            }
+        }
+        return js_throw_win32_error(ctx, "ReadFile failed", err);
+    }
+
+    JSValue result;
+    if (binary) {
+        result = JS_NewArrayBufferCopy(ctx, buf, bytes_read);
+    } else {
+        result = JS_NewStringLen(ctx, (const char *)buf, bytes_read);
+    }
+    js_free(ctx, buf);
+    return result;
+}
+
 #else // defined(_WIN32)
 static char **build_envp(JSContext *ctx, JSValueConst obj)
 {
@@ -4652,6 +5107,16 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_CFUNC_DEF("realpath", 1, js_os_realpath ),
 #if defined(_WIN32)
     JS_CFUNC_DEF("CreateProcess", 2, js_os_CreateProcess ),
+    JS_CFUNC_DEF("WaitForSingleObject", 2, js_os_WaitForSingleObject ),
+    JS_CFUNC_DEF("GetExitCodeProcess", 1, js_os_GetExitCodeProcess ),
+    JS_CFUNC_DEF("TerminateProcess", 2, js_os_TerminateProcess ),
+    JS_CFUNC_DEF("CloseHandle", 1, js_os_CloseHandle ),
+    JS_CFUNC_DEF("CreatePipe", 1, js_os_CreatePipe ),
+    JS_CFUNC_DEF("ReadFileHandle", 3, js_os_ReadFileHandle ),
+    OS_FLAG(WAIT_OBJECT_0),
+    OS_FLAG(WAIT_ABANDONED),
+    OS_FLAG(WAIT_TIMEOUT),
+    OS_FLAG(WAIT_FAILED),
 #else
     JS_CFUNC_MAGIC_DEF("lstat", 1, js_os_stat, 1 ),
     JS_CFUNC_DEF("symlink", 2, js_os_symlink ),
@@ -4689,6 +5154,21 @@ static const JSCFunctionListEntry js_os_funcs[] = {
 static int js_os_init(JSContext *ctx, JSModuleDef *m)
 {
     JSValue timer_proto;
+
+#if defined(_WIN32)
+    /* Win32Handle class */
+    JS_NewClassID(&js_win32_handle_class_id);
+    JS_NewClass(JS_GetRuntime(ctx), js_win32_handle_class_id, &js_win32_handle_class);
+    {
+        JSValue win32_handle_proto, win32_handle_ctor_val;
+        win32_handle_proto = JS_NewObject(ctx);
+        win32_handle_ctor_val = JS_NewCFunction2(ctx, js_win32_handle_ctor, "Win32Handle", 0,
+                                                  JS_CFUNC_constructor, 0);
+        JS_SetConstructor(ctx, win32_handle_ctor_val, win32_handle_proto);
+        JS_SetClassProto(ctx, js_win32_handle_class_id, win32_handle_proto);
+        JS_SetModuleExport(ctx, m, "Win32Handle", win32_handle_ctor_val);
+    }
+#endif
 
     os_poll_func = js_os_poll;
 
@@ -4745,6 +5225,9 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
         return NULL;
     JS_AddModuleExportList(ctx, m, js_os_funcs, countof(js_os_funcs));
     JS_AddModuleExport(ctx, m, "Worker");
+#if defined(_WIN32)
+    JS_AddModuleExport(ctx, m, "Win32Handle");
+#endif
     return m;
 }
 
