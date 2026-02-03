@@ -15,15 +15,26 @@ declare module "quickjs:encoding" {
     ): { read: number; written: number };
   }
 
-  type TextEncoding = "utf-8" | "utf-16le" | "utf-16be";
+  type TextEncoding = "utf-8" | "utf-16le" | "utf-16be" | "shift_jis";
 
   /**
    * Decodes bytes into a string, following the WHATWG Encoding standard.
-   * Supports UTF-8, UTF-16LE, and UTF-16BE encodings.
+   * Supports UTF-8, UTF-16LE, UTF-16BE, and Shift_JIS encodings.
    */
   export class TextDecoder {
     constructor(
-      label?: TextEncoding | "utf8" | "utf-16" | "unicode-1-1-utf-8",
+      label?:
+        | TextEncoding
+        | "utf8"
+        | "utf-16"
+        | "unicode-1-1-utf-8"
+        | "shift-jis"
+        | "sjis"
+        | "csshiftjis"
+        | "ms932"
+        | "ms_kanji"
+        | "windows-31j"
+        | "x-sjis",
       options?: { fatal?: boolean; ignoreBOM?: boolean }
     );
     readonly encoding: TextEncoding;

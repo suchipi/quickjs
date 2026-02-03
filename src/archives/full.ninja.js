@@ -23,6 +23,7 @@ const deps_target = [
   builddir("intermediate/quickjs-pointer.target.o"),
   builddir("intermediate/quickjs-engine.target.o"),
   builddir("intermediate/quickjs-encoding.target.o"),
+  builddir("intermediate/libshiftjis.target.o"),
   builddir("intermediate/quickjs-modulesys/module-impl.target.o"),
 ];
 
@@ -43,6 +44,7 @@ const deps_host = [
   builddir("intermediate/quickjs-pointer.host.o"),
   builddir("intermediate/quickjs-engine.host.o"),
   builddir("intermediate/quickjs-encoding.host.o"),
+  builddir("intermediate/libshiftjis.host.o"),
   builddir("intermediate/quickjs-modulesys/module-impl.host.o"),
 ];
 

@@ -447,3 +447,228 @@ test("TextDecoder - label aliases", async () => {
     }
   `);
 });
+
+test("TextDecoder - Shift_JIS basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("shift_jis");
+      console.log("encoding:", dec.encoding);
+
+      // ASCII pass-through
+      console.log(dec.decode(new Uint8Array([0x48, 0x69])));
+
+      // "日本" in Shift_JIS: 0x93 0xFA 0x96 0x7B
+      console.log(dec.decode(new Uint8Array([0x93, 0xFA, 0x96, 0x7B])));
+
+      // 0x80 maps to U+0080
+      const r80 = dec.decode(new Uint8Array([0x80]));
+      console.log("0x80 cp:", r80.codePointAt(0));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: shift_jis
+    Hi
+    日本
+    0x80 cp: 128
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - Shift_JIS half-width katakana", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("shift_jis");
+
+      // Half-width katakana: 0xA1-0xDF → U+FF61-U+FF9F
+      // ｱ = 0xB1, ﾝ = 0xDD
+      const result = dec.decode(new Uint8Array([0xB1, 0xDD]));
+      console.log(result);
+      console.log("cp0:", result.codePointAt(0).toString(16));
+      console.log("cp1:", result.codePointAt(1).toString(16));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "ｱﾝ
+    cp0: ff71
+    cp1: ff9d
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - Shift_JIS label aliases", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      console.log(new TextDecoder("shift_jis").encoding);
+      console.log(new TextDecoder("shift-jis").encoding);
+      console.log(new TextDecoder("sjis").encoding);
+      console.log(new TextDecoder("csshiftjis").encoding);
+      console.log(new TextDecoder("ms932").encoding);
+      console.log(new TextDecoder("ms_kanji").encoding);
+      console.log(new TextDecoder("windows-31j").encoding);
+      console.log(new TextDecoder("x-sjis").encoding);
+      console.log(new TextDecoder("  Shift_JIS  ").encoding);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "shift_jis
+    shift_jis
+    shift_jis
+    shift_jis
+    shift_jis
+    shift_jis
+    shift_jis
+    shift_jis
+    shift_jis
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - Shift_JIS fatal mode", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("shift_jis", { fatal: true });
+
+      // 0xA0 is invalid in Shift_JIS
+      try {
+        dec.decode(new Uint8Array([0xA0]));
+        console.log("ERROR: should have thrown");
+      } catch(e) {
+        console.log("caught:", e.constructor.name);
+      }
+
+      // Incomplete double-byte at end
+      try {
+        dec.decode(new Uint8Array([0x93]));
+        console.log("ERROR: should have thrown");
+      } catch(e) {
+        console.log("incomplete caught:", e.constructor.name);
+      }
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "caught: TypeError
+    incomplete caught: TypeError
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - Shift_JIS replacement mode", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("shift_jis");
+
+      // 0xA0 is invalid → U+FFFD, then valid ASCII "A"
+      const result = dec.decode(new Uint8Array([0xA0, 0x41]));
+      console.log("len:", result.length);
+      console.log("cp0:", result.codePointAt(0).toString(16));
+      console.log("cp1:", result.codePointAt(1).toString(16));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "len: 2
+    cp0: fffd
+    cp1: 41
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - Shift_JIS streaming", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("shift_jis");
+
+      // "日" in Shift_JIS = 0x93 0xFA — split across two chunks
+      const part1 = dec.decode(new Uint8Array([0x93]), { stream: true });
+      const part2 = dec.decode(new Uint8Array([0xFA]));
+      console.log("result:", part1 + part2);
+
+      // Incomplete at end without streaming → replacement
+      const dec2 = new TextDecoder("shift_jis");
+      const result = dec2.decode(new Uint8Array([0x93]));
+      console.log("incomplete cp:", Array.from(result).map(c => c.codePointAt(0).toString(16)).join(","));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "result: 日
+    incomplete cp: fffd
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - Shift_JIS trail byte error recovery", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("shift_jis");
+
+      // Lead byte 0x85 + invalid ASCII trail byte 0x41 ("A")
+      // The lead+trail fails lookup, but since trail is ASCII, it should
+      // NOT be consumed — we get U+FFFD then "A"
+      const result = dec.decode(new Uint8Array([0x85, 0x41]));
+      console.log("len:", result.length);
+      console.log("cp0:", result.codePointAt(0).toString(16));
+      console.log("cp1:", result.codePointAt(1).toString(16));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "len: 2
+    cp0: fffd
+    cp1: 41
+    ",
+    }
+  `);
+});

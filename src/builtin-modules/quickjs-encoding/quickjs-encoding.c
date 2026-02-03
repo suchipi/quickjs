@@ -5,6 +5,14 @@
 #include "cutils.h"
 #include "quickjs-encoding.h"
 
+#ifndef CONFIG_SHIFTJIS
+#define CONFIG_SHIFTJIS 1
+#endif
+
+#if CONFIG_SHIFTJIS
+#include "libshiftjis.h"
+#endif
+
 /* ---- existing toUtf8/fromUtf8 functions ---- */
 
 static JSValue js_encoding_toUtf8(JSContext *ctx, JSValueConst this_val,
@@ -52,6 +60,9 @@ typedef enum {
     ENCODING_UTF8 = 0,
     ENCODING_UTF16LE = 1,
     ENCODING_UTF16BE = 2,
+#if CONFIG_SHIFTJIS
+    ENCODING_SHIFT_JIS = 3,
+#endif
 } TextEncoding;
 
 typedef struct {
@@ -152,6 +163,18 @@ static int resolve_encoding_label(const char *label)
     if (len == 8 && !strncasecmp(label, "utf-16be", 8))
         return ENCODING_UTF16BE;
 
+#if CONFIG_SHIFTJIS
+    if ((len == 9 && !strncasecmp(label, "shift_jis", 9)) ||
+        (len == 9 && !strncasecmp(label, "shift-jis", 9)) ||
+        (len == 4 && !strncasecmp(label, "sjis", 4)) ||
+        (len == 10 && !strncasecmp(label, "csshiftjis", 10)) ||
+        (len == 5 && !strncasecmp(label, "ms932", 5)) ||
+        (len == 8 && !strncasecmp(label, "ms_kanji", 8)) ||
+        (len == 11 && !strncasecmp(label, "windows-31j", 11)) ||
+        (len == 6 && !strncasecmp(label, "x-sjis", 6)))
+        return ENCODING_SHIFT_JIS;
+#endif
+
     return -1;
 }
 
@@ -161,6 +184,9 @@ static const char *encoding_name(TextEncoding enc)
     case ENCODING_UTF8:    return "utf-8";
     case ENCODING_UTF16LE: return "utf-16le";
     case ENCODING_UTF16BE: return "utf-16be";
+#if CONFIG_SHIFTJIS
+    case ENCODING_SHIFT_JIS: return "shift_jis";
+#endif
     default:               return "utf-8";
     }
 }
@@ -713,6 +739,153 @@ static JSValue decode_utf16_bytes(JSContext *ctx, TextDecoderData *data,
     return result;
 }
 
+#if CONFIG_SHIFTJIS
+/* ---- Shift_JIS decode per WHATWG Encoding Standard ---- */
+
+static JSValue decode_shiftjis_bytes(JSContext *ctx, TextDecoderData *data,
+                                      const uint8_t *buf, size_t len,
+                                      JS_BOOL stream)
+{
+    /* Build working buffer: pending + new input */
+    size_t work_len = data->pending_len + len;
+    uint8_t *work;
+    int work_allocated = 0;
+
+    if (data->pending_len > 0) {
+        work = js_malloc(ctx, work_len);
+        if (!work)
+            return JS_EXCEPTION;
+        memcpy(work, data->pending, data->pending_len);
+        memcpy(work + data->pending_len, buf, len);
+        work_allocated = 1;
+    } else {
+        work = (uint8_t *)buf;
+    }
+    data->pending_len = 0;
+
+    /* Output buffer: worst case each byte becomes U+FFFD (3 UTF-8 bytes),
+       or a decoded codepoint up to 4 UTF-8 bytes. Use work_len * 4 + 1. */
+    size_t out_cap = work_len * 4 + 1;
+    uint8_t *out = js_malloc(ctx, out_cap);
+    if (!out) {
+        if (work_allocated) js_free(ctx, work);
+        return JS_EXCEPTION;
+    }
+    size_t pos = 0, out_pos = 0;
+
+    while (pos < work_len) {
+        uint8_t b = work[pos];
+
+        /* ASCII range (0x00-0x7F) or 0x80 — return code point = byte */
+        if (b <= 0x7F) {
+            out[out_pos++] = b;
+            pos++;
+            continue;
+        }
+        if (b == 0x80) {
+            out_pos += encode_utf8_codepoint(out + out_pos, 0x80);
+            pos++;
+            continue;
+        }
+
+        /* Half-width katakana (0xA1-0xDF) → U+FF61 + (byte - 0xA1) */
+        if (b >= 0xA1 && b <= 0xDF) {
+            out_pos += encode_utf8_codepoint(out + out_pos, 0xFF61 + b - 0xA1);
+            pos++;
+            continue;
+        }
+
+        /* Lead byte for double-byte (0x81-0x9F, 0xE0-0xFC) */
+        if ((b >= 0x81 && b <= 0x9F) || (b >= 0xE0 && b <= 0xFC)) {
+            if (pos + 1 >= work_len) {
+                /* Need trail byte */
+                if (stream) {
+                    data->pending[0] = b;
+                    data->pending_len = 1;
+                    break;
+                } else {
+                    /* Incomplete at end of stream — error */
+                    if (data->fatal) {
+                        js_free(ctx, out);
+                        if (work_allocated) js_free(ctx, work);
+                        return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                    }
+                    memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                    out_pos += 3;
+                    pos++;
+                    break;
+                }
+            }
+
+            uint8_t trail = work[pos + 1];
+
+            /* Check trail byte validity */
+            if ((trail >= 0x40 && trail <= 0x7E) || (trail >= 0x80 && trail <= 0xFC)) {
+                /* Compute pointer */
+                int lead_offset = (b < 0xA0) ? 0x81 : 0xC1;
+                int trail_offset = (trail < 0x7F) ? 0x40 : 0x41;
+                int pointer = (b - lead_offset) * 188 + (trail - trail_offset);
+
+                /* Pointer range 8836-10715: PUA */
+                if (pointer >= 8836 && pointer <= 10715) {
+                    uint32_t cp = 0xE000 + pointer - 8836;
+                    out_pos += encode_utf8_codepoint(out + out_pos, cp);
+                    pos += 2;
+                    continue;
+                }
+
+                /* Look up in jis0208 table */
+                uint32_t cp = shiftjis_decode(b, trail);
+                if (cp != 0) {
+                    out_pos += encode_utf8_codepoint(out + out_pos, cp);
+                    pos += 2;
+                    continue;
+                }
+            }
+
+            /* Failed lookup or invalid trail byte */
+            if (data->fatal) {
+                js_free(ctx, out);
+                if (work_allocated) js_free(ctx, work);
+                return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+            }
+            memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+            out_pos += 3;
+
+            /* WHATWG: if trail is ASCII, don't consume it */
+            if (trail <= 0x7F)
+                pos += 1;  /* consume only lead */
+            else
+                pos += 2;  /* consume both */
+            continue;
+        }
+
+        /* Bytes 0xA0, 0xFD-0xFF: invalid */
+        if (data->fatal) {
+            js_free(ctx, out);
+            if (work_allocated) js_free(ctx, work);
+            return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+        }
+        memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+        out_pos += 3;
+        pos++;
+    }
+
+    if (work_allocated)
+        js_free(ctx, work);
+
+    /* If not streaming, reset state */
+    if (!stream) {
+        data->pending_len = 0;
+        data->bom_seen = FALSE;
+    }
+
+    JSValue result = JS_NewStringLen(ctx, (char *)out, out_pos);
+    js_free(ctx, out);
+    return result;
+}
+#endif /* CONFIG_SHIFTJIS */
+
 /* ---- TextDecoder.decode() ---- */
 
 static JSValue js_text_decoder_decode(JSContext *ctx, JSValueConst this_val,
@@ -761,6 +934,12 @@ static JSValue js_text_decoder_decode(JSContext *ctx, JSValueConst this_val,
         result = decode_utf16_bytes(ctx, data, input_buf ? input_buf : (uint8_t *)"",
                                     input_len, stream_flag, TRUE);
         break;
+#if CONFIG_SHIFTJIS
+    case ENCODING_SHIFT_JIS:
+        result = decode_shiftjis_bytes(ctx, data, input_buf ? input_buf : (uint8_t *)"",
+                                        input_len, stream_flag);
+        break;
+#endif
     default:
         result = JS_ThrowError(ctx, "unsupported encoding");
         break;
