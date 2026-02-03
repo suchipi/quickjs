@@ -55,9 +55,8 @@ void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state
     return;
   }
 
-  if (state->key != JS_ATOM_NULL) {
-    JS_FreeAtom(ctx, state->key);
-  }
+  /* NOTE: state->key is borrowed from state->tab[state->i].atom (not duped),
+     so we must NOT free it here — the tab loop below frees all tab atoms. */
 
   if (state->tab != NULL) {
     int i;

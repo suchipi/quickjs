@@ -332,6 +332,295 @@ test("TerminateProcess", async () => {
   `);
 });
 
+// --- os.exec tests (Windows implementation using CreateProcess internally) ---
+
+test("os.exec block:true returns exit code 0", async () => {
+  const run = spawn(
+    "wine",
+    [
+      qjsExe,
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const result = os.exec(["cmd.exe", "/c", "echo hello"]);
+        console.log("exit code:", result);
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "hello
+    exit code: 0
+    ",
+    }
+  `);
+});
+
+test("os.exec block:true returns nonzero exit code", async () => {
+  const run = spawn(
+    "wine",
+    [
+      qjsExe,
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const result = os.exec(["cmd.exe", "/c", "exit 42"]);
+        console.log("exit code:", result);
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "exit code: 42
+    ",
+    }
+  `);
+});
+
+test("os.exec block:false returns pid, waitpid gets status", async () => {
+  const run = spawn(
+    "wine",
+    [
+      qjsExe,
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const pid = os.exec(["cmd.exe", "/c", "exit 7"], { block: false });
+        console.log("pid is number:", typeof pid === "number");
+        const [ret, status] = os.waitpid(pid);
+        console.log("ret === pid:", ret === pid);
+        console.log("WIFEXITED:", os.WIFEXITED(status));
+        console.log("WEXITSTATUS:", os.WEXITSTATUS(status));
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "pid is number: true
+    ret === pid: true
+    WIFEXITED: true
+    WEXITSTATUS: 7
+    ",
+    }
+  `);
+});
+
+test("os.exec with stdout redirection", async () => {
+  const run = spawn(
+    "wine",
+    [
+      qjsExe,
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const fds = os.pipe();
+        const result = os.exec(["cmd.exe", "/c", "echo piped output"], {
+          stdout: fds[1],
+        });
+        os.close(fds[1]);
+        const buf = new ArrayBuffer(4096);
+        const n = os.read(fds[0], buf, 0, 4096);
+        os.close(fds[0]);
+        const { toUtf8 } = require("quickjs:encoding");
+        const str = toUtf8(buf.slice(0, n));
+        console.log("output:", JSON.stringify(str.trim()));
+        console.log("exit code:", result);
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "output: "piped output"
+    exit code: 0
+    ",
+    }
+  `);
+});
+
+test("os.exec with env option", async () => {
+  const run = spawn(
+    "wine",
+    [
+      qjsExe,
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const std = require("quickjs:std");
+        const baseEnv = std.getenviron();
+        const result = os.exec(["cmd.exe", "/c", "echo %MY_TEST_VAR%"], {
+          env: Object.assign({}, baseEnv, { MY_TEST_VAR: "hello_from_env" }),
+        });
+        console.log("exit code:", result);
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "hello_from_env
+    exit code: 0
+    ",
+    }
+  `);
+});
+
+test("os.waitpid with WNOHANG", async () => {
+  const run = spawn(
+    "wine",
+    [
+      qjsExe,
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const pid = os.exec(["cmd.exe", "/c", "ping -n 100 127.0.0.1"], { block: false });
+        const [ret, status] = os.waitpid(pid, os.WNOHANG);
+        console.log("ret:", ret);
+        console.log("status:", status);
+        os.kill(pid, 0);
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "ret: 0
+    status: 0
+    ",
+    }
+  `);
+});
+
+test("os.pipe returns two fds", async () => {
+  const run = spawn(
+    "wine",
+    [
+      qjsExe,
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const fds = os.pipe();
+        console.log("is array:", Array.isArray(fds));
+        console.log("length:", fds.length);
+        console.log("read fd is number:", typeof fds[0] === "number");
+        console.log("write fd is number:", typeof fds[1] === "number");
+        os.close(fds[0]);
+        os.close(fds[1]);
+        console.log("done");
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "is array: true
+    length: 2
+    read fd is number: true
+    write fd is number: true
+    done
+    ",
+    }
+  `);
+});
+
+test("os.dup and os.dup2", async () => {
+  const run = spawn(
+    "wine",
+    [
+      qjsExe,
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const fds = os.pipe();
+        const dupFd = os.dup(fds[0]);
+        console.log("dup fd is number:", typeof dupFd === "number");
+        console.log("dup fd !== original:", dupFd !== fds[0]);
+        const newFd = 10;
+        os.dup2(fds[1], newFd);
+        os.close(fds[0]);
+        os.close(fds[1]);
+        os.close(dupFd);
+        os.close(newFd);
+        console.log("done");
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "dup fd is number: true
+    dup fd !== original: true
+    done
+    ",
+    }
+  `);
+});
+
+test("os.kill terminates a process", async () => {
+  const run = spawn(
+    "wine",
+    [
+      qjsExe,
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const pid = os.exec(["cmd.exe", "/c", "ping -n 100 127.0.0.1"], { block: false });
+        os.kill(pid, 9);
+        const [ret, status] = os.waitpid(pid);
+        console.log("ret === pid:", ret === pid);
+        console.log("done");
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "ret === pid: true
+    done
+    ",
+    }
+  `);
+});
+
 test("WaitForSingleObject with timeout", async () => {
   const run = spawn(
     "wine",

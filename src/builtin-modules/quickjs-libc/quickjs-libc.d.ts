@@ -853,9 +853,9 @@ declare module "quickjs:os" {
   /**
    * Send the signal `sig` to the process `pid`. Use `os.SIG*` constants.
    *
-   * NOTE: this function is not present on windows
+   * On Windows, this uses `TerminateProcess` internally; the signal number becomes the exit code.
    */
-  export var kill: undefined | ((pid: number, sig: number) => void);
+  export function kill(pid: number, sig: number): void;
 
   export type ExecOptions = {
     /** Boolean (default = true). If true, wait until the process is terminated. In this case, `exec` returns the exit code if positive or the negated signal number if the process was interrupted by a signal. If false, do not block and return the process id of the child. */
@@ -870,14 +870,14 @@ declare module "quickjs:os" {
     /** String. If present, set the working directory of the new process. */
     cwd?: string;
 
-    /** If present, set the file descriptor in the child for stdin. */
-    stdin?: number;
+    /** If present, set the file descriptor in the child for stdin. On Windows, can also be a FILE object. */
+    stdin?: number | FILE;
 
-    /** If present, set the file descriptor in the child for stdout. */
-    stdout?: number;
+    /** If present, set the file descriptor in the child for stdout. On Windows, can also be a FILE object. */
+    stdout?: number | FILE;
 
-    /** If present, set the file descriptor in the child for stderr. */
-    stderr?: number;
+    /** If present, set the file descriptor in the child for stderr. On Windows, can also be a FILE object. */
+    stderr?: number | FILE;
 
     /** Object. If present, set the process environment from the object key-value pairs. Otherwise use the same environment as the current process. To get the current process's environment variables as on object, use `std.getenviron()`. */
     env?: { [key: string | number]: string | number | boolean };
@@ -892,11 +892,10 @@ declare module "quickjs:os" {
   /**
    * Execute a process with the arguments args, and the provided options (if any).
    *
-   * NOTE: this function is not present on windows
+   * On Windows, this uses `CreateProcess` internally. The `usePath` option is ignored
+   * (Windows always searches PATH), and `uid`/`gid` options are ignored with a warning.
    */
-  export var exec:
-    | undefined
-    | ((args: Array<string>, options?: ExecOptions) => number);
+  export function exec(args: Array<string>, options?: ExecOptions): number;
 
   /**
    * `waitpid` Unix system call. Returns the array [ret, status].
@@ -905,18 +904,15 @@ declare module "quickjs:os" {
    *
    * waitpid(): on success, returns the process ID of the child whose state has changed; if WNOHANG was specified and one or more child(ren) specified by pid exist, but have not yet changed state, then 0 is returned.
    *
-   * NOTE: this function is not present on windows
+   * On Windows, this uses `WaitForSingleObject` and `GetExitCodeProcess` internally,
+   * and encodes the exit code in a Unix-compatible status format.
    */
-  export var waitpid:
-    | undefined
-    | ((pid: number, options?: number) => [number, number]);
+  export function waitpid(pid: number, options?: number): [number, number];
 
   /**
    * Constant for the `options` argument of `waitpid`.
-   *
-   * NOTE: this property is not present on windows
    */
-  export var WNOHANG: number | undefined;
+  export var WNOHANG: number;
 
   /**
    * Constant for the `options` argument of `waitpid`.
@@ -927,73 +923,53 @@ declare module "quickjs:os" {
 
   /**
    * Function to be used to interpret the 'status' return value of `waitpid`.
-   *
-   * NOTE: this function is not present on windows
    */
-  export var WEXITSTATUS: undefined | ((status: number) => number);
+  export function WEXITSTATUS(status: number): number;
 
   /**
    * Function to be used to interpret the 'status' return value of `waitpid`.
-   *
-   * NOTE: this function is not present on windows
    */
-  export var WTERMSIG: undefined | ((status: number) => number);
+  export function WTERMSIG(status: number): number;
 
   /**
    * Function to be used to interpret the 'status' return value of `waitpid`.
-   *
-   * NOTE: this function is not present on windows
    */
-  export var WSTOPSIG: undefined | ((status: number) => number);
+  export function WSTOPSIG(status: number): number;
 
   /**
    * Function to be used to interpret the 'status' return value of `waitpid`.
-   *
-   * NOTE: this function is not present on windows
    */
-  export var WIFEXITED: undefined | ((status: number) => boolean);
+  export function WIFEXITED(status: number): boolean;
 
   /**
    * Function to be used to interpret the 'status' return value of `waitpid`.
-   *
-   * NOTE: this function is not present on windows
    */
-  export var WIFSIGNALED: undefined | ((status: number) => boolean);
+  export function WIFSIGNALED(status: number): boolean;
 
   /**
    * Function to be used to interpret the 'status' return value of `waitpid`.
-   *
-   * NOTE: this function is not present on windows
    */
-  export var WIFSTOPPED: undefined | ((status: number) => boolean);
+  export function WIFSTOPPED(status: number): boolean;
 
   /**
    * Function to be used to interpret the 'status' return value of `waitpid`.
-   *
-   * NOTE: this function is not present on windows
    */
-  export var WIFCONTINUED: undefined | ((status: number) => boolean);
+  export function WIFCONTINUED(status: number): boolean;
 
   /**
-   * `dup` Unix system call.
-   *
-   * NOTE: this function is not present on windows
+   * `dup` system call.
    */
-  export var dup: undefined | ((fd: number) => number);
+  export function dup(fd: number): number;
 
   /**
-   * `dup2` Unix system call.
-   *
-   * NOTE: this function is not present on windows
+   * `dup2` system call.
    */
-  export var dup2: undefined | ((oldfd: number, newfd: number) => number);
+  export function dup2(oldfd: number, newfd: number): number;
 
   /**
-   * `pipe` Unix system call. Return two handles as `[read_fd, write_fd]`.
-   *
-   * NOTE: this function is not present on windows
+   * `pipe` system call. Return two file descriptors as `[read_fd, write_fd]`.
    */
-  export var pipe: undefined | (() => [number, number]);
+  export function pipe(): [number, number];
 
   /** Sleep for `delay_ms` milliseconds. */
   export function sleep(delay_ms: number): void;
