@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(QUICKJS_EXTRAS=1 meta/build.sh:*)",
+      "Bash(meta/docker/run-build.sh:*)",
+      "Bash(npm test:*)",
+      "Bash(npx jest:*)"
+    ]
+  }
+}

@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(wine build/x86_64-pc-windows-static/bin/:*)"
     ]
   }
 }
