@@ -3186,6 +3186,37 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
 }
 #endif // !defined(_WIN32)
 
+/* Win32Handle class — registered on all platforms so that `instanceof`
+   works in JavaScript.  On non-Windows the constructor always throws and
+   no instances are ever created by native code. */
+static JSClassID js_win32_handle_class_id;
+
+#if defined(_WIN32)
+static void js_win32_handle_finalizer(JSRuntime *rt, JSValue val)
+{
+    HANDLE *handle_ptr = JS_GetOpaque(val, js_win32_handle_class_id);
+    if (handle_ptr) {
+        if (*handle_ptr != INVALID_HANDLE_VALUE) {
+            CloseHandle(*handle_ptr);
+        }
+        js_free_rt(rt, handle_ptr);
+    }
+}
+#endif
+
+static JSClassDef js_win32_handle_class = {
+    "Win32Handle",
+#if defined(_WIN32)
+    .finalizer = js_win32_handle_finalizer,
+#endif
+};
+
+static JSValue js_win32_handle_ctor(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "Win32Handle objects cannot be created by JavaScript code. They are created by native functions like CreateProcess.");
+}
+
 #if defined(_WIN32)
 
 /* Throw a JS error using FormatMessageW for the given Win32 error code. */
@@ -3218,30 +3249,6 @@ static JSValue js_throw_win32_error(JSContext *ctx, const char *prefix, DWORD er
         JS_ThrowError(ctx, "%s: error code %lu", prefix, (unsigned long)error_code);
     }
     return JS_EXCEPTION;
-}
-
-static JSClassID js_win32_handle_class_id;
-
-static void js_win32_handle_finalizer(JSRuntime *rt, JSValue val)
-{
-    HANDLE *handle_ptr = JS_GetOpaque(val, js_win32_handle_class_id);
-    if (handle_ptr) {
-        if (*handle_ptr != INVALID_HANDLE_VALUE) {
-            CloseHandle(*handle_ptr);
-        }
-        js_free_rt(rt, handle_ptr);
-    }
-}
-
-static JSClassDef js_win32_handle_class = {
-    "Win32Handle",
-    .finalizer = js_win32_handle_finalizer,
-};
-
-static JSValue js_win32_handle_ctor(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    return JS_ThrowError(ctx, "Win32Handle objects cannot be created by JavaScript code. They are created by native functions like CreateProcess and CreatePipe.");
 }
 
 /* Create a new Win32Handle JS object wrapping a native HANDLE.
@@ -5814,8 +5821,7 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
 {
     JSValue timer_proto;
 
-#if defined(_WIN32)
-    /* Win32Handle class */
+    /* Win32Handle class (registered on all platforms for instanceof support) */
     JS_NewClassID(&js_win32_handle_class_id);
     JS_NewClass(JS_GetRuntime(ctx), js_win32_handle_class_id, &js_win32_handle_class);
     {
@@ -5827,7 +5833,6 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
         JS_SetClassProto(ctx, js_win32_handle_class_id, win32_handle_proto);
         JS_SetModuleExport(ctx, m, "Win32Handle", win32_handle_ctor_val);
     }
-#endif
 
     os_poll_func = js_os_poll;
 
@@ -5884,9 +5889,7 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
         return NULL;
     JS_AddModuleExportList(ctx, m, js_os_funcs, countof(js_os_funcs));
     JS_AddModuleExport(ctx, m, "Worker");
-#if defined(_WIN32)
     JS_AddModuleExport(ctx, m, "Win32Handle");
-#endif
     return m;
 }
 

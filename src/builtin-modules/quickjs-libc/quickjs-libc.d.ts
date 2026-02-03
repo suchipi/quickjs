@@ -1065,19 +1065,19 @@ declare module "quickjs:os" {
     onmessage: null | ((event: { data: StructuredClonable }) => void);
   }
 
-  /** An opaque wrapper around a Win32 HANDLE. */
-  export interface Win32Handle {
-    [Symbol.toStringTag]: "Win32Handle";
-  }
-
   /**
-   * Constructor for Win32Handle. Always throws; Win32Handle objects cannot be
-   * created directly from JavaScript code. They are created by native
-   * functions like {@link CreateProcess} and {@link CreatePipe}.
+   * An opaque wrapper around a Win32 HANDLE.
    *
-   * NOTE: this class is only present on windows
+   * Win32Handle objects cannot be created directly from JavaScript code.
+   * They are created by native functions like {@link CreateProcess}.
+   *
+   * On non-Windows platforms, this class exists but no instances will ever
+   * be created.
    */
-  export var Win32Handle: undefined | (new () => never);
+  export class Win32Handle {
+    private constructor();
+    readonly [Symbol.toStringTag]: "Win32Handle";
+  }
 
   export type CreateProcessOptions = {
     /** The name of the module to be executed (maps to lpApplicationName). */
