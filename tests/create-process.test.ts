@@ -3,6 +3,10 @@ import { rootDir } from "./_utils";
 import path from "path";
 import type { RunContext } from "first-base";
 
+if (process.env.CI) {
+  test.only("skipped in CI (win32 wine test)", () => {});
+}
+
 const winBinDir = path.join(
   rootDir(),
   "build",
