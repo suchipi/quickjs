@@ -23,15 +23,31 @@ const deps_target = [
   builddir("intermediate/quickjs-pointer.target.o"),
   builddir("intermediate/quickjs-engine.target.o"),
   builddir("intermediate/quickjs-encoding.target.o"),
-  builddir("intermediate/libshiftjis.target.o"),
-  builddir("intermediate/libwindows1252.target.o"),
-  builddir("intermediate/libwindows1251.target.o"),
-  builddir("intermediate/libbig5.target.o"),
-  builddir("intermediate/libeuckr.target.o"),
-  builddir("intermediate/libeucjp.target.o"),
-  builddir("intermediate/libgb18030.target.o"),
   builddir("intermediate/quickjs-modulesys/module-impl.target.o"),
 ];
+
+// Conditionally include encoding libraries based on CONFIG_* env vars
+if (process.env.CONFIG_SHIFTJIS !== "0") {
+  deps_target.push(builddir("intermediate/libshiftjis.target.o"));
+}
+if (process.env.CONFIG_WINDOWS1252 !== "0") {
+  deps_target.push(builddir("intermediate/libwindows1252.target.o"));
+}
+if (process.env.CONFIG_WINDOWS1251 !== "0") {
+  deps_target.push(builddir("intermediate/libwindows1251.target.o"));
+}
+if (process.env.CONFIG_BIG5 !== "0") {
+  deps_target.push(builddir("intermediate/libbig5.target.o"));
+}
+if (process.env.CONFIG_EUCKR !== "0") {
+  deps_target.push(builddir("intermediate/libeuckr.target.o"));
+}
+if (process.env.CONFIG_EUCJP !== "0") {
+  deps_target.push(builddir("intermediate/libeucjp.target.o"));
+}
+if (process.env.CONFIG_GB18030 !== "0") {
+  deps_target.push(builddir("intermediate/libgb18030.target.o"));
+}
 
 const full_target = build({
   output: builddir("intermediate/quickjs-full.target.a"),
@@ -50,15 +66,31 @@ const deps_host = [
   builddir("intermediate/quickjs-pointer.host.o"),
   builddir("intermediate/quickjs-engine.host.o"),
   builddir("intermediate/quickjs-encoding.host.o"),
-  builddir("intermediate/libshiftjis.host.o"),
-  builddir("intermediate/libwindows1252.host.o"),
-  builddir("intermediate/libwindows1251.host.o"),
-  builddir("intermediate/libbig5.host.o"),
-  builddir("intermediate/libeuckr.host.o"),
-  builddir("intermediate/libeucjp.host.o"),
-  builddir("intermediate/libgb18030.host.o"),
   builddir("intermediate/quickjs-modulesys/module-impl.host.o"),
 ];
+
+// Conditionally include encoding libraries based on CONFIG_* env vars
+if (process.env.CONFIG_SHIFTJIS !== "0") {
+  deps_host.push(builddir("intermediate/libshiftjis.host.o"));
+}
+if (process.env.CONFIG_WINDOWS1252 !== "0") {
+  deps_host.push(builddir("intermediate/libwindows1252.host.o"));
+}
+if (process.env.CONFIG_WINDOWS1251 !== "0") {
+  deps_host.push(builddir("intermediate/libwindows1251.host.o"));
+}
+if (process.env.CONFIG_BIG5 !== "0") {
+  deps_host.push(builddir("intermediate/libbig5.host.o"));
+}
+if (process.env.CONFIG_EUCKR !== "0") {
+  deps_host.push(builddir("intermediate/libeuckr.host.o"));
+}
+if (process.env.CONFIG_EUCJP !== "0") {
+  deps_host.push(builddir("intermediate/libeucjp.host.o"));
+}
+if (process.env.CONFIG_GB18030 !== "0") {
+  deps_host.push(builddir("intermediate/libgb18030.host.o"));
+}
 
 const full_host = build({
   output: builddir("intermediate/quickjs-full.host.a"),

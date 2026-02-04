@@ -60,6 +60,29 @@ for (const suffix of ["HOST", "TARGET"]) {
   // include full unicode tables
   declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_ALL_UNICODE");
 
+  // Encoding library configuration - disabled if CONFIG_*=0
+  if (process.env.CONFIG_SHIFTJIS === "0") {
+    declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_SHIFTJIS=0");
+  }
+  if (process.env.CONFIG_WINDOWS1252 === "0") {
+    declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_WINDOWS1252=0");
+  }
+  if (process.env.CONFIG_WINDOWS1251 === "0") {
+    declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_WINDOWS1251=0");
+  }
+  if (process.env.CONFIG_BIG5 === "0") {
+    declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_BIG5=0");
+  }
+  if (process.env.CONFIG_EUCKR === "0") {
+    declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_EUCKR=0");
+  }
+  if (process.env.CONFIG_EUCJP === "0") {
+    declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_EUCJP=0");
+  }
+  if (process.env.CONFIG_GB18030 === "0") {
+    declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_GB18030=0");
+  }
+
   // always treat chars as unsigned for consistent bytecode
   declareOrAppend(`CFLAGS_${suffix}`, "-funsigned-char");
 
