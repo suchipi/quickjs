@@ -8,7 +8,9 @@
       "Bash(build/bin/qjs:*)",
       "Bash(CI=true npm test:*)",
       "WebFetch(domain:encoding.spec.whatwg.org)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ]
   }
 }
