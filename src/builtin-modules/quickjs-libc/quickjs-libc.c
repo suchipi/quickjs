@@ -115,6 +115,7 @@ typedef struct {
     struct list_head link;
     BOOL has_object;
     int64_t timeout;
+    int64_t interval; /* 0 for setTimeout, >0 for setInterval */
     JSValue func;
 } JSOSTimer;
 
@@ -2392,6 +2393,39 @@ static JSValue js_os_setTimeout(JSContext *ctx, JSValueConst this_val,
     }
     th->has_object = TRUE;
     th->timeout = get_time_ms() + delay;
+    th->interval = 0;
+    th->func = JS_DupValue(ctx, func);
+    list_add_tail(&th->link, &ts->os_timers);
+    JS_SetOpaque(obj, th);
+    return obj;
+}
+
+static JSValue js_os_setInterval(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
+{
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    int64_t delay;
+    JSValueConst func;
+    JSOSTimer *th;
+    JSValue obj;
+
+    func = argv[0];
+    if (!JS_IsFunction(ctx, func))
+        return JS_ThrowTypeError(ctx, "first argument to setInterval was not a function");
+    if (JS_ToInt64(ctx, &delay, argv[1]))
+        return JS_EXCEPTION;
+    obj = JS_NewObjectClass(ctx, js_os_timer_class_id);
+    if (JS_IsException(obj))
+        return obj;
+    th = js_mallocz(ctx, sizeof(*th));
+    if (!th) {
+        JS_FreeValue(ctx, obj);
+        return JS_EXCEPTION;
+    }
+    th->has_object = TRUE;
+    th->timeout = get_time_ms() + delay;
+    th->interval = delay;
     th->func = JS_DupValue(ctx, func);
     list_add_tail(&th->link, &ts->os_timers);
     JS_SetOpaque(obj, th);
@@ -2408,6 +2442,13 @@ static JSValue js_os_clearTimeout(JSContext *ctx, JSValueConst this_val,
 
     unlink_timer(JS_GetRuntime(ctx), th);
     return JS_UNDEFINED;
+}
+
+/* clearInterval is the same as clearTimeout */
+static JSValue js_os_clearInterval(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv)
+{
+    return js_os_clearTimeout(ctx, this_val, argc, argv);
 }
 
 static JSClassDef js_os_timer_class = {
@@ -2462,9 +2503,15 @@ static int js_os_poll(JSContext *ctx)
                 /* the timer expired */
                 func = th->func;
                 th->func = JS_UNDEFINED;
-                unlink_timer(rt, th);
-                if (!th->has_object)
-                    free_timer(rt, th);
+                if (th->interval > 0) {
+                    /* reschedule interval timer */
+                    th->timeout = cur_time + th->interval;
+                    th->func = JS_DupValue(ctx, func);
+                } else {
+                    unlink_timer(rt, th);
+                    if (!th->has_object)
+                        free_timer(rt, th);
+                }
                 call_handler(ctx, func);
                 JS_FreeValue(ctx, func);
                 return 0;
@@ -2631,9 +2678,15 @@ static int js_os_poll(JSContext *ctx)
                 /* the timer expired */
                 func = th->func;
                 th->func = JS_UNDEFINED;
-                unlink_timer(rt, th);
-                if (!th->has_object)
-                    free_timer(rt, th);
+                if (th->interval > 0) {
+                    /* reschedule interval timer */
+                    th->timeout = cur_time + th->interval;
+                    th->func = JS_DupValue(ctx, func);
+                } else {
+                    unlink_timer(rt, th);
+                    if (!th->has_object)
+                        free_timer(rt, th);
+                }
                 call_handler(ctx, func);
                 JS_FreeValue(ctx, func);
                 return 0;
@@ -6031,6 +6084,8 @@ static const JSCFunctionListEntry js_os_funcs[] = {
 #endif
     JS_CFUNC_DEF("setTimeout", 2, js_os_setTimeout ),
     JS_CFUNC_DEF("clearTimeout", 1, js_os_clearTimeout ),
+    JS_CFUNC_DEF("setInterval", 2, js_os_setInterval ),
+    JS_CFUNC_DEF("clearInterval", 1, js_os_clearInterval ),
     JS_PROP_STRING_DEF("platform", OS_PLATFORM, 0 ),
     JS_CFUNC_DEF("getcwd", 0, js_os_getcwd ),
     JS_CFUNC_DEF("chdir", 0, js_os_chdir ),
@@ -6227,7 +6282,7 @@ void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv)
 
 void js_std_add_timeout(JSContext *ctx)
 {
-    JSValue global_obj, setTimeout, clearTimeout;
+    JSValue global_obj, setTimeout, clearTimeout, setInterval, clearInterval;
 
     global_obj = JS_GetGlobalObject(ctx);
 
@@ -6236,6 +6291,12 @@ void js_std_add_timeout(JSContext *ctx)
 
     clearTimeout = JS_NewCFunction(ctx, js_os_clearTimeout, "clearTimeout", 1);
     JS_SetPropertyStr(ctx, global_obj, "clearTimeout", clearTimeout);
+
+    setInterval = JS_NewCFunction(ctx, js_os_setInterval, "setInterval", 2);
+    JS_SetPropertyStr(ctx, global_obj, "setInterval", setInterval);
+
+    clearInterval = JS_NewCFunction(ctx, js_os_clearInterval, "clearInterval", 1);
+    JS_SetPropertyStr(ctx, global_obj, "clearInterval", clearInterval);
 
     JS_FreeValue(ctx, global_obj);
 }

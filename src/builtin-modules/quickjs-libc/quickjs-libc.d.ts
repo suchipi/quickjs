@@ -975,6 +975,15 @@ declare module "quickjs:os" {
   /** Cancel a timer. */
   export function clearTimeout(handle: OSTimer): void;
 
+  /** Call the function func repeatedly, with delay ms between each call. Return a handle to the timer. */
+  export function setInterval(
+    func: (...args: any) => any,
+    delay: number
+  ): OSTimer;
+
+  /** Cancel an interval timer. */
+  export function clearInterval(handle: OSTimer): void;
+
   /** Return a string representing the platform: "linux", "darwin", "win32", "freebsd", or "js" (emscripten). */
   export var platform: "linux" | "darwin" | "win32" | "freebsd" | "js";
 
@@ -1250,3 +1259,5 @@ declare module "quickjs:os" {
 
 declare var setTimeout: typeof import("quickjs:os").setTimeout;
 declare var clearTimeout: typeof import("quickjs:os").clearTimeout;
+declare var setInterval: typeof import("quickjs:os").setInterval;
+declare var clearInterval: typeof import("quickjs:os").clearInterval;

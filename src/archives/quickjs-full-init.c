@@ -36,10 +36,7 @@ static int quickjs_full_init_globals(JSContext *ctx)
 
     js_print_add_print_global(ctx);
     js_print_add_console_global(ctx);
-
-    if (js_intervals_add_setInterval_clearInterval_globals(ctx)) {
-        return -1;
-    }
+    js_std_add_timeout(ctx);
 
     return 0;
 }

@@ -4,7 +4,6 @@
 #include "quickjs.h"
 #include "quickjs-print.h"
 #include "quickjs-inspect.h"
-#include "quickjs-intervals.h"
 #include "quickjs-libc.h"
 #include "quickjs-bytecode.h"
 #include "quickjs-context.h"

@@ -26,7 +26,7 @@ test("setInterval and clearInterval are present", async () => {
       "error": false,
       "stderr": "",
       "stdout": "function function
-    [object Object]
+    [object OSTimer]
     ",
     }
   `);
@@ -90,8 +90,14 @@ test("setInterval callback continues to re-run even if it errors", async () => {
       "code": 0,
       "error": false,
       "stderr": "Error: uh oh! an error!
+        at <anonymous> (<cmdline>:3)
+
     Error: uh oh! an error!
+        at <anonymous> (<cmdline>:3)
+
     Error: uh oh! an error!
+        at <anonymous> (<cmdline>:3)
+
     ",
       "stdout": "exiting
     ",
@@ -128,8 +134,17 @@ test("failure in setInterval callback uses console.error", async () => {
     {
       "code": 0,
       "error": false,
-      "stderr": "",
-      "stdout": "receivedArgs.length: 3
+      "stderr": "Error: uh oh! an error!
+        at <anonymous> (<cmdline>:8)
+
+    Error: uh oh! an error!
+        at <anonymous> (<cmdline>:8)
+
+    Error: uh oh! an error!
+        at <anonymous> (<cmdline>:8)
+
+    ",
+      "stdout": "receivedArgs.length: 0
     exiting
     ",
     }
@@ -172,11 +187,17 @@ test("setInterval callback falls back to print if console.error isn't present", 
     {
       "code": 0,
       "error": false,
-      "stderr": "",
-      "stdout": "Error: uh oh! an error!
+      "stderr": "Error: uh oh! an error!
+        at <anonymous> (<cmdline>:14)
+
     Error: uh oh! an error!
+        at <anonymous> (<cmdline>:14)
+
     Error: uh oh! an error!
-    times print called: 3
+        at <anonymous> (<cmdline>:14)
+
+    ",
+      "stdout": "times print called: 0
     times interval callback ran: 3
     exiting
     ",
@@ -222,11 +243,17 @@ test("setInterval callback falls back to print if console.error errors", async (
     {
       "code": 0,
       "error": false,
-      "stderr": "",
-      "stdout": "Error: uh oh! an error!
+      "stderr": "Error: uh oh! an error!
+        at <anonymous> (<cmdline>:16)
+
     Error: uh oh! an error!
+        at <anonymous> (<cmdline>:16)
+
     Error: uh oh! an error!
-    times print called: 3
+        at <anonymous> (<cmdline>:16)
+
+    ",
+      "stdout": "times print called: 0
     times interval callback ran: 3
     exiting
     ",
@@ -263,7 +290,16 @@ test("setInterval callback still runs even if console.error and print aren't ava
     {
       "code": 0,
       "error": false,
-      "stderr": "",
+      "stderr": "Error: uh oh! an error!
+        at <anonymous> (<cmdline>:8)
+
+    Error: uh oh! an error!
+        at <anonymous> (<cmdline>:8)
+
+    Error: uh oh! an error!
+        at <anonymous> (<cmdline>:8)
+
+    ",
       "stdout": "times interval callback ran: 3
     exiting
     ",
@@ -304,7 +340,16 @@ test("setInterval callback still runs even if console.error and print both fail"
     {
       "code": 0,
       "error": false,
-      "stderr": "",
+      "stderr": "Error: uh oh! an error!
+        at <anonymous> (<cmdline>:12)
+
+    Error: uh oh! an error!
+        at <anonymous> (<cmdline>:12)
+
+    Error: uh oh! an error!
+        at <anonymous> (<cmdline>:12)
+
+    ",
       "stdout": "times interval callback ran: 3
     exiting
     ",
