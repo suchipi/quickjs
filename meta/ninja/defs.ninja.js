@@ -20,6 +20,9 @@ for (const suffix of ["HOST", "TARGET"]) {
   // Show all warnings.
   declareOrAppend(`CFLAGS_${suffix}`, "-Wall");
 
+  // Enforce GNU C11 standard (C11 + GNU extensions)
+  declareOrAppend(`CFLAGS_${suffix}`, "-std=gnu11");
+
   // Add include for build dir intermediates (for generated headers)
   declareOrAppend(`CFLAGS_${suffix}`, "-I" + builddir("intermediate"));
 

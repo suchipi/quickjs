@@ -4,12 +4,14 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 
 ## High-level List of Most Notable Changes
 
-- APIs from 'std' and 'os' modules were changed to be more idiomatic-to-JS; notably, they throw Errors on failure instead of returning null or errno numbers.
+- APIs from the 'std' and 'os' modules were changed to be more idiomatic-to-JS; notably, they throw Errors on failure instead of returning null or errno numbers.
+- APIs from the 'std' and 'os' modules that were implemented on UNIX platforms but weren't implemented on Windows (exec, readlink, symlink, etc) now are.
 - TypeScript-format type interface files (`.d.ts` files) were added for everything.
 - Hooks have been added to the module loader that make its functionality more customizable.
 - Some ES2022 features were added, and some non-standard ECMAScript proposals and extensions were added.
 - The way the project is organized and built was changed dramatically.
 - Several new JS bindings for C APIs have been added, such as `strftime`, `access`, `fsync`, `setvbuf`, `getuid`...
+- WHATWG TextEncoder/TextDecoder added with support for common encodings and non-standard support for encoding to encodings other than UTF-8
 - Scripts were added that cross-compile binaries for several operating systems and architectures
 - FreeBSD support added
 
@@ -18,9 +20,6 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 ### Changes to `quickjs`:
 
 - A TypeScript `.d.ts` file is provided for all QuickJS-specific APIs (operator overloading APIs, BigInt extensions, BigFloat, BigDecimal, etc).
-- Non-standard `Object.toPrimitive` added (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
-- Non-standard `Object.isPrimitive` added (static method that returns a boolean indicating whether the given value is a primitive).
-- Non-standard `Symbol.typeofValue` has been added which can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
 - Added support for Error constructor "cause" option (from ES2022).
 - Added support for relative indexing method `.at()` (from ES2022).
 - `String.cooked` added (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
@@ -37,6 +36,9 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
   - `JS_IsPrimitive`
 - ModuleDefs now have an optional "user_data" property (pointer to void) which can be accessed during module initialization (via `JS_GetModuleUserData` and `JS_SetModuleUserData`)
 - Added `JS_SetContextOpaqueValue` and `JS_GetContextOpaqueValue`, which let you associate a JSValue with a JSContext, which will be garbage-collected when that JSContext is garbage-collected.
+- Non-standard `Object.toPrimitive` added (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
+- Non-standard `Object.isPrimitive` added (static method that returns a boolean indicating whether the given value is a primitive).
+- Non-standard `Symbol.typeofValue` has been added which can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
 
 ### Changes to `quickjs-libc`:
 
@@ -57,6 +59,14 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - `std.strftime` added (wrapper for libc `strftime`).
 - Added `std.getuid`, `std.geteuid`, `std.getgid`, `std.getegid`, and `std.getpwuid` (wrappers for the libc/posix functions of the same names).
 - `os.gethostname` added (wrapper for POSIX `gethostname`).
+- The following functions from `os` which previously weren't implemented on Windows now are: `exec`, `kill`, `dup`, `dup2`, `waitpid`, `readlink`, `lstat`, and `symlink`.
+  - These use shims in some places to emulate POSIX functionality on Windows. if those shims aren't sufficiently accurate, you can instead use the additional windows-specific APIs which have been added to `os`:
+  - CreateProcess
+  - WaitForSingleObject
+  - GetExitCodeProcess
+  - TerminateProcess
+  - CloseHandle
+  - CreatePipe
 - Most module-loading-related code was moved into `quickjs-modulesys`.
 - `setTimeout` and `clearTimeout` are now available as globals (previously they were only available as exports).
 - `setInterval` and `clearInterval` are added, available as globals.
@@ -86,7 +96,7 @@ $ ./my-program
 hello!
 ```
 
-You can use this to create distributable binaries that run JS code without needing to use qjsc or a C compiler. Instructions [here](https://github.com/suchipi/quickjs/tree/main/src/qjsbootstrap).
+You can use this to create distributable binaries that run JS code without needing to use qjsc or a C compiler. Instructions [here](https://github.com/suchipi/quickjs/tree/main/src/programs/qjsbootstrap).
 
 > Note: On FreeBSD, `qjsbootstrap` requires procfs. You can mount it with `mount -t procfs proc /proc`. I started some work to use libprocstat instead, but haven't completed it yet.
 
@@ -108,7 +118,20 @@ A barebones Module that exports a JS class which can be used to represent an opa
 
 ### New module: "quickjs:encoding"
 
-Text encoding/decoding functions. Exports functions for converting between utf-8 and ArrayBuffer.
+Implementation of the [WHATWG Encoding Standard](https://encoding.spec.whatwg.org/), with non-standard extensions to allow encoding to non-utf8 encodings. This module also exports two small, simple functions for converting between utf-8 and ArrayBuffer (`toUtf8` and `fromUtf8`).
+
+Supported Encodings, (for both TextDecoder and TextEncoder):
+
+- utf-8
+- utf-16le
+- utf-16be
+- shift_jis
+- windows-1252
+- windows-1251
+- big5
+- euc-kr
+- euc-jp
+- gb18030
 
 ### New library: `quickjs-utils`
 
@@ -188,7 +211,7 @@ The repo has stuff set up to compile quickjs binaries for:
 - Cosmopolitan Libc (cross-platform `*.com` binaries). You need the cosmo toolchain installed for this one to work.
 - any arbitrary unix-like OS, if you set env vars for CC, CFLAGS, etc.
 
-QuickJS itself has no external dependencies outside this repo except pthreads, and all of the code is C99. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes.
+QuickJS itself has no external dependencies outside this repo except pthreads, and all of the code is C11. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes.
 
 Linux, macOS, iOS, and Windows binaries can be compiled using Docker. Or, you can compile binaries for just your own unix system, without using Docker.
 
