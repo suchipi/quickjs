@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 /* Entry for the encode table: maps Unicode code point to pointer */
 typedef struct {
