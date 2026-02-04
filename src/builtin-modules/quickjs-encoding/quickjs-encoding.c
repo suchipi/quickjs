@@ -9,8 +9,56 @@
 #define CONFIG_SHIFTJIS 1
 #endif
 
+#ifndef CONFIG_WINDOWS1252
+#define CONFIG_WINDOWS1252 1
+#endif
+
+#ifndef CONFIG_WINDOWS1251
+#define CONFIG_WINDOWS1251 1
+#endif
+
+#ifndef CONFIG_BIG5
+#define CONFIG_BIG5 1
+#endif
+
+#ifndef CONFIG_EUCKR
+#define CONFIG_EUCKR 1
+#endif
+
+#ifndef CONFIG_EUCJP
+#define CONFIG_EUCJP 1
+#endif
+
+#ifndef CONFIG_GB18030
+#define CONFIG_GB18030 1
+#endif
+
 #if CONFIG_SHIFTJIS
 #include "libshiftjis.h"
+#endif
+
+#if CONFIG_WINDOWS1252
+#include "libwindows1252.h"
+#endif
+
+#if CONFIG_WINDOWS1251
+#include "libwindows1251.h"
+#endif
+
+#if CONFIG_BIG5
+#include "libbig5.h"
+#endif
+
+#if CONFIG_EUCKR
+#include "libeuckr.h"
+#endif
+
+#if CONFIG_EUCJP
+#include "libeucjp.h"
+#endif
+
+#if CONFIG_GB18030
+#include "libgb18030.h"
 #endif
 
 /* ---- existing toUtf8/fromUtf8 functions ---- */
@@ -62,6 +110,24 @@ typedef enum {
     ENCODING_UTF16BE = 2,
 #if CONFIG_SHIFTJIS
     ENCODING_SHIFT_JIS = 3,
+#endif
+#if CONFIG_WINDOWS1252
+    ENCODING_WINDOWS_1252 = 4,
+#endif
+#if CONFIG_WINDOWS1251
+    ENCODING_WINDOWS_1251 = 5,
+#endif
+#if CONFIG_BIG5
+    ENCODING_BIG5 = 6,
+#endif
+#if CONFIG_EUCKR
+    ENCODING_EUC_KR = 7,
+#endif
+#if CONFIG_EUCJP
+    ENCODING_EUC_JP = 8,
+#endif
+#if CONFIG_GB18030
+    ENCODING_GB18030 = 9,
 #endif
 } TextEncoding;
 
@@ -180,6 +246,67 @@ static int resolve_encoding_label(const char *label)
         return ENCODING_SHIFT_JIS;
 #endif
 
+#if CONFIG_WINDOWS1252
+    /* WHATWG maps iso-8859-1 to windows-1252 */
+    if ((len == 12 && !strncasecmp(label, "windows-1252", 12)) ||
+        (len == 6 && !strncasecmp(label, "cp1252", 6)) ||
+        (len == 10 && !strncasecmp(label, "iso-8859-1", 10)) ||
+        (len == 9 && !strncasecmp(label, "iso8859-1", 9)) ||
+        (len == 10 && !strncasecmp(label, "iso_8859-1", 10)) ||
+        (len == 6 && !strncasecmp(label, "latin1", 6)) ||
+        (len == 10 && !strncasecmp(label, "iso-8859-15", 11)) ||
+        (len == 8 && !strncasecmp(label, "us-ascii", 8)) ||
+        (len == 5 && !strncasecmp(label, "ascii", 5)) ||
+        (len == 6 && !strncasecmp(label, "x-cp1252", 8)))
+        return ENCODING_WINDOWS_1252;
+#endif
+
+#if CONFIG_WINDOWS1251
+    if ((len == 12 && !strncasecmp(label, "windows-1251", 12)) ||
+        (len == 6 && !strncasecmp(label, "cp1251", 6)) ||
+        (len == 8 && !strncasecmp(label, "x-cp1251", 8)))
+        return ENCODING_WINDOWS_1251;
+#endif
+
+#if CONFIG_BIG5
+    if ((len == 4 && !strncasecmp(label, "big5", 4)) ||
+        (len == 10 && !strncasecmp(label, "big5-hkscs", 10)) ||
+        (len == 7 && !strncasecmp(label, "cn-big5", 7)) ||
+        (len == 7 && !strncasecmp(label, "csbig5", 6)) ||
+        (len == 8 && !strncasecmp(label, "x-x-big5", 8)))
+        return ENCODING_BIG5;
+#endif
+
+#if CONFIG_EUCKR
+    if ((len == 6 && !strncasecmp(label, "euc-kr", 6)) ||
+        (len == 8 && !strncasecmp(label, "cseuckr", 7)) ||
+        (len == 6 && !strncasecmp(label, "korean", 6)) ||
+        (len == 16 && !strncasecmp(label, "ks_c_5601-1987", 14)) ||
+        (len == 7 && !strncasecmp(label, "iso-ir-149", 10)) ||
+        (len == 5 && !strncasecmp(label, "csksc", 5)))
+        return ENCODING_EUC_KR;
+#endif
+
+#if CONFIG_EUCJP
+    if ((len == 6 && !strncasecmp(label, "euc-jp", 6)) ||
+        (len == 22 && !strncasecmp(label, "cseucpkdfmtjapanese", 19)) ||
+        (len == 8 && !strncasecmp(label, "x-euc-jp", 8)))
+        return ENCODING_EUC_JP;
+#endif
+
+#if CONFIG_GB18030
+    /* WHATWG maps gb2312 and gbk to gb18030 */
+    if ((len == 7 && !strncasecmp(label, "gb18030", 7)) ||
+        (len == 6 && !strncasecmp(label, "gb2312", 6)) ||
+        (len == 3 && !strncasecmp(label, "gbk", 3)) ||
+        (len == 7 && !strncasecmp(label, "chinese", 7)) ||
+        (len == 6 && !strncasecmp(label, "csgb2312", 8)) ||
+        (len == 7 && !strncasecmp(label, "x-gbk", 5)) ||
+        (len == 10 && !strncasecmp(label, "gb_2312-80", 10)) ||
+        (len == 10 && !strncasecmp(label, "iso-ir-58", 9)))
+        return ENCODING_GB18030;
+#endif
+
     return -1;
 }
 
@@ -191,6 +318,24 @@ static const char *encoding_name(TextEncoding enc)
     case ENCODING_UTF16BE: return "utf-16be";
 #if CONFIG_SHIFTJIS
     case ENCODING_SHIFT_JIS: return "shift_jis";
+#endif
+#if CONFIG_WINDOWS1252
+    case ENCODING_WINDOWS_1252: return "windows-1252";
+#endif
+#if CONFIG_WINDOWS1251
+    case ENCODING_WINDOWS_1251: return "windows-1251";
+#endif
+#if CONFIG_BIG5
+    case ENCODING_BIG5: return "big5";
+#endif
+#if CONFIG_EUCKR
+    case ENCODING_EUC_KR: return "euc-kr";
+#endif
+#if CONFIG_EUCJP
+    case ENCODING_EUC_JP: return "euc-jp";
+#endif
+#if CONFIG_GB18030
+    case ENCODING_GB18030: return "gb18030";
 #endif
     default:               return "utf-8";
     }
@@ -501,6 +646,138 @@ static size_t encode_codepoints_shiftjis(const uint32_t *cps, size_t count,
 }
 #endif
 
+#if CONFIG_WINDOWS1252
+/* Encode codepoints to Windows-1252, returning number of bytes written.
+   For codepoints that cannot be encoded, output '?' as fallback. */
+static size_t encode_codepoints_windows1252(const uint32_t *cps, size_t count,
+                                            uint8_t *out)
+{
+    size_t written = 0;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t cp = cps[i];
+        uint8_t byte;
+        int len = windows1252_encode(cp, &byte);
+        if (len == 0) {
+            out[written++] = '?';
+        } else {
+            out[written++] = byte;
+        }
+    }
+    return written;
+}
+#endif
+
+#if CONFIG_WINDOWS1251
+/* Encode codepoints to Windows-1251, returning number of bytes written. */
+static size_t encode_codepoints_windows1251(const uint32_t *cps, size_t count,
+                                            uint8_t *out)
+{
+    size_t written = 0;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t cp = cps[i];
+        uint8_t byte;
+        int len = windows1251_encode(cp, &byte);
+        if (len == 0) {
+            out[written++] = '?';
+        } else {
+            out[written++] = byte;
+        }
+    }
+    return written;
+}
+#endif
+
+#if CONFIG_BIG5
+/* Encode codepoints to Big5, returning number of bytes written. */
+static size_t encode_codepoints_big5(const uint32_t *cps, size_t count,
+                                     uint8_t *out)
+{
+    size_t written = 0;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t cp = cps[i];
+        uint8_t lead, trail;
+        int len = big5_encode(cp, &lead, &trail);
+        if (len == 0) {
+            out[written++] = '?';
+        } else if (len == 1) {
+            out[written++] = lead;
+        } else {
+            out[written++] = lead;
+            out[written++] = trail;
+        }
+    }
+    return written;
+}
+#endif
+
+#if CONFIG_EUCKR
+/* Encode codepoints to EUC-KR, returning number of bytes written. */
+static size_t encode_codepoints_euckr(const uint32_t *cps, size_t count,
+                                      uint8_t *out)
+{
+    size_t written = 0;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t cp = cps[i];
+        uint8_t lead, trail;
+        int len = euckr_encode(cp, &lead, &trail);
+        if (len == 0) {
+            out[written++] = '?';
+        } else if (len == 1) {
+            out[written++] = lead;
+        } else {
+            out[written++] = lead;
+            out[written++] = trail;
+        }
+    }
+    return written;
+}
+#endif
+
+#if CONFIG_EUCJP
+/* Encode codepoints to EUC-JP, returning number of bytes written. */
+static size_t encode_codepoints_eucjp(const uint32_t *cps, size_t count,
+                                      uint8_t *out)
+{
+    size_t written = 0;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t cp = cps[i];
+        uint8_t buf[2];
+        int len = eucjp_encode(cp, buf);
+        if (len == 0) {
+            out[written++] = '?';
+        } else if (len == 1) {
+            out[written++] = buf[0];
+        } else {
+            out[written++] = buf[0];
+            out[written++] = buf[1];
+        }
+    }
+    return written;
+}
+#endif
+
+#if CONFIG_GB18030
+/* Encode codepoints to GB18030, returning number of bytes written. */
+static size_t encode_codepoints_gb18030(const uint32_t *cps, size_t count,
+                                        uint8_t *out)
+{
+    size_t written = 0;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t cp = cps[i];
+        uint8_t buf[4];
+        int len = gb18030_encode(cp, buf);
+        if (len == 0) {
+            out[written++] = '?';
+        } else {
+            for (int j = 0; j < len; j++) {
+                out[written++] = buf[j];
+            }
+        }
+    }
+    return written;
+}
+#endif
+
 /* Parse UTF-16 code units from a JS string to codepoints.
    Returns allocated array of codepoints (caller must free), count in *out_count.
    Returns NULL on allocation failure. */
@@ -614,6 +891,36 @@ static JSValue js_text_encoder_encode(JSContext *ctx, JSValueConst this_val,
 #if CONFIG_SHIFTJIS
     case ENCODING_SHIFT_JIS:
         written = encode_codepoints_shiftjis(cps, cp_count, out);
+        break;
+#endif
+#if CONFIG_WINDOWS1252
+    case ENCODING_WINDOWS_1252:
+        written = encode_codepoints_windows1252(cps, cp_count, out);
+        break;
+#endif
+#if CONFIG_WINDOWS1251
+    case ENCODING_WINDOWS_1251:
+        written = encode_codepoints_windows1251(cps, cp_count, out);
+        break;
+#endif
+#if CONFIG_BIG5
+    case ENCODING_BIG5:
+        written = encode_codepoints_big5(cps, cp_count, out);
+        break;
+#endif
+#if CONFIG_EUCKR
+    case ENCODING_EUC_KR:
+        written = encode_codepoints_euckr(cps, cp_count, out);
+        break;
+#endif
+#if CONFIG_EUCJP
+    case ENCODING_EUC_JP:
+        written = encode_codepoints_eucjp(cps, cp_count, out);
+        break;
+#endif
+#if CONFIG_GB18030
+    case ENCODING_GB18030:
+        written = encode_codepoints_gb18030(cps, cp_count, out);
         break;
 #endif
     default:
@@ -1319,6 +1626,709 @@ static JSValue decode_shiftjis_bytes(JSContext *ctx, TextDecoderData *data,
 }
 #endif /* CONFIG_SHIFTJIS */
 
+#if CONFIG_WINDOWS1252
+/* ---- Windows-1252 decode ---- */
+
+static JSValue decode_windows1252_bytes(JSContext *ctx, TextDecoderData *data,
+                                        const uint8_t *buf, size_t len,
+                                        JS_BOOL stream)
+{
+    /* Output buffer: worst case each byte becomes 3 UTF-8 bytes */
+    size_t out_cap = len * 3 + 1;
+    uint8_t *out = js_malloc(ctx, out_cap);
+    if (!out)
+        return JS_EXCEPTION;
+
+    size_t out_pos = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        uint8_t b = buf[i];
+        uint32_t cp;
+
+        if (b < 0x80) {
+            /* ASCII */
+            out[out_pos++] = b;
+        } else {
+            cp = windows1252_decode(b);
+            if (cp == 0) {
+                /* Unmapped byte */
+                if (data->fatal) {
+                    js_free(ctx, out);
+                    return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                }
+                memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                out_pos += 3;
+            } else {
+                out_pos += encode_utf8_codepoint(out + out_pos, cp);
+            }
+        }
+    }
+
+    /* If not streaming, reset state */
+    if (!stream) {
+        data->pending_len = 0;
+        data->bom_seen = FALSE;
+    }
+
+    JSValue result = JS_NewStringLen(ctx, (char *)out, out_pos);
+    js_free(ctx, out);
+    return result;
+}
+#endif /* CONFIG_WINDOWS1252 */
+
+#if CONFIG_WINDOWS1251
+/* ---- Windows-1251 decode ---- */
+
+static JSValue decode_windows1251_bytes(JSContext *ctx, TextDecoderData *data,
+                                        const uint8_t *buf, size_t len,
+                                        JS_BOOL stream)
+{
+    /* Output buffer: worst case each byte becomes 3 UTF-8 bytes */
+    size_t out_cap = len * 3 + 1;
+    uint8_t *out = js_malloc(ctx, out_cap);
+    if (!out)
+        return JS_EXCEPTION;
+
+    size_t out_pos = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        uint8_t b = buf[i];
+        uint32_t cp;
+
+        if (b < 0x80) {
+            /* ASCII */
+            out[out_pos++] = b;
+        } else {
+            cp = windows1251_decode(b);
+            if (cp == 0) {
+                /* Unmapped byte */
+                if (data->fatal) {
+                    js_free(ctx, out);
+                    return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                }
+                memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                out_pos += 3;
+            } else {
+                out_pos += encode_utf8_codepoint(out + out_pos, cp);
+            }
+        }
+    }
+
+    /* If not streaming, reset state */
+    if (!stream) {
+        data->pending_len = 0;
+        data->bom_seen = FALSE;
+    }
+
+    JSValue result = JS_NewStringLen(ctx, (char *)out, out_pos);
+    js_free(ctx, out);
+    return result;
+}
+#endif /* CONFIG_WINDOWS1251 */
+
+#if CONFIG_BIG5
+/* ---- Big5 decode ---- */
+
+static JSValue decode_big5_bytes(JSContext *ctx, TextDecoderData *data,
+                                 const uint8_t *buf, size_t len,
+                                 JS_BOOL stream)
+{
+    /* Build working buffer: pending + new input */
+    size_t work_len = data->pending_len + len;
+    uint8_t *work;
+    int work_allocated = 0;
+
+    if (data->pending_len > 0) {
+        work = js_malloc(ctx, work_len);
+        if (!work)
+            return JS_EXCEPTION;
+        memcpy(work, data->pending, data->pending_len);
+        memcpy(work + data->pending_len, buf, len);
+        work_allocated = 1;
+    } else {
+        work = (uint8_t *)buf;
+    }
+    data->pending_len = 0;
+
+    /* Output buffer */
+    size_t out_cap = work_len * 4 + 1;
+    uint8_t *out = js_malloc(ctx, out_cap);
+    if (!out) {
+        if (work_allocated) js_free(ctx, work);
+        return JS_EXCEPTION;
+    }
+    size_t pos = 0, out_pos = 0;
+
+    while (pos < work_len) {
+        uint8_t b = work[pos];
+
+        /* ASCII */
+        if (b <= 0x7F) {
+            out[out_pos++] = b;
+            pos++;
+            continue;
+        }
+
+        /* Lead byte for double-byte (0x81-0xFE) */
+        if (b >= 0x81 && b <= 0xFE) {
+            if (pos + 1 >= work_len) {
+                /* Need trail byte */
+                if (stream) {
+                    data->pending[0] = b;
+                    data->pending_len = 1;
+                    break;
+                } else {
+                    if (data->fatal) {
+                        js_free(ctx, out);
+                        if (work_allocated) js_free(ctx, work);
+                        return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                    }
+                    memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                    out_pos += 3;
+                    pos++;
+                    break;
+                }
+            }
+
+            uint8_t trail = work[pos + 1];
+
+            /* Validate trail byte (0x40-0x7E or 0xA1-0xFE) */
+            if ((trail >= 0x40 && trail <= 0x7E) || (trail >= 0xA1 && trail <= 0xFE)) {
+                uint32_t cp = big5_decode(b, trail);
+                if (cp != 0) {
+                    out_pos += encode_utf8_codepoint(out + out_pos, cp);
+                    pos += 2;
+                    continue;
+                }
+            }
+
+            /* Failed lookup or invalid trail */
+            if (data->fatal) {
+                js_free(ctx, out);
+                if (work_allocated) js_free(ctx, work);
+                return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+            }
+            memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+            out_pos += 3;
+
+            /* If trail is ASCII, don't consume it */
+            if (trail <= 0x7F)
+                pos += 1;
+            else
+                pos += 2;
+            continue;
+        }
+
+        /* Invalid byte (0x80, 0xFF) */
+        if (data->fatal) {
+            js_free(ctx, out);
+            if (work_allocated) js_free(ctx, work);
+            return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+        }
+        memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+        out_pos += 3;
+        pos++;
+    }
+
+    if (work_allocated)
+        js_free(ctx, work);
+
+    if (!stream) {
+        data->pending_len = 0;
+        data->bom_seen = FALSE;
+    }
+
+    JSValue result = JS_NewStringLen(ctx, (char *)out, out_pos);
+    js_free(ctx, out);
+    return result;
+}
+#endif /* CONFIG_BIG5 */
+
+#if CONFIG_EUCKR
+/* ---- EUC-KR decode ---- */
+
+static JSValue decode_euckr_bytes(JSContext *ctx, TextDecoderData *data,
+                                  const uint8_t *buf, size_t len,
+                                  JS_BOOL stream)
+{
+    /* Build working buffer: pending + new input */
+    size_t work_len = data->pending_len + len;
+    uint8_t *work;
+    int work_allocated = 0;
+
+    if (data->pending_len > 0) {
+        work = js_malloc(ctx, work_len);
+        if (!work)
+            return JS_EXCEPTION;
+        memcpy(work, data->pending, data->pending_len);
+        memcpy(work + data->pending_len, buf, len);
+        work_allocated = 1;
+    } else {
+        work = (uint8_t *)buf;
+    }
+    data->pending_len = 0;
+
+    /* Output buffer */
+    size_t out_cap = work_len * 4 + 1;
+    uint8_t *out = js_malloc(ctx, out_cap);
+    if (!out) {
+        if (work_allocated) js_free(ctx, work);
+        return JS_EXCEPTION;
+    }
+    size_t pos = 0, out_pos = 0;
+
+    while (pos < work_len) {
+        uint8_t b = work[pos];
+
+        /* ASCII */
+        if (b <= 0x7F) {
+            out[out_pos++] = b;
+            pos++;
+            continue;
+        }
+
+        /* Lead byte for double-byte (0x81-0xFE) */
+        if (b >= 0x81 && b <= 0xFE) {
+            if (pos + 1 >= work_len) {
+                /* Need trail byte */
+                if (stream) {
+                    data->pending[0] = b;
+                    data->pending_len = 1;
+                    break;
+                } else {
+                    if (data->fatal) {
+                        js_free(ctx, out);
+                        if (work_allocated) js_free(ctx, work);
+                        return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                    }
+                    memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                    out_pos += 3;
+                    pos++;
+                    break;
+                }
+            }
+
+            uint8_t trail = work[pos + 1];
+
+            /* Validate trail byte (0x41-0xFE) */
+            if (trail >= 0x41 && trail <= 0xFE) {
+                uint32_t cp = euckr_decode(b, trail);
+                if (cp != 0) {
+                    out_pos += encode_utf8_codepoint(out + out_pos, cp);
+                    pos += 2;
+                    continue;
+                }
+            }
+
+            /* Failed lookup or invalid trail */
+            if (data->fatal) {
+                js_free(ctx, out);
+                if (work_allocated) js_free(ctx, work);
+                return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+            }
+            memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+            out_pos += 3;
+
+            /* If trail is ASCII, don't consume it */
+            if (trail <= 0x7F)
+                pos += 1;
+            else
+                pos += 2;
+            continue;
+        }
+
+        /* Invalid byte (0x80) */
+        if (data->fatal) {
+            js_free(ctx, out);
+            if (work_allocated) js_free(ctx, work);
+            return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+        }
+        memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+        out_pos += 3;
+        pos++;
+    }
+
+    if (work_allocated)
+        js_free(ctx, work);
+
+    if (!stream) {
+        data->pending_len = 0;
+        data->bom_seen = FALSE;
+    }
+
+    JSValue result = JS_NewStringLen(ctx, (char *)out, out_pos);
+    js_free(ctx, out);
+    return result;
+}
+#endif /* CONFIG_EUCKR */
+
+#if CONFIG_EUCJP
+/* ---- EUC-JP decode ---- */
+
+static JSValue decode_eucjp_bytes(JSContext *ctx, TextDecoderData *data,
+                                  const uint8_t *buf, size_t len,
+                                  JS_BOOL stream)
+{
+    /* Build working buffer: pending + new input */
+    size_t work_len = data->pending_len + len;
+    uint8_t *work;
+    int work_allocated = 0;
+
+    if (data->pending_len > 0) {
+        work = js_malloc(ctx, work_len);
+        if (!work)
+            return JS_EXCEPTION;
+        memcpy(work, data->pending, data->pending_len);
+        memcpy(work + data->pending_len, buf, len);
+        work_allocated = 1;
+    } else {
+        work = (uint8_t *)buf;
+    }
+    data->pending_len = 0;
+
+    /* Output buffer */
+    size_t out_cap = work_len * 4 + 1;
+    uint8_t *out = js_malloc(ctx, out_cap);
+    if (!out) {
+        if (work_allocated) js_free(ctx, work);
+        return JS_EXCEPTION;
+    }
+    size_t pos = 0, out_pos = 0;
+
+    while (pos < work_len) {
+        uint8_t b = work[pos];
+
+        /* ASCII */
+        if (b <= 0x7F) {
+            out[out_pos++] = b;
+            pos++;
+            continue;
+        }
+
+        /* 0x8E: JIS X 0201 half-width katakana (2 bytes) */
+        if (b == 0x8E) {
+            if (pos + 1 >= work_len) {
+                if (stream) {
+                    data->pending[0] = b;
+                    data->pending_len = 1;
+                    break;
+                } else {
+                    if (data->fatal) {
+                        js_free(ctx, out);
+                        if (work_allocated) js_free(ctx, work);
+                        return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                    }
+                    memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                    out_pos += 3;
+                    pos++;
+                    break;
+                }
+            }
+
+            uint8_t trail = work[pos + 1];
+            if (trail >= 0xA1 && trail <= 0xDF) {
+                /* Half-width katakana: U+FF61 + (trail - 0xA1) */
+                uint32_t cp = 0xFF61 + trail - 0xA1;
+                out_pos += encode_utf8_codepoint(out + out_pos, cp);
+                pos += 2;
+                continue;
+            }
+
+            /* Invalid trail */
+            if (data->fatal) {
+                js_free(ctx, out);
+                if (work_allocated) js_free(ctx, work);
+                return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+            }
+            memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+            out_pos += 3;
+            if (trail <= 0x7F)
+                pos += 1;
+            else
+                pos += 2;
+            continue;
+        }
+
+        /* 0x8F: JIS X 0212 (3 bytes) */
+        if (b == 0x8F) {
+            if (pos + 2 >= work_len) {
+                if (stream) {
+                    size_t remaining = work_len - pos;
+                    memcpy(data->pending, work + pos, remaining);
+                    data->pending_len = remaining;
+                    break;
+                } else {
+                    if (data->fatal) {
+                        js_free(ctx, out);
+                        if (work_allocated) js_free(ctx, work);
+                        return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                    }
+                    while (pos < work_len) {
+                        memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                        out_pos += 3;
+                        pos++;
+                    }
+                    break;
+                }
+            }
+
+            uint8_t lead = work[pos + 1];
+            uint8_t trail = work[pos + 2];
+
+            if (lead >= 0xA1 && lead <= 0xFE && trail >= 0xA1 && trail <= 0xFE) {
+                uint32_t cp = eucjp_decode_jis0212(lead, trail);
+                if (cp != 0) {
+                    out_pos += encode_utf8_codepoint(out + out_pos, cp);
+                    pos += 3;
+                    continue;
+                }
+            }
+
+            /* Failed lookup or invalid bytes */
+            if (data->fatal) {
+                js_free(ctx, out);
+                if (work_allocated) js_free(ctx, work);
+                return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+            }
+            memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+            out_pos += 3;
+            pos += 1;  /* Only consume the 0x8F */
+            continue;
+        }
+
+        /* 0xA1-0xFE: JIS X 0208 (2 bytes) */
+        if (b >= 0xA1 && b <= 0xFE) {
+            if (pos + 1 >= work_len) {
+                if (stream) {
+                    data->pending[0] = b;
+                    data->pending_len = 1;
+                    break;
+                } else {
+                    if (data->fatal) {
+                        js_free(ctx, out);
+                        if (work_allocated) js_free(ctx, work);
+                        return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                    }
+                    memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                    out_pos += 3;
+                    pos++;
+                    break;
+                }
+            }
+
+            uint8_t trail = work[pos + 1];
+
+            if (trail >= 0xA1 && trail <= 0xFE) {
+                uint32_t cp = eucjp_decode_jis0208(b, trail);
+                if (cp != 0) {
+                    out_pos += encode_utf8_codepoint(out + out_pos, cp);
+                    pos += 2;
+                    continue;
+                }
+            }
+
+            /* Failed lookup or invalid trail */
+            if (data->fatal) {
+                js_free(ctx, out);
+                if (work_allocated) js_free(ctx, work);
+                return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+            }
+            memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+            out_pos += 3;
+            if (trail <= 0x7F)
+                pos += 1;
+            else
+                pos += 2;
+            continue;
+        }
+
+        /* Invalid byte (0x80, 0x90-0xA0, etc.) */
+        if (data->fatal) {
+            js_free(ctx, out);
+            if (work_allocated) js_free(ctx, work);
+            return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+        }
+        memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+        out_pos += 3;
+        pos++;
+    }
+
+    if (work_allocated)
+        js_free(ctx, work);
+
+    if (!stream) {
+        data->pending_len = 0;
+        data->bom_seen = FALSE;
+    }
+
+    JSValue result = JS_NewStringLen(ctx, (char *)out, out_pos);
+    js_free(ctx, out);
+    return result;
+}
+#endif /* CONFIG_EUCJP */
+
+#if CONFIG_GB18030
+/* ---- GB18030 decode ---- */
+
+static JSValue decode_gb18030_bytes(JSContext *ctx, TextDecoderData *data,
+                                    const uint8_t *buf, size_t len,
+                                    JS_BOOL stream)
+{
+    /* Build working buffer: pending + new input */
+    size_t work_len = data->pending_len + len;
+    uint8_t *work;
+    int work_allocated = 0;
+
+    if (data->pending_len > 0) {
+        work = js_malloc(ctx, work_len);
+        if (!work)
+            return JS_EXCEPTION;
+        memcpy(work, data->pending, data->pending_len);
+        memcpy(work + data->pending_len, buf, len);
+        work_allocated = 1;
+    } else {
+        work = (uint8_t *)buf;
+    }
+    data->pending_len = 0;
+
+    /* Output buffer */
+    size_t out_cap = work_len * 4 + 1;
+    uint8_t *out = js_malloc(ctx, out_cap);
+    if (!out) {
+        if (work_allocated) js_free(ctx, work);
+        return JS_EXCEPTION;
+    }
+    size_t pos = 0, out_pos = 0;
+
+    while (pos < work_len) {
+        uint8_t b = work[pos];
+
+        /* ASCII */
+        if (b <= 0x7F) {
+            out[out_pos++] = b;
+            pos++;
+            continue;
+        }
+
+        /* Lead byte (0x81-0xFE) */
+        if (b >= 0x81 && b <= 0xFE) {
+            if (pos + 1 >= work_len) {
+                if (stream) {
+                    data->pending[0] = b;
+                    data->pending_len = 1;
+                    break;
+                } else {
+                    if (data->fatal) {
+                        js_free(ctx, out);
+                        if (work_allocated) js_free(ctx, work);
+                        return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                    }
+                    memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                    out_pos += 3;
+                    pos++;
+                    break;
+                }
+            }
+
+            uint8_t b2 = work[pos + 1];
+
+            /* Check for 4-byte sequence (second byte 0x30-0x39) */
+            if (b2 >= 0x30 && b2 <= 0x39) {
+                if (pos + 3 >= work_len) {
+                    if (stream) {
+                        size_t remaining = work_len - pos;
+                        memcpy(data->pending, work + pos, remaining);
+                        data->pending_len = remaining;
+                        break;
+                    } else {
+                        if (data->fatal) {
+                            js_free(ctx, out);
+                            if (work_allocated) js_free(ctx, work);
+                            return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                        }
+                        while (pos < work_len) {
+                            memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                            out_pos += 3;
+                            pos++;
+                        }
+                        break;
+                    }
+                }
+
+                uint8_t b3 = work[pos + 2];
+                uint8_t b4 = work[pos + 3];
+
+                if (b3 >= 0x81 && b3 <= 0xFE && b4 >= 0x30 && b4 <= 0x39) {
+                    uint32_t cp = gb18030_decode_fourbyte(b, b2, b3, b4);
+                    if (cp != 0) {
+                        out_pos += encode_utf8_codepoint(out + out_pos, cp);
+                        pos += 4;
+                        continue;
+                    }
+                }
+
+                /* Invalid 4-byte sequence */
+                if (data->fatal) {
+                    js_free(ctx, out);
+                    if (work_allocated) js_free(ctx, work);
+                    return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+                }
+                memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+                out_pos += 3;
+                pos += 1;
+                continue;
+            }
+
+            /* 2-byte sequence (second byte 0x40-0x7E or 0x80-0xFE) */
+            if ((b2 >= 0x40 && b2 <= 0x7E) || (b2 >= 0x80 && b2 <= 0xFE)) {
+                uint32_t cp = gb18030_decode_twobyte(b, b2);
+                if (cp != 0) {
+                    out_pos += encode_utf8_codepoint(out + out_pos, cp);
+                    pos += 2;
+                    continue;
+                }
+            }
+
+            /* Failed lookup or invalid trail */
+            if (data->fatal) {
+                js_free(ctx, out);
+                if (work_allocated) js_free(ctx, work);
+                return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+            }
+            memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+            out_pos += 3;
+            if (b2 <= 0x7F)
+                pos += 1;
+            else
+                pos += 2;
+            continue;
+        }
+
+        /* Invalid byte (0x80, 0xFF) */
+        if (data->fatal) {
+            js_free(ctx, out);
+            if (work_allocated) js_free(ctx, work);
+            return JS_ThrowTypeError(ctx, "The encoded data was not valid.");
+        }
+        memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
+        out_pos += 3;
+        pos++;
+    }
+
+    if (work_allocated)
+        js_free(ctx, work);
+
+    if (!stream) {
+        data->pending_len = 0;
+        data->bom_seen = FALSE;
+    }
+
+    JSValue result = JS_NewStringLen(ctx, (char *)out, out_pos);
+    js_free(ctx, out);
+    return result;
+}
+#endif /* CONFIG_GB18030 */
+
 /* ---- TextDecoder.decode() ---- */
 
 static JSValue js_text_decoder_decode(JSContext *ctx, JSValueConst this_val,
@@ -1371,6 +2381,42 @@ static JSValue js_text_decoder_decode(JSContext *ctx, JSValueConst this_val,
     case ENCODING_SHIFT_JIS:
         result = decode_shiftjis_bytes(ctx, data, input_buf ? input_buf : (uint8_t *)"",
                                         input_len, stream_flag);
+        break;
+#endif
+#if CONFIG_WINDOWS1252
+    case ENCODING_WINDOWS_1252:
+        result = decode_windows1252_bytes(ctx, data, input_buf ? input_buf : (uint8_t *)"",
+                                          input_len, stream_flag);
+        break;
+#endif
+#if CONFIG_WINDOWS1251
+    case ENCODING_WINDOWS_1251:
+        result = decode_windows1251_bytes(ctx, data, input_buf ? input_buf : (uint8_t *)"",
+                                          input_len, stream_flag);
+        break;
+#endif
+#if CONFIG_BIG5
+    case ENCODING_BIG5:
+        result = decode_big5_bytes(ctx, data, input_buf ? input_buf : (uint8_t *)"",
+                                   input_len, stream_flag);
+        break;
+#endif
+#if CONFIG_EUCKR
+    case ENCODING_EUC_KR:
+        result = decode_euckr_bytes(ctx, data, input_buf ? input_buf : (uint8_t *)"",
+                                    input_len, stream_flag);
+        break;
+#endif
+#if CONFIG_EUCJP
+    case ENCODING_EUC_JP:
+        result = decode_eucjp_bytes(ctx, data, input_buf ? input_buf : (uint8_t *)"",
+                                    input_len, stream_flag);
+        break;
+#endif
+#if CONFIG_GB18030
+    case ENCODING_GB18030:
+        result = decode_gb18030_bytes(ctx, data, input_buf ? input_buf : (uint8_t *)"",
+                                      input_len, stream_flag);
         break;
 #endif
     default:

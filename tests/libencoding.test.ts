@@ -937,3 +937,543 @@ test("TextEncoder - invalid label throws RangeError", async () => {
     }
   `);
 });
+
+// =========== Windows-1252 Tests ===========
+
+test("TextDecoder - Windows-1252 basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("windows-1252");
+      console.log("encoding:", dec.encoding);
+
+      // ASCII pass-through
+      console.log(dec.decode(new Uint8Array([0x48, 0x69])));
+
+      // 0x80 = Euro sign (U+20AC), 0x93 = left double quote (U+201C)
+      const result = dec.decode(new Uint8Array([0x80, 0x93]));
+      console.log("cp0:", result.codePointAt(0).toString(16));
+      console.log("cp1:", result.codePointAt(1).toString(16));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: windows-1252
+    Hi
+    cp0: 20ac
+    cp1: 201c
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - Windows-1252 aliases", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      console.log(new TextDecoder("windows-1252").encoding);
+      console.log(new TextDecoder("cp1252").encoding);
+      console.log(new TextDecoder("iso-8859-1").encoding);
+      console.log(new TextDecoder("latin1").encoding);
+      console.log(new TextDecoder("ascii").encoding);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "windows-1252
+    windows-1252
+    windows-1252
+    windows-1252
+    windows-1252
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - Windows-1252 basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("windows-1252");
+      console.log("encoding:", enc.encoding);
+
+      // ASCII pass-through
+      console.log("ascii:", Array.from(enc.encode("Hi")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // Euro sign (U+20AC) → 0x80
+      console.log("euro:", Array.from(enc.encode("\\u20AC")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // left double quote (U+201C) → 0x93
+      console.log("quote:", Array.from(enc.encode("\\u201C")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // Unencodable character → '?'
+      console.log("unencodable:", Array.from(enc.encode("\\u65E5")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: windows-1252
+    ascii: 48 69
+    euro: 80
+    quote: 93
+    unencodable: 3f
+    ",
+    }
+  `);
+});
+
+// =========== Windows-1251 Tests ===========
+
+test("TextDecoder - Windows-1251 basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("windows-1251");
+      console.log("encoding:", dec.encoding);
+
+      // ASCII pass-through
+      console.log(dec.decode(new Uint8Array([0x48, 0x69])));
+
+      // Cyrillic: А = 0xC0 (U+0410), Б = 0xC1 (U+0411), я = 0xFF (U+044F)
+      const result = dec.decode(new Uint8Array([0xC0, 0xC1, 0xFF]));
+      console.log("cyrillic:", result);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: windows-1251
+    Hi
+    cyrillic: АБя
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - Windows-1251 basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("windows-1251");
+      console.log("encoding:", enc.encoding);
+
+      // Cyrillic: А (U+0410) → 0xC0, Б (U+0411) → 0xC1, я (U+044F) → 0xFF
+      console.log("cyrillic:", Array.from(enc.encode("АБя")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: windows-1251
+    cyrillic: c0 c1 ff
+    ",
+    }
+  `);
+});
+
+// =========== Big5 Tests ===========
+
+test("TextDecoder - Big5 basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("big5");
+      console.log("encoding:", dec.encoding);
+
+      // ASCII pass-through
+      console.log(dec.decode(new Uint8Array([0x48, 0x69])));
+
+      // Traditional Chinese: 中 = 0xA4A4, 文 = 0xA4E5
+      const result = dec.decode(new Uint8Array([0xA4, 0xA4, 0xA4, 0xE5]));
+      console.log("chinese:", result);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: big5
+    Hi
+    chinese: 中文
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - Big5 streaming", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("big5");
+
+      // 中 = 0xA4 0xA4 — split across two chunks
+      const part1 = dec.decode(new Uint8Array([0xA4]), { stream: true });
+      const part2 = dec.decode(new Uint8Array([0xA4]));
+      console.log("result:", part1 + part2);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "result: 中
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - Big5 basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("big5");
+      console.log("encoding:", enc.encoding);
+
+      // Traditional Chinese: 中 → 0xA4A4, 文 → 0xA4E5
+      console.log("chinese:", Array.from(enc.encode("中文")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: big5
+    chinese: a4 a4 a4 e5
+    ",
+    }
+  `);
+});
+
+// =========== EUC-KR Tests ===========
+
+test("TextDecoder - EUC-KR basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("euc-kr");
+      console.log("encoding:", dec.encoding);
+
+      // ASCII pass-through
+      console.log(dec.decode(new Uint8Array([0x48, 0x69])));
+
+      // Korean: 한 = 0xC7D1, 글 = 0xB1DB
+      const result = dec.decode(new Uint8Array([0xC7, 0xD1, 0xB1, 0xDB]));
+      console.log("korean:", result);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: euc-kr
+    Hi
+    korean: 한글
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - EUC-KR basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("euc-kr");
+      console.log("encoding:", enc.encoding);
+
+      // Korean: 한 → 0xC7D1, 글 → 0xB1DB
+      console.log("korean:", Array.from(enc.encode("한글")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: euc-kr
+    korean: c7 d1 b1 db
+    ",
+    }
+  `);
+});
+
+// =========== EUC-JP Tests ===========
+
+test("TextDecoder - EUC-JP basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("euc-jp");
+      console.log("encoding:", dec.encoding);
+
+      // ASCII pass-through
+      console.log(dec.decode(new Uint8Array([0x48, 0x69])));
+
+      // Japanese: 日 = 0xC6FC, 本 = 0xCBDC
+      const result = dec.decode(new Uint8Array([0xC6, 0xFC, 0xCB, 0xDC]));
+      console.log("japanese:", result);
+
+      // Half-width katakana: 0x8E + 0xB1 = ｱ (U+FF71)
+      const katakana = dec.decode(new Uint8Array([0x8E, 0xB1]));
+      console.log("katakana:", katakana);
+      console.log("katakana cp:", katakana.codePointAt(0).toString(16));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: euc-jp
+    Hi
+    japanese: 日本
+    katakana: ｱ
+    katakana cp: ff71
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - EUC-JP basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("euc-jp");
+      console.log("encoding:", enc.encoding);
+
+      // Japanese: 日 → 0xC6FC, 本 → 0xCBDC
+      console.log("japanese:", Array.from(enc.encode("日本")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // Half-width katakana: ｱ (U+FF71) → 0x8E 0xB1
+      console.log("katakana:", Array.from(enc.encode("ｱ")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: euc-jp
+    japanese: c6 fc cb dc
+    katakana: 8e b1
+    ",
+    }
+  `);
+});
+
+// =========== GB18030 Tests ===========
+
+test("TextDecoder - GB18030 basic 2-byte", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("gb18030");
+      console.log("encoding:", dec.encoding);
+
+      // ASCII pass-through
+      console.log(dec.decode(new Uint8Array([0x48, 0x69])));
+
+      // Simplified Chinese: 中 = 0xD6D0, 文 = 0xCEC4
+      const result = dec.decode(new Uint8Array([0xD6, 0xD0, 0xCE, 0xC4]));
+      console.log("chinese:", result);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: gb18030
+    Hi
+    chinese: 中文
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - GB18030 4-byte sequences", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("gb18030");
+      console.log("encoding:", dec.encoding);
+
+      // 4-byte sequence for U+10000 (first supplementary codepoint)
+      // GB18030 4-byte: pointer = 189000 → 0x90 0x30 0x81 0x30
+      const result = dec.decode(new Uint8Array([0x90, 0x30, 0x81, 0x30]));
+      console.log("4-byte cp:", result.codePointAt(0).toString(16));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: gb18030
+    4-byte cp: 10000
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - GB18030 aliases", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      console.log(new TextDecoder("gb18030").encoding);
+      console.log(new TextDecoder("gb2312").encoding);
+      console.log(new TextDecoder("gbk").encoding);
+      console.log(new TextDecoder("chinese").encoding);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "gb18030
+    gb18030
+    gb18030
+    gb18030
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - GB18030 basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("gb18030");
+      console.log("encoding:", enc.encoding);
+
+      // Simplified Chinese: 中 → 0xD6D0, 文 → 0xCEC4
+      console.log("chinese:", Array.from(enc.encode("中文")).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: gb18030
+    chinese: d6 d0 ce c4
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - GB18030 4-byte encoding", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("gb18030");
+      console.log("encoding:", enc.encoding);
+
+      // Emoji U+1F600 (😀) should encode to 4 bytes
+      const emoji = enc.encode("\\uD83D\\uDE00");
+      console.log("emoji len:", emoji.length);
+      console.log("emoji bytes:", Array.from(emoji).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // U+10000 encodes to 4 bytes
+      const supp = enc.encode("\\uD800\\uDC00");
+      console.log("supp len:", supp.length);
+      console.log("supp bytes:", Array.from(supp).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: gb18030
+    emoji len: 4
+    emoji bytes: 94 39 fc 36
+    supp len: 4
+    supp bytes: 90 30 81 30
+    ",
+    }
+  `);
+});
+
+test("TextDecoder - GB18030 streaming", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextDecoder } = require("quickjs:encoding");
+      const dec = new TextDecoder("gb18030");
+
+      // 中 = 0xD6 0xD0 — split across two chunks
+      const part1 = dec.decode(new Uint8Array([0xD6]), { stream: true });
+      const part2 = dec.decode(new Uint8Array([0xD0]));
+      console.log("2-byte streaming:", part1 + part2);
+
+      // 4-byte sequence split
+      const dec2 = new TextDecoder("gb18030");
+      const p1 = dec2.decode(new Uint8Array([0x90, 0x30]), { stream: true });
+      const p2 = dec2.decode(new Uint8Array([0x81, 0x30]));
+      console.log("4-byte streaming cp:", (p1 + p2).codePointAt(0).toString(16));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "2-byte streaming: 中
+    4-byte streaming cp: 10000
+    ",
+    }
+  `);
+});

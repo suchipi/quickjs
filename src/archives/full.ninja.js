@@ -24,6 +24,12 @@ const deps_target = [
   builddir("intermediate/quickjs-engine.target.o"),
   builddir("intermediate/quickjs-encoding.target.o"),
   builddir("intermediate/libshiftjis.target.o"),
+  builddir("intermediate/libwindows1252.target.o"),
+  builddir("intermediate/libwindows1251.target.o"),
+  builddir("intermediate/libbig5.target.o"),
+  builddir("intermediate/libeuckr.target.o"),
+  builddir("intermediate/libeucjp.target.o"),
+  builddir("intermediate/libgb18030.target.o"),
   builddir("intermediate/quickjs-modulesys/module-impl.target.o"),
 ];
 
@@ -45,6 +51,12 @@ const deps_host = [
   builddir("intermediate/quickjs-engine.host.o"),
   builddir("intermediate/quickjs-encoding.host.o"),
   builddir("intermediate/libshiftjis.host.o"),
+  builddir("intermediate/libwindows1252.host.o"),
+  builddir("intermediate/libwindows1251.host.o"),
+  builddir("intermediate/libbig5.host.o"),
+  builddir("intermediate/libeuckr.host.o"),
+  builddir("intermediate/libeucjp.host.o"),
+  builddir("intermediate/libgb18030.host.o"),
   builddir("intermediate/quickjs-modulesys/module-impl.host.o"),
 ];
 

@@ -6,7 +6,9 @@
       "Bash(meta/clean.sh)",
       "Bash(meta/build.sh)",
       "Bash(build/bin/qjs:*)",
-      "Bash(CI=true npm test:*)"
+      "Bash(CI=true npm test:*)",
+      "WebFetch(domain:encoding.spec.whatwg.org)",
+      "Bash(ls:*)"
     ]
   }
 }
