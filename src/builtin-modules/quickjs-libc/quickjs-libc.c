@@ -2858,6 +2858,29 @@ static int64_t timespec_to_ms(const struct timespec *tv)
 }
 #endif
 
+#if defined(_WIN32)
+/* Dynamic loading for GetFinalPathNameByHandleA (Vista+) */
+#ifndef FILE_NAME_NORMALIZED
+#define FILE_NAME_NORMALIZED 0x0
+#endif
+
+typedef DWORD (WINAPI *GetFinalPathNameByHandleA_t)(HANDLE, LPSTR, DWORD, DWORD);
+
+static GetFinalPathNameByHandleA_t get_GetFinalPathNameByHandleA(void)
+{
+    static GetFinalPathNameByHandleA_t fn = NULL;
+    static int initialized = 0;
+    if (!initialized) {
+        HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+        if (kernel32) {
+            fn = (GetFinalPathNameByHandleA_t)GetProcAddress(kernel32, "GetFinalPathNameByHandleA");
+        }
+        initialized = 1;
+    }
+    return fn;
+}
+#endif
+
 static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv, int is_lstat)
 {
@@ -2868,6 +2891,7 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
 #if defined(_WIN32)
     int is_symlink = 0;
     DWORD attrs;
+    GetFinalPathNameByHandleA_t pGetFinalPathNameByHandleA;
 #endif
 
     path = JS_ToCString(ctx, argv[0]);
@@ -2886,24 +2910,30 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
         } else {
             /* For stat on a symlink, follow it - but Windows stat() doesn't follow
                symlinks properly, so we need to resolve the target first */
-            char resolved[MAX_PATH];
-            HANDLE hFile = CreateFileA(path, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                       NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-            if (hFile != INVALID_HANDLE_VALUE) {
-                DWORD len = GetFinalPathNameByHandleA(hFile, resolved, MAX_PATH, FILE_NAME_NORMALIZED);
-                CloseHandle(hFile);
-                if (len > 0 && len < MAX_PATH) {
-                    /* GetFinalPathNameByHandle returns \\?\ prefix, skip it */
-                    const char *resolved_path = resolved;
-                    if (len > 4 && resolved[0] == '\\' && resolved[1] == '\\' &&
-                        resolved[2] == '?' && resolved[3] == '\\') {
-                        resolved_path = resolved + 4;
+            pGetFinalPathNameByHandleA = get_GetFinalPathNameByHandleA();
+            if (pGetFinalPathNameByHandleA) {
+                char resolved[MAX_PATH];
+                HANDLE hFile = CreateFileA(path, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                           NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+                if (hFile != INVALID_HANDLE_VALUE) {
+                    DWORD len = pGetFinalPathNameByHandleA(hFile, resolved, MAX_PATH, FILE_NAME_NORMALIZED);
+                    CloseHandle(hFile);
+                    if (len > 0 && len < MAX_PATH) {
+                        /* GetFinalPathNameByHandle returns \\?\ prefix, skip it */
+                        const char *resolved_path = resolved;
+                        if (len > 4 && resolved[0] == '\\' && resolved[1] == '\\' &&
+                            resolved[2] == '?' && resolved[3] == '\\') {
+                            resolved_path = resolved + 4;
+                        }
+                        res = stat(resolved_path, &st);
+                    } else {
+                        res = stat(path, &st);
                     }
-                    res = stat(resolved_path, &st);
                 } else {
                     res = stat(path, &st);
                 }
             } else {
+                /* Vista+ API not available, fall back to regular stat */
                 res = stat(path, &st);
             }
         }
@@ -3162,7 +3192,7 @@ static JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
 }
 
 #if defined(_WIN32)
-/* Windows symlink implementation using CreateSymbolicLinkA */
+/* Windows symlink implementation using CreateSymbolicLinkA (Vista+) */
 #ifndef SYMBOLIC_LINK_FLAG_DIRECTORY
 #define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
 #endif
@@ -3170,12 +3200,34 @@ static JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
 #define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x2
 #endif
 
+typedef BOOLEAN (WINAPI *CreateSymbolicLinkA_t)(LPCSTR, LPCSTR, DWORD);
+
+static CreateSymbolicLinkA_t get_CreateSymbolicLinkA(void)
+{
+    static CreateSymbolicLinkA_t fn = NULL;
+    static int initialized = 0;
+    if (!initialized) {
+        HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+        if (kernel32) {
+            fn = (CreateSymbolicLinkA_t)GetProcAddress(kernel32, "CreateSymbolicLinkA");
+        }
+        initialized = 1;
+    }
+    return fn;
+}
+
 static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
     const char *target, *linkpath;
     DWORD flags;
     DWORD target_attrs;
+    CreateSymbolicLinkA_t pCreateSymbolicLinkA;
+
+    pCreateSymbolicLinkA = get_CreateSymbolicLinkA();
+    if (!pCreateSymbolicLinkA) {
+        return JS_ThrowError(ctx, "symlink is not supported on this version of Windows (requires Vista or later)");
+    }
 
     target = JS_ToCString(ctx, argv[0]);
     if (!target)
@@ -3194,7 +3246,7 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
         flags |= SYMBOLIC_LINK_FLAG_DIRECTORY;
     }
 
-    if (!CreateSymbolicLinkA(linkpath, target, flags)) {
+    if (!pCreateSymbolicLinkA(linkpath, target, flags)) {
         DWORD err = GetLastError();
         JS_ThrowError(ctx, "CreateSymbolicLinkA failed (error code %lu, target = %s, linkpath = %s)",
                       (unsigned long)err, target, linkpath);
