@@ -2865,12 +2865,51 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
     int err, res;
     struct stat st;
     JSValue obj;
+#if defined(_WIN32)
+    int is_symlink = 0;
+    DWORD attrs;
+#endif
 
     path = JS_ToCString(ctx, argv[0]);
     if (!path)
         return JS_EXCEPTION;
 #if defined(_WIN32)
-    res = stat(path, &st);
+    /* Check if target is a reparse point (symlink or junction) */
+    attrs = GetFileAttributesA(path);
+    if (attrs != INVALID_FILE_ATTRIBUTES &&
+        (attrs & FILE_ATTRIBUTE_REPARSE_POINT)) {
+        is_symlink = 1;
+        if (is_lstat) {
+            /* For lstat, we need to get info about the symlink itself.
+               Use stat() but we'll fix up the mode afterward to indicate S_IFLNK */
+            res = stat(path, &st);
+        } else {
+            /* For stat on a symlink, follow it - but Windows stat() doesn't follow
+               symlinks properly, so we need to resolve the target first */
+            char resolved[MAX_PATH];
+            HANDLE hFile = CreateFileA(path, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                       NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+            if (hFile != INVALID_HANDLE_VALUE) {
+                DWORD len = GetFinalPathNameByHandleA(hFile, resolved, MAX_PATH, FILE_NAME_NORMALIZED);
+                CloseHandle(hFile);
+                if (len > 0 && len < MAX_PATH) {
+                    /* GetFinalPathNameByHandle returns \\?\ prefix, skip it */
+                    const char *resolved_path = resolved;
+                    if (len > 4 && resolved[0] == '\\' && resolved[1] == '\\' &&
+                        resolved[2] == '?' && resolved[3] == '\\') {
+                        resolved_path = resolved + 4;
+                    }
+                    res = stat(resolved_path, &st);
+                } else {
+                    res = stat(path, &st);
+                }
+            } else {
+                res = stat(path, &st);
+            }
+        }
+    } else {
+        res = stat(path, &st);
+    }
 #else
     if (is_lstat) {
         res = lstat(path, &st);
@@ -2928,6 +2967,13 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
     JS_DefinePropertyValueStr(ctx, obj, "ino",
                                 JS_NewInt64(ctx, st.st_ino),
                                 JS_PROP_C_W_E);
+#if defined(_WIN32)
+    /* For lstat on a symlink, fix up the mode to indicate S_IFLNK */
+    if (is_lstat && is_symlink) {
+        /* Replace file type bits with S_IFLNK (0120000) */
+        st.st_mode = (st.st_mode & ~S_IFMT) | 0120000;
+    }
+#endif
     JS_DefinePropertyValueStr(ctx, obj, "mode",
                                 JS_NewInt32(ctx, st.st_mode),
                                 JS_PROP_C_W_E);
@@ -3115,7 +3161,59 @@ static JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
     }
 }
 
-#if !defined(_WIN32)
+#if defined(_WIN32)
+/* Windows symlink implementation using CreateSymbolicLinkA */
+#ifndef SYMBOLIC_LINK_FLAG_DIRECTORY
+#define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
+#endif
+#ifndef SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
+#define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x2
+#endif
+
+static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv)
+{
+    const char *target, *linkpath;
+    DWORD flags;
+    DWORD target_attrs;
+
+    target = JS_ToCString(ctx, argv[0]);
+    if (!target)
+        return JS_EXCEPTION;
+    linkpath = JS_ToCString(ctx, argv[1]);
+    if (!linkpath) {
+        JS_FreeCString(ctx, target);
+        return JS_EXCEPTION;
+    }
+
+    /* Check if target is a directory to set the appropriate flag */
+    flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
+    target_attrs = GetFileAttributesA(target);
+    if (target_attrs != INVALID_FILE_ATTRIBUTES &&
+        (target_attrs & FILE_ATTRIBUTE_DIRECTORY)) {
+        flags |= SYMBOLIC_LINK_FLAG_DIRECTORY;
+    }
+
+    if (!CreateSymbolicLinkA(linkpath, target, flags)) {
+        DWORD err = GetLastError();
+        JS_ThrowError(ctx, "CreateSymbolicLinkA failed (error code %lu, target = %s, linkpath = %s)",
+                      (unsigned long)err, target, linkpath);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, (int)err));
+        JS_AddPropertyToException(ctx, "target", JS_NewString(ctx, target));
+        JS_AddPropertyToException(ctx, "linkpath", JS_NewString(ctx, linkpath));
+
+        JS_FreeCString(ctx, target);
+        JS_FreeCString(ctx, linkpath);
+
+        return JS_EXCEPTION;
+    }
+
+    JS_FreeCString(ctx, target);
+    JS_FreeCString(ctx, linkpath);
+
+    return JS_UNDEFINED;
+}
+#else /* !_WIN32 */
 static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
@@ -3149,9 +3247,138 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
         return JS_UNDEFINED;
     }
 }
-#endif // !defined(_WIN32)
+#endif /* !_WIN32 */
 
-#if !defined(_WIN32)
+#if defined(_WIN32)
+/* Windows readlink implementation using reparse point APIs */
+#ifndef IO_REPARSE_TAG_SYMLINK
+#define IO_REPARSE_TAG_SYMLINK 0xA000000CL
+#endif
+#ifndef IO_REPARSE_TAG_MOUNT_POINT
+#define IO_REPARSE_TAG_MOUNT_POINT 0xA0000003L
+#endif
+#ifndef FSCTL_GET_REPARSE_POINT
+#define FSCTL_GET_REPARSE_POINT 0x000900A8
+#endif
+#ifndef MAXIMUM_REPARSE_DATA_BUFFER_SIZE
+#define MAXIMUM_REPARSE_DATA_BUFFER_SIZE (16 * 1024)
+#endif
+
+/* Reparse data buffer structure - define our own since it may not be in all SDKs */
+typedef struct {
+    ULONG  ReparseTag;
+    USHORT ReparseDataLength;
+    USHORT Reserved;
+    union {
+        struct {
+            USHORT SubstituteNameOffset;
+            USHORT SubstituteNameLength;
+            USHORT PrintNameOffset;
+            USHORT PrintNameLength;
+            ULONG  Flags;
+            WCHAR  PathBuffer[1];
+        } SymbolicLinkReparseBuffer;
+        struct {
+            USHORT SubstituteNameOffset;
+            USHORT SubstituteNameLength;
+            USHORT PrintNameOffset;
+            USHORT PrintNameLength;
+            WCHAR  PathBuffer[1];
+        } MountPointReparseBuffer;
+    };
+} QJS_REPARSE_DATA_BUFFER;
+
+static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv)
+{
+    const char *path;
+    HANDLE hFile;
+    BYTE buffer[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
+    QJS_REPARSE_DATA_BUFFER *reparse_data = (QJS_REPARSE_DATA_BUFFER *)buffer;
+    DWORD bytes_returned;
+    WCHAR *target_path;
+    USHORT target_len;
+    char *utf8_result;
+    JSValue result;
+
+    path = JS_ToCString(ctx, argv[0]);
+    if (!path)
+        return JS_EXCEPTION;
+
+    /* Open the symlink without following it */
+    hFile = CreateFileA(
+        path,
+        FILE_READ_ATTRIBUTES,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+        NULL
+    );
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        DWORD err = GetLastError();
+        JS_ThrowError(ctx, "CreateFileA failed (error code %lu, path = %s)",
+                      (unsigned long)err, path);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, (int)err));
+        JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
+        JS_FreeCString(ctx, path);
+        return JS_EXCEPTION;
+    }
+
+    /* Get the reparse point data */
+    if (!DeviceIoControl(
+            hFile,
+            FSCTL_GET_REPARSE_POINT,
+            NULL, 0,
+            buffer, sizeof(buffer),
+            &bytes_returned,
+            NULL)) {
+        DWORD err = GetLastError();
+        CloseHandle(hFile);
+        JS_ThrowError(ctx, "DeviceIoControl FSCTL_GET_REPARSE_POINT failed (error code %lu, path = %s)",
+                      (unsigned long)err, path);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, (int)err));
+        JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
+        JS_FreeCString(ctx, path);
+        return JS_EXCEPTION;
+    }
+
+    CloseHandle(hFile);
+
+    /* Extract the target path based on reparse tag */
+    if (reparse_data->ReparseTag == IO_REPARSE_TAG_SYMLINK) {
+        /* Use PrintName which is the user-friendly name */
+        target_path = reparse_data->SymbolicLinkReparseBuffer.PathBuffer +
+                      (reparse_data->SymbolicLinkReparseBuffer.PrintNameOffset / sizeof(WCHAR));
+        target_len = reparse_data->SymbolicLinkReparseBuffer.PrintNameLength / sizeof(WCHAR);
+    } else if (reparse_data->ReparseTag == IO_REPARSE_TAG_MOUNT_POINT) {
+        /* Junction point - use PrintName */
+        target_path = reparse_data->MountPointReparseBuffer.PathBuffer +
+                      (reparse_data->MountPointReparseBuffer.PrintNameOffset / sizeof(WCHAR));
+        target_len = reparse_data->MountPointReparseBuffer.PrintNameLength / sizeof(WCHAR);
+    } else {
+        JS_ThrowError(ctx, "Not a symbolic link (reparse tag 0x%08lX, path = %s)",
+                      (unsigned long)reparse_data->ReparseTag, path);
+        JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
+        JS_FreeCString(ctx, path);
+        return JS_EXCEPTION;
+    }
+
+    /* Convert from UTF-16 to UTF-8 */
+    utf8_result = utf16_to_utf8((const uint16_t *)target_path, target_len,
+                                 NULL, NULL, NULL, NULL, NULL);
+    JS_FreeCString(ctx, path);
+
+    if (!utf8_result) {
+        return JS_ThrowOutOfMemory(ctx);
+    }
+
+    result = JS_NewString(ctx, utf8_result);
+    free(utf8_result);
+    return result;
+}
+#else /* !_WIN32 */
 static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
@@ -3184,7 +3411,7 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
         return JS_NewString(ctx, buf);
     }
 }
-#endif // !defined(_WIN32)
+#endif /* !_WIN32 */
 
 /* Win32Handle class — registered on all platforms so that `instanceof`
    works in JavaScript.  On non-Windows the constructor always throws and
@@ -5701,6 +5928,10 @@ static const JSCFunctionListEntry js_os_funcs[] = {
 #if defined(_WIN32)
     OS_FLAG(O_BINARY),
     OS_FLAG(O_TEXT),
+#else
+    /* Use de-facto standard Win32 values on non-Windows */
+    JS_PROP_INT32_DEF("O_BINARY", 0x8000, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("O_TEXT", 0x4000, JS_PROP_CONFIGURABLE ),
 #endif
     JS_CFUNC_DEF("close", 1, js_os_close ),
     JS_CFUNC_DEF("seek", 3, js_os_seek ),
@@ -5720,7 +5951,20 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     OS_FLAG(SIGILL),
     OS_FLAG(SIGSEGV),
     OS_FLAG(SIGTERM),
-#if !defined(_WIN32)
+#if defined(_WIN32)
+    /* Use de-facto standard Unix (Linux) signal values on Windows */
+    JS_PROP_INT32_DEF("SIGQUIT", 3, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGPIPE", 13, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGALRM", 14, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGUSR1", 10, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGUSR2", 12, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGCHLD", 17, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGCONT", 18, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGSTOP", 19, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGTSTP", 20, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGTTIN", 21, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("SIGTTOU", 22, JS_PROP_CONFIGURABLE ),
+#else
     OS_FLAG(SIGQUIT),
     OS_FLAG(SIGPIPE),
     OS_FLAG(SIGALRM),
@@ -5747,7 +5991,13 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     OS_FLAG(S_IFDIR),
     OS_FLAG(S_IFBLK),
     OS_FLAG(S_IFREG),
-#if !defined(_WIN32)
+#if defined(_WIN32)
+    /* Use de-facto standard Unix values on Windows */
+    JS_PROP_INT32_DEF("S_IFSOCK", 0140000, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("S_IFLNK", 0120000, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("S_ISGID", 02000, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("S_ISUID", 04000, JS_PROP_CONFIGURABLE ),
+#else
     OS_FLAG(S_IFSOCK),
     OS_FLAG(S_IFLNK),
     OS_FLAG(S_ISGID),
@@ -5767,9 +6017,12 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     OS_FLAG(S_IXOTH),
 
     JS_CFUNC_MAGIC_DEF("stat", 1, js_os_stat, 0 ),
+    JS_CFUNC_MAGIC_DEF("lstat", 1, js_os_stat, 1 ),
     JS_CFUNC_DEF("utimes", 3, js_os_utimes ),
     JS_CFUNC_DEF("sleep", 1, js_os_sleep ),
     JS_CFUNC_DEF("realpath", 1, js_os_realpath ),
+    JS_CFUNC_DEF("symlink", 2, js_os_symlink ),
+    JS_CFUNC_DEF("readlink", 1, js_os_readlink ),
 #if defined(_WIN32)
     JS_CFUNC_DEF("CreateProcess", 2, js_os_CreateProcess ),
     JS_CFUNC_DEF("WaitForSingleObject", 2, js_os_WaitForSingleObject ),
@@ -5782,18 +6035,21 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     OS_FLAG(WAIT_TIMEOUT),
     OS_FLAG(WAIT_FAILED),
 #else
-    JS_CFUNC_MAGIC_DEF("lstat", 1, js_os_stat, 1 ),
-    JS_CFUNC_DEF("symlink", 2, js_os_symlink ),
-    JS_CFUNC_DEF("readlink", 1, js_os_readlink ),
-    OS_FLAG(WUNTRACED),
+    /* Use de-facto standard Win32 values on non-Windows */
+    JS_PROP_INT32_DEF("WAIT_OBJECT_0", 0, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("WAIT_ABANDONED", 0x80, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("WAIT_TIMEOUT", 0x102, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("WAIT_FAILED", (int)0xFFFFFFFF, JS_PROP_CONFIGURABLE ),
 #endif
-    /* Available on all platforms */
     JS_CFUNC_DEF("exec", 1, js_os_exec ),
     JS_CFUNC_DEF("waitpid", 2, js_os_waitpid ),
 #if defined(_WIN32)
+    /* Use de-facto standard Unix values on Windows */
     JS_PROP_INT32_DEF("WNOHANG", 1, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("WUNTRACED", 2, JS_PROP_CONFIGURABLE ),
 #else
     OS_FLAG(WNOHANG),
+    OS_FLAG(WUNTRACED),
 #endif
     JS_CFUNC_DEF("WEXITSTATUS", 1, js_os_WEXITSTATUS ),
     JS_CFUNC_DEF("WTERMSIG", 1, js_os_WTERMSIG ),

@@ -474,18 +474,18 @@ declare module "quickjs:os" {
   export var O_TRUNC: number;
 
   /**
-   * Windows-specific open flag: open the file in binary mode (which is the default). Used in {@link open}.
+   * Open flag: open the file in binary mode (which is the default on Windows). Used in {@link open}.
    *
-   * NOTE: this property is only present on windows
+   * On non-Windows platforms, this flag is accepted but has no effect (files are always binary).
    */
-  export var O_BINARY: number | undefined;
+  export var O_BINARY: number;
 
   /**
-   * Windows-specific open flag: open the file in text mode. The default is binary mode. Used in {@link open}.
+   * Open flag: open the file in text mode. The default is binary mode on Windows. Used in {@link open}.
    *
-   * NOTE: this property is only present on windows
+   * On non-Windows platforms, this flag is accepted but has no effect.
    */
-  export var O_TEXT: number | undefined;
+  export var O_TEXT: number;
 
   /** Close the file with descriptor `fd`. */
   export function close(fd: number): void;
@@ -597,9 +597,9 @@ declare module "quickjs:os" {
    *
    * The times are specified in milliseconds since 1970. `lstat()` is the same as `stat()` except that it returns information about the link itself.
    *
-   * NOTE: this function is not present on windows
+   * On Windows, uses GetFileAttributesA to detect symlinks and returns mode with S_IFLNK set for symbolic links.
    */
-  export var lstat: undefined | ((path: string) => Stats);
+  export function lstat(path: string): Stats;
 
   /**
    * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
@@ -647,37 +647,29 @@ declare module "quickjs:os" {
    * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
    *
    * File type: socket
-   *
-   * NOTE: this property is not present on windows
    */
-  export var S_IFSOCK: number | undefined;
+  export var S_IFSOCK: number;
 
   /**
    * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
    *
    * File type: symbolic link
-   *
-   * NOTE: this property is not present on windows
    */
-  export var S_IFLNK: number | undefined;
+  export var S_IFLNK: number;
 
   /**
    * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
    *
    * Flag: set group id on execution
-   *
-   * NOTE: this property is not present on windows
    */
-  export var S_ISGID: number | undefined;
+  export var S_ISGID: number;
 
   /**
    * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
    *
    * Flag: set user id on execution
-   *
-   * NOTE: this property is not present on windows
    */
-  export var S_ISUID: number | undefined;
+  export var S_ISUID: number;
 
   /**
    * Constant to interpret the `mode` property returned by `stat()`. Has the same value as in the C system header `sys/stat.h`.
@@ -771,18 +763,18 @@ declare module "quickjs:os" {
   export function utimes(path: string, atime: number, mtime: number): void;
 
   /**
-   * Create a link at `linkpath` containing the string `target`.
+   * Create a symbolic link at `linkpath` pointing to `target`.
    *
-   * NOTE: this function is not present on windows
+   * On Windows, uses CreateSymbolicLinkA with SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE.
    */
-  export var symlink: undefined | ((target: string, linkpath: string) => void);
+  export function symlink(target: string, linkpath: string): void;
 
   /**
-   * Return the link target.
+   * Return the target of the symbolic link at `path`.
    *
-   * NOTE: this function is not present on windows
+   * On Windows, uses DeviceIoControl with FSCTL_GET_REPARSE_POINT.
    */
-  export var readlink: undefined | ((path: string) => string);
+  export function readlink(path: string): string;
 
   /** Return an array of strings containing the filenames of the directory `path`. */
   export function readdir(path: string): Array<string>;
@@ -817,38 +809,38 @@ declare module "quickjs:os" {
   /** POSIX signal number. */
   export var SIGTERM: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGQUIT: number | undefined;
+  /** POSIX signal number. */
+  export var SIGQUIT: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGPIPE: number | undefined;
+  /** POSIX signal number. */
+  export var SIGPIPE: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGALRM: number | undefined;
+  /** POSIX signal number. */
+  export var SIGALRM: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGUSR1: number | undefined;
+  /** POSIX signal number. */
+  export var SIGUSR1: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGUSR2: number | undefined;
+  /** POSIX signal number. */
+  export var SIGUSR2: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGCHLD: number | undefined;
+  /** POSIX signal number. */
+  export var SIGCHLD: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGCONT: number | undefined;
+  /** POSIX signal number. */
+  export var SIGCONT: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGSTOP: number | undefined;
+  /** POSIX signal number. */
+  export var SIGSTOP: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGTSTP: number | undefined;
+  /** POSIX signal number. */
+  export var SIGTSTP: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGTTIN: number | undefined;
+  /** POSIX signal number. */
+  export var SIGTTIN: number;
 
-  /** POSIX signal number. NOTE: this signal is not present on windows. */
-  export var SIGTTOU: number | undefined;
+  /** POSIX signal number. */
+  export var SIGTTOU: number;
 
   /**
    * Send the signal `sig` to the process `pid`. Use `os.SIG*` constants.
@@ -916,10 +908,8 @@ declare module "quickjs:os" {
 
   /**
    * Constant for the `options` argument of `waitpid`.
-   *
-   * NOTE: this property is not present on windows
    */
-  export var WUNTRACED: number | undefined;
+  export var WUNTRACED: number;
 
   /**
    * Function to be used to interpret the 'status' return value of `waitpid`.
@@ -1215,31 +1205,23 @@ declare module "quickjs:os" {
 
   /**
    * Win32 wait result constant: the object was signaled.
-   *
-   * NOTE: this property is only present on windows
    */
-  export var WAIT_OBJECT_0: number | undefined;
+  export var WAIT_OBJECT_0: number;
 
   /**
    * Win32 wait result constant: the object was an abandoned mutex.
-   *
-   * NOTE: this property is only present on windows
    */
-  export var WAIT_ABANDONED: number | undefined;
+  export var WAIT_ABANDONED: number;
 
   /**
    * Win32 wait result constant: the wait timed out.
-   *
-   * NOTE: this property is only present on windows
    */
-  export var WAIT_TIMEOUT: number | undefined;
+  export var WAIT_TIMEOUT: number;
 
   /**
    * Win32 wait result constant: the function call failed.
-   *
-   * NOTE: this property is only present on windows
    */
-  export var WAIT_FAILED: number | undefined;
+  export var WAIT_FAILED: number;
 
   /** constant for {@link access}(); test for read permission. */
   export var R_OK: number;
