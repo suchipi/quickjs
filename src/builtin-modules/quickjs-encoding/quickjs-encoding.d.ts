@@ -3,12 +3,36 @@ declare module "quickjs:encoding" {
   export function fromUtf8(input: string): ArrayBuffer;
 
   /**
-   * Encodes a string into UTF-8 bytes, following the WHATWG Encoding standard.
+   * Encodes a string into bytes, following the WHATWG Encoding standard.
+   * Supports UTF-8, UTF-16LE, UTF-16BE, and Shift_JIS encodings (non-standard extension).
    */
   export class TextEncoder {
-    constructor();
-    readonly encoding: "utf-8";
-    encode(input?: string): Uint8Array;
+    constructor(
+      label?:
+        | TextEncoding
+        | "utf8"
+        | "utf-16"
+        | "unicode-1-1-utf-8"
+        | "shift-jis"
+        | "sjis"
+        | "csshiftjis"
+        | "ms932"
+        | "ms_kanji"
+        | "windows-31j"
+        | "x-sjis"
+    );
+    readonly encoding: TextEncoding;
+    /**
+     * Encodes the input string into bytes.
+     * @param input The string to encode.
+     * @param options Options for encoding. The `stream` option (non-standard) can be used
+     *                to preserve state for stateful encodings like UTF-16.
+     */
+    encode(input?: string, options?: { stream?: boolean }): Uint8Array;
+    /**
+     * Encodes the source string into the destination Uint8Array.
+     * Note: Unlike the standard TextEncoder, this supports all encodings (non-standard extension).
+     */
     encodeInto(
       source: string,
       destination: Uint8Array

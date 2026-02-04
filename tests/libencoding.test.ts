@@ -672,3 +672,268 @@ test("TextDecoder - Shift_JIS trail byte error recovery", async () => {
     }
   `);
 });
+
+test("TextEncoder - UTF-16LE basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("utf-16le");
+      console.log("encoding:", enc.encoding);
+
+      // "hi" in UTF-16LE: 68 00 69 00
+      const bytes = enc.encode("hi");
+      console.log("bytes:", Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // Emoji U+1F600 → surrogate pair D83D DE00 → little-endian: 3D D8 00 DE
+      const emoji = enc.encode("😀");
+      console.log("emoji:", Array.from(emoji).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: utf-16le
+    bytes: 68 00 69 00
+    emoji: 3d d8 00 de
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - UTF-16BE basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("utf-16be");
+      console.log("encoding:", enc.encoding);
+
+      // "hi" in UTF-16BE: 00 68 00 69
+      const bytes = enc.encode("hi");
+      console.log("bytes:", Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // Emoji U+1F600 → surrogate pair D83D DE00 → big-endian: D8 3D DE 00
+      const emoji = enc.encode("😀");
+      console.log("emoji:", Array.from(emoji).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: utf-16be
+    bytes: 00 68 00 69
+    emoji: d8 3d de 00
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - Shift_JIS basic", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("shift_jis");
+      console.log("encoding:", enc.encoding);
+
+      // ASCII pass-through
+      const ascii = enc.encode("Hi");
+      console.log("ascii:", Array.from(ascii).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // "日本" encodes to 0x93 0xFA 0x96 0x7B
+      const nihon = enc.encode("日本");
+      console.log("nihon:", Array.from(nihon).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // Half-width katakana: ｱ (U+FF71) → 0xB1, ﾝ (U+FF9D) → 0xDD
+      const katakana = enc.encode("ｱﾝ");
+      console.log("katakana:", Array.from(katakana).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "encoding: shift_jis
+    ascii: 48 69
+    nihon: 93 fa 96 7b
+    katakana: b1 dd
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - Shift_JIS special mappings", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("shift_jis");
+
+      // U+00A5 (YEN SIGN) → 0x5C per WHATWG
+      const yen = enc.encode("\\u00A5");
+      console.log("yen:", Array.from(yen).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // U+203E (OVERLINE) → 0x7E per WHATWG
+      const overline = enc.encode("\\u203E");
+      console.log("overline:", Array.from(overline).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // Unencodable character → '?'
+      const emoji = enc.encode("😀");
+      console.log("unencodable:", Array.from(emoji).map(b => b.toString(16).padStart(2, "0")).join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "yen: 5c
+    overline: 7e
+    unencodable: 3f
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - label aliases", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      console.log(new TextEncoder().encoding);
+      console.log(new TextEncoder("utf-8").encoding);
+      console.log(new TextEncoder("utf-16le").encoding);
+      console.log(new TextEncoder("utf-16be").encoding);
+      console.log(new TextEncoder("sjis").encoding);
+      console.log(new TextEncoder("ms932").encoding);
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "utf-8
+    utf-8
+    utf-16le
+    utf-16be
+    shift_jis
+    shift_jis
+    ",
+    }
+  `);
+});
+
+test("TextEncoder.encodeInto - UTF-16LE", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("utf-16le");
+
+      // Full fit: "AB" → 4 bytes
+      const dest1 = new Uint8Array(10);
+      const res1 = enc.encodeInto("AB", dest1);
+      console.log("full:", JSON.stringify(res1));
+      console.log("bytes:", Array.from(dest1.slice(0, res1.written)).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // Partial fit: only room for 2 bytes (1 char), "AB" has 2 chars
+      const dest2 = new Uint8Array(2);
+      const res2 = enc.encodeInto("AB", dest2);
+      console.log("partial:", JSON.stringify(res2));
+
+      // Emoji needs 4 bytes, only 2 available
+      const dest3 = new Uint8Array(2);
+      const res3 = enc.encodeInto("😀", dest3);
+      console.log("no room for emoji:", JSON.stringify(res3));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "full: {"read":2,"written":4}
+    bytes: 41 00 42 00
+    partial: {"read":1,"written":2}
+    no room for emoji: {"read":0,"written":0}
+    ",
+    }
+  `);
+});
+
+test("TextEncoder.encodeInto - Shift_JIS", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      const enc = new TextEncoder("shift_jis");
+
+      // Full fit
+      const dest1 = new Uint8Array(10);
+      const res1 = enc.encodeInto("日本", dest1);
+      console.log("full:", JSON.stringify(res1));
+      console.log("bytes:", Array.from(dest1.slice(0, res1.written)).map(b => b.toString(16).padStart(2, "0")).join(" "));
+
+      // Partial fit: 2 bytes available, "日" needs 2 bytes
+      const dest2 = new Uint8Array(2);
+      const res2 = enc.encodeInto("日本", dest2);
+      console.log("partial:", JSON.stringify(res2));
+
+      // Too small: 1 byte available, "日" needs 2
+      const dest3 = new Uint8Array(1);
+      const res3 = enc.encodeInto("日", dest3);
+      console.log("too small:", JSON.stringify(res3));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "full: {"read":2,"written":4}
+    bytes: 93 fa 96 7b
+    partial: {"read":1,"written":2}
+    too small: {"read":0,"written":0}
+    ",
+    }
+  `);
+});
+
+test("TextEncoder - invalid label throws RangeError", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const { TextEncoder } = require("quickjs:encoding");
+      try {
+        new TextEncoder("latin-1");
+        console.log("ERROR: should have thrown");
+      } catch(e) {
+        console.log(e.constructor.name);
+      }
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "RangeError
+    ",
+    }
+  `);
+});
