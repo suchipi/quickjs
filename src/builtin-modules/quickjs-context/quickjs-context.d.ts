@@ -156,6 +156,8 @@ declare module "quickjs:context" {
         "quickjs:engine"?: boolean;
         /** Enables the "quickjs:encoding" module. Defaults to `true`. */
         "quickjs:encoding"?: boolean;
+        /** Enables the "quickjs:cmdline" module. Defaults to `true`. */
+        "quickjs:cmdline"?: boolean;
       };
     });
 

@@ -72,7 +72,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         promise, bigint, bigfloat, bigdecimal, operators, useMath, inspect,
         console, print, moduleGlobals, timers, module_std, module_os,
         module_bytecode, module_context, module_pointer, module_engine,
-        module_encoding;
+        module_encoding, module_cmdline;
 
     options = argv[0];
     if (get_option_bool(ctx, options, "date", &date, TRUE)) {
@@ -141,6 +141,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         BOOL module_pointer_default = TRUE;
         BOOL module_engine_default = TRUE;
         BOOL module_encoding_default = TRUE;
+        BOOL module_cmdline_default = TRUE;
 
         if (JS_IsObject(options)) {
             JSValue options_modules = JS_GetPropertyStr(ctx, options, "modules");
@@ -175,6 +176,10 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
             }
+            if (get_option_bool(ctx, options_modules, "quickjs:cmdline", &module_cmdline, module_cmdline_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
 
             JS_FreeValue(ctx, options_modules);
         } else {
@@ -185,6 +190,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
             module_pointer = module_pointer_default;
             module_engine = module_engine_default;
             module_encoding = module_encoding_default;
+            module_cmdline = module_cmdline_default;
         }
     }
 
@@ -256,6 +262,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
     if (module_engine) {
         js_init_module_engine(target_ctx, "quickjs:engine");
+    }
+    if (module_cmdline) {
+        js_init_module_cmdline(target_ctx, "quickjs:cmdline");
     }
 
     if (inspect) {
