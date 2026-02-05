@@ -107,10 +107,12 @@ typedef struct {
 } WorkerFuncArgs;
 #endif
 
-static void js_std_dbuf_init(JSContext *ctx, DynBuf *s)
+#if defined(_WIN32)
+static void js_dbuf_init(JSContext *ctx, DynBuf *s)
 {
     dbuf_init2(s, JS_GetRuntime(ctx), (DynBufReallocFunc *)js_realloc_rt);
 }
+#endif
 
 static BOOL get_bool_option(JSContext *ctx, BOOL *pbool,
                             JSValueConst obj,
@@ -2041,7 +2043,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
         return JS_ThrowTypeError(ctx, "invalid number of arguments");
 
     DynBuf cmd_buf;
-    js_std_dbuf_init(ctx, &cmd_buf);
+    js_dbuf_init(ctx, &cmd_buf);
 
     for (i = 0; i < exec_argc; i++) {
         val = JS_GetPropertyUint32(ctx, args, i);
@@ -2107,7 +2109,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             }
 
             DynBuf env_dbuf;
-            js_std_dbuf_init(ctx, &env_dbuf);
+            js_dbuf_init(ctx, &env_dbuf);
 
             QJUForEachPropertyState *foreach = QJU_NewForEachPropertyState(ctx, val, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
             if (foreach == NULL) {
@@ -2960,7 +2962,7 @@ static void *worker_func(void *opaque)
 
     rt = JS_NewRuntime();
     if (rt == NULL) {
-        fprintf(stderr, "JS_NewRuntime failure");
+        fprintf(stderr, "JS_NewRuntime failed");
         exit(1);
     }
     js_eventloop_init(rt);
@@ -2974,7 +2976,7 @@ static void *worker_func(void *opaque)
 
     ctx = js_worker_new_context_func(rt);
     if (ctx == NULL) {
-        fprintf(stderr, "JS_NewContext failure");
+        fprintf(stderr, "JS_NewContext failed");
     }
 
     JS_SetCanBlock(rt, TRUE);
