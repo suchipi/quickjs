@@ -349,15 +349,15 @@ static const char main_c_template1[] =
     "  JSContext *ctx;\n"
     "  int exit_status;\n"
     "  rt = JS_NewRuntime();\n"
-    "  js_std_set_worker_new_context_func(JS_NewCustomContext);\n"
-    "  js_std_init_handlers(rt);\n"
+    "  js_os_set_worker_new_context_func(JS_NewCustomContext);\n"
+    "  js_eventloop_init(rt);\n"
     ;
 
 static const char main_c_template2[] =
-    "  exit_status = js_std_loop(ctx);\n"
+    "  exit_status = js_eventloop_run(ctx);\n"
     "  QJMS_FreeState(rt);\n"
     "  JS_FreeContext(ctx);\n"
-    "  js_std_free_handlers(rt);\n"
+    "  js_eventloop_free(rt);\n"
     "  JS_FreeRuntime(rt);\n"
     "  return exit_status;\n"
     "}\n";
@@ -538,7 +538,9 @@ int main(int argc, char **argv)
 
     /* add system modules */
     namelist_add(&cmodule_list, "quickjs:std", "std", 0);
+    namelist_add(&cmodule_list, "quickjs:timers", "timers", 0);
     namelist_add(&cmodule_list, "quickjs:os", "os", 0);
+    namelist_add(&cmodule_list, "quickjs:cmdline", "cmdline", 0);
     #ifndef QJSC_MINIMAL
         namelist_add(&cmodule_list, "quickjs:bytecode", "bytecode", 0);
         namelist_add(&cmodule_list, "quickjs:context", "context", 0);
@@ -689,11 +691,13 @@ int main(int argc, char **argv)
             );
 
     if (output_type != OUTPUT_C) {
-        fprintf(fo, "#include \"quickjs-full-init.h\"\n"
+        fprintf(fo, "#include <stdlib.h>\n"
+                "#include \"quickjs-full-init.h\"\n"
                 "\n"
                 );
     } else {
-        fprintf(fo, "#include <inttypes.h>\n"
+        fprintf(fo, "#include <stdlib.h>\n"
+                "#include <inttypes.h>\n"
                 "\n"
                 );
     }
@@ -785,7 +789,7 @@ int main(int argc, char **argv)
 
         fprintf(fo,
                 "  ctx = JS_NewCustomContext(rt);\n"
-                "  js_std_add_helpers(ctx, argc, argv);\n"
+                "  js_cmdline_add_scriptArgs(ctx, argc, argv);\n"
                 "  js_print_add_print_global(ctx);\n"
                 "  js_print_add_console_global(ctx);\n");
 

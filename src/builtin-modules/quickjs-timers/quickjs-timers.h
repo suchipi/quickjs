@@ -1,7 +1,8 @@
 /*
- * QuickJS C library
+ * QuickJS Timers Module
  *
- * Copyright (c) 2017-2018 Fabrice Bellard
+ * Copyright (c) 2017-2021 Fabrice Bellard
+ * Copyright (c) 2017-2021 Charlie Gordon
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,45 +22,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef QUICKJS_LIBC_H
-#define QUICKJS_LIBC_H
-
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef QUICKJS_TIMERS_H
+#define QUICKJS_TIMERS_H
 
 #include "quickjs.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-  JSModuleDef *js_init_module_std(JSContext *ctx, const char *module_name);
-  JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name);
+JSModuleDef *js_init_module_timers(JSContext *ctx, const char *module_name);
 
-  /*
-    Creates 'scriptArgs' and 'setTimeout'.
-  */
-  void js_std_add_helpers(JSContext *ctx, int argc, char **argv);
+/* Add setTimeout, clearTimeout, setInterval, clearInterval as globals */
+void js_timers_add_globals(JSContext *ctx);
 
-  /* Creates 'scriptArgs' global */
-  void js_std_add_scriptArgs(JSContext *ctx, int argc, char **argv);
+/* Get current time in milliseconds */
+int64_t js_timers_get_time_ms(void);
 
-  /* Creates 'setTimeout' and 'clearTimeout' globals */
-  void js_std_add_timeout(JSContext *ctx);
-
-  JS_BOOL js_std_is_main_thread(JSRuntime *rt);
-  void js_std_interrupt_handler_start(JSContext *ctx);
-  void js_std_interrupt_handler_finish(JSContext *ctx, JSValue ret);
-
-  /* returns the exit status code */
-  int js_std_loop(JSContext *ctx);
-  void js_std_init_handlers(JSRuntime *rt);
-  void js_std_free_handlers(JSRuntime *rt);
-  void js_std_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt));
+/* Get timer class ID (for use by poll function) */
+JSClassID js_timers_get_class_id(void);
 
 #ifdef __cplusplus
-} /* extern "C" { */
+}
 #endif
 
-#endif /* QUICKJS_LIBC_H */
+#endif /* QUICKJS_TIMERS_H */

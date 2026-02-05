@@ -6,7 +6,13 @@ static int quickjs_full_init_modules(JSContext *ctx)
     if (js_init_module_std(ctx, "quickjs:std") == NULL) {
         return -1;
     }
+    if (js_init_module_timers(ctx, "quickjs:timers") == NULL) {
+        return -1;
+    }
     if (js_init_module_os(ctx, "quickjs:os") == NULL) {
+        return -1;
+    }
+    if (js_init_module_cmdline(ctx, "quickjs:cmdline") == NULL) {
         return -1;
     }
     if (js_init_module_bytecode(ctx, "quickjs:bytecode") == NULL) {
@@ -36,7 +42,7 @@ static int quickjs_full_init_globals(JSContext *ctx)
 
     js_print_add_print_global(ctx);
     js_print_add_console_global(ctx);
-    js_std_add_timeout(ctx);
+    js_timers_add_globals(ctx);
 
     return 0;
 }

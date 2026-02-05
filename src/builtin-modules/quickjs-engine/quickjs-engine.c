@@ -2,7 +2,8 @@
 #include <errno.h>
 
 #include "quickjs-engine.h"
-#include "quickjs-libc.h"
+#include "quickjs-std.h"
+#include "quickjs-eventloop.h"
 #include "quickjs-utils.h"
 #include "quickjs-modulesys.h"
 #include "cutils.h"
@@ -179,7 +180,7 @@ static JSValue js_engine_evalScript(JSContext *ctx, JSValueConst this_val,
     return JS_EXCEPTION;
   }
 
-  js_std_interrupt_handler_start(ctx);
+  js_eventloop_interrupt_handler_start(ctx);
 
   flags = JS_EVAL_TYPE_GLOBAL;
   if (backtrace_barrier) {
@@ -193,7 +194,7 @@ static JSValue js_engine_evalScript(JSContext *ctx, JSValueConst this_val,
     JS_FreeCString(ctx, filename);
   }
 
-  js_std_interrupt_handler_finish(ctx, ret);
+  js_eventloop_interrupt_handler_finish(ctx, ret);
   return ret;
 }
 

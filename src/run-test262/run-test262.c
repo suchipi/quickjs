@@ -38,7 +38,8 @@
 #include "cutils.h"
 #include "list.h"
 #include "quickjs-utils.h"
-#include "quickjs-libc.h"
+#include "quickjs-std.h"
+#include "quickjs-os.h"
 
 /* enable test262 thread support to test SharedArrayBuffer and Atomics */
 #define CONFIG_AGENT

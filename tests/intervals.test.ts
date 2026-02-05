@@ -26,7 +26,7 @@ test("setInterval and clearInterval are present", async () => {
       "error": false,
       "stderr": "",
       "stdout": "function function
-    [object OSTimer]
+    [object Timer]
     ",
     }
   `);
@@ -45,7 +45,7 @@ test("setTimeout and setInterval work", async () => {
 
         setTimeout(() => {
           console.log("exiting");
-          require("quickjs:std").exit(0);
+          require("quickjs:cmdline").exit(0);
         }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
@@ -78,7 +78,7 @@ test("setInterval callback continues to re-run even if it errors", async () => {
 
         setTimeout(() => {
           console.log("exiting");
-          require("quickjs:std").exit(0);
+          require("quickjs:cmdline").exit(0);
         }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
@@ -123,7 +123,7 @@ test("failure in setInterval callback uses console.error", async () => {
         setTimeout(() => {
           console.log("receivedArgs.length:", receivedArgs.length);
           console.log("exiting");
-          require("quickjs:std").exit(0);
+          require("quickjs:cmdline").exit(0);
         }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
@@ -176,7 +176,7 @@ test("setInterval callback falls back to print if console.error isn't present", 
           console.log("times print called:", timesPrintCalled);
           console.log("times interval callback ran:", timesIntervalCallbackRan);
           console.log("exiting");
-          require("quickjs:std").exit(0);
+          require("quickjs:cmdline").exit(0);
         }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
@@ -232,7 +232,7 @@ test("setInterval callback falls back to print if console.error errors", async (
           console.log("times print called:", timesPrintCalled);
           console.log("times interval callback ran:", timesIntervalCallbackRan);
           console.log("exiting");
-          require("quickjs:std").exit(0);
+          require("quickjs:cmdline").exit(0);
         }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
@@ -279,7 +279,7 @@ test("setInterval callback still runs even if console.error and print aren't ava
         setTimeout(() => {
           console.log("times interval callback ran:", timesIntervalCallbackRan);
           console.log("exiting");
-          require("quickjs:std").exit(0);
+          require("quickjs:cmdline").exit(0);
         }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],
@@ -329,7 +329,7 @@ test("setInterval callback still runs even if console.error and print both fail"
         setTimeout(() => {
           console.log("times interval callback ran:", timesIntervalCallbackRan);
           console.log("exiting");
-          require("quickjs:std").exit(0);
+          require("quickjs:cmdline").exit(0);
         }, ${150 * WAIT_TIME_MULTIPLIER});
       `,
     ],

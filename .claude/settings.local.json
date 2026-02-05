@@ -10,7 +10,13 @@
       "WebFetch(domain:encoding.spec.whatwg.org)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(echo:*)",
+      "Bash(lldb:*)",
+      "Bash(git show:*)",
+      "Bash(sed:*)",
+      "Bash(awk:*)",
+      "Bash(QUICKJS_EXTRAS=1 meta/docker/run-build.sh:*)"
     ]
   }
 }

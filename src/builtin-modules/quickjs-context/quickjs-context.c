@@ -1,6 +1,10 @@
 #include <string.h>
 #include "cutils.h"
-#include "quickjs-libc.h"
+#include "quickjs-eventloop.h"
+#include "quickjs-std.h"
+#include "quickjs-timers.h"
+#include "quickjs-os.h"
+#include "quickjs-cmdline.h"
 #include "quickjs-bytecode.h"
 #include "quickjs-pointer.h"
 #include "quickjs-modulesys.h"
@@ -265,7 +269,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
 
     if (timers) {
-        js_std_add_timeout(target_ctx);
+        js_timers_add_globals(target_ctx);
     }
     if (moduleGlobals) {
         QJMS_InitContext(target_ctx);

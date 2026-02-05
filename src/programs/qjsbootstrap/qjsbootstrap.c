@@ -182,14 +182,14 @@ int main(int argc, char **argv)
   }
 
   rt = JS_NewRuntime();
-  js_std_set_worker_new_context_func(JS_NewCustomContext);
-  js_std_init_handlers(rt);
+  js_os_set_worker_new_context_func(JS_NewCustomContext);
+  js_eventloop_init(rt);
   JS_SetMaxStackSize(rt, 8000000);
   QJMS_InitState(rt);
   JS_SetCanBlock(rt, TRUE);
   ctx = JS_NewCustomContext(rt);
   define_qjsbootstrap_offset(ctx);
-  js_std_add_helpers(ctx, argc, argv);
+  js_cmdline_add_scriptArgs(ctx, argc, argv);
   QJMS_InitContext(ctx);
 
 #ifdef CONFIG_BYTECODE
@@ -201,11 +201,11 @@ int main(int argc, char **argv)
     }
 #endif
 
-  exit_status = js_std_loop(ctx);
+  exit_status = js_eventloop_run(ctx);
 
   QJMS_FreeState(rt);
   JS_FreeContext(ctx);
-  js_std_free_handlers(rt);
+  js_eventloop_free(rt);
   JS_FreeRuntime(rt);
   free(self_binary_path);
 

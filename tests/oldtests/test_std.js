@@ -264,9 +264,9 @@ function test_timer()
     /* just test that a timer can be inserted and removed */
     th = [];
     for(i = 0; i < 3; i++)
-        th[i] = os.setTimeout(function () { }, 1000);
+        th[i] = setTimeout(function () { }, 1000);
     for(i = 0; i < 3; i++)
-        os.clearTimeout(th[i]);
+        clearTimeout(th[i]);
 }
 
 test_printf();

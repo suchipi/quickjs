@@ -425,8 +425,8 @@ int main(int argc, char **argv)
         JS_SetMemoryLimit(rt, memory_limit);
     if (stack_size != 0)
         JS_SetMaxStackSize(rt, stack_size);
-    js_std_set_worker_new_context_func(JS_NewCustomContext);
-    js_std_init_handlers(rt);
+    js_os_set_worker_new_context_func(JS_NewCustomContext);
+    js_eventloop_init(rt);
     JS_SetCanBlock(rt, TRUE);
     ctx = JS_NewCustomContext(rt);
     if (!ctx) {
@@ -447,7 +447,7 @@ int main(int argc, char **argv)
             QJMS_EvalBinary(ctx, qjsc_qjscalc, qjsc_qjscalc_size, 0);
         }
 #endif
-        js_std_add_helpers(ctx, argc, argv);
+        js_cmdline_add_scriptArgs(ctx, argc, argv);
         QJMS_InitContext(ctx);
 
         /* make 'std' and 'os' visible to non module code */
@@ -489,7 +489,7 @@ int main(int argc, char **argv)
         if (interactive) {
             QJMS_EvalBinary(ctx, qjsc_repl, qjsc_repl_size, 0);
         }
-        exit_status = js_std_loop(ctx);
+        exit_status = js_eventloop_run(ctx);
     }
 
     if (dump_memory) {
@@ -497,7 +497,7 @@ int main(int argc, char **argv)
         JS_ComputeMemoryUsage(rt, &stats);
         JS_DumpMemoryUsage(stdout, &stats, rt);
     }
-    js_std_free_handlers(rt);
+    js_eventloop_free(rt);
     QJMS_FreeState(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
@@ -528,7 +528,7 @@ int main(int argc, char **argv)
     }
     return exit_status;
  fail:
-    js_std_free_handlers(rt);
+    js_eventloop_free(rt);
     QJMS_FreeState(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);

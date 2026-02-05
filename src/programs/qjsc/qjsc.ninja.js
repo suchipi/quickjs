@@ -12,7 +12,11 @@ const qjsc_minimal_host = build({
   rule: "link_host",
   inputs: [
     qjsc_minimal_host_o,
-    builddir("intermediate/quickjs-libc.host.o"),
+    builddir("intermediate/quickjs-eventloop.host.o"),
+    builddir("intermediate/quickjs-std.host.o"),
+    builddir("intermediate/quickjs-timers.host.o"),
+    builddir("intermediate/quickjs-os.host.o"),
+    builddir("intermediate/quickjs-cmdline.host.o"),
     builddir("intermediate/quickjs-core.host.a"),
   ],
 });

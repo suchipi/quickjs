@@ -1,7 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "quickjs.h"
-#include "quickjs-libc.h"
+#include "quickjs-eventloop.h"
+#include "quickjs-std.h"
+#include "quickjs-timers.h"
+#include "quickjs-os.h"
+#include "quickjs-cmdline.h"
 #include "quickjs-print.h"
 #include "quickjs-modulesys.h"
 
@@ -44,8 +49,8 @@ int main(int argc, char **argv)
   }
 
   rt = JS_NewRuntime();
-  js_std_set_worker_new_context_func(JS_NewCustomContext);
-  js_std_init_handlers(rt);
+  js_os_set_worker_new_context_func(JS_NewCustomContext);
+  js_eventloop_init(rt);
 
   if (!strcmp(argv[1], "NONE")) {
     printf("skipping JS_SetMaxStackSize call\n");
@@ -69,10 +74,10 @@ int main(int argc, char **argv)
 
   QJMS_InitState(rt);
   ctx = JS_NewCustomContext(rt);
-  js_std_add_helpers(ctx, argc, argv);
+  js_cmdline_add_scriptArgs(ctx, argc, argv);
   QJMS_InitContext(ctx);
   QJMS_EvalBinary(ctx, qjsc_loop, qjsc_loop_size, 0);
-  exit_status = js_std_loop(ctx);
+  exit_status = js_eventloop_run(ctx);
   QJMS_FreeState(rt);
   JS_FreeContext(ctx);
   JS_FreeRuntime(rt);

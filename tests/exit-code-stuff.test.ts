@@ -7,9 +7,9 @@ test("setting exit code and exiting normally", async () => {
     [
       "-e",
       `
-        const std = require("quickjs:std");
+        const cmdline = require("quickjs:cmdline");
 
-        std.setExitCode(5);
+        cmdline.setExitCode(5);
       `,
     ],
     { cwd: __dirname }
@@ -25,16 +25,16 @@ test("setting exit code and exiting normally", async () => {
   `);
 });
 
-test("setting exit code and exiting with std.exit", async () => {
+test("setting exit code and exiting with cmdline.exit", async () => {
   const run = spawn(
     binDir("qjs"),
     [
       "-e",
       `
-        const std = require("quickjs:std");
+        const cmdline = require("quickjs:cmdline");
 
-        std.setExitCode(5);
-        std.exit();
+        cmdline.setExitCode(5);
+        cmdline.exit();
       `,
     ],
     { cwd: __dirname }
@@ -50,16 +50,16 @@ test("setting exit code and exiting with std.exit", async () => {
   `);
 });
 
-test("overriding the set exit code by exiting with std.exit", async () => {
+test("overriding the set exit code by exiting with cmdline.exit", async () => {
   const run = spawn(
     binDir("qjs"),
     [
       "-e",
       `
-        const std = require("quickjs:std");
+        const cmdline = require("quickjs:cmdline");
 
-        std.setExitCode(5);
-        std.exit(2);
+        cmdline.setExitCode(5);
+        cmdline.exit(2);
       `,
     ],
     { cwd: __dirname }
@@ -81,9 +81,9 @@ test("overriding the set exit code with unhandled exception", async () => {
     [
       "-e",
       `
-        const std = require("quickjs:std");
+        const cmdline = require("quickjs:cmdline");
 
-        std.setExitCode(5);
+        cmdline.setExitCode(5);
         throw new Error("that's bad!");
       `,
     ],
@@ -109,10 +109,10 @@ test("getting the set exit code", async () => {
     [
       "-e",
       `
-        const std = require("quickjs:std");
+        const cmdline = require("quickjs:cmdline");
 
-        std.setExitCode(5);
-        const code = std.getExitCode();
+        cmdline.setExitCode(5);
+        const code = cmdline.getExitCode();
         print(code);
       `,
     ],
@@ -136,12 +136,12 @@ test("setting the exit code multiple times (last wins)", async () => {
     [
       "-e",
       `
-        const std = require("quickjs:std");
+        const cmdline = require("quickjs:cmdline");
 
-        std.setExitCode(5);
-        std.setExitCode(4);
-        std.setExitCode(0);
-        std.setExitCode(2);
+        cmdline.setExitCode(5);
+        cmdline.setExitCode(4);
+        cmdline.setExitCode(0);
+        cmdline.setExitCode(2);
       `,
     ],
     { cwd: __dirname }
