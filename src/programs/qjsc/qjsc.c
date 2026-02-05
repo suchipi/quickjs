@@ -39,12 +39,10 @@
 #include "debugprint.h"
 
 #ifdef QJSC_MINIMAL
-// Stub out inspect and intervals, which we can't rely on in
-// qjsc-minimal, because those are built with qjsc-minimal
+// Stub out inspect, which we can't rely on in qjsc-minimal, because it's built
+// with qjsc-minimal
 const uint32_t qjsc_inspect_size = 0;
 const uint8_t qjsc_inspect[0] = {};
-const uint32_t qjsc_intervals_size = 0;
-const uint8_t qjsc_intervals[0] = {};
 #else
 #include "quickjs-full-init.h"
 #endif
