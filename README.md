@@ -116,8 +116,8 @@ Barebones binary for running files, without any of the arg parsing logic from qj
 
 ### New module: "quickjs:cmdline"
 
-- Exports a reference to scriptArgs (also available as a global) as well as `getExitCode` and `setExitCode`.
-- `std.exit`'s parameter is now optional. The value passed to `setExitCode` will be used when the process exits normally, or when `std.exit` is called without any arguments. `setExitCode`, `getExitCode`, and `std.exit` throw if called from a thread other than the main thread (ie. a Worker).
+- Exports a reference to scriptArgs (also available as a global) as well as `getExitCode`, `setExitCode`, and `exit` (exit was formerly in std).
+- `exit`'s parameter is now optional. The value passed to `setExitCode` will be used when the process exits normally, or when `exit` is called without any arguments. `setExitCode`, `getExitCode`, and `exit` throw if called from a thread other than the main thread (ie. a Worker).
 
 ### New module: "quickjs:bytecode"
 
