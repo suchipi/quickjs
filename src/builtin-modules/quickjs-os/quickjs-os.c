@@ -3731,9 +3731,6 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
         JS_SetModuleExport(ctx, m, "Win32Handle", win32_handle_ctor_val);
     }
 
-    /* Set poll function */
-    js_poll_func = js_os_poll;
-
     /* Worker class */
     JS_NewClassID(&js_worker_class_id);
     JS_NewClass(JS_GetRuntime(ctx), js_worker_class_id, &js_worker_class);
@@ -3770,5 +3767,8 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
     JS_AddModuleExportList(ctx, m, js_os_funcs, countof(js_os_funcs));
     JS_AddModuleExport(ctx, m, "Worker");
     JS_AddModuleExport(ctx, m, "Win32Handle");
+    /* Set poll function at registration time (not import time) so that
+       the event loop can process timers even if quickjs:os is never imported */
+    js_poll_func = js_os_poll;
     return m;
 }

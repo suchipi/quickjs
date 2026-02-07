@@ -16,7 +16,9 @@
       "Bash(git show:*)",
       "Bash(sed:*)",
       "Bash(awk:*)",
-      "Bash(QUICKJS_EXTRAS=1 meta/docker/run-build.sh:*)"
+      "Bash(QUICKJS_EXTRAS=1 meta/docker/run-build.sh:*)",
+      "Bash(npm run test:*)",
+      "Bash(/Users/suchipi/Code/quickjs/build/bin/qjs:*)"
     ]
   }
 }
