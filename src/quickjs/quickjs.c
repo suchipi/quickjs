@@ -6648,7 +6648,7 @@ JSValue __attribute__((format(printf, 4, 5))) JS_ThrowError(JSContext *ctx, cons
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowErrorWithProto3(ctx, ctx->class_proto[JS_CLASS_ERROR], fmt, ap, true, filename, line_num);
+    val = JS_ThrowErrorWithProto3(ctx, ctx->class_proto[JS_CLASS_ERROR], fmt, ap, TRUE, filename, line_num);
     va_end(ap);
     return val;
 }
@@ -6659,7 +6659,7 @@ JSValue __attribute__((format(printf, 4, 5))) JS_ThrowSyntaxError(JSContext *ctx
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_SYNTAX_ERROR], fmt, ap, true, filename, line_num);
+    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_SYNTAX_ERROR], fmt, ap, TRUE, filename, line_num);
     va_end(ap);
     return val;
 }
@@ -6670,7 +6670,7 @@ JSValue __attribute__((format(printf, 4, 5))) JS_ThrowTypeError(JSContext *ctx, 
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_TYPE_ERROR], fmt, ap, true, filename, line_num);
+    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_TYPE_ERROR], fmt, ap, TRUE, filename, line_num);
     va_end(ap);
     return val;
 }
@@ -6728,7 +6728,7 @@ JSValue __attribute__((format(printf, 4, 5))) JS_ThrowReferenceError(JSContext *
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_REFERENCE_ERROR], fmt, ap, true, filename, line_num);
+    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_REFERENCE_ERROR], fmt, ap, TRUE, filename, line_num);
     va_end(ap);
     return val;
 }
@@ -6739,7 +6739,7 @@ JSValue __attribute__((format(printf, 4, 5))) JS_ThrowRangeError(JSContext *ctx,
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_RANGE_ERROR], fmt, ap, true, filename, line_num);
+    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_RANGE_ERROR], fmt, ap, TRUE, filename, line_num);
     va_end(ap);
     return val;
 }
@@ -6750,7 +6750,7 @@ JSValue __attribute__((format(printf, 4, 5))) JS_ThrowInternalError(JSContext *c
     va_list ap;
 
     va_start(ap, fmt);
-    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_INTERNAL_ERROR], fmt, ap, true, filename, line_num);
+    val = JS_ThrowErrorWithProto3(ctx, ctx->native_error_proto[JS_INTERNAL_ERROR], fmt, ap, TRUE, filename, line_num);
     va_end(ap);
     return val;
 }
