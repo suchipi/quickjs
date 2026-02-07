@@ -15,7 +15,7 @@ declare module "quickjs:os" {
   export function close(fd: number): void;
   interface OsSeek {
     (fd: number, offset: number, whence: number): number;
-    (fd: number, offset: BigInt, whence: number): BigInt;
+    (fd: number, offset: bigint, whence: number): bigint;
   }
   export var seek: OsSeek;
   export function read(
@@ -310,7 +310,7 @@ export function close(fd: number): void;
 ```ts
 interface OsSeek {
   (fd: number, offset: number, whence: number): number;
-  (fd: number, offset: BigInt, whence: number): BigInt;
+  (fd: number, offset: bigint, whence: number): bigint;
 }
 ```
 
@@ -323,7 +323,7 @@ interface OsSeek {
 ### OsSeek(...) (call signature)
 
 ```ts
-(fd: number, offset: BigInt, whence: number): BigInt;
+(fd: number, offset: bigint, whence: number): bigint;
 ```
 
 ## "quickjs:os".seek (exported OsSeek)

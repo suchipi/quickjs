@@ -26,13 +26,23 @@ declare module "quickjs:os" {
 
   interface OsSeek {
     (fd: number, offset: number, whence: number): number;
-    (fd: number, offset: BigInt, whence: number): BigInt;
+    (fd: number, offset: bigint, whence: number): bigint;
   }
 
   export var seek: OsSeek;
 
-  export function read(fd: number, buffer: ArrayBuffer, offset: number, length: number): number;
-  export function write(fd: number, buffer: ArrayBuffer, offset: number, length: number): number;
+  export function read(
+    fd: number,
+    buffer: ArrayBuffer,
+    offset: number,
+    length: number
+  ): number;
+  export function write(
+    fd: number,
+    buffer: ArrayBuffer,
+    offset: number,
+    length: number
+  ): number;
   export function isatty(fd: number): boolean;
   export function ttyGetWinSize(fd: number): null | [number, number];
   export function ttySetRaw(fd: number): void;
@@ -92,7 +102,10 @@ declare module "quickjs:os" {
   export function setReadHandler(fd: number, func: null | (() => void)): void;
   export function setWriteHandler(fd: number, func: null | (() => void)): void;
 
-  export function signal(signal: number, func: null | undefined | (() => void)): void;
+  export function signal(
+    signal: number,
+    func: null | undefined | (() => void)
+  ): void;
 
   /* Signal constants */
   export var SIGINT: number;
@@ -271,9 +284,7 @@ declare module "quickjs:os" {
    *
    * NOTE: this function is only present on windows
    */
-  export var GetExitCodeProcess:
-    | undefined
-    | ((handle: Win32Handle) => number);
+  export var GetExitCodeProcess: undefined | ((handle: Win32Handle) => number);
 
   /**
    * Terminate a process (wrapper for Win32 `TerminateProcess`).
@@ -297,9 +308,7 @@ declare module "quickjs:os" {
    *
    * NOTE: this function is only present on windows
    */
-  export var CloseHandle:
-    | undefined
-    | ((handle: Win32Handle) => void);
+  export var CloseHandle: undefined | ((handle: Win32Handle) => void);
 
   export type CreatePipeOptions = {
     /** Whether the pipe handles should be inheritable. Defaults to true. */

@@ -47,13 +47,13 @@ declare interface FILE {
    *
    * `offset` can be a number or a bigint.
    */
-  seek(offset: number, whence: number): void;
+  seek(offset: number | bigint, whence: number): void;
 
   /** Return the current file position. */
   tell(): number;
 
   /** Return the current file position as a bigint. */
-  tello(): BigInt;
+  tello(): bigint;
 
   /** Return true if end of file. */
   eof(): boolean;

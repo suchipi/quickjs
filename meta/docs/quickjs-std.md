@@ -10,9 +10,9 @@ declare interface FILE {
   printf(fmt: string, ...args: Array<any>): void;
   flush(): void;
   sync(): void;
-  seek(offset: number, whence: number): void;
+  seek(offset: number | bigint, whence: number): void;
   tell(): number;
-  tello(): BigInt;
+  tello(): bigint;
   eof(): boolean;
   fileno(): number;
   read(buffer: ArrayBuffer, position: number, length: number): number;
@@ -97,7 +97,7 @@ Seek to a given file position (whence is `std.SEEK_*`).
 `offset` can be a number or a bigint.
 
 ```ts
-seek(offset: number, whence: number): void;
+seek(offset: number | bigint, whence: number): void;
 ```
 
 ## FILE.tell (method)
@@ -113,7 +113,7 @@ tell(): number;
 Return the current file position as a bigint.
 
 ```ts
-tello(): BigInt;
+tello(): bigint;
 ```
 
 ## FILE.eof (method)

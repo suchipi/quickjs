@@ -438,7 +438,7 @@ interface BigFloatConstructor {
    *
    * If `value`` is a string, it is converted to BigFloat using the precision of the global floating point environment ({@link BigFloatEnv.prec}).
    */
-  (value: number | string | BigInt | BigFloat): BigFloat;
+  (value: number | string | bigint | BigFloat): BigFloat;
 
   prototype: BigFloat;
 
@@ -746,7 +746,7 @@ declare type BigDecimalRoundingObject =
 
 interface BigDecimalConstructor {
   (): BigDecimal;
-  (value: number | string | BigInt | BigFloat): BigDecimal;
+  (value: number | string | bigint | BigFloat): BigDecimal;
 
   /**
    * Adds together `a` and `b` and rounds the result according to the rounding
