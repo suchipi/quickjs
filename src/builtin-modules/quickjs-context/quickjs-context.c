@@ -293,8 +293,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     if (timers) {
         js_timers_add_globals(target_ctx);
     }
-    if (moduleGlobals) {
-        QJMS_InitContext(target_ctx);
+    if (QJMS_InitContext(target_ctx, moduleGlobals)) {
+        JS_FreeContext(ctx);
+        return JS_EXCEPTION;
     }
 
     ret = JS_NewObjectClass(ctx, js_context_class_id);
@@ -315,7 +316,7 @@ static JSValue js_context_eval(JSContext *ctx, JSValueConst this_val,
 
     target_ctx = JS_GetOpaque(this_val, js_context_class_id);
     if (!target_ctx) {
-        return JS_ThrowTypeError(ctx, "quickjs-context.c", __LINE__, "'Context.prototype.eval' must be called on a Context instance");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-context.c", __LINE__, "'Context.prototype.eval' must be called on a Context instance");
     }
 
     code = JS_ToCString(ctx, argv[0]);

@@ -73,7 +73,7 @@ static JSValue js_encoding_toUtf8(JSContext *ctx, JSValueConst this_val,
   input = argv[0];
   buf = JS_GetArrayBuffer(ctx, &len, input);
   if (buf == NULL) {
-    return JS_ThrowError(ctx, "quickjs-encoding.c", __LINE__, "input must be an ArrayBuffer");
+    return JS_ThrowError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "input must be an ArrayBuffer");
   }
 
   return JS_NewStringLen(ctx, (char *)buf, len);
@@ -89,7 +89,7 @@ static JSValue js_encoding_fromUtf8(JSContext *ctx, JSValueConst this_val,
   input = argv[0];
   buf = JS_ToCStringLen2(ctx, &len, input, 1);
   if (buf == NULL) {
-    return JS_ThrowError(ctx, "quickjs-encoding.c", __LINE__, "input must be a string");
+    return JS_ThrowError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "input must be a string");
   }
 
   JSValue ret = JS_NewArrayBufferCopy(ctx, (uint8_t*) buf, len);
@@ -448,7 +448,7 @@ static JSValue js_text_encoder_ctor(JSContext *ctx, JSValueConst new_target,
             return JS_EXCEPTION;
         enc = resolve_encoding_label(label);
         if (enc < 0) {
-            JS_ThrowRangeError(ctx, "quickjs-encoding.c", __LINE__, "The encoding label provided ('%s') is invalid.",
+            JS_ThrowRangeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoding label provided ('%s') is invalid.",
                                label);
             JS_FreeCString(ctx, label);
             return JS_EXCEPTION;
@@ -478,7 +478,7 @@ static JSValue js_text_encoder_get_encoding(JSContext *ctx,
 {
     TextEncoderData *data = JS_GetOpaque(this_val, js_text_encoder_class_id);
     if (!data)
-        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "not a TextEncoder");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "not a TextEncoder");
     return JS_NewString(ctx, encoding_name(data->encoding));
 }
 
@@ -829,7 +829,7 @@ static JSValue js_text_encoder_encode(JSContext *ctx, JSValueConst this_val,
 {
     TextEncoderData *data = JS_GetOpaque(this_val, js_text_encoder_class_id);
     if (!data)
-        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "not a TextEncoder");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "not a TextEncoder");
 
     const char *str;
     size_t len;
@@ -941,7 +941,7 @@ static JSValue js_text_encoder_encodeInto(JSContext *ctx,
 {
     TextEncoderData *data = JS_GetOpaque(this_val, js_text_encoder_class_id);
     if (!data)
-        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "not a TextEncoder");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "not a TextEncoder");
 
     const char *str;
     size_t str_len;
@@ -950,7 +950,7 @@ static JSValue js_text_encoder_encodeInto(JSContext *ctx,
     JSValue ab_to_free;
 
     if (argc < 2)
-        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "encodeInto requires 2 arguments");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "encodeInto requires 2 arguments");
 
     str = JS_ToCStringLen2(ctx, &str_len, argv[0], 0);
     if (!str)
@@ -958,7 +958,7 @@ static JSValue js_text_encoder_encodeInto(JSContext *ctx,
 
     if (js_get_buffer_bytes(ctx, argv[1], &dest_buf, &dest_len, &ab_to_free) < 0) {
         JS_FreeCString(ctx, str);
-        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "second argument must be a Uint8Array");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "second argument must be a Uint8Array");
     }
 
     const uint8_t *src = (const uint8_t *)str;
@@ -1138,7 +1138,7 @@ static JSValue js_text_decoder_ctor(JSContext *ctx, JSValueConst new_target,
             return JS_EXCEPTION;
         enc = resolve_encoding_label(label);
         if (enc < 0) {
-            JS_ThrowRangeError(ctx, "quickjs-encoding.c", __LINE__, "The encoding label provided ('%s') is invalid.",
+            JS_ThrowRangeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoding label provided ('%s') is invalid.",
                                label);
             JS_FreeCString(ctx, label);
             return JS_EXCEPTION;
@@ -1192,7 +1192,7 @@ static JSValue js_text_decoder_get_encoding(JSContext *ctx,
 {
     TextDecoderData *data = JS_GetOpaque(this_val, js_text_decoder_class_id);
     if (!data)
-        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "not a TextDecoder");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "not a TextDecoder");
     return JS_NewString(ctx, encoding_name(data->encoding));
 }
 
@@ -1201,7 +1201,7 @@ static JSValue js_text_decoder_get_fatal(JSContext *ctx,
 {
     TextDecoderData *data = JS_GetOpaque(this_val, js_text_decoder_class_id);
     if (!data)
-        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "not a TextDecoder");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "not a TextDecoder");
     return JS_NewBool(ctx, data->fatal);
 }
 
@@ -1210,7 +1210,7 @@ static JSValue js_text_decoder_get_ignoreBOM(JSContext *ctx,
 {
     TextDecoderData *data = JS_GetOpaque(this_val, js_text_decoder_class_id);
     if (!data)
-        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "not a TextDecoder");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "not a TextDecoder");
     return JS_NewBool(ctx, data->ignore_bom);
 }
 
@@ -1255,7 +1255,7 @@ static JSValue decode_utf8_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -1275,7 +1275,7 @@ static JSValue decode_utf8_bytes(JSContext *ctx, TextDecoderData *data,
                     if (data->fatal) {
                         js_free(ctx, out);
                         if (work_allocated) js_free(ctx, work);
-                        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                     }
                     memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                     out_pos += 3;
@@ -1292,7 +1292,7 @@ static JSValue decode_utf8_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -1387,7 +1387,7 @@ static JSValue decode_utf16_bytes(JSContext *ctx, TextDecoderData *data,
                 if (data->fatal) {
                     js_free(ctx, out);
                     if (work_allocated) js_free(ctx, work);
-                    return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                    return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                 }
                 memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                 out_pos += 3;
@@ -1414,7 +1414,7 @@ static JSValue decode_utf16_bytes(JSContext *ctx, TextDecoderData *data,
                     if (data->fatal) {
                         js_free(ctx, out);
                         if (work_allocated) js_free(ctx, work);
-                        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                     }
                     memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                     out_pos += 3;
@@ -1444,7 +1444,7 @@ static JSValue decode_utf16_bytes(JSContext *ctx, TextDecoderData *data,
                 if (data->fatal) {
                     js_free(ctx, out);
                     if (work_allocated) js_free(ctx, work);
-                    return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                    return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                 }
                 memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                 out_pos += 3;
@@ -1455,7 +1455,7 @@ static JSValue decode_utf16_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -1548,7 +1548,7 @@ static JSValue decode_shiftjis_bytes(JSContext *ctx, TextDecoderData *data,
                     if (data->fatal) {
                         js_free(ctx, out);
                         if (work_allocated) js_free(ctx, work);
-                        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                     }
                     memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                     out_pos += 3;
@@ -1587,7 +1587,7 @@ static JSValue decode_shiftjis_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -1604,7 +1604,7 @@ static JSValue decode_shiftjis_bytes(JSContext *ctx, TextDecoderData *data,
         if (data->fatal) {
             js_free(ctx, out);
             if (work_allocated) js_free(ctx, work);
-            return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
         }
         memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
         out_pos += 3;
@@ -1654,7 +1654,7 @@ static JSValue decode_windows1252_bytes(JSContext *ctx, TextDecoderData *data,
                 /* Unmapped byte */
                 if (data->fatal) {
                     js_free(ctx, out);
-                    return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                    return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                 }
                 memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                 out_pos += 3;
@@ -1704,7 +1704,7 @@ static JSValue decode_windows1251_bytes(JSContext *ctx, TextDecoderData *data,
                 /* Unmapped byte */
                 if (data->fatal) {
                     js_free(ctx, out);
-                    return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                    return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                 }
                 memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                 out_pos += 3;
@@ -1781,7 +1781,7 @@ static JSValue decode_big5_bytes(JSContext *ctx, TextDecoderData *data,
                     if (data->fatal) {
                         js_free(ctx, out);
                         if (work_allocated) js_free(ctx, work);
-                        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                     }
                     memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                     out_pos += 3;
@@ -1806,7 +1806,7 @@ static JSValue decode_big5_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -1823,7 +1823,7 @@ static JSValue decode_big5_bytes(JSContext *ctx, TextDecoderData *data,
         if (data->fatal) {
             js_free(ctx, out);
             if (work_allocated) js_free(ctx, work);
-            return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
         }
         memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
         out_pos += 3;
@@ -1899,7 +1899,7 @@ static JSValue decode_euckr_bytes(JSContext *ctx, TextDecoderData *data,
                     if (data->fatal) {
                         js_free(ctx, out);
                         if (work_allocated) js_free(ctx, work);
-                        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                     }
                     memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                     out_pos += 3;
@@ -1924,7 +1924,7 @@ static JSValue decode_euckr_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -1941,7 +1941,7 @@ static JSValue decode_euckr_bytes(JSContext *ctx, TextDecoderData *data,
         if (data->fatal) {
             js_free(ctx, out);
             if (work_allocated) js_free(ctx, work);
-            return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
         }
         memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
         out_pos += 3;
@@ -2016,7 +2016,7 @@ static JSValue decode_eucjp_bytes(JSContext *ctx, TextDecoderData *data,
                     if (data->fatal) {
                         js_free(ctx, out);
                         if (work_allocated) js_free(ctx, work);
-                        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                     }
                     memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                     out_pos += 3;
@@ -2038,7 +2038,7 @@ static JSValue decode_eucjp_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -2061,7 +2061,7 @@ static JSValue decode_eucjp_bytes(JSContext *ctx, TextDecoderData *data,
                     if (data->fatal) {
                         js_free(ctx, out);
                         if (work_allocated) js_free(ctx, work);
-                        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                     }
                     while (pos < work_len) {
                         memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
@@ -2088,7 +2088,7 @@ static JSValue decode_eucjp_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -2107,7 +2107,7 @@ static JSValue decode_eucjp_bytes(JSContext *ctx, TextDecoderData *data,
                     if (data->fatal) {
                         js_free(ctx, out);
                         if (work_allocated) js_free(ctx, work);
-                        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                     }
                     memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                     out_pos += 3;
@@ -2131,7 +2131,7 @@ static JSValue decode_eucjp_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -2146,7 +2146,7 @@ static JSValue decode_eucjp_bytes(JSContext *ctx, TextDecoderData *data,
         if (data->fatal) {
             js_free(ctx, out);
             if (work_allocated) js_free(ctx, work);
-            return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
         }
         memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
         out_pos += 3;
@@ -2221,7 +2221,7 @@ static JSValue decode_gb18030_bytes(JSContext *ctx, TextDecoderData *data,
                     if (data->fatal) {
                         js_free(ctx, out);
                         if (work_allocated) js_free(ctx, work);
-                        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                     }
                     memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                     out_pos += 3;
@@ -2244,7 +2244,7 @@ static JSValue decode_gb18030_bytes(JSContext *ctx, TextDecoderData *data,
                         if (data->fatal) {
                             js_free(ctx, out);
                             if (work_allocated) js_free(ctx, work);
-                            return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                            return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                         }
                         while (pos < work_len) {
                             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
@@ -2271,7 +2271,7 @@ static JSValue decode_gb18030_bytes(JSContext *ctx, TextDecoderData *data,
                 if (data->fatal) {
                     js_free(ctx, out);
                     if (work_allocated) js_free(ctx, work);
-                    return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                    return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
                 }
                 memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
                 out_pos += 3;
@@ -2293,7 +2293,7 @@ static JSValue decode_gb18030_bytes(JSContext *ctx, TextDecoderData *data,
             if (data->fatal) {
                 js_free(ctx, out);
                 if (work_allocated) js_free(ctx, work);
-                return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
             }
             memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
             out_pos += 3;
@@ -2308,7 +2308,7 @@ static JSValue decode_gb18030_bytes(JSContext *ctx, TextDecoderData *data,
         if (data->fatal) {
             js_free(ctx, out);
             if (work_allocated) js_free(ctx, work);
-            return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "The encoded data was not valid.");
         }
         memcpy(out + out_pos, REPLACEMENT_UTF8, 3);
         out_pos += 3;
@@ -2336,7 +2336,7 @@ static JSValue js_text_decoder_decode(JSContext *ctx, JSValueConst this_val,
 {
     TextDecoderData *data = JS_GetOpaque(this_val, js_text_decoder_class_id);
     if (!data)
-        return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "not a TextDecoder");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "not a TextDecoder");
 
     /* Get input bytes */
     uint8_t *input_buf = NULL;
@@ -2346,7 +2346,7 @@ static JSValue js_text_decoder_decode(JSContext *ctx, JSValueConst this_val,
     if (argc >= 1 && !JS_IsUndefined(argv[0]) && !JS_IsNull(argv[0])) {
         if (js_get_buffer_bytes(ctx, argv[0], &input_buf, &input_len,
                                 &ab_to_free) < 0) {
-            return JS_ThrowTypeError(ctx, "quickjs-encoding.c", __LINE__, "input must be an ArrayBuffer, TypedArray, or DataView");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "input must be an ArrayBuffer, TypedArray, or DataView");
         }
     }
 
@@ -2420,7 +2420,7 @@ static JSValue js_text_decoder_decode(JSContext *ctx, JSValueConst this_val,
         break;
 #endif
     default:
-        result = JS_ThrowError(ctx, "quickjs-encoding.c", __LINE__, "unsupported encoding");
+        result = JS_ThrowError(ctx, "<internal>/quickjs-encoding.c", __LINE__, "unsupported encoding");
         break;
     }
 

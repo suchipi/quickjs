@@ -15,7 +15,7 @@ static JSValue js_engine_isMainModule(JSContext *ctx, JSValueConst this_val,
   int result;
 
   if (argc < 1) {
-    return JS_ThrowTypeError(ctx, "quickjs-engine.c", __LINE__, "isMainModule requires one argument: the resolved module name to check");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "isMainModule requires one argument: the resolved module name to check");
   }
 
   module_name = JS_ToCString(ctx, argv[0]);
@@ -23,7 +23,7 @@ static JSValue js_engine_isMainModule(JSContext *ctx, JSValueConst this_val,
     return JS_EXCEPTION;
   }
 
-  result = QJMS_IsMainModule(JS_GetRuntime(ctx), module_name);
+  result = QJMS_IsMainModule(ctx, module_name);
   return JS_NewBool(ctx, result);
 }
 
@@ -33,7 +33,7 @@ static JSValue js_engine_setMainModule(JSContext *ctx, JSValueConst this_val,
   const char *module_name;
 
   if (argc < 1) {
-    return JS_ThrowTypeError(ctx, "quickjs-engine.c", __LINE__, "setMainModule requires one argument: the resolved module name to set");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "setMainModule requires one argument: the resolved module name to set");
   }
 
   module_name = JS_ToCString(ctx, argv[0]);
@@ -41,7 +41,7 @@ static JSValue js_engine_setMainModule(JSContext *ctx, JSValueConst this_val,
     return JS_EXCEPTION;
   }
 
-  QJMS_SetMainModule(JS_GetRuntime(ctx), module_name);
+  QJMS_SetMainModule(ctx, module_name);
 
   return JS_UNDEFINED;
 }
@@ -61,7 +61,7 @@ static JSValue js_engine_runScript(JSContext *ctx, JSValueConst this_val,
   }
   buf = QJU_ReadFile(ctx, &buf_len, filename);
   if (!buf) {
-    JS_ThrowReferenceError(ctx, "quickjs-engine.c", __LINE__, "could not load '%s'", filename);
+    JS_ThrowReferenceError(ctx, "<internal>/quickjs-engine.c", __LINE__, "could not load '%s'", filename);
     JS_FreeCString(ctx, filename);
     return JS_EXCEPTION;
   }
@@ -81,7 +81,7 @@ static JSValue js_engine_importModule(JSContext *ctx, JSValueConst this_val,
   } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
     return JS_DynamicImportSync2(ctx, argv[0], argv[1]);
   } else {
-    return JS_ThrowTypeError(ctx, "quickjs-engine.c", __LINE__, "importModule must be called with one or two arguments");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "importModule must be called with one or two arguments");
   }
 }
 
@@ -100,7 +100,7 @@ static JSValue js_engine_getFileNameFromStack(JSContext *ctx, JSValueConst this_
 
   filename = JS_GetScriptOrModuleName(ctx, stack_levels + 1);
   if (filename == JS_ATOM_NULL) {
-    return JS_ThrowError(ctx, "quickjs-engine.c", __LINE__, "Cannot determine the caller filename for the given stack level. Maybe you're using eval?");
+    return JS_ThrowError(ctx, "<internal>/quickjs-engine.c", __LINE__, "Cannot determine the caller filename for the given stack level. Maybe you're using eval?");
   } else {
     return JS_AtomToString(ctx, filename);
   }
@@ -127,7 +127,7 @@ static JSValue js_engine_resolveModule(JSContext *ctx, JSValueConst this_val,
     JS_FreeAtom(ctx, basename_atom);
     return result;
   } else {
-    return JS_ThrowTypeError(ctx, "quickjs-engine.c", __LINE__, "resolveModule must be called with one or two arguments");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "resolveModule must be called with one or two arguments");
   }
 }
 
@@ -146,12 +146,12 @@ static JSValue js_engine_evalScript(JSContext *ctx, JSValueConst this_val,
   if (argc >= 2) {
     options_obj = argv[1];
     if (!JS_IsObject(options_obj)) {
-      return JS_ThrowTypeError(ctx, "quickjs-engine.c", __LINE__, "'options' argument must be an object");
+      return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "'options' argument must be an object");
     }
 
     backtrace_barrier_val = JS_GetPropertyStr(ctx, options_obj, "backtraceBarrier");
     if (!JS_IsBool(backtrace_barrier_val) && !JS_IsUndefined(backtrace_barrier_val)) {
-      return JS_ThrowTypeError(ctx, "quickjs-engine.c", __LINE__, "'backtraceBarrier' option must be a boolean");
+      return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "'backtraceBarrier' option must be a boolean");
     }
     backtrace_barrier = JS_ToBool(ctx, backtrace_barrier_val);
     if (backtrace_barrier == -1) {
@@ -232,7 +232,7 @@ static int js_userdefined_module_init(JSContext *ctx, JSModuleDef *m)
 
   objp = (JSValue *)JS_GetModuleUserData(m);
   if (objp == NULL) {
-    JS_ThrowTypeError(ctx, "quickjs-engine.c", __LINE__, "user-defined module did not have exports object as userdata");
+    JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "user-defined module did not have exports object as userdata");
     ret = -1;
     goto end;
   }
@@ -279,7 +279,7 @@ static JSValue js_engine_defineBuiltinModule(JSContext *ctx, JSValueConst this_v
   JSValue ret = JS_UNDEFINED;
 
   if (argc < 2) {
-    JS_ThrowError(ctx, "quickjs-engine.c", __LINE__, "defineBuiltinModule requires two arguments: a string (module name) and an object (module exports).");
+    JS_ThrowError(ctx, "<internal>/quickjs-engine.c", __LINE__, "defineBuiltinModule requires two arguments: a string (module name) and an object (module exports).");
     ret = JS_EXCEPTION;
     goto end;
   }
@@ -294,7 +294,7 @@ static JSValue js_engine_defineBuiltinModule(JSContext *ctx, JSValueConst this_v
   }
 
   if (!JS_IsObject(obj)) {
-    JS_ThrowError(ctx, "quickjs-engine.c", __LINE__, "Second argument to defineBuiltinModule must be an object.");
+    JS_ThrowError(ctx, "<internal>/quickjs-engine.c", __LINE__, "Second argument to defineBuiltinModule must be an object.");
     ret = JS_EXCEPTION;
     goto end;
   }

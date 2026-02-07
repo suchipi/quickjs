@@ -45,6 +45,10 @@ extern JSClassID js_std_file_class_id;
 JSValue js_std_new_file(JSContext *ctx, FILE *f,
                         JS_BOOL close_in_finalizer, JS_BOOL is_popen);
 
+/* exported for QMJS module-impl.js */
+JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
+                               int argc, JSValueConst *argv);
+
 #ifdef __cplusplus
 }
 #endif

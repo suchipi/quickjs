@@ -49,7 +49,7 @@ static JSValue js_bytecode_fromValue(JSContext *ctx, JSValueConst this_val,
     BOOL byte_swap = FALSE;
 
     if (argc < 1) {
-        return JS_ThrowError(ctx, "quickjs-bytecode.c", __LINE__, "fromValue requires at least 1 argument");
+        return JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__, "fromValue requires at least 1 argument");
     }
     obj = argv[0];
 
@@ -88,7 +88,7 @@ static JSValue js_bytecode_toValue(JSContext *ctx, JSValueConst this_val,
     JSValue obj;
 
     if (argc < 1) {
-        return JS_ThrowError(ctx, "quickjs-bytecode.c", __LINE__, "toValue requires at least 1 argument");
+        return JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__, "toValue requires at least 1 argument");
     }
 
     buf = JS_GetArrayBuffer(ctx, &buf_len, argv[0]);
@@ -187,7 +187,7 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
     should_free_encoded_filename = FALSE;
 
     if (argc < 1) {
-        return JS_ThrowError(ctx, "quickjs-bytecode.c", __LINE__, "fromFile requires at least 1 argument");
+        return JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__, "fromFile requires at least 1 argument");
     }
 
     if (argc == 2 && !JS_IsUndefined(argv[1]) && !JS_IsNull(argv[1])) {
@@ -216,7 +216,7 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
             } else if (strcmp(str, "script") == 0) {
                 as_module = 0;
             } else {
-                JS_ThrowError(ctx, "quickjs-bytecode.c", __LINE__, "invalid sourceType value: %s", str);
+                JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__, "invalid sourceType value: %s", str);
                 JS_FreeCString(ctx, str);
                 return JS_EXCEPTION;
             }
@@ -245,7 +245,7 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
             }
             should_free_encoded_filename = TRUE;
         } else if (!JS_IsUndefined(encoded_filename_val) && !JS_IsNull(encoded_filename_val)) {
-            return JS_ThrowError(ctx, "quickjs-bytecode.c", __LINE__, "when present, 'encodedFileName' option must be a string");
+            return JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__, "when present, 'encodedFileName' option must be a string");
         }
     }
 
@@ -263,7 +263,7 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
 
     buf = QJU_ReadFile(ctx, &buf_len, filename);
     if (!buf) {
-        JS_ThrowError(ctx, "quickjs-bytecode.c", __LINE__, "%s (errno = %d, filename = %s)", strerror(errno), errno, filename);
+        JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__, "%s (errno = %d, filename = %s)", strerror(errno), errno, filename);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
 

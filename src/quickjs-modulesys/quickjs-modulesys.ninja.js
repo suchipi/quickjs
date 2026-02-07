@@ -1,6 +1,7 @@
 const module_impl_c = build({
   output: builddir("intermediate/quickjs-modulesys/module-impl.c"),
   rule: "qjsc-minimal",
+  // TODO: make this <internal>/../module-impl.js in the stack trace
   inputs: [rel("module-impl.js")],
   ruleVariables: {
     qjsc_args: `-c -m`,

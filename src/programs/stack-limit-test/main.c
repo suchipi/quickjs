@@ -75,8 +75,13 @@ int main(int argc, char **argv)
   QJMS_InitState(rt);
   ctx = JS_NewCustomContext(rt);
   js_cmdline_add_scriptArgs(ctx, argc, argv);
-  QJMS_InitContext(ctx);
+  if (QJMS_InitContext(ctx, 1)) {
+    QJU_PrintException(ctx, stderr);
+    exit_status = 1;
+    goto cleanup;
+  }
   QJMS_EvalBinary(ctx, qjsc_loop, qjsc_loop_size, 0);
+cleanup:
   exit_status = js_eventloop_run(ctx);
   QJMS_FreeState(rt);
   JS_FreeContext(ctx);

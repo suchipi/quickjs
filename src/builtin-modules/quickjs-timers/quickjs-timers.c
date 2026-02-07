@@ -91,7 +91,7 @@ static JSValue js_timers_setTimeout(JSContext *ctx, JSValueConst this_val,
 
     func = argv[0];
     if (!JS_IsFunction(ctx, func))
-        return JS_ThrowTypeError(ctx, "quickjs-timers.c", __LINE__, "first argument to setTimeout was not a function");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-timers.c", __LINE__, "first argument to setTimeout was not a function");
     if (JS_ToInt64(ctx, &delay, argv[1]))
         return JS_EXCEPTION;
     obj = JS_NewObjectClass(ctx, js_timer_class_id);
@@ -123,7 +123,7 @@ static JSValue js_timers_setInterval(JSContext *ctx, JSValueConst this_val,
 
     func = argv[0];
     if (!JS_IsFunction(ctx, func))
-        return JS_ThrowTypeError(ctx, "quickjs-timers.c", __LINE__, "first argument to setInterval was not a function");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-timers.c", __LINE__, "first argument to setInterval was not a function");
     if (JS_ToInt64(ctx, &delay, argv[1]))
         return JS_EXCEPTION;
     obj = JS_NewObjectClass(ctx, js_timer_class_id);
@@ -217,6 +217,9 @@ JSModuleDef *js_init_module_timers(JSContext *ctx, const char *module_name)
 void js_timers_add_globals(JSContext *ctx)
 {
     JSValue global_obj, setTimeout_val, clearTimeout_val, setInterval_val, clearInterval_val;
+    JSSyntheticStackFrame *ssf;
+
+    ssf = JS_PushSyntheticStackFrame(ctx, "js_timers_add_globals", "quickjs-timers.c", __LINE__);
 
     /* Ensure Timer class is initialized */
     js_timers_init_class(ctx);
@@ -236,4 +239,5 @@ void js_timers_add_globals(JSContext *ctx)
     JS_SetPropertyStr(ctx, global_obj, "clearInterval", clearInterval_val);
 
     JS_FreeValue(ctx, global_obj);
+    JS_PopSyntheticStackFrame(ctx, ssf);
 }

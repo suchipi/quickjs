@@ -35,6 +35,14 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name);
 
 void js_os_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt));
 
+/* exported for QMJS module-impl.js */
+JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
+                       int argc, JSValueConst *argv);
+JSValue js_os_access(JSContext *ctx, JSValueConst this_val,
+                     int argc, JSValueConst *argv);
+JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
+                   int argc, JSValueConst *argv, int is_lstat);
+
 #ifdef __cplusplus
 }
 #endif

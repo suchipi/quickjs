@@ -29,6 +29,7 @@
 #include <string.h>
 #include "quickjs-full-init.h"
 #include "quickjs-modulesys.h"
+#include "quickjs-utils.h"
 #include "cutils.h"
 
 static JSContext *JS_NewCustomContext(JSRuntime *rt)
@@ -83,15 +84,20 @@ int main(int argc, char **argv)
   JS_SetCanBlock(rt, TRUE);
   ctx = JS_NewCustomContext(rt);
   js_cmdline_add_scriptArgs(ctx, argc, argv);
-  QJMS_InitContext(ctx);
+  if (QJMS_InitContext(ctx, TRUE)) {
+    QJU_PrintException(ctx, stderr);
+    exit_status = 1;
+    goto cleanup;
+  }
 
   if (QJMS_EvalFile(ctx, filename, -1)) {
-    JS_FreeContext(ctx);
-    JS_FreeRuntime(rt);
-    return 1;
+    QJU_PrintException(ctx, stderr);
+    exit_status = 1;
+    goto cleanup;
   }
 
   exit_status = js_eventloop_run(ctx);
+cleanup:
   QJMS_FreeState(rt);
   js_eventloop_free(rt);
   JS_FreeContext(ctx);

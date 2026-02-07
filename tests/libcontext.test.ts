@@ -66,94 +66,722 @@ test("quickjs:context - example", async () => {
   `);
 });
 
-for (const modname of [
-  "quickjs:bytecode",
-  "quickjs:cmdline",
-  "quickjs:context",
-  "quickjs:encoding",
-  "quickjs:engine",
-  "quickjs:os",
-  "quickjs:pointer",
-  "quickjs:std",
-  "quickjs:timers",
-]) {
-  test(`quickjs:context - ${modname} (default)`, async () => {
-    const run = spawn(binDir("qjs"), [
-      "-e",
-      `
+test("quickjs:context - quickjs:bytecode option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
 		import { Context } from "quickjs:context";
 
 		const ctx = new Context();
-		try {
-			ctx.globalThis.require(${JSON.stringify(modname)});
-			console.log("worked");
-		} catch (err) {
-			console.log("failed");
-		}
+		ctx.globalThis.require("quickjs:bytecode");
 	`,
-    ]);
-    await run.completion;
-    expect(run.result).toMatchObject({
-      stdout: "worked\n",
-      stderr: "",
-      code: 0,
-      error: false,
-    });
-  });
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
 
-  test(`quickjs:context - ${modname} (true)`, async () => {
-    const run = spawn(binDir("qjs"), [
-      "-e",
-      `
+test("quickjs:context - quickjs:bytecode option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
 		import { Context } from "quickjs:context";
 
 		const ctx = new Context({
+      moduleGlobals: true,
 		  modules: {
-			  ${JSON.stringify(modname)}: true,
+			  "quickjs:bytecode": true,
 			},
 		});
-		try {
-			ctx.globalThis.require(${JSON.stringify(modname)});
-			console.log("worked");
-		} catch (err) {
-			console.log("failed");
-		}
+		ctx.globalThis.require("quickjs:bytecode");
 	`,
-    ]);
-    await run.completion;
-    expect(run.result).toMatchObject({
-      stdout: "worked\n",
-      stderr: "",
-      code: 0,
-      error: false,
-    });
-  });
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
 
-  test(`quickjs:context - ${modname} (false)`, async () => {
-    const run = spawn(binDir("qjs"), [
-      "-e",
-      `
+test("quickjs:context - quickjs:bytecode option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
 		import { Context } from "quickjs:context";
 
 		const ctx = new Context({
+      moduleGlobals: true,
 		  modules: {
-			  ${JSON.stringify(modname)}: false,
+			  "quickjs:bytecode": false,
 			},
 		});
-		try {
-			ctx.globalThis.require(${JSON.stringify(modname)});
-			console.log("worked");
-		} catch (err) {
-			console.log("failed");
-		}
+		ctx.globalThis.require("quickjs:bytecode");
 	`,
-    ]);
-    await run.completion;
-    expect(run.result).toMatchObject({
-      stdout: "failed\n",
-      stderr: "",
-      code: 0,
-      error: false,
-    });
-  });
-}
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:bytecode)
+        at <internal>/quickjs-std.c:307
+        at loadFile (native)
+        at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
+        at require (native)
+        at <anonymous> (<cmdline>:10)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:cmdline option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		ctx.globalThis.require("quickjs:cmdline");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:cmdline option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:cmdline": true,
+			},
+		});
+		ctx.globalThis.require("quickjs:cmdline");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:cmdline option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:cmdline": false,
+			},
+		});
+		ctx.globalThis.require("quickjs:cmdline");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:cmdline)
+        at <internal>/quickjs-std.c:307
+        at loadFile (native)
+        at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
+        at require (native)
+        at <anonymous> (<cmdline>:10)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:context option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		ctx.globalThis.require("quickjs:context");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:context option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:context": true,
+			},
+		});
+		ctx.globalThis.require("quickjs:context");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:context option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:context": false,
+			},
+		});
+		ctx.globalThis.require("quickjs:context");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:context)
+        at <internal>/quickjs-std.c:307
+        at loadFile (native)
+        at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
+        at require (native)
+        at <anonymous> (<cmdline>:10)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:encoding option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		ctx.globalThis.require("quickjs:encoding");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:encoding option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:encoding": true,
+			},
+		});
+		ctx.globalThis.require("quickjs:encoding");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:encoding option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:encoding": false,
+			},
+		});
+		ctx.globalThis.require("quickjs:encoding");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:encoding)
+        at <internal>/quickjs-std.c:307
+        at loadFile (native)
+        at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
+        at require (native)
+        at <anonymous> (<cmdline>:10)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:engine option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		ctx.globalThis.require("quickjs:engine");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:engine option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:engine": true,
+			},
+		});
+		ctx.globalThis.require("quickjs:engine");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:engine option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:engine": false,
+			},
+		});
+		ctx.globalThis.require("quickjs:engine");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:engine)
+        at <internal>/quickjs-std.c:307
+        at loadFile (native)
+        at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
+        at require (native)
+        at <anonymous> (<cmdline>:10)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:os option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		ctx.globalThis.require("quickjs:os");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:os option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:os": true,
+			},
+		});
+		ctx.globalThis.require("quickjs:os");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:os option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:os": false,
+			},
+		});
+		ctx.globalThis.require("quickjs:os");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:os)
+        at <internal>/quickjs-std.c:307
+        at loadFile (native)
+        at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
+        at require (native)
+        at <anonymous> (<cmdline>:10)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:pointer option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		ctx.globalThis.require("quickjs:pointer");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:pointer option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:pointer": true,
+			},
+		});
+		ctx.globalThis.require("quickjs:pointer");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:pointer option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:pointer": false,
+			},
+		});
+		ctx.globalThis.require("quickjs:pointer");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:pointer)
+        at <internal>/quickjs-std.c:307
+        at loadFile (native)
+        at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
+        at require (native)
+        at <anonymous> (<cmdline>:10)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:std option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		ctx.globalThis.require("quickjs:std");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:std option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:std": true,
+			},
+		});
+		ctx.globalThis.require("quickjs:std");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:std option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:std": false,
+			},
+		});
+		ctx.globalThis.require("quickjs:std");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:std)
+        at <internal>/quickjs-std.c:307
+        at loadFile (native)
+        at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
+        at require (native)
+        at <anonymous> (<cmdline>:10)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:timers option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		ctx.globalThis.require("quickjs:timers");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:timers option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:timers": true,
+			},
+		});
+		ctx.globalThis.require("quickjs:timers");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:timers option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:timers": false,
+			},
+		});
+		ctx.globalThis.require("quickjs:timers");
+	`,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:timers)
+        at <internal>/quickjs-std.c:307
+        at loadFile (native)
+        at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
+        at require (native)
+        at <anonymous> (<cmdline>:10)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});

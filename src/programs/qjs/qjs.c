@@ -448,7 +448,10 @@ int main(int argc, char **argv)
         }
 #endif
         js_cmdline_add_scriptArgs(ctx, argc, argv);
-        QJMS_InitContext(ctx);
+        if (QJMS_InitContext(ctx, TRUE)) {
+            QJU_PrintException(ctx, stderr);
+            goto fail;
+        }
 
         /* make 'std' and 'os' visible to non module code */
         if (load_std) {

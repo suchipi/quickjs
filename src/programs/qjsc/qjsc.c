@@ -794,7 +794,10 @@ int main(int argc, char **argv)
                 "  js_print_add_console_global(ctx);\n");
 
         if (feature_bitmap & (1 << FE_MODULE_LOADER)) {
-            fprintf(fo, "  QJMS_InitContext(ctx);\n");
+            fprintf(fo, "  if (QJMS_InitContext(ctx, TRUE)) {\n"
+            "    QJU_PrintException(ctx, stderr);\n"
+            "    exit(1);\n"
+            "  }\n");
         }
 
         for(i = 0; i < cname_list.count; i++) {

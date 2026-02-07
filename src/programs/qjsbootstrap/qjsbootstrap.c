@@ -190,7 +190,12 @@ int main(int argc, char **argv)
   ctx = JS_NewCustomContext(rt);
   define_qjsbootstrap_offset(ctx);
   js_cmdline_add_scriptArgs(ctx, argc, argv);
-  QJMS_InitContext(ctx);
+
+  if (QJMS_InitContext(ctx, TRUE)) {
+    QJU_PrintException(ctx, stderr);
+    free(self_binary_path);
+    return 1;
+  }
 
 #ifdef CONFIG_BYTECODE
   QJMS_EvalBinary(ctx, appended_code, appended_code_len, 0);

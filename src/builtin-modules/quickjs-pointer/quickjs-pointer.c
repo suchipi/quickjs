@@ -11,7 +11,7 @@ static JSClassDef js_pointer_class = {
 static JSValue js_pointer_ctor(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
 {
-    return JS_ThrowError(ctx, "quickjs-pointer.c", __LINE__, "Pointer objects cannot be created by JavaScript code. They must instead be created by native code, by using the function `js_new_pointer`.");
+    return JS_ThrowError(ctx, "<internal>/quickjs-pointer.c", __LINE__, "Pointer objects cannot be created by JavaScript code. They must instead be created by native code, by using the function `js_new_pointer`.");
 }
 
 static JSValue js_pointer_Pointer_isPointer(JSContext *ctx, JSValueConst this_val,

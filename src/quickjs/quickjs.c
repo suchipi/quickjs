@@ -267,6 +267,19 @@ typedef struct JSStackFrame {
     JSValue *cur_sp;
 } JSStackFrame;
 
+/* Synthetic stack frame for debugging. Appears in backtraces with custom
+   function name, filename, and line number. Created via
+   JS_PushSyntheticStackFrame(), removed via JS_PopSyntheticStackFrame().
+   The 'frame' member must be first so that (JSStackFrame *) and
+   (JSSyntheticStackFrame *) are interchangeable via casting.
+   Synthetic frames are identified by frame.cur_func == JS_NULL. */
+struct JSSyntheticStackFrame {
+    JSStackFrame frame;
+    JSAtom filename;
+    int line_num;
+    char *func_name; /* heap-allocated via js_strdup, or NULL */
+};
+
 typedef enum {
     JS_GC_OBJ_TYPE_JS_OBJECT,
     JS_GC_OBJ_TYPE_FUNCTION_BYTECODE,
@@ -1454,7 +1467,7 @@ static int init_class_range(JSRuntime *rt, JSClassShortDef const *tab,
 
 static JSValue JS_ThrowUnsupportedOperation(JSContext *ctx)
 {
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "unsupported operation");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "unsupported operation");
 }
 
 static JSValue invalid_to_string(JSContext *ctx, JSValueConst val)
@@ -3846,7 +3859,7 @@ JSValue JS_NewStringLen(JSContext *ctx, const char *buf, size_t buf_len)
         p++;
     len1 = p - p_start;
     if (len1 > JS_STRING_LEN_MAX)
-        return JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "string too long");
+        return JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "string too long");
     if (p == p_end) {
         /* ASCII string */
         return js_new_string8(ctx, (const uint8_t *)buf, buf_len);
@@ -4128,7 +4141,7 @@ static JSValue JS_ConcatString1(JSContext *ctx,
 
     len = p1->len + p2->len;
     if (len > JS_STRING_LEN_MAX)
-        return JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "string too long");
+        return JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "string too long");
     is_wide_char = p1->is_wide_char | p2->is_wide_char;
     p = js_alloc_string(ctx, len, is_wide_char);
     if (!p)
@@ -4869,7 +4882,7 @@ static int JS_SetObjectData(JSContext *ctx, JSValueConst obj, JSValue val)
     }
     JS_FreeValue(ctx, val);
     if (!JS_IsException(obj))
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid object type");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid object type");
     return -1;
 }
 
@@ -6480,6 +6493,24 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
             backtrace_flags &= ~JS_BACKTRACE_FLAG_SKIP_FIRST_LEVEL;
             continue;
         }
+        /* Handle synthetic stack frames (cur_func == JS_NULL) */
+        if (JS_VALUE_GET_TAG(sf->cur_func) == JS_TAG_NULL) {
+            JSSyntheticStackFrame *ssf = (JSSyntheticStackFrame *)sf;
+            const char *name = ssf->func_name;
+            const char *atom_str;
+            if (!name || name[0] == '\0')
+                name = "<anonymous>";
+            dbuf_printf(&dbuf, "    at %s", name);
+            atom_str = JS_AtomToCString(ctx, ssf->filename);
+            dbuf_printf(&dbuf, " (%s", atom_str ? atom_str : "<null>");
+            JS_FreeCString(ctx, atom_str);
+            if (ssf->line_num != -1)
+                dbuf_printf(&dbuf, ":%d", ssf->line_num);
+            dbuf_putc(&dbuf, ')');
+            dbuf_putc(&dbuf, '\n');
+            continue;
+        }
+
         func_name_str = get_func_name(ctx, sf->cur_func);
         if (!func_name_str || func_name_str[0] == '\0')
             str1 = "<anonymous>";
@@ -6663,7 +6694,7 @@ static int __attribute__((format(printf, 3, 4))) JS_ThrowTypeErrorOrFalse(JSCont
 static JSValue __attribute__((format(printf, 4, 5))) __JS_ThrowTypeErrorAtom(JSContext *ctx, JSAtom atom, int line_num, const char *fmt, ...)
 {
     char buf[ATOM_GET_STR_BUF_SIZE];
-    return JS_ThrowTypeError(ctx, "quickjs.c", line_num, fmt,
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", line_num, fmt,
                              JS_AtomGetStr(ctx, buf, sizeof(buf), atom));
 }
 
@@ -6671,7 +6702,7 @@ static JSValue __attribute__((format(printf, 4, 5))) __JS_ThrowTypeErrorAtom(JSC
 static JSValue __attribute__((format(printf, 4, 5))) __JS_ThrowSyntaxErrorAtom(JSContext *ctx, JSAtom atom, int line_num, const char *fmt, ...)
 {
     char buf[ATOM_GET_STR_BUF_SIZE];
-    return JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, fmt,
+    return JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, fmt,
                              JS_AtomGetStr(ctx, buf, sizeof(buf), atom));
 }
 
@@ -6729,7 +6760,7 @@ JSValue JS_ThrowOutOfMemory(JSContext *ctx)
     JSRuntime *rt = ctx->rt;
     if (!rt->in_out_of_memory) {
         rt->in_out_of_memory = TRUE;
-        JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "out of memory");
+        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "out of memory");
         rt->in_out_of_memory = FALSE;
     }
     return JS_EXCEPTION;
@@ -6737,30 +6768,30 @@ JSValue JS_ThrowOutOfMemory(JSContext *ctx)
 
 static JSValue JS_ThrowStackOverflow(JSContext *ctx)
 {
-    return JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "stack overflow");
+    return JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "stack overflow");
 }
 
 static JSValue JS_ThrowTypeErrorNotAnObject(JSContext *ctx)
 {
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not an object");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not an object");
 }
 
 static JSValue JS_ThrowTypeErrorNotASymbol(JSContext *ctx)
 {
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a symbol");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a symbol");
 }
 
 static JSValue JS_ThrowReferenceErrorNotDefined(JSContext *ctx, JSAtom name)
 {
     char buf[ATOM_GET_STR_BUF_SIZE];
-    return JS_ThrowReferenceError(ctx, "quickjs.c", __LINE__, "'%s' is not defined",
+    return JS_ThrowReferenceError(ctx, "<internal>/quickjs.c", __LINE__, "'%s' is not defined",
                                   JS_AtomGetStr(ctx, buf, sizeof(buf), name));
 }
 
 static JSValue JS_ThrowReferenceErrorUninitialized(JSContext *ctx, JSAtom name)
 {
     char buf[ATOM_GET_STR_BUF_SIZE];
-    return JS_ThrowReferenceError(ctx, "quickjs.c", __LINE__, "%s is not initialized",
+    return JS_ThrowReferenceError(ctx, "<internal>/quickjs.c", __LINE__, "%s is not initialized",
                                   name == JS_ATOM_NULL ? "lexical variable" :
                                   JS_AtomGetStr(ctx, buf, sizeof(buf), name));
 }
@@ -6795,7 +6826,7 @@ static no_inline __exception int __js_poll_interrupts(JSContext *ctx)
     if (rt->interrupt_handler) {
         if (rt->interrupt_handler(rt, rt->interrupt_opaque)) {
             /* XXX: should set a specific flag to avoid catching */
-            JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "interrupted");
+            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "interrupted");
             JS_SetUncatchableError(ctx, ctx->rt->current_exception, TRUE);
             return -1;
         }
@@ -6850,7 +6881,7 @@ static int JS_SetPrototypeInternal(JSContext *ctx, JSValueConst obj,
         return TRUE;
     if (!p->extensible) {
         if (throw_flag) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "object is not extensible");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "object is not extensible");
             return -1;
         } else {
             return FALSE;
@@ -6862,7 +6893,7 @@ static int JS_SetPrototypeInternal(JSContext *ctx, JSValueConst obj,
         do {
             if (p1 == p) {
                 if (throw_flag) {
-                    JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "circular prototype chain");
+                    JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "circular prototype chain");
                     return -1;
                 } else {
                     return FALSE;
@@ -6980,7 +7011,7 @@ static int JS_OrdinaryIsInstanceOf(JSContext *ctx, JSValueConst val,
     obj_proto = JS_GetProperty(ctx, obj, JS_ATOM_prototype);
     if (JS_VALUE_GET_TAG(obj_proto) != JS_TAG_OBJECT) {
         if (!JS_IsException(obj_proto))
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "operand 'prototype' property is not an object");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "operand 'prototype' property is not an object");
         ret = -1;
         goto done;
     }
@@ -7050,7 +7081,7 @@ int JS_IsInstanceOf(JSContext *ctx, JSValueConst val, JSValueConst obj)
     /* legacy case */
     if (!JS_IsFunction(ctx, obj)) {
     fail:
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid 'instanceof' right operand");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid 'instanceof' right operand");
         return -1;
     }
     return JS_OrdinaryIsInstanceOf(ctx, val, obj);
@@ -7396,7 +7427,7 @@ static int JS_CheckBrand(JSContext *ctx, JSValueConst obj, JSValueConst func)
         goto not_obj;
     prs = find_own_property(&pr, home_obj, JS_ATOM_Private_brand);
     if (!prs) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "expecting <brand> private field");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "expecting <brand> private field");
         return -1;
     }
     brand = pr->u.value;
@@ -7410,7 +7441,7 @@ static int JS_CheckBrand(JSContext *ctx, JSValueConst obj, JSValueConst func)
     p = JS_VALUE_GET_OBJ(obj);
     prs = find_own_property(&pr, p, js_symbol_to_atom(ctx, (JSValue)brand));
     if (!prs) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid brand on object");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid brand on object");
         return -1;
     }
     return 0;
@@ -8171,7 +8202,7 @@ static int call_setter(JSContext *ctx, JSObject *setter,
         JS_FreeValue(ctx, val);
         if ((flags & JS_PROP_THROW) ||
             ((flags & JS_PROP_THROW_STRICT) && is_strict_mode(ctx))) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "no setter for property");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "no setter for property");
             return -1;
         }
         return FALSE;
@@ -9694,7 +9725,7 @@ int JS_DeleteProperty(JSContext *ctx, JSValueConst obj, JSAtom prop, int flags)
         return res;
     if ((flags & JS_PROP_THROW) ||
         ((flags & JS_PROP_THROW_STRICT) && is_strict_mode(ctx))) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "could not delete property");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "could not delete property");
         return -1;
     }
     return FALSE;
@@ -9940,7 +9971,7 @@ type_error:
         result = JS_ToCString(ctx, to_string_result);
         JS_FreeValue(ctx, to_string_result);
 
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "failed to convert value to primitive: %s", result);
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "failed to convert value to primitive: %s", result);
         JS_FreeCString(ctx, result);
         goto exception;
     }
@@ -10478,7 +10509,7 @@ static JSValue JS_ToNumberHintFree(JSContext *ctx, JSValue val,
     case JS_TAG_BIG_INT:
         if (flag != TON_FLAG_NUMERIC) {
             JS_FreeValue(ctx, val);
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert bigint to number");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert bigint to number");
         }
         ret = val;
         break;
@@ -10486,14 +10517,14 @@ static JSValue JS_ToNumberHintFree(JSContext *ctx, JSValue val,
     case JS_TAG_BIG_DECIMAL:
         if (flag != TON_FLAG_NUMERIC) {
             JS_FreeValue(ctx, val);
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert bigdecimal to number");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert bigdecimal to number");
         }
         ret = val;
         break;
     case JS_TAG_BIG_FLOAT:
         if (flag != TON_FLAG_NUMERIC) {
             JS_FreeValue(ctx, val);
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert bigfloat to number");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert bigfloat to number");
         }
         ret = val;
         break;
@@ -10545,7 +10576,7 @@ static JSValue JS_ToNumberHintFree(JSContext *ctx, JSValue val,
         break;
     case JS_TAG_SYMBOL:
         JS_FreeValue(ctx, val);
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert symbol to number");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert symbol to number");
     default:
         JS_FreeValue(ctx, val);
         ret = JS_NAN;
@@ -11117,7 +11148,7 @@ static __exception int JS_ToArrayLengthFree(JSContext *ctx, uint32_t *plen,
                     return -1;
                 if (len1 != len) {
                 fail:
-                    JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid array length");
+                    JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid array length");
                     return -1;
                 }
             }
@@ -11142,7 +11173,7 @@ int JS_ToIndex(JSContext *ctx, uint64_t *plen, JSValueConst val)
     if (JS_ToInt64Sat(ctx, &v, val))
         return -1;
     if (v < 0 || v > MAX_SAFE_INTEGER) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid array index");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid array index");
         *plen = 0;
         return -1;
     }
@@ -11640,7 +11671,7 @@ JSValue JS_ToStringInternal(JSContext *ctx, JSValueConst val, BOOL is_ToProperty
         if (is_ToPropertyKey) {
             return JS_DupValue(ctx, val);
         } else {
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert symbol to string");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert symbol to string");
         }
     case JS_TAG_FLOAT64:
         return js_dtoa(ctx, JS_VALUE_GET_FLOAT64(val), 10, 0,
@@ -11689,7 +11720,7 @@ static JSValue JS_ToStringCheckObject(JSContext *ctx, JSValueConst val)
 {
     uint32_t tag = JS_VALUE_GET_TAG(val);
     if (tag == JS_TAG_NULL || tag == JS_TAG_UNDEFINED)
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "null or undefined are forbidden");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "null or undefined are forbidden");
     return JS_ToString(ctx, val);
 }
 
@@ -12130,7 +12161,7 @@ static JSValue JS_StringToBigIntErr(JSContext *ctx, JSValue val)
 {
     val = JS_StringToBigInt(ctx, val);
     if (JS_VALUE_IS_NAN(val))
-        return JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "invalid bigint literal");
+        return JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "invalid bigint literal");
     return val;
 }
 
@@ -12200,7 +12231,7 @@ static bf_t *JS_ToBigIntFree(JSContext *ctx, bf_t *buf, JSValue val)
     default:
     fail:
         JS_FreeValue(ctx, val);
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert to bigint");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to bigint");
         return NULL;
     }
     return r;
@@ -12380,7 +12411,7 @@ static JSValue throw_bf_exception(JSContext *ctx, int status)
     } else {
         str = "integer overflow";
     }
-    return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "%s", str);
+    return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "%s", str);
 }
 
 #ifdef CONFIG_BIGNUM
@@ -12398,7 +12429,7 @@ static bfdec_t *JS_ToBigDecimal(JSContext *ctx, JSValueConst val)
         r = &p->num;
         break;
     default:
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "bigdecimal expected");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "bigdecimal expected");
         r = NULL;
         break;
     }
@@ -12571,7 +12602,7 @@ static __exception int js_call_binary_op_fallback(JSContext *ctx,
         p = find_binary_op(&opset2->right, opset1->operator_counter, ovop);
     }
     if (!p) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "operator %s: no function defined",
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "operator %s: no function defined",
                           js_overloadable_operator_names[ovop]);
         goto exception;
     }
@@ -12733,7 +12764,7 @@ static __exception int js_call_unary_op_fallback(JSContext *ctx,
 
     p = opset1->self_ops[ovop];
     if (!p) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "no overloaded operator %s",
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "no overloaded operator %s",
                           js_overloadable_operator_names[ovop]);
         goto exception;
     }
@@ -12758,7 +12789,7 @@ static int js_unary_arith_bigfloat(JSContext *ctx,
     JSValue res;
 
     if (op == OP_plus && !is_math_mode(ctx)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "bigfloat argument with unary +");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "bigfloat argument with unary +");
         JS_FreeValue(ctx, op1);
         return -1;
     }
@@ -12807,7 +12838,7 @@ static int js_unary_arith_bigdecimal(JSContext *ctx,
     JSValue res;
 
     if (op == OP_plus && !is_math_mode(ctx)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "bigdecimal argument with unary +");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "bigdecimal argument with unary +");
         JS_FreeValue(ctx, op1);
         return -1;
     }
@@ -12856,7 +12887,7 @@ static int js_unary_arith_bigint(JSContext *ctx,
     JSValue res;
 
     if (op == OP_plus && !is_math_mode(ctx)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "bigint argument with unary +");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "bigint argument with unary +");
         JS_FreeValue(ctx, op1);
         return -1;
     }
@@ -13713,7 +13744,7 @@ static no_inline __exception int js_binary_logic_slow(JSContext *ctx,
         if (tag1 != tag2) {
             JS_FreeValue(ctx, op1);
             JS_FreeValue(ctx, op2);
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "both operands must be bigint");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "both operands must be bigint");
             goto exception;
         } else {
         bigint_op:
@@ -14209,7 +14240,7 @@ static no_inline int js_shr_slow(JSContext *ctx, JSValue *sp)
     if (!is_math_mode(ctx) &&
         (JS_VALUE_GET_TAG(op1) == JS_TAG_BIG_INT ||
          JS_VALUE_GET_TAG(op2) == JS_TAG_BIG_INT)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "bigint operands are forbidden for >>>");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "bigint operands are forbidden for >>>");
         JS_FreeValue(ctx, op1);
         JS_FreeValue(ctx, op2);
         goto exception;
@@ -14482,7 +14513,7 @@ static __exception int js_operator_in(JSContext *ctx, JSValue *sp)
     op2 = sp[-1];
 
     if (JS_VALUE_GET_TAG(op2) != JS_TAG_OBJECT) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid 'in' operand");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid 'in' operand");
         return -1;
     }
     atom = JS_ValueToAtom(ctx, op1);
@@ -14690,7 +14721,7 @@ static __exception int js_operator_delete(JSContext *ctx, JSValue *sp)
 static JSValue js_throw_type_error(JSContext *ctx, JSValueConst this_val,
                                    int argc, JSValueConst *argv)
 {
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid property access");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid property access");
 }
 
 /* XXX: not 100% compatible, but mozilla seems to use a similar
@@ -15096,7 +15127,7 @@ static JSValue JS_GetIterator(JSContext *ctx, JSValueConst obj, BOOL is_async)
     }
     if (!JS_IsFunction(ctx, method)) {
         JS_FreeValue(ctx, method);
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "value is not iterable");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "value is not iterable");
     }
     ret = JS_GetIterator2(ctx, obj, method);
     JS_FreeValue(ctx, method);
@@ -15134,7 +15165,7 @@ static JSValue JS_IteratorNext2(JSContext *ctx, JSValueConst enum_obj,
         goto fail;
     if (!JS_IsObject(obj)) {
         JS_FreeValue(ctx, obj);
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "iterator must return an object");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "iterator must return an object");
         goto fail;
     }
     *pdone = 2;
@@ -15289,7 +15320,7 @@ static __exception int js_iterator_get_value_done(JSContext *ctx, JSValue *sp)
     BOOL done;
     obj = sp[-1];
     if (!JS_IsObject(obj)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "iterator must return an object");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "iterator must return an object");
         return -1;
     }
     value = JS_IteratorGetCompleteValue(ctx, obj, &done);
@@ -15367,7 +15398,7 @@ static __exception int js_append_enumerate(JSContext *ctx, JSValue *sp)
     uint32_t i, count32, pos;
 
     if (JS_VALUE_GET_TAG(sp[-2]) != JS_TAG_INT) {
-        JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "invalid index for append");
+        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "invalid index for append");
         return -1;
     }
 
@@ -15693,14 +15724,14 @@ static int js_op_define_class(JSContext *ctx, JSValue *sp,
             parent_class = JS_DupValue(ctx, ctx->function_proto);
         } else {
             if (!JS_IsConstructor(ctx, parent_class)) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "parent class must be constructor");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "parent class must be constructor");
                 goto fail;
             }
             parent_proto = JS_GetProperty(ctx, parent_class, JS_ATOM_prototype);
             if (JS_IsException(parent_proto))
                 goto fail;
             if (!JS_IsNull(parent_proto) && !JS_IsObject(parent_proto)) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "parent prototype must be an object or null");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "parent prototype must be an object or null");
                 goto fail;
             }
         }
@@ -15870,7 +15901,7 @@ static JSValue js_call_c_function(JSContext *ctx, JSValueConst func_obj,
         if (!(flags & JS_CALL_FLAG_CONSTRUCTOR)) {
             if (cproto == JS_CFUNC_constructor) {
             not_a_constructor:
-                ret_val = JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "must be called with new");
+                ret_val = JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "must be called with new");
                 break;
             } else {
                 this_obj = JS_UNDEFINED;
@@ -16554,7 +16585,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_check_ctor):
             if (JS_IsUndefined(new_target)) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "class constructors must be invoked with 'new'");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "class constructors must be invoked with 'new'");
                 goto exception;
             }
             BREAK;
@@ -16596,12 +16627,12 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     JS_ThrowReferenceErrorUninitialized(ctx, atom);
                 else
                 if (type == JS_THROW_ERROR_DELETE_SUPER)
-                    JS_ThrowReferenceError(ctx, "quickjs.c", __LINE__, "unsupported reference to 'super'");
+                    JS_ThrowReferenceError(ctx, "<internal>/quickjs.c", __LINE__, "unsupported reference to 'super'");
                 else
                 if (type == JS_THROW_ERROR_ITERATOR_THROW)
-                    JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "iterator does not have a throw method");
+                    JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "iterator does not have a throw method");
                 else
-                    JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "invalid throw var type %d", type);
+                    JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "invalid throw var type %d", type);
             }
             goto exception;
 
@@ -17001,7 +17032,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 idx = get_u16(pc);
                 pc += 2;
                 if (unlikely(!JS_IsUninitialized(var_buf[idx]))) {
-                    JS_ThrowReferenceError(ctx, "quickjs.c", __LINE__, "'this' can be initialized only once");
+                    JS_ThrowReferenceError(ctx, "<internal>/quickjs.c", __LINE__, "'this' can be initialized only once");
                     goto exception;
                 }
                 set_value(ctx, &var_buf[idx], sp[-1]);
@@ -17189,7 +17220,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 pos = JS_VALUE_GET_INT(op1);
                 if (unlikely(pos >= b->byte_code_len)) {
                 ret_fail:
-                    JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "invalid ret value");
+                    JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "invalid ret value");
                     goto exception;
                 }
                 sp--;
@@ -17234,7 +17265,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_iterator_check_object):
             if (unlikely(!JS_IsObject(sp[-1]))) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "iterator must return an object");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "iterator must return an object");
                 goto exception;
             }
             BREAK;
@@ -17262,7 +17293,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     JS_FreeValue(ctx, *--sp);
                 }
                 if (unlikely(sp < stack_buf + 3)) {
-                    JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "iterator_close_return");
+                    JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "iterator_close_return");
                     JS_FreeValue(ctx, ret_val);
                     goto exception;
                 }
@@ -18285,7 +18316,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_to_propkey2):
             /* must be tested first */
             if (unlikely(JS_IsUndefined(sp[-2]) || JS_IsNull(sp[-2]))) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "value has no property");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "value has no property");
                 goto exception;
             }
             switch (JS_VALUE_GET_TAG(sp[-1])) {
@@ -18458,7 +18489,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_invalid):
         DEFAULT:
-            JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "invalid opcode: pc=%u opcode=0x%02x",
+            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "invalid opcode: pc=%u opcode=0x%02x",
                                   (int)(pc - b->byte_code_buf - 1), opcode);
             goto exception;
         }
@@ -18621,13 +18652,13 @@ static JSValue JS_CallConstructorInternal(JSContext *ctx,
         goto not_a_function;
     p = JS_VALUE_GET_OBJ(func_obj);
     if (unlikely(!p->is_constructor))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a constructor");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a constructor");
     if (unlikely(p->class_id != JS_CLASS_BYTECODE_FUNCTION)) {
         JSClassCall *call_func;
         call_func = ctx->rt->class_array[p->class_id].call;
         if (!call_func) {
         not_a_function:
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "attempting to call a constructor that is not a function");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "attempting to call a constructor that is not a function");
         }
         return call_func(ctx, func_obj, new_target, argc,
                          (JSValueConst *)argv, flags);
@@ -18843,7 +18874,7 @@ static JSValue js_generator_next(JSContext *ctx, JSValueConst this_val,
 
     *pdone = TRUE;
     if (!s)
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a generator");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a generator");
     sf = &s->func_state.frame;
     switch(s->state) {
     default:
@@ -18914,7 +18945,7 @@ static JSValue js_generator_next(JSContext *ctx, JSValueConst this_val,
         }
         break;
     case JS_GENERATOR_STATE_EXECUTING:
-        ret = JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot invoke a running generator");
+        ret = JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot invoke a running generator");
         break;
     }
     return ret;
@@ -19505,7 +19536,7 @@ static JSValue js_async_generator_next(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (!s) {
         JSValue err, res2;
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not an AsyncGenerator object");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not an AsyncGenerator object");
         err = JS_GetException(ctx);
         res2 = JS_Call(ctx, resolving_funcs[1], JS_UNDEFINED,
                        1, (JSValueConst *)&err);
@@ -21695,7 +21726,7 @@ static int add_var(JSContext *ctx, JSFunctionDef *fd, JSAtom name)
 
     /* the local variable indexes are currently stored on 16 bits */
     if (fd->var_count >= JS_MAX_LOCAL_VARS) {
-        JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "too many local variables");
+        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "too many local variables");
         return -1;
     }
     if (js_resize_array(ctx, (void **)&fd->vars, sizeof(fd->vars[0]),
@@ -21775,7 +21806,7 @@ static int add_arg(JSContext *ctx, JSFunctionDef *fd, JSAtom name)
 
     /* the local variable indexes are currently stored on 16 bits */
     if (fd->arg_count >= JS_MAX_LOCAL_VARS) {
-        JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "too many arguments");
+        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "too many arguments");
         return -1;
     }
     if (js_resize_array(ctx, (void **)&fd->args, sizeof(fd->args[0]),
@@ -27254,7 +27285,7 @@ static JSModuleDef *js_host_resolve_imported_module(JSContext *ctx,
     /* load the module */
     if (!rt->module_loader_func) {
         /* XXX: use a syntax error ? */
-        JS_ThrowReferenceError(ctx, "quickjs.c", __LINE__, "could not load module '%s'",
+        JS_ThrowReferenceError(ctx, "<internal>/quickjs.c", __LINE__, "could not load module '%s'",
                                cname);
         js_free(ctx, cname);
         return NULL;
@@ -27444,17 +27475,17 @@ static void js_resolve_export_throw_error(JSContext *ctx,
         break;
     default:
     case JS_RESOLVE_RES_NOT_FOUND:
-        JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "Could not find export '%s' in module '%s'",
+        JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "Could not find export '%s' in module '%s'",
                             JS_AtomGetStr(ctx, buf1, sizeof(buf1), export_name),
                             JS_AtomGetStr(ctx, buf2, sizeof(buf2), m->module_name));
         break;
     case JS_RESOLVE_RES_CIRCULAR:
-        JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "circular reference when looking for export '%s' in module '%s'",
+        JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "circular reference when looking for export '%s' in module '%s'",
                             JS_AtomGetStr(ctx, buf1, sizeof(buf1), export_name),
                             JS_AtomGetStr(ctx, buf2, sizeof(buf2), m->module_name));
         break;
     case JS_RESOLVE_RES_AMBIGUOUS:
-        JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "export '%s' in module '%s' is ambiguous",
+        JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "export '%s' in module '%s' is ambiguous",
                             JS_AtomGetStr(ctx, buf1, sizeof(buf1), export_name),
                             JS_AtomGetStr(ctx, buf2, sizeof(buf2), m->module_name));
         break;
@@ -28023,6 +28054,11 @@ JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels)
         if (!sf)
             return JS_ATOM_NULL;
     }
+    /* Handle synthetic stack frames */
+    if (JS_VALUE_GET_TAG(sf->cur_func) == JS_TAG_NULL) {
+        JSSyntheticStackFrame *ssf = (JSSyntheticStackFrame *)sf;
+        return JS_DupAtom(ctx, ssf->filename);
+    }
     if (JS_VALUE_GET_TAG(sf->cur_func) != JS_TAG_OBJECT)
         return JS_ATOM_NULL;
     p = JS_VALUE_GET_OBJ(sf->cur_func);
@@ -28032,6 +28068,52 @@ JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels)
     if (!b->has_debug)
         return JS_ATOM_NULL;
     return JS_DupAtom(ctx, b->debug.filename);
+}
+
+JSSyntheticStackFrame *JS_PushSyntheticStackFrame(JSContext *ctx,
+                                                   const char *func_name,
+                                                   const char *filename,
+                                                   int line_num)
+{
+    JSRuntime *rt = ctx->rt;
+    JSSyntheticStackFrame *ssf;
+
+    ssf = js_mallocz(ctx, sizeof(*ssf));
+    if (!ssf)
+        return NULL;
+    ssf->filename = JS_NewAtom(ctx, filename);
+    ssf->line_num = line_num;
+    if (func_name)
+        ssf->func_name = js_strdup(ctx, func_name);
+    else
+        ssf->func_name = NULL;
+
+    /* Initialize the embedded stack frame */
+    ssf->frame.cur_func = JS_NULL; /* sentinel for synthetic frame */
+    ssf->frame.prev_frame = rt->current_stack_frame;
+    ssf->frame.arg_buf = NULL;
+    ssf->frame.var_buf = NULL;
+    init_list_head(&ssf->frame.var_ref_list);
+    ssf->frame.cur_pc = NULL;
+    ssf->frame.arg_count = 0;
+    ssf->frame.js_mode = 0;
+    ssf->frame.cur_sp = NULL;
+
+    rt->current_stack_frame = &ssf->frame;
+    return ssf;
+}
+
+void JS_PopSyntheticStackFrame(JSContext *ctx, JSSyntheticStackFrame *ssf)
+{
+    JSRuntime *rt = ctx->rt;
+
+    /* Only pop if this frame is actually the current top frame */
+    if (rt->current_stack_frame == &ssf->frame)
+        rt->current_stack_frame = ssf->frame.prev_frame;
+
+    JS_FreeAtom(ctx, ssf->filename);
+    js_free(ctx, ssf->func_name);
+    js_free(ctx, ssf);
 }
 
 JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m)
@@ -28068,7 +28150,7 @@ static JSValue js_import_meta(JSContext *ctx)
     JS_FreeAtom(ctx, filename);
     if (!m) {
     fail:
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "import.meta not supported in this context");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "import.meta not supported in this context");
         return JS_EXCEPTION;
     }
     return JS_GetImportMeta(ctx, m);
@@ -28142,7 +28224,7 @@ JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier)
     basename_atom = JS_GetScriptOrModuleName(ctx, 1);
     if (basename_atom == JS_ATOM_NULL) {
         JS_FreeAtom(ctx, basename_atom);
-        return JS_ThrowError(ctx, "quickjs.c", __LINE__, "Failed to identify the filename of the code calling importModule or require");
+        return JS_ThrowError(ctx, "<internal>/quickjs.c", __LINE__, "Failed to identify the filename of the code calling importModule or require");
     } else {
         basename_val = JS_AtomToValue(ctx, basename_atom);
         JS_FreeAtom(ctx, basename_atom);
@@ -28179,11 +28261,11 @@ static JSValue js_dynamic_import_run(JSContext *ctx, JSValueConst basename_val, 
     if (JS_IsString(basename_val)) {
         basename = JS_ToCString(ctx, basename_val);
         if (!basename) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "no function filename for import()");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "no function filename for import()");
             goto exception;
         }
     } else {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "basename received by import() was not a string");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "basename received by import() was not a string");
         goto exception;
     }
 
@@ -29242,7 +29324,7 @@ static int add_closure_var(JSContext *ctx, JSFunctionDef *s,
 
     /* the closure variable indexes are currently stored on 16 bits */
     if (s->closure_var_count >= JS_MAX_LOCAL_VARS) {
-        JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "too many closure variables");
+        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "too many closure variables");
         return -1;
     }
 
@@ -32189,20 +32271,20 @@ static __exception int ss_check(JSContext *ctx, StackSizeState *s,
                                 int pos, int op, int stack_len)
 {
     if ((unsigned)pos >= s->bc_len) {
-        JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "bytecode buffer overflow (op=%d, pc=%d)", op, pos);
+        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "bytecode buffer overflow (op=%d, pc=%d)", op, pos);
         return -1;
     }
     if (stack_len > s->stack_len_max) {
         s->stack_len_max = stack_len;
         if (s->stack_len_max > JS_STACK_SIZE_MAX) {
-            JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "stack overflow (op=%d, pc=%d)", op, pos);
+            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "stack overflow (op=%d, pc=%d)", op, pos);
             return -1;
         }
     }
     if (s->stack_level_tab[pos] != 0xffff) {
         /* already explored: check that the stack size is consistent */
         if (s->stack_level_tab[pos] != stack_len) {
-            JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "unconsistent stack size: %d %d (pc=%d)",
+            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "unconsistent stack size: %d %d (pc=%d)",
                                   s->stack_level_tab[pos], stack_len, pos);
             return -1;
         } else {
@@ -32253,13 +32335,13 @@ static __exception int compute_stack_size(JSContext *ctx,
         stack_len = s->stack_level_tab[pos];
         op = bc_buf[pos];
         if (op == 0 || op >= OP_COUNT) {
-            JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "invalid opcode (op=%d, pc=%d)", op, pos);
+            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "invalid opcode (op=%d, pc=%d)", op, pos);
             goto fail;
         }
         oi = &short_opcode_info(op);
         pos_next = pos + oi->size;
         if (pos_next > s->bc_len) {
-            JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "bytecode buffer overflow (op=%d, pc=%d)", op, pos);
+            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "bytecode buffer overflow (op=%d, pc=%d)", op, pos);
             goto fail;
         }
         n_pop = oi->n_pop;
@@ -32275,14 +32357,14 @@ static __exception int compute_stack_size(JSContext *ctx,
         }
 
         if (stack_len < n_pop) {
-            JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "stack underflow (op=%d, pc=%d)", op, pos);
+            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "stack underflow (op=%d, pc=%d)", op, pos);
             goto fail;
         }
         stack_len += oi->n_push - n_pop;
         if (stack_len > s->stack_len_max) {
             s->stack_len_max = stack_len;
             if (s->stack_len_max > JS_STACK_SIZE_MAX) {
-                JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "stack overflow (op=%d, pc=%d)", op, pos);
+                JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "stack overflow (op=%d, pc=%d)", op, pos);
                 goto fail;
             }
         }
@@ -33486,7 +33568,7 @@ static JSValue JS_EvalFunctionInternal(JSContext *ctx, JSValue fun_obj,
         }
     } else {
         JS_FreeValue(ctx, fun_obj);
-        ret_val = JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "bytecode function expected");
+        ret_val = JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "bytecode function expected");
     }
     return ret_val;
 }
@@ -33620,7 +33702,7 @@ static JSValue JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
                                const char *filename, int flags, int scope_idx)
 {
     if (unlikely(!ctx->eval_internal)) {
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "eval is not supported");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "eval is not supported");
     }
     return ctx->eval_internal(ctx, this_obj, input, input_len, filename,
                               flags, scope_idx);
@@ -35548,7 +35630,7 @@ static JSValue JS_ReadTypedArray(BCReaderState *s)
     if (bc_get_u8(s, &array_tag))
         return JS_EXCEPTION;
     if (array_tag >= JS_TYPED_ARRAY_COUNT)
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid typed array");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid typed array");
     if (bc_get_leb128(s, &len))
         return JS_EXCEPTION;
     if (bc_get_leb128(s, &offset))
@@ -35645,7 +35727,7 @@ static JSValue JS_ReadDate(BCReaderState *s)
     if (JS_IsException(val))
         goto fail;
     if (!JS_IsNumber(val)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "Number tag expected for date");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "Number tag expected for date");
         goto fail;
     }
     obj = JS_NewObjectProtoClass(ctx, ctx->class_proto[JS_CLASS_DATE],
@@ -35780,12 +35862,12 @@ static JSValue JS_ReadObjectRec(BCReaderState *s)
         {
             uint32_t val;
             if (!s->allow_reference)
-                return JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "object references are not allowed");
+                return JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "object references are not allowed");
             if (bc_get_leb128(s, &val))
                 return JS_EXCEPTION;
             bc_read_trace(s, "%u\n", val);
             if (val >= s->objects_count) {
-                return JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "invalid object reference (%u >= %u)",
+                return JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "invalid object reference (%u >= %u)",
                                            val, s->objects_count);
             }
             obj = JS_DupValue(ctx, JS_MKPTR(JS_TAG_OBJECT, s->objects[val]));
@@ -35793,7 +35875,7 @@ static JSValue JS_ReadObjectRec(BCReaderState *s)
         break;
     default:
     invalid_tag:
-        return JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "invalid tag (tag=%d pos=%u)",
+        return JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "invalid tag (tag=%d pos=%u)",
                                    tag, (unsigned int)(s->ptr - s->buf_start));
     }
     bc_read_trace(s, "}\n");
@@ -36202,7 +36284,7 @@ static JSValue JS_ToObject(JSContext *ctx, JSValueConst val)
     default:
     case JS_TAG_NULL:
     case JS_TAG_UNDEFINED:
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert to object");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to object");
     case JS_TAG_OBJECT:
     case JS_TAG_EXCEPTION:
         return JS_DupValue(ctx, val);
@@ -36297,7 +36379,7 @@ static int js_obj_to_desc(JSContext *ctx, JSPropertyDescriptor *d,
         getter = JS_GetProperty(ctx, desc, JS_ATOM_get);
         if (JS_IsException(getter) ||
             !(JS_IsUndefined(getter) || JS_IsFunction(ctx, getter))) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid getter");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid getter");
             goto fail;
         }
     }
@@ -36306,13 +36388,13 @@ static int js_obj_to_desc(JSContext *ctx, JSPropertyDescriptor *d,
         setter = JS_GetProperty(ctx, desc, JS_ATOM_set);
         if (JS_IsException(setter) ||
             !(JS_IsUndefined(setter) || JS_IsFunction(ctx, setter))) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid setter");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid setter");
             goto fail;
         }
     }
     if ((flags & (JS_PROP_HAS_SET | JS_PROP_HAS_GET)) &&
         (flags & (JS_PROP_HAS_VALUE | JS_PROP_HAS_WRITABLE))) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot have setter/getter and value or writable");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot have setter/getter and value or writable");
         goto fail;
     }
     d->flags = flags;
@@ -36412,7 +36494,7 @@ static JSValue js_object_create(JSContext *ctx, JSValueConst this_val,
 
     proto = argv[0];
     if (!JS_IsObject(proto) && !JS_IsNull(proto))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a prototype");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a prototype");
     obj = JS_NewObjectProto(ctx, proto);
     if (JS_IsException(obj))
         return JS_EXCEPTION;
@@ -36514,9 +36596,9 @@ static JSValue js_object___defineGetter__(JSContext *ctx, JSValueConst this_val,
     if (check_function(ctx, value)) {
         JS_FreeValue(ctx, obj);
         if (magic == 1) {
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "second argument passed to __defineSetter__ was not a function");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "second argument passed to __defineSetter__ was not a function");
         } else {
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "second argument passed to __defineGetter__ was not a function");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "second argument passed to __defineGetter__ was not a function");
         }
     }
     atom = JS_ValueToAtom(ctx, prop);
@@ -36801,7 +36883,7 @@ static JSValue js_object_preventExtensions(JSContext *ctx, JSValueConst this_val
         return JS_NewBool(ctx, ret);
     } else {
         if (!ret)
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy preventExtensions handler returned false");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy preventExtensions handler returned false");
         return JS_DupValue(ctx, obj);
     }
 }
@@ -36865,7 +36947,7 @@ static JSValue js_object_toPrimitive(JSContext *ctx, JSValueConst this_val,
     int hint;
 
     if (argc < 1) {
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "toPrimitive requires at least 1 argument.");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "toPrimitive requires at least 1 argument.");
     }
 
     input = argv[0];
@@ -36889,7 +36971,7 @@ static JSValue js_object_toPrimitive(JSContext *ctx, JSValueConst this_val,
             hint = HINT_NONE;
         } else {
             JS_FreeAtom(ctx, hint_atom);
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid hint passed to toPrimitive.");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid hint passed to toPrimitive.");
         }
         JS_FreeAtom(ctx, hint_atom);
     }
@@ -37018,7 +37100,7 @@ static JSValue js_object_seal(JSContext *ctx, JSValueConst this_val,
     if (res < 0)
         return JS_EXCEPTION;
     if (!res) {
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy preventExtensions handler returned false");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy preventExtensions handler returned false");
     }
 
     p = JS_VALUE_GET_OBJ(obj);
@@ -37307,7 +37389,7 @@ static JSValue JS_SpeciesConstructor(JSContext *ctx, JSValueConst obj,
         return JS_DupValue(ctx, defaultConstructor);
     if (!JS_IsConstructor(ctx, species)) {
         JS_FreeValue(ctx, species);
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a constructor");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a constructor");
     }
     return species;
 }
@@ -37634,13 +37716,13 @@ static JSValue *build_arg_list(JSContext *ctx, uint32_t *plen,
     JSObject *p;
 
     if (JS_VALUE_GET_TAG(array_arg) != JS_TAG_OBJECT) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a object");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a object");
         return NULL;
     }
     if (js_get_length32(ctx, &len, array_arg))
         return NULL;
     if (len > JS_MAX_LOCAL_VARS) {
-        JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "too many arguments");
+        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "too many arguments");
         return NULL;
     }
     /* avoid allocating 0 bytes */
@@ -37678,7 +37760,7 @@ static JSValue js_function_apply(JSContext *ctx, JSValueConst this_val,
     JSValue *tab, ret;
 
     if (check_function(ctx, this_val)) {
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "'this' target of Function.prototype.apply was not a function");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "'this' target of Function.prototype.apply was not a function");
     }
     this_arg = argv[0];
     array_arg = argv[1];
@@ -37717,7 +37799,7 @@ static JSValue js_function_bind(JSContext *ctx, JSValueConst this_val,
     int arg_count, i, ret;
 
     if (check_function(ctx, this_val)) {
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "'this' target of Function.prototype.bind was not a function");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "'this' target of Function.prototype.bind was not a function");
     }
 
     func_obj = JS_NewObjectProtoClass(ctx, ctx->function_proto,
@@ -37801,7 +37883,7 @@ static JSValue js_function_toString(JSContext *ctx, JSValueConst this_val,
     JSFunctionKindEnum func_kind = JS_FUNC_NORMAL;
 
     if (check_function(ctx, this_val)) {
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "'this' target of Function.prototype.toString was called with a non-function value");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "'this' target of Function.prototype.toString was called with a non-function value");
     }
 
     p = JS_VALUE_GET_OBJ(this_val);
@@ -38193,7 +38275,7 @@ static JSValue js_array_from(JSContext *ctx, JSValueConst this_val,
         mapfn = argv[1];
         if (!JS_IsUndefined(mapfn)) {
             if (check_function(ctx, mapfn)) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "A second argument was passed to Array.from, which should be a function used to map the input values. However, the second argument wasn't a function.");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "A second argument was passed to Array.from, which should be a function used to map the input values. However, the second argument wasn't a function.");
                 goto exception;
             }
             mapping = 1;
@@ -38427,7 +38509,7 @@ static JSValue js_array_concat(JSContext *ctx, JSValueConst this_val,
             if (js_get_length64(ctx, &len, e))
                 goto exception;
             if (n + len > MAX_SAFE_INTEGER) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "Array loo long");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "Array loo long");
                 goto exception;
             }
             for (k = 0; k < len; k++, n++) {
@@ -38442,7 +38524,7 @@ static JSValue js_array_concat(JSContext *ctx, JSValueConst this_val,
             }
         } else {
             if (n >= MAX_SAFE_INTEGER) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "Array loo long");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "Array loo long");
                 goto exception;
             }
             if (JS_DefinePropertyValueInt64(ctx, arr, n, JS_DupValue(ctx, e),
@@ -38503,7 +38585,7 @@ static JSValue js_array_every(JSContext *ctx, JSValueConst this_val,
         this_arg = argv[1];
 
     if (check_function(ctx, func)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "first argument to Array.prototype.every was not a function");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "first argument to Array.prototype.every was not a function");
         goto exception;
     }
 
@@ -38657,7 +38739,7 @@ static JSValue js_array_reduce(JSContext *ctx, JSValueConst this_val,
     func = argv[0];
 
     if (check_function(ctx, func)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "first argument to Array.prototype.reduce was not a function");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "first argument to Array.prototype.reduce was not a function");
         goto exception;
     }
 
@@ -38667,7 +38749,7 @@ static JSValue js_array_reduce(JSContext *ctx, JSValueConst this_val,
     } else {
         for(;;) {
             if (k >= len) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "empty array");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "empty array");
                 goto exception;
             }
             k1 = (special & special_reduceRight) ? len - k - 1 : k;
@@ -38915,7 +38997,7 @@ static JSValue js_array_find(JSContext *ctx, JSValueConst this_val,
 
     func = argv[0];
     if (check_function(ctx, func)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "first argument to Array.prototype.find was not a function");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "first argument to Array.prototype.find was not a function");
         goto exception;
     }
 
@@ -39108,7 +39190,7 @@ static JSValue js_array_push(JSContext *ctx, JSValueConst this_val,
         goto exception;
     newLen = len + argc;
     if (newLen > MAX_SAFE_INTEGER) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "Array loo long");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "Array loo long");
         goto exception;
     }
     from = len;
@@ -39233,7 +39315,7 @@ static JSValue js_array_slice(JSContext *ctx, JSValueConst this_val,
                 goto exception;
         }
         if (len + item_count - del_count > MAX_SAFE_INTEGER) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "Array loo long");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "Array loo long");
             goto exception;
         }
         count = del_count;
@@ -39391,7 +39473,7 @@ static int64_t JS_FlattenIntoArray(JSContext *ctx, JSValueConst target,
             }
         }
         if (targetIndex >= MAX_SAFE_INTEGER) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "Array too long");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "Array too long");
             goto fail;
         }
         if (JS_DefinePropertyValueInt64(ctx, target, targetIndex, element,
@@ -39428,7 +39510,7 @@ static JSValue js_array_flatten(JSContext *ctx, JSValueConst this_val,
             thisArg = argv[1];
         }
         if (check_function(ctx, mapperFunction)) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "An argument was passed to Array.prototype.flatten, which should be a function used to map the values. However, the argument wasn't a function.");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "An argument was passed to Array.prototype.flatten, which should be a function used to map the values. However, the argument wasn't a function.");
             goto exception;
         }
     } else {
@@ -39540,7 +39622,7 @@ static JSValue js_array_sort(JSContext *ctx, JSValueConst this_val,
 
     if (!JS_IsUndefined(asc.method)) {
         if (check_function(ctx, asc.method)) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "An argument was passed to Array.prototype.sort, which should be a function used to order the values. However, the argument wasn't a function.");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "An argument was passed to Array.prototype.sort, which should be a function used to order the values. However, the argument wasn't a function.");
             goto exception;
         }
         asc.has_method = 1;
@@ -39981,7 +40063,7 @@ static JSValue js_thisNumberValue(JSContext *ctx, JSValueConst this_val)
                 return JS_DupValue(ctx, p->u.object_data);
         }
     }
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a number");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a number");
 }
 
 static JSValue js_number_valueOf(JSContext *ctx, JSValueConst this_val,
@@ -39996,7 +40078,7 @@ static int js_get_radix(JSContext *ctx, JSValueConst val)
     if (JS_ToInt32Sat(ctx, &radix, val))
         return -1;
     if (radix < 2 || radix > 36) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "radix must be between 2 and 36");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "radix must be between 2 and 36");
         return -1;
     }
     return radix;
@@ -40042,7 +40124,7 @@ static JSValue js_number_toFixed(JSContext *ctx, JSValueConst this_val,
     if (JS_ToInt32Sat(ctx, &f, argv[0]))
         return JS_EXCEPTION;
     if (f < 0 || f > 100)
-        return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of digits");
+        return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of digits");
     if (fabs(d) >= 1e21) {
         return JS_ToStringFree(ctx, __JS_NewFloat64(ctx, d));
     } else {
@@ -40072,7 +40154,7 @@ static JSValue js_number_toExponential(JSContext *ctx, JSValueConst this_val,
         f = 0;
     } else {
         if (f < 0 || f > 100)
-            return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of digits");
+            return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of digits");
         f++;
         flags = JS_DTOA_FIXED_FORMAT;
     }
@@ -40100,7 +40182,7 @@ static JSValue js_number_toPrecision(JSContext *ctx, JSValueConst this_val,
         return JS_ToStringFree(ctx,  __JS_NewFloat64(ctx, d));
     }
     if (p < 1 || p > 100)
-        return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of digits");
+        return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of digits");
     return js_dtoa(ctx, d, 10, p, JS_DTOA_FIXED_FORMAT);
 }
 
@@ -40183,7 +40265,7 @@ static JSValue js_thisBooleanValue(JSContext *ctx, JSValueConst this_val)
                 return p->u.object_data;
         }
     }
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a boolean");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a boolean");
 }
 
 static JSValue js_boolean_toString(JSContext *ctx, JSValueConst this_val,
@@ -40343,7 +40425,7 @@ static JSValue js_thisStringValue(JSContext *ctx, JSValueConst this_val)
                 return JS_DupValue(ctx, p->u.object_data);
         }
     }
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a string");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a string");
 }
 
 static JSValue js_string_fromCharCode(JSContext *ctx, JSValueConst this_val,
@@ -40392,7 +40474,7 @@ static JSValue js_string_fromCodePoint(JSContext *ctx, JSValueConst this_val,
     return string_buffer_end(b);
 
  range_error:
-    JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid code point");
+    JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid code point");
  fail:
     string_buffer_free(b);
     return JS_EXCEPTION;
@@ -40788,7 +40870,7 @@ static JSValue js_string_includes(JSContext *ctx, JSValueConst this_val,
     ret = js_is_regexp(ctx, argv[0]);
     if (ret) {
         if (ret > 0)
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "regex not supported");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "regex not supported");
         goto fail;
     }
     v = JS_ToString(ctx, argv[0]);
@@ -40851,7 +40933,7 @@ static int check_regexp_g_flag(JSContext *ctx, JSValueConst regexp)
         if (JS_IsException(flags))
             return -1;
         if (JS_IsUndefined(flags) || JS_IsNull(flags)) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert to object");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to object");
             return -1;
         }
         flags = JS_ToStringFree(ctx, flags);
@@ -40860,7 +40942,7 @@ static int check_regexp_g_flag(JSContext *ctx, JSValueConst regexp)
         ret = string_indexof_char(JS_VALUE_GET_STRING(flags), 'g', 0);
         JS_FreeValue(ctx, flags);
         if (ret < 0) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "regexp must have the 'g' flag");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "regexp must have the 'g' flag");
             return -1;
         }
     }
@@ -40877,7 +40959,7 @@ static JSValue js_string_match(JSContext *ctx, JSValueConst this_val,
     int args_len;
 
     if (JS_IsUndefined(O) || JS_IsNull(O))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert to object");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to object");
 
     if (!JS_IsUndefined(regexp) && !JS_IsNull(regexp)) {
         matcher = JS_GetProperty(ctx, regexp, atom);
@@ -40936,7 +41018,7 @@ static JSValue js_string___GetSubstitution(JSContext *ctx, JSValueConst this_val
     rep = argv[5];
 
     if (!JS_IsString(rep) || !JS_IsString(str))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a string");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a string");
 
     sp = JS_VALUE_GET_STRING(str);
     rp = JS_VALUE_GET_STRING(rep);
@@ -41039,7 +41121,7 @@ static JSValue js_string_replace(JSContext *ctx, JSValueConst this_val,
     BOOL is_first;
 
     if (JS_IsUndefined(O) || JS_IsNull(O))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert to object");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to object");
 
     search_str = JS_UNDEFINED;
     replaceValue_str = JS_UNDEFINED;
@@ -41150,7 +41232,7 @@ static JSValue js_string_split(JSContext *ctx, JSValueConst this_val,
     JSString *sp, *rp;
 
     if (JS_IsUndefined(O) || JS_IsNull(O))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert to object");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to object");
 
     S = JS_UNDEFINED;
     A = JS_UNDEFINED;
@@ -41350,7 +41432,7 @@ static JSValue js_string_pad(JSContext *ctx, JSValueConst this_val,
         }
     }
     if (n > JS_STRING_LEN_MAX) {
-        JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "string too long");
+        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "string too long");
         goto fail2;
     }
     if (string_buffer_init(ctx, b, n))
@@ -41404,7 +41486,7 @@ static JSValue js_string_repeat(JSContext *ctx, JSValueConst this_val,
     if (JS_ToInt64Sat(ctx, &val, argv[0]))
         goto fail;
     if (val < 0 || val > 2147483647) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid repeat count");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid repeat count");
         goto fail;
     }
     n = val;
@@ -41413,7 +41495,7 @@ static JSValue js_string_repeat(JSContext *ctx, JSValueConst this_val,
     if (len == 0 || n == 1)
         return str;
     if (val * len > JS_STRING_LEN_MAX) {
-        JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "string too long");
+        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "string too long");
         goto fail;
     }
     if (string_buffer_init2(ctx, b, n * len, p->is_wide_char))
@@ -41663,7 +41745,7 @@ static JSValue js_string_normalize(JSContext *ctx, JSValueConst this_val,
         } else {
         bad_form:
             JS_FreeCString(ctx, form);
-            JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "bad normalization form");
+            JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "bad normalization form");
         fail1:
             js_free(ctx, buf);
             return JS_EXCEPTION;
@@ -42349,7 +42431,7 @@ static JSValue js_compile_regexp(JSContext *ctx, JSValueConst pattern,
             if ((re_flags & mask) != 0) {
             bad_flags:
                 JS_FreeCString(ctx, str);
-                return JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "invalid regular expression flags");
+                return JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "invalid regular expression flags");
             }
             re_flags |= mask;
         }
@@ -42363,7 +42445,7 @@ static JSValue js_compile_regexp(JSContext *ctx, JSValueConst pattern,
                                   sizeof(error_msg), str, len, re_flags, ctx);
     JS_FreeCString(ctx, str);
     if (!re_bytecode_buf) {
-        JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "%s", error_msg);
+        JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "%s", error_msg);
         return JS_EXCEPTION;
     }
 
@@ -42384,7 +42466,7 @@ static JSValue js_regexp_constructor_internal(JSContext *ctx, JSValueConst ctor,
     /* sanity check */
     if (JS_VALUE_GET_TAG(bc) != JS_TAG_STRING ||
         JS_VALUE_GET_TAG(pattern) != JS_TAG_STRING) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "string expected");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "string expected");
     fail:
         JS_FreeValue(ctx, bc);
         JS_FreeValue(ctx, pattern);
@@ -42524,7 +42606,7 @@ static JSValue js_regexp_compile(JSContext *ctx, JSValueConst this_val,
     re1 = js_get_regexp(ctx, pattern1, FALSE);
     if (re1) {
         if (!JS_IsUndefined(flags1))
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "flags must be undefined");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "flags must be undefined");
         pattern = JS_DupValue(ctx, JS_MKPTR(JS_TAG_STRING, re1->pattern));
         bc = JS_DupValue(ctx, JS_MKPTR(JS_TAG_STRING, re1->bytecode));
     } else {
@@ -42799,7 +42881,7 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
                     goto fail;
             }
         } else {
-            JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "out of memory in regexp execution");
+            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "out of memory in regexp execution");
             goto fail;
         }
         JS_FreeValue(ctx, str_val);
@@ -42924,7 +43006,7 @@ static JSValue JS_RegExpDelete(JSContext *ctx, JSValueConst this_val, JSValueCon
                         goto fail;
                 }
             } else {
-                JS_ThrowInternalError(ctx, "quickjs.c", __LINE__, "out of memory in regexp execution");
+                JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "out of memory in regexp execution");
                 goto fail;
             }
             break;
@@ -42977,7 +43059,7 @@ static JSValue JS_RegExpExec(JSContext *ctx, JSValueConst r, JSValueConst s)
             return ret;
         if (!JS_IsObject(ret) && !JS_IsNull(ret)) {
             JS_FreeValue(ctx, ret);
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "RegExp exec method must return an object or null");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "RegExp exec method must return an object or null");
         }
         return ret;
     }
@@ -44135,14 +44217,14 @@ static int js_json_to_str(JSContext *ctx, JSONStringifyContext *jsc,
         } else
 #endif
         if (cl == JS_CLASS_BIG_INT) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "bigint are forbidden in JSON.stringify");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "bigint are forbidden in JSON.stringify");
             goto exception;
         }
         v = js_array_includes(ctx, jsc->stack, 1, (JSValueConst *)&val);
         if (JS_IsException(v))
             goto exception;
         if (JS_ToBoolFree(ctx, v)) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "circular reference");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "circular reference");
             goto exception;
         }
         indent1 = JS_ConcatString(ctx, JS_DupValue(ctx, indent), JS_DupValue(ctx, jsc->gap));
@@ -44268,7 +44350,7 @@ static int js_json_to_str(JSContext *ctx, JSONStringifyContext *jsc,
     concat_value:
         return string_buffer_concat_value_free(jsc->b, val);
     case JS_TAG_BIG_INT:
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "bigint are forbidden in JSON.stringify");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "bigint are forbidden in JSON.stringify");
         goto exception;
     default:
         JS_FreeValue(ctx, val);
@@ -44462,7 +44544,7 @@ static JSValue js_reflect_construct(JSContext *ctx, JSValueConst this_val,
     if (argc > 2) {
         new_target = argv[2];
         if (!JS_IsConstructor(ctx, new_target))
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a constructor");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a constructor");
     } else {
         new_target = func;
     }
@@ -44634,7 +44716,7 @@ static void js_proxy_mark(JSRuntime *rt, JSValueConst val,
 
 static JSValue JS_ThrowTypeErrorRevokedProxy(JSContext *ctx)
 {
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "revoked proxy");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "revoked proxy");
 }
 
 static JSProxyData *get_proxy_method(JSContext *ctx, JSValue *pmethod,
@@ -44697,7 +44779,7 @@ static JSValue js_proxy_getPrototypeOf(JSContext *ctx, JSValueConst obj)
             JS_FreeValue(ctx, proto1);
         fail:
             JS_FreeValue(ctx, ret);
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent prototype");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent prototype");
         }
         JS_FreeValue(ctx, proto1);
     }
@@ -44726,7 +44808,7 @@ static int js_proxy_setPrototypeOf(JSContext *ctx, JSValueConst obj,
     res = JS_ToBoolFree(ctx, ret);
     if (!res) {
         if (throw_flag) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: bad prototype");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: bad prototype");
             return -1;
         } else {
             return FALSE;
@@ -44741,7 +44823,7 @@ static int js_proxy_setPrototypeOf(JSContext *ctx, JSValueConst obj,
             return -1;
         if (JS_VALUE_GET_OBJ(proto_val) != JS_VALUE_GET_OBJ(proto1)) {
             JS_FreeValue(ctx, proto1);
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent prototype");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent prototype");
             return -1;
         }
         JS_FreeValue(ctx, proto1);
@@ -44769,7 +44851,7 @@ static int js_proxy_isExtensible(JSContext *ctx, JSValueConst obj)
     if (res2 < 0)
         return res2;
     if (res != res2) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent isExtensible");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent isExtensible");
         return -1;
     }
     return res;
@@ -44796,7 +44878,7 @@ static int js_proxy_preventExtensions(JSContext *ctx, JSValueConst obj)
         if (res2 < 0)
             return res2;
         if (res2) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent preventExtensions");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent preventExtensions");
             return -1;
         }
     }
@@ -44839,7 +44921,7 @@ static int js_proxy_has(JSContext *ctx, JSValueConst obj, JSAtom atom)
             res2 = !(desc.flags & JS_PROP_CONFIGURABLE);
             js_free_desc(ctx, &desc);
             if (res2 || !p->extensible) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent has");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent has");
                 return -1;
             }
         }
@@ -44887,7 +44969,7 @@ static JSValue js_proxy_get(JSContext *ctx, JSValueConst obj, JSAtom atom,
             fail:
                 js_free_desc(ctx, &desc);
                 JS_FreeValue(ctx, ret);
-                return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent get");
+                return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent get");
             }
         }
         js_free_desc(ctx, &desc);
@@ -44938,7 +45020,7 @@ static int js_proxy_set(JSContext *ctx, JSValueConst obj, JSAtom atom,
             } else if ((desc.flags & (JS_PROP_GETSET | JS_PROP_CONFIGURABLE)) == JS_PROP_GETSET && JS_IsUndefined(desc.setter)) {
                 fail:
                     js_free_desc(ctx, &desc);
-                    JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent set");
+                    JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent set");
                     return -1;
             }
             js_free_desc(ctx, &desc);
@@ -44946,7 +45028,7 @@ static int js_proxy_set(JSContext *ctx, JSValueConst obj, JSAtom atom,
     } else {
         if ((flags & JS_PROP_THROW) ||
             ((flags & JS_PROP_THROW_STRICT) && is_strict_mode(ctx))) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: cannot set property");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: cannot set property");
             return -1;
         }
     }
@@ -45074,7 +45156,7 @@ static int js_proxy_get_own_property(JSContext *ctx, JSPropertyDescriptor *pdesc
             fail1:
                 js_free_desc(ctx, &result_desc);
             fail:
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent getOwnPropertyDescriptor");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent getOwnPropertyDescriptor");
                 return -1;
             }
         }
@@ -45129,7 +45211,7 @@ static int js_proxy_define_own_property(JSContext *ctx, JSValueConst obj,
     ret = JS_ToBoolFree(ctx, ret1);
     if (!ret) {
         if (flags & JS_PROP_THROW) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: defineProperty exception");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: defineProperty exception");
             return -1;
         } else {
             return 0;
@@ -45179,7 +45261,7 @@ static int js_proxy_define_own_property(JSContext *ctx, JSValueConst obj,
             fail1:
                 js_free_desc(ctx, &desc);
             fail:
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent defineProperty");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent defineProperty");
                 return -1;
             }
         }
@@ -45228,7 +45310,7 @@ static int js_proxy_delete_property(JSContext *ctx, JSValueConst obj,
             if (!is_extensible) {
                 /* proxy-missing-checks */
             fail:
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: inconsistent deleteProperty");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: inconsistent deleteProperty");
             fail1:
                 js_free_desc(ctx, &desc);
                 return -1;
@@ -45291,7 +45373,7 @@ static int js_proxy_get_own_property_names(JSContext *ctx,
             goto fail;
         if (!JS_IsString(val) && !JS_IsSymbol(val)) {
             JS_FreeValue(ctx, val);
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: properties must be strings or symbols");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: properties must be strings or symbols");
             goto fail;
         }
         atom = JS_ValueToAtom(ctx, val);
@@ -45306,7 +45388,7 @@ static int js_proxy_get_own_property_names(JSContext *ctx,
      * properties an a temporary object to use the hash) */
     for(i = 1; i < len; i++) {
         if (find_prop_key(tab, i, tab[i].atom) >= 0) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: duplicate property");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: duplicate property");
             goto fail;
         }
     }
@@ -45337,7 +45419,7 @@ static int js_proxy_get_own_property_names(JSContext *ctx,
             if (!(desc.flags & JS_PROP_CONFIGURABLE) || !is_extensible) {
                 idx = find_prop_key(tab, len, tab2[i].atom);
                 if (idx < 0) {
-                    JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: target property must be present in proxy ownKeys");
+                    JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: target property must be present in proxy ownKeys");
                     goto fail;
                 }
                 /* mark the property as found */
@@ -45350,7 +45432,7 @@ static int js_proxy_get_own_property_names(JSContext *ctx,
         /* check that all property in 'tab' were checked */
         for(i = 0; i < len; i++) {
             if (!tab[i].is_enumerable) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "proxy: property not present in target were returned by non extensible proxy");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "proxy: property not present in target were returned by non extensible proxy");
                 goto fail;
             }
         }
@@ -45380,7 +45462,7 @@ static JSValue js_proxy_call_constructor(JSContext *ctx, JSValueConst func_obj,
     if (!s)
         return JS_EXCEPTION;
     if (!JS_IsConstructor(ctx, s->target))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a constructor");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a constructor");
     if (JS_IsUndefined(method))
         return JS_CallConstructor2(ctx, s->target, new_target, argc, argv);
     arg_array = js_create_array(ctx, argc, argv);
@@ -45418,7 +45500,7 @@ static JSValue js_proxy_call(JSContext *ctx, JSValueConst func_obj,
         return JS_EXCEPTION;
     if (!s->is_func) {
         JS_FreeValue(ctx, method);
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a function");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a function");
     }
     if (JS_IsUndefined(method))
         return JS_Call(ctx, s->target, this_obj, argc, argv);
@@ -45576,7 +45658,7 @@ static JSValue js_symbol_constructor(JSContext *ctx, JSValueConst new_target,
     JSString *p;
 
     if (!JS_IsUndefined(new_target))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a constructor");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a constructor");
     if (argc == 0 || JS_IsUndefined(argv[0])) {
         p = NULL;
     } else {
@@ -45600,7 +45682,7 @@ static JSValue js_thisSymbolValue(JSContext *ctx, JSValueConst this_val)
                 return JS_DupValue(ctx, p->u.object_data);
         }
     }
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a symbol");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a symbol");
 }
 
 static JSValue js_symbol_toString(JSContext *ctx, JSValueConst this_val,
@@ -45666,7 +45748,7 @@ static JSValue js_symbol_keyFor(JSContext *ctx, JSValueConst this_val,
     JSAtomStruct *p;
 
     if (!JS_IsSymbol(argv[0]))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a symbol");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a symbol");
     p = JS_VALUE_GET_PTR(argv[0]);
     if (p->atom_type != JS_ATOM_TYPE_GLOBAL_SYMBOL)
         return JS_UNDEFINED;
@@ -45741,7 +45823,7 @@ static JSValue js_map_constructor(JSContext *ctx, JSValueConst new_target,
         if (JS_IsException(adder))
             goto fail;
         if (!JS_IsFunction(ctx, adder)) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "set/add is not a function");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "set/add is not a function");
             goto fail;
         }
 
@@ -46142,9 +46224,9 @@ static JSValue js_map_forEach(JSContext *ctx, JSValueConst this_val,
         this_arg = JS_UNDEFINED;
     if (check_function(ctx, func)) {
         if (magic == 0) {
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "first argument passed to Map.prototype.forEach wasn't a function");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "first argument passed to Map.prototype.forEach wasn't a function");
         } else {
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "first argument passed to Set.prototype.forEach wasn't a function");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "first argument passed to Set.prototype.forEach wasn't a function");
         }
     }
     /* Note: the list can be modified while traversing it, but the
@@ -46741,7 +46823,7 @@ static JSValue js_promise_resolve_function_call(JSContext *ctx,
     if (is_reject || !JS_IsObject(resolution)) {
         goto done;
     } else if (js_same_value(ctx, resolution, s->promise)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "promise self resolution");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "promise self resolution");
         goto fail_reject;
     }
     then = JS_GetProperty(ctx, resolution, JS_ATOM_then);
@@ -46816,7 +46898,7 @@ static JSValue js_promise_constructor(JSContext *ctx, JSValueConst new_target,
 
     executor = argv[0];
     if (check_function(ctx, executor)) {
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "first argument passed to Promise constructor wasn't a function");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "first argument passed to Promise constructor wasn't a function");
     }
     obj = js_create_from_ctor(ctx, new_target, JS_CLASS_PROMISE);
     if (JS_IsException(obj))
@@ -46863,7 +46945,7 @@ static JSValue js_promise_executor(JSContext *ctx,
 
     for(i = 0; i < 2; i++) {
         if (!JS_IsUndefined(func_data[i]))
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "resolving function already set");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "resolving function already set");
         func_data[i] = JS_DupValue(ctx, argv[i]);
     }
     return JS_UNDEFINED;
@@ -46903,7 +46985,7 @@ static JSValue js_new_promise_capability(JSContext *ctx,
     s = JS_GetOpaque(executor, JS_CLASS_C_FUNCTION_DATA);
     for(i = 0; i < 2; i++) {
         if (check_function(ctx, s->data[i])) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "promise executor's C function data should contain two functions, but at index %d, a non-function value was found", i);
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "promise executor's C function data should contain two functions, but at index %d, a non-function value was found", i);
             goto fail;
         }
     }
@@ -47097,7 +47179,7 @@ static JSValue js_promise_all(JSContext *ctx, JSValueConst this_val,
         goto fail_reject;
     }
     if (check_function(ctx, promise_resolve)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "Promise.all was called with a 'this' value that didn't have a function as its 'resolve' property. This means that either Promise.all is being called against an object that is not similar to Promise, or someone has replaced Promise.resolve with a non-function value.");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "Promise.all was called with a 'this' value that didn't have a function as its 'resolve' property. This means that either Promise.all is being called against an object that is not similar to Promise, or someone has replaced Promise.resolve with a non-function value.");
         goto fail_reject;
     }
     iter = JS_GetIterator(ctx, argv[0], FALSE);
@@ -47243,7 +47325,7 @@ static JSValue js_promise_race(JSContext *ctx, JSValueConst this_val,
         goto fail_reject;
     }
     if (check_function(ctx, promise_resolve)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "Promise.race was called with a 'this' value that didn't have a function as its 'resolve' property. This means that either Promise.race is being called against an object that is not similar to Promise, or someone has replaced Promise.resolve with a non-function value.");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "Promise.race was called with a 'this' value that didn't have a function as its 'resolve' property. This means that either Promise.race is being called against an object that is not similar to Promise, or someone has replaced Promise.resolve with a non-function value.");
         goto fail_reject;
     }
     iter = JS_GetIterator(ctx, argv[0], FALSE);
@@ -47588,7 +47670,7 @@ static JSValue js_async_from_sync_iterator_next(JSContext *ctx, JSValueConst thi
         return JS_EXCEPTION;
     s = JS_GetOpaque(this_val, JS_CLASS_ASYNC_FROM_SYNC_ITERATOR);
     if (!s) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not an Async-from-Sync Iterator");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not an Async-from-Sync Iterator");
         goto reject;
     }
 
@@ -48121,7 +48203,7 @@ static __exception int JS_ThisTimeValue(JSContext *ctx, double *valp, JSValueCon
         if (p->class_id == JS_CLASS_DATE && JS_IsNumber(p->u.object_data))
             return JS_ToFloat64(ctx, valp, p->u.object_data);
     }
-    JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a Date object");
+    JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a Date object");
     return -1;
 }
 
@@ -48135,7 +48217,7 @@ static JSValue JS_SetThisTimeValue(JSContext *ctx, JSValueConst this_val, double
             return JS_DupValue(ctx, p->u.object_data);
         }
     }
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a Date object");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a Date object");
 }
 
 static int64_t days_from_year(int64_t y) {
@@ -48342,7 +48424,7 @@ static JSValue get_date_string(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (!res) {
         if (fmt == 2)
-            return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "Date value is NaN");
+            return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "Date value is NaN");
         else
             return JS_NewString(ctx, "Invalid Date");
     }
@@ -48863,7 +48945,7 @@ static JSValue js_date_Symbol_toPrimitive(JSContext *ctx, JSValueConst this_val,
         hint_num = HINT_STRING;
         break;
     default:
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid hint");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid hint");
     }
     return JS_ToPrimitive(ctx, obj, hint_num | HINT_FORCE_ORDINARY);
 }
@@ -48949,7 +49031,7 @@ static JSValue js_date_toJSON(JSContext *ctx, JSValueConst this_val,
     if (JS_IsException(method))
         goto exception;
     if (!JS_IsFunction(ctx, method)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "object needs toISOString method");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "object needs toISOString method");
         JS_FreeValue(ctx, method);
         goto exception;
     }
@@ -49120,7 +49202,7 @@ static JSValue js_operators_create_internal(JSContext *ctx,
     uint32_t op_count;
 
     if (ctx->rt->operator_count == UINT32_MAX) {
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "too many operators have already been defined, so a new one cannot be defined. the max limit on operators is %d", UINT32_MAX);
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "too many operators have already been defined, so a new one cannot be defined. the max limit on operators is %d", UINT32_MAX);
     }
     opset_obj = JS_NewObjectProtoClass(ctx, JS_NULL, JS_CLASS_OPERATOR_SET);
     if (JS_IsException(opset_obj))
@@ -49138,7 +49220,7 @@ static JSValue js_operators_create_internal(JSContext *ctx,
                 goto fail;
             if (!JS_IsUndefined(prop)) {
                 if (check_function(ctx, prop)) {
-                    JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "the passed operator overload for '%s' was not a function", js_overloadable_operator_names[i]);
+                    JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "the passed operator overload for '%s' was not a function", js_overloadable_operator_names[i]);
                     JS_FreeValue(ctx, prop);
                     goto fail;
                 }
@@ -49158,7 +49240,7 @@ static JSValue js_operators_create_internal(JSContext *ctx,
             if (JS_IsException(prop))
                 goto fail;
             if (JS_IsUndefined(prop)) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "left or right property must be present");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "left or right property must be present");
                 goto fail;
             }
             def = &opset->left;
@@ -49198,7 +49280,7 @@ static JSValue js_operators_create_internal(JSContext *ctx,
                 goto fail;
             if (!JS_IsUndefined(prop)) {
                 if (check_function(ctx, prop)) {
-                    JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "the passed operator overload for '%s' was not a function", js_overloadable_operator_names[i]);
+                    JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "the passed operator overload for '%s' was not a function", js_overloadable_operator_names[i]);
                     JS_FreeValue(ctx, prop);
                     goto fail;
                 }
@@ -49244,7 +49326,7 @@ static JSValue js_operators_updateBigIntOperators(JSContext *ctx, JSValueConst t
             goto fail;
         if (!JS_IsUndefined(prop)) {
             if (!JS_IsNull(prop) && check_function(ctx, prop)) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "the passed operator overload for '%s' was not a function", js_overloadable_operator_names[op]);
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "the passed operator overload for '%s' was not a function", js_overloadable_operator_names[op]);
                 JS_FreeValue(ctx, prop);
                 goto fail;
             }
@@ -49366,7 +49448,7 @@ static JSValue JS_ToBigIntCtorFree(JSContext *ctx, JSValue val)
             a = JS_ToBigFloat(ctx, &a_s, val);
             if (!bf_is_finite(a)) {
                 JS_FreeValue(ctx, val);
-                val = JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "cannot convert NaN or Infinity to bigint");
+                val = JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert NaN or Infinity to bigint");
             } else {
                 JSValue val1 = JS_NewBigInt(ctx);
                 bf_t *r;
@@ -49384,7 +49466,7 @@ static JSValue JS_ToBigIntCtorFree(JSContext *ctx, JSValue val)
                     val = JS_ThrowOutOfMemory(ctx);
                 } else if (ret & BF_ST_INEXACT) {
                     JS_FreeValue(ctx, val1);
-                    val = JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "cannot convert to bigint: not an integer");
+                    val = JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to bigint: not an integer");
                 } else {
                     val = JS_CompactBigInt(ctx, val1);
                 }
@@ -49412,7 +49494,7 @@ static JSValue JS_ToBigIntCtorFree(JSContext *ctx, JSValue val)
     case JS_TAG_UNDEFINED:
     default:
         JS_FreeValue(ctx, val);
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert to bigint");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to bigint");
     }
     return val;
 }
@@ -49422,7 +49504,7 @@ static JSValue js_bigint_constructor(JSContext *ctx,
                                      int argc, JSValueConst *argv)
 {
     if (!JS_IsUndefined(new_target))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a constructor");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a constructor");
     return JS_ToBigIntCtorFree(ctx, JS_DupValue(ctx, argv[0]));
 }
 
@@ -49438,7 +49520,7 @@ static JSValue js_thisBigIntValue(JSContext *ctx, JSValueConst this_val)
                 return JS_DupValue(ctx, p->u.object_data);
         }
     }
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a bigint");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a bigint");
 }
 
 static JSValue js_bigint_toString(JSContext *ctx, JSValueConst this_val,
@@ -49706,7 +49788,7 @@ static JSValue js_thisBigFloatValue(JSContext *ctx, JSValueConst this_val)
                 return JS_DupValue(ctx, p->u.object_data);
         }
     }
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a bigfloat");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a bigfloat");
 }
 
 static JSValue js_bigfloat_toString(JSContext *ctx, JSValueConst this_val,
@@ -49746,7 +49828,7 @@ static int bigfloat_get_rnd_mode(JSContext *ctx, JSValueConst val)
     if (JS_ToInt32Sat(ctx, &rnd_mode, val))
         return -1;
     if (rnd_mode < BF_RNDN || rnd_mode > BF_RNDF) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid rounding mode");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid rounding mode");
         return -1;
     }
     return rnd_mode;
@@ -49765,7 +49847,7 @@ static JSValue js_bigfloat_toFixed(JSContext *ctx, JSValueConst this_val,
     if (JS_ToInt64Sat(ctx, &f, argv[0]))
         goto fail;
     if (f < 0 || f > BF_PREC_MAX) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of digits");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of digits");
         goto fail;
     }
     rnd_mode = BF_RNDNA;
@@ -49828,7 +49910,7 @@ static JSValue js_bigfloat_toExponential(JSContext *ctx, JSValueConst this_val,
                       BF_RNDN | BF_FTOA_FORMAT_FREE_MIN | BF_FTOA_FORCE_EXP);
     } else {
         if (f < 0 || f > BF_PREC_MAX) {
-            JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of digits");
+            JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of digits");
             goto fail;
         }
         rnd_mode = BF_RNDNA;
@@ -49872,7 +49954,7 @@ static JSValue js_bigfloat_toPrecision(JSContext *ctx, JSValueConst this_val,
         ret = JS_ToString(ctx, this_val);
     } else {
         if (p < 1 || p > BF_PREC_MAX) {
-            JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of digits");
+            JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of digits");
             goto fail;
         }
         rnd_mode = BF_RNDNA;
@@ -49910,7 +49992,7 @@ static JSValue js_bigfloat_constructor(JSContext *ctx,
 {
     JSValue val;
     if (!JS_IsUndefined(new_target))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a constructor");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a constructor");
     if (argc == 0) {
         bf_t *r;
         val = JS_NewBigFloat(ctx);
@@ -49994,7 +50076,7 @@ static JSValue js_bigfloat_constructor(JSContext *ctx,
                 JS_FreeCString(ctx, str);
                 if (err) {
                     JS_FreeValue(ctx, val);
-                    return JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "invalid bigfloat literal");
+                    return JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "invalid bigfloat literal");
                 }
             }
             break;
@@ -50007,7 +50089,7 @@ static JSValue js_bigfloat_constructor(JSContext *ctx,
         case JS_TAG_UNDEFINED:
         default:
             JS_FreeValue(ctx, val);
-            return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert to bigfloat");
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to bigfloat");
         }
     }
     return val;
@@ -50081,7 +50163,7 @@ static JSValue js_bigfloat_parseFloat(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     if (radix != 0 && (radix < 2 || radix > 36)) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "radix must be between 2 and 36");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "radix must be between 2 and 36");
         goto fail;
     }
     fe = &ctx->fp_env;
@@ -50371,13 +50453,13 @@ static JSValue js_float_env_constructor(JSContext *ctx,
         if (JS_ToInt64Sat(ctx, &prec, argv[0]))
             return JS_EXCEPTION;
         if (prec < BF_PREC_MIN || prec > BF_PREC_MAX)
-            return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid precision");
+            return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid precision");
         flags = BF_RNDN; /* RNDN, max exponent size, no subnormal */
         if (argc > 1 && !JS_IsUndefined(argv[1])) {
             if (JS_ToInt32Sat(ctx, &rndmode, argv[1]))
                 return JS_EXCEPTION;
             if (rndmode < BF_RNDN || rndmode > BF_RNDF)
-                return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid rounding mode");
+                return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid rounding mode");
             flags = rndmode;
         }
     }
@@ -50425,14 +50507,14 @@ static JSValue js_float_env_setPrec(JSContext *ctx,
     if (JS_ToInt64Sat(ctx, &prec, argv[1]))
         return JS_EXCEPTION;
     if (prec < BF_PREC_MIN || prec > BF_PREC_MAX)
-        return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid precision");
+        return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid precision");
     exp_bits = BF_EXP_BITS_MAX;
 
     if (argc > 2 && !JS_IsUndefined(argv[2])) {
         if (JS_ToInt32Sat(ctx, &exp_bits, argv[2]))
             return JS_EXCEPTION;
         if (exp_bits < BF_EXP_BITS_MIN || exp_bits > BF_EXP_BITS_MAX)
-            return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of exponent bits");
+            return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of exponent bits");
     }
 
     flags = BF_RNDN | BF_FLAG_SUBNORMAL | bf_set_exp_bits(exp_bits);
@@ -50489,14 +50571,14 @@ static JSValue js_float_env_proto_set_status(JSContext *ctx, JSValueConst this_v
         if (JS_ToInt64Sat(ctx, &prec, val))
             return JS_EXCEPTION;
         if (prec < BF_PREC_MIN || prec > BF_PREC_MAX)
-            return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid precision");
+            return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid precision");
         fe->prec = prec;
         break;
     case FE_EXP:
         if (JS_ToInt32Sat(ctx, &b, val))
             return JS_EXCEPTION;
         if (b < BF_EXP_BITS_MIN || b > BF_EXP_BITS_MAX)
-            return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of exponent bits");
+            return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of exponent bits");
         fe->flags = (fe->flags & ~(BF_EXP_BITS_MASK << BF_EXP_BITS_SHIFT)) |
             bf_set_exp_bits(b);
         break;
@@ -50670,7 +50752,7 @@ static JSValue JS_ToBigDecimalFree(JSContext *ctx, JSValue val,
             JS_FreeCString(ctx, str);
             if (err) {
                 JS_FreeValue(ctx, val);
-                return JS_ThrowSyntaxError(ctx, "quickjs.c", __LINE__, "invalid bigdecimal literal");
+                return JS_ThrowSyntaxError(ctx, "<internal>/quickjs.c", __LINE__, "invalid bigdecimal literal");
             }
         }
         break;
@@ -50694,7 +50776,7 @@ static JSValue JS_ToBigDecimalFree(JSContext *ctx, JSValue val,
     default:
     fail:
         JS_FreeValue(ctx, val);
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot convert to bigdecimal");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to bigdecimal");
     }
     return val;
 }
@@ -50705,7 +50787,7 @@ static JSValue js_bigdecimal_constructor(JSContext *ctx,
 {
     JSValue val;
     if (!JS_IsUndefined(new_target))
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a constructor");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a constructor");
     if (argc == 0) {
         bfdec_t *r;
         val = JS_NewBigDecimal(ctx);
@@ -50731,7 +50813,7 @@ static JSValue js_thisBigDecimalValue(JSContext *ctx, JSValueConst this_val)
                 return JS_DupValue(ctx, p->u.object_data);
         }
     }
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a bigdecimal");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a bigdecimal");
 }
 
 static JSValue js_bigdecimal_toString(JSContext *ctx, JSValueConst this_val,
@@ -50777,7 +50859,7 @@ static int js_bigdecimal_get_rnd_mode(JSContext *ctx, JSValueConst obj)
     } else {
     invalid_rounding_mode:
         JS_FreeCString(ctx, str);
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid rounding mode");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid rounding mode");
         return -1;
     }
     JS_FreeCString(ctx, str);
@@ -50829,14 +50911,14 @@ static int js_bigdecimal_get_env(JSContext *ctx, BigDecimalEnv *fe,
     if (!JS_IsUndefined(prop)) {
         if (has_prec) {
             JS_FreeValue(ctx, prop);
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot provide both maximumSignificantDigits and maximumFractionDigits");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot provide both maximumSignificantDigits and maximumFractionDigits");
             return -1;
         }
         if (JS_ToInt64SatFree(ctx, &val, prop))
             return -1;
         if (val < 0 || val > BF_PREC_MAX) {
         invalid_precision:
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "invalid precision");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid precision");
             return -1;
         }
         fe->prec = val;
@@ -50844,7 +50926,7 @@ static int js_bigdecimal_get_env(JSContext *ctx, BigDecimalEnv *fe,
         has_prec = TRUE;
     }
     if (!has_prec) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "precision must be present");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "precision must be present");
         return -1;
     }
     return 0;
@@ -50953,7 +51035,7 @@ static JSValue js_bigdecimal_toFixed(JSContext *ctx, JSValueConst this_val,
     if (JS_ToInt64Sat(ctx, &f, argv[0]))
         goto fail;
     if (f < 0 || f > BF_PREC_MAX) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of digits");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of digits");
         goto fail;
     }
     rnd_mode = BF_RNDNA;
@@ -50987,7 +51069,7 @@ static JSValue js_bigdecimal_toExponential(JSContext *ctx, JSValueConst this_val
                   BF_RNDN | BF_FTOA_FORMAT_FREE_MIN | BF_FTOA_FORCE_EXP);
     } else {
         if (f < 0 || f > BF_PREC_MAX) {
-            JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of digits");
+            JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of digits");
             goto fail;
         }
         rnd_mode = BF_RNDNA;
@@ -51022,7 +51104,7 @@ static JSValue js_bigdecimal_toPrecision(JSContext *ctx, JSValueConst this_val,
     if (JS_ToInt64Sat(ctx, &p, argv[0]))
         goto fail;
     if (p < 1 || p > BF_PREC_MAX) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid number of digits");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid number of digits");
         goto fail;
     }
     rnd_mode = BF_RNDNA;
@@ -51370,7 +51452,7 @@ static JSValue js_array_buffer_constructor3(JSContext *ctx,
         return obj;
     /* XXX: we are currently limited to 2 GB */
     if (len > INT32_MAX) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid array buffer length");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid array buffer length");
         goto fail;
     }
     abuf = js_malloc(ctx, sizeof(*abuf));
@@ -51519,7 +51601,7 @@ static const JSCFunctionListEntry js_array_buffer_funcs[] = {
 
 static JSValue JS_ThrowTypeErrorDetachedArrayBuffer(JSContext *ctx)
 {
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "ArrayBuffer is detached");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "ArrayBuffer is detached");
 }
 
 static JSValue js_array_buffer_get_byteLength(JSContext *ctx,
@@ -51637,7 +51719,7 @@ static JSValue js_array_buffer_slice(JSContext *ctx,
     if (!new_abuf)
         goto fail;
     if (js_same_value(ctx, new_obj, this_val)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot use identical ArrayBuffer");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot use identical ArrayBuffer");
         goto fail;
     }
     if (new_abuf->detached) {
@@ -51645,7 +51727,7 @@ static JSValue js_array_buffer_slice(JSContext *ctx,
         goto fail;
     }
     if (new_abuf->byte_length < new_len) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "new ArrayBuffer is too small");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "new ArrayBuffer is too small");
         goto fail;
     }
     /* must test again because of side effects */
@@ -51693,7 +51775,7 @@ static JSObject *get_typed_array(JSContext *ctx,
         if (!(p->class_id >= JS_CLASS_UINT8C_ARRAY &&
               p->class_id <= JS_CLASS_FLOAT64_ARRAY)) {
         fail:
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a %s", is_dataview ? "DataView" : "TypedArray");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a %s", is_dataview ? "DataView" : "TypedArray");
             return NULL;
         }
     }
@@ -51892,7 +51974,7 @@ static JSValue js_typed_array_set_internal(JSContext *ctx,
             goto fail;
         if (offset > (int64_t)(p->u.array.count - src_len)) {
         range_error:
-            JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid array length");
+            JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid array length");
             goto fail;
         }
     }
@@ -51984,7 +52066,7 @@ static JSValue js_typed_array_create(JSContext *ctx, JSValueConst ctor,
         if (JS_ToLengthFree(ctx, &len, JS_DupValue(ctx, argv[0])))
             goto fail;
         if (new_len < len) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "TypedArray length is too small");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "TypedArray length is too small");
         fail:
             JS_FreeValue(ctx, ret);
             return JS_EXCEPTION;
@@ -52052,7 +52134,7 @@ static JSValue js_typed_array_from(JSContext *ctx, JSValueConst this_val,
         mapfn = argv[1];
         if (!JS_IsUndefined(mapfn)) {
             if (check_function(ctx, mapfn)) {
-                JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "A second argument was passed to %%TypedArray%%.from, which should be a function used to map the input values. However, the second argument wasn't a function.");
+                JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "A second argument was passed to %%TypedArray%%.from, which should be a function used to map the input values. However, the second argument wasn't a function.");
                 goto exception;
             }
             mapping = 1;
@@ -52312,7 +52394,7 @@ static JSValue js_typed_array_find(JSContext *ctx, JSValueConst this_val,
 
     func = argv[0];
     if (check_function(ctx, func)) {
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "first argument to %%TypedArray%%.prototype.find was not a function");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "first argument to %%TypedArray%%.prototype.find was not a function");
         goto exception;
     }
 
@@ -52995,7 +53077,7 @@ static JSValue js_typed_array_sort(JSContext *ctx, JSValueConst this_val,
     if (len < 0)
         return JS_EXCEPTION;
     if (!JS_IsUndefined(tsc.cmp) && check_function(ctx, tsc.cmp)) {
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "An argument was passed to %%TypedArray%%.prototype.sort, which should be a function used to order the values. However, the argument wasn't a function.");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "An argument was passed to %%TypedArray%%.prototype.sort, which should be a function used to order the values. However, the argument wasn't a function.");
     }
 
     if (len > 1) {
@@ -53158,7 +53240,7 @@ static JSValue js_typed_array_base_constructor(JSContext *ctx,
                                                JSValueConst this_val,
                                                int argc, JSValueConst *argv)
 {
-    return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot be called");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot be called");
 }
 
 /* 'obj' must be an allocated typed array object */
@@ -53382,7 +53464,7 @@ static JSValue js_typed_array_constructor(JSContext *ctx,
                 return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
             if ((offset & ((1 << size_log2) - 1)) != 0 ||
                 offset > abuf->byte_length)
-                return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid offset");
+                return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid offset");
             if (JS_IsUndefined(argv[2])) {
                 if ((abuf->byte_length & ((1 << size_log2) - 1)) != 0)
                     goto invalid_length;
@@ -53394,7 +53476,7 @@ static JSValue js_typed_array_constructor(JSContext *ctx,
                     return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
                 if ((offset + (len << size_log2)) > abuf->byte_length) {
                 invalid_length:
-                    return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid length");
+                    return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid length");
                 }
             }
             buffer = JS_DupValue(ctx, argv[0]);
@@ -53469,14 +53551,14 @@ static JSValue js_dataview_constructor(JSContext *ctx,
     if (abuf->detached)
         return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
     if (offset > abuf->byte_length)
-        return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid byteOffset");
+        return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid byteOffset");
     len = abuf->byte_length - offset;
     if (argc > 2 && !JS_IsUndefined(argv[2])) {
         uint64_t l;
         if (JS_ToIndex(ctx, &l, argv[2]))
             return JS_EXCEPTION;
         if (l > len)
-            return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "invalid byteLength");
+            return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid byteLength");
         len = l;
     }
 
@@ -53531,7 +53613,7 @@ static JSValue js_dataview_getValue(JSContext *ctx,
     if (abuf->detached)
         return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
     if ((pos + size) > ta->length)
-        return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "out of bound");
+        return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "out of bound");
     ptr = abuf->data + ta->offset + pos;
 
     switch(class_id) {
@@ -53660,7 +53742,7 @@ static JSValue js_dataview_setValue(JSContext *ctx,
     if (abuf->detached)
         return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
     if ((pos + size) > ta->length)
-        return JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "out of bound");
+        return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "out of bound");
     ptr = abuf->data + ta->offset + pos;
 
     switch(class_id) {
@@ -53760,14 +53842,14 @@ static void *js_atomics_get_ptr(JSContext *ctx,
                 p->class_id <= JS_CLASS_BIG_UINT64_ARRAY);
     if (err) {
     fail:
-        JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "integer TypedArray expected");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "integer TypedArray expected");
         return NULL;
     }
     ta = p->u.typed_array;
     abuf = ta->buffer->u.array_buffer;
     if (!abuf->shared) {
         if (is_waitable == 2) {
-            JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "not a SharedArrayBuffer TypedArray");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a SharedArrayBuffer TypedArray");
             return NULL;
         }
         if (abuf->detached) {
@@ -53780,7 +53862,7 @@ static void *js_atomics_get_ptr(JSContext *ctx,
     }
     /* if the array buffer is detached, p->u.array.count = 0 */
     if (idx >= p->u.array.count) {
-        JS_ThrowRangeError(ctx, "quickjs.c", __LINE__, "out-of-bound access");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "out-of-bound access");
         return NULL;
     }
     size_log2 = typed_array_size_log2(p->class_id);
@@ -54047,7 +54129,7 @@ static JSValue js_atomics_wait(JSContext *ctx,
     else
         timeout = (int64_t)d;
     if (!ctx->rt->can_block)
-        return JS_ThrowTypeError(ctx, "quickjs.c", __LINE__, "cannot block in this thread");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot block in this thread");
 
     /* XXX: inefficient if large number of waiters, should hash on
        'ptr' value */

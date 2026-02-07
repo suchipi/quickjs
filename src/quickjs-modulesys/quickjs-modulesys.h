@@ -14,8 +14,10 @@ void QJMS_InitState(JSRuntime *rt);
 /*
   initialize and register the module loader system.
   call both this (once per context) AND QJMS_InitState (once per runtime).
+
+  returns -1 on exception
 */
-void QJMS_InitContext(JSContext *ctx);
+int QJMS_InitContext(JSContext *ctx, int set_require_global);
 
 /* free resources allocated by the module loader system */
 void QJMS_FreeState(JSRuntime *rt);
@@ -23,12 +25,12 @@ void QJMS_FreeState(JSRuntime *rt);
 /*
   Affects the value of import.meta.main.
 */
-void QJMS_SetMainModule(JSRuntime *rt, const char *module_name);
+void QJMS_SetMainModule(JSContext *ctx, const char *module_name);
 
 /*
   Check if import.meta.main would be true for this module.
 */
-JS_BOOL QJMS_IsMainModule(JSRuntime *rt, const char *module_name);
+JS_BOOL QJMS_IsMainModule(JSContext *ctx, const char *module_name);
 
 /* initializes the import.meta object for the provided module function */
 int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val);
