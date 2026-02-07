@@ -38,7 +38,7 @@ All rules have `_host` and `_target` variants for cross-compilation.
 Tests use Jest with Babel (for TypeScript). Most tests are integration tests that spawn compiled binaries using the `first-base` library and snapshot stdout/stderr/exit codes.
 
 - Test files: `tests/*.test.ts`
-- Test utilities: `tests/_utils.ts` (provides `rootDir`, `binDir`, `fixturesDir`, `cleanString`, `cleanResult`)
+- Test utilities: `tests/_utils.ts` (provides `rootDir`, `binDir`, `fixturesDir`, `testsWorkDir`, `cleanString`, `cleanResult`)
 - Test fixtures: `tests/fixtures/`
 - Tests must be built first (`meta/build.sh`) since they run compiled binaries from `build/bin/`
 - `cleanString()` replaces absolute paths with `<rootDir>` for stable snapshots
@@ -49,19 +49,25 @@ Tests use Jest with Babel (for TypeScript). Most tests are integration tests tha
 The QuickJS C engine: parser, compiler, bytecode interpreter, garbage collector. `quickjs.c` is the main ~54k-line file. `quickjs.h` is the C API header. `quickjs.d.ts` has TypeScript type definitions for the JS-facing API.
 
 ### Libraries (`src/lib/`)
-Standalone C libraries used by the engine: `libbf` (BigFloat), `libregexp` (regex), `libunicode`, `cutils`, and small helpers like `execpath`, `debugprint`, `list`, `utf-conv`.
+Standalone C libraries used by the engine: `libbf` (BigFloat), `libregexp` (regex), `cutils`, `quickjs-utils`, and small helpers like `execpath`, `debugprint`, `list`. The `encoding/` subdirectory contains text encoding libraries: `libunicode`, `utf-conv`, `libbig5`, `libeucjp`, `libeuckr`, `libgb18030`, `libshiftjis`, `libwindows1251`, `libwindows1252`.
 
 ### Builtin Modules (`src/builtin-modules/`)
 JS modules compiled to C bytecode and embedded in the engine. Each exposes a `"quickjs:*"` import path:
-- `quickjs-libc` → `"quickjs:std"`, `"quickjs:os"` - C stdlib and OS bindings
+- `quickjs-std` → `"quickjs:std"` - C stdlib bindings
+- `quickjs-os` → `"quickjs:os"` - OS bindings
+- `quickjs-cmdline` → `"quickjs:cmdline"` - Command line arguments access
+- `quickjs-timers` → `"quickjs:timers"` - Timer functions (setTimeout, setInterval, etc.)
 - `quickjs-engine` → `"quickjs:engine"` - Script execution, module loading, GC control
 - `quickjs-bytecode` → `"quickjs:bytecode"` - Bytecode serialization
 - `quickjs-context` → `"quickjs:context"` - Realm/Context creation
 - `quickjs-pointer` → `"quickjs:pointer"` - Opaque pointer wrapper
 - `quickjs-encoding` → `"quickjs:encoding"` - Text encoding/decoding
 
+### Event Loop (`src/quickjs-eventloop/`)
+The event loop implementation used by the runtime (extracted from the former `quickjs-libc`).
+
 ### Globals (`src/globals/`)
-Global functions injected into every context: `inspect()`, `console.log`/`print`, `setTimeout`/`setInterval`/`clearTimeout`/`clearInterval`.
+Global functions injected into every context: `inspect()`, `console.log`/`print`. Timer functions (`setTimeout`/`setInterval`/`clearTimeout`/`clearInterval`) are provided by the `quickjs:timers` builtin module but are also available globally.
 
 ### Programs (`src/programs/`)
 Standalone executables built from the engine:
@@ -76,6 +82,10 @@ Custom module loader supporting: extension inference (`.js` optional), `index.js
 
 ### Archives (`src/archives/`)
 Ninja configs for building static library archives: `full` (complete engine with all builtins) and `core` (minimal engine).
+
+### Other (`src/`)
+- `run-test262/` - Test262 compliance test runner
+- `shared-library-modules/` - Example shared library modules (fib, point)
 
 ## Supported Platforms
 
