@@ -160,7 +160,7 @@ static JSValue js_os_open(JSContext *ctx, JSValueConst this_val,
 #endif
     ret = open(filename, flags, mode);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d, filename = %s)", strerror(errno), errno, filename);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, filename = %s)", strerror(errno), errno, filename);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
         JS_FreeCString(ctx, filename);
@@ -180,7 +180,7 @@ static JSValue js_os_close(JSContext *ctx, JSValueConst this_val,
     if (ret == 0) {
         return JS_UNDEFINED;
     } else {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         return JS_EXCEPTION;
     }
@@ -228,14 +228,14 @@ static JSValue js_os_read_write(JSContext *ctx, JSValueConst this_val,
     if (!buf)
         return JS_EXCEPTION;
     if (pos + len > size)
-        return JS_ThrowRangeError(ctx, "read/write array buffer overflow");
+        return JS_ThrowRangeError(ctx, "quickjs-os.c", __LINE__, "read/write array buffer overflow");
     if (magic)
         ret = write(fd, buf + pos, len);
     else
         ret = read(fd, buf + pos, len);
 
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         return JS_EXCEPTION;
     } else {
@@ -381,7 +381,7 @@ static JSValue js_os_remove(JSContext *ctx, JSValueConst this_val,
     if (ret == 0) {
         return JS_UNDEFINED;
     } else {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(err), err);
     }
 }
 
@@ -406,7 +406,7 @@ static JSValue js_os_rename(JSContext *ctx, JSValueConst this_val,
     if (ret == 0) {
         return JS_UNDEFINED;
     } else {
-        return JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(err), err);
     }
 }
 
@@ -451,7 +451,7 @@ static JSValue js_os_setReadHandler(JSContext *ctx, JSValueConst this_val,
         }
     } else {
         if (!JS_IsFunction(ctx, func))
-            return JS_ThrowTypeError(ctx, "second argument to os.setReadHandler was not a function.");
+            return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "second argument to os.setReadHandler was not a function.");
         rh = find_rh(ts, fd);
         if (!rh) {
             rh = js_mallocz(ctx, sizeof(*rh));
@@ -503,12 +503,12 @@ static JSValue js_os_signal(JSContext *ctx, JSValueConst this_val,
     sighandler_t handler;
 
     if (!js_eventloop_is_main_thread(rt))
-        return JS_ThrowTypeError(ctx, "signal handler can only be set in the main thread");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "signal handler can only be set in the main thread");
 
     if (JS_ToUint32(ctx, &sig_num, argv[0]))
         return JS_EXCEPTION;
     if (sig_num >= 64)
-        return JS_ThrowRangeError(ctx, "invalid signal number");
+        return JS_ThrowRangeError(ctx, "quickjs-os.c", __LINE__, "invalid signal number");
     func = argv[1];
     /* func = null: SIG_DFL, func = undefined, SIG_IGN */
     if (JS_IsNull(func) || JS_IsUndefined(func)) {
@@ -523,7 +523,7 @@ static JSValue js_os_signal(JSContext *ctx, JSValueConst this_val,
         signal(sig_num, handler);
     } else {
         if (!JS_IsFunction(ctx, func))
-            return JS_ThrowTypeError(ctx, "second argument to os.signal was not a function.");
+            return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "second argument to os.signal was not a function.");
         sh = find_sh(ts, sig_num);
         if (!sh) {
             sh = js_mallocz(ctx, sizeof(*sh));
@@ -548,7 +548,7 @@ static JSValue js_os_getcwd(JSContext *ctx, JSValueConst this_val,
     char buf[PATH_MAX];
 
     if (!getcwd(buf, sizeof(buf))) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         return JS_EXCEPTION;
     } else {
@@ -569,7 +569,7 @@ static JSValue js_os_chdir(JSContext *ctx, JSValueConst this_val,
     ret = chdir(target);
     err = errno;
     if (ret != 0) {
-        JS_ThrowError(ctx, "%s (errno = %d, target = %s)", strerror(err), err, target);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, target = %s)", strerror(err), err, target);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         JS_AddPropertyToException(ctx, "target", JS_NewString(ctx, target));
         JS_FreeCString(ctx, target);
@@ -607,7 +607,7 @@ static JSValue js_os_mkdir(JSContext *ctx, JSValueConst this_val,
         JS_FreeCString(ctx, path);
         return JS_UNDEFINED;
     } else {
-        JS_ThrowError(ctx, "%s (errno = %d, path = %s)", strerror(err), err, path);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(err), err, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
         JS_FreeCString(ctx, path);
@@ -638,7 +638,7 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
     dirstream = opendir(path);
     err = errno;
     if (!dirstream) {
-        JS_ThrowError(ctx, "%s (errno = %d, path = %s)", strerror(err), err, path);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(err), err, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
         JS_FreeCString(ctx, path);
@@ -651,7 +651,7 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
         direntry = readdir(dirstream);
         if (!direntry) {
             if (errno != 0) {
-                JS_ThrowError(ctx, "%s (errno = %d, path = %s)", strerror(errno), errno, path);
+                JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(errno), errno, path);
                 JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
                 JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
                 JS_FreeCString(ctx, path);
@@ -668,7 +668,7 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
 
     close_ret = closedir(dirstream);
     if (close_ret != 0) {
-        JS_ThrowError(ctx, "%s (errno = %d, path = %s)", strerror(errno), errno, path);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(errno), errno, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
         JS_FreeCString(ctx, path);
@@ -782,7 +782,7 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
                 if (ret < PATH_MAX) {
                     linkpath[ret] = '\0';
                 }
-                JS_ThrowError(ctx, "%s (errno = %d, path = %s, linkpath = %s)", strerror(err), err, path, linkpath);
+                JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, path = %s, linkpath = %s)", strerror(err), err, path, linkpath);
                 JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
                 JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
                 JS_AddPropertyToException(ctx, "linkpath", JS_NewString(ctx, linkpath));
@@ -791,7 +791,7 @@ static JSValue js_os_stat(JSContext *ctx, JSValueConst this_val,
             }
         }
 #endif
-        JS_ThrowError(ctx, "%s (errno = %d, path = %s)", strerror(err), err, path);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(err), err, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
         JS_FreeCString(ctx, path);
@@ -876,7 +876,7 @@ static JSValue js_os_utimes(JSContext *ctx, JSValueConst this_val,
 #endif
     err = errno;
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d, path = %s)", strerror(err), err, path);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(err), err, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
         JS_FreeCString(ctx, path);
@@ -913,7 +913,7 @@ static JSValue js_os_sleep(JSContext *ctx, JSValueConst this_val,
     }
 #endif
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         return JS_EXCEPTION;
     } else {
@@ -946,7 +946,7 @@ static JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
     res = realpath(path, buf);
     err = errno;
     if (!res) {
-        JS_ThrowError(ctx, "%s (errno = %d, path = %s)", strerror(err), err, path);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(err), err, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
         JS_FreeCString(ctx, path);
@@ -1015,7 +1015,7 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
 
     pCreateSymbolicLinkA = get_CreateSymbolicLinkA();
     if (!pCreateSymbolicLinkA) {
-        return JS_ThrowError(ctx, "symlink is not supported on this version of Windows");
+        return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "symlink is not supported on this version of Windows");
     }
 
     target = JS_ToCString(ctx, argv[0]);
@@ -1036,7 +1036,7 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
 
     if (!pCreateSymbolicLinkA(linkpath, target, flags)) {
         DWORD err = GetLastError();
-        JS_ThrowError(ctx, "CreateSymbolicLinkA failed (error code %lu)", (unsigned long)err);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "CreateSymbolicLinkA failed (error code %lu)", (unsigned long)err);
         JS_FreeCString(ctx, target);
         JS_FreeCString(ctx, linkpath);
         return JS_EXCEPTION;
@@ -1107,7 +1107,7 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
 
     if (hFile == INVALID_HANDLE_VALUE) {
         DWORD err = GetLastError();
-        JS_ThrowError(ctx, "CreateFileA failed (error code %lu)", (unsigned long)err);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "CreateFileA failed (error code %lu)", (unsigned long)err);
         JS_FreeCString(ctx, path);
         return JS_EXCEPTION;
     }
@@ -1116,7 +1116,7 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
             buffer, sizeof(buffer), &bytes_returned, NULL)) {
         DWORD err = GetLastError();
         CloseHandle(hFile);
-        JS_ThrowError(ctx, "DeviceIoControl failed (error code %lu)", (unsigned long)err);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "DeviceIoControl failed (error code %lu)", (unsigned long)err);
         JS_FreeCString(ctx, path);
         return JS_EXCEPTION;
     }
@@ -1132,7 +1132,7 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
                       (reparse_data->MountPointReparseBuffer.PrintNameOffset / sizeof(WCHAR));
         target_len = reparse_data->MountPointReparseBuffer.PrintNameLength / sizeof(WCHAR);
     } else {
-        JS_ThrowError(ctx, "Not a symbolic link");
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "Not a symbolic link");
         JS_FreeCString(ctx, path);
         return JS_EXCEPTION;
     }
@@ -1168,7 +1168,7 @@ static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val,
     JS_FreeCString(ctx, target);
     JS_FreeCString(ctx, linkpath);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(err), err);
         return JS_EXCEPTION;
     }
     return JS_UNDEFINED;
@@ -1191,7 +1191,7 @@ static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val,
     JS_FreeCString(ctx, path);
 
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(err), err);
         return JS_EXCEPTION;
     }
     buf[ret] = '\0';
@@ -1219,7 +1219,7 @@ static JSValue js_os_access(JSContext *ctx, JSValueConst this_val,
     err = errno;
     JS_FreeCString(ctx, path);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(err), err);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         return JS_EXCEPTION;
     }
@@ -1232,7 +1232,7 @@ static JSValue js_os_execPath(JSContext *ctx, JSValueConst this_val,
     char error_msg[2048];
     char *path = execpath(NULL, NULL, error_msg);
     if (!path) {
-        return JS_ThrowError(ctx, "failed to get current executable path: %s", error_msg);
+        return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "failed to get current executable path: %s", error_msg);
     }
     JSValue result = JS_NewString(ctx, path);
     free(path);
@@ -1256,7 +1256,7 @@ static JSValue js_os_chmod(JSContext *ctx, JSValueConst this_val,
     err = errno;
     JS_FreeCString(ctx, path);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(err), err);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(err), err);
         return JS_EXCEPTION;
     }
     return JS_UNDEFINED;
@@ -1267,7 +1267,7 @@ static JSValue js_os_gethostname(JSContext *ctx, JSValueConst this_val,
 {
     char buf[HOST_NAME_MAX + 1];
     if (gethostname(buf, sizeof(buf)) < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
     return JS_NewString(ctx, buf);
@@ -1287,7 +1287,7 @@ static JSValue js_os_dup(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     ret = _dup(fd);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
     return JS_NewInt32(ctx, ret);
@@ -1303,7 +1303,7 @@ static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     ret = _dup2(fd, fd2);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
     return JS_NewInt32(ctx, ret);
@@ -1317,7 +1317,7 @@ static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
 
     ret = _pipe(pipe_fds, 4096, _O_BINARY);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
 
@@ -1342,14 +1342,14 @@ static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val,
 
     process_handle = OpenProcess(PROCESS_TERMINATE, FALSE, (DWORD)pid);
     if (process_handle == NULL) {
-        JS_ThrowError(ctx, "OpenProcess failed (error code %lu)", (unsigned long)GetLastError());
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "OpenProcess failed (error code %lu)", (unsigned long)GetLastError());
         return JS_EXCEPTION;
     }
 
     if (!TerminateProcess(process_handle, (UINT)sig)) {
         DWORD err = GetLastError();
         CloseHandle(process_handle);
-        JS_ThrowError(ctx, "TerminateProcess failed (error code %lu)", (unsigned long)err);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "TerminateProcess failed (error code %lu)", (unsigned long)err);
         return JS_EXCEPTION;
     }
 
@@ -1439,15 +1439,15 @@ static JSValue js_throw_win32_error(JSContext *ctx, const char *prefix, DWORD er
         LocalFree(msg_buf);
 
         if (utf8_msg != NULL) {
-            JS_ThrowError(ctx, "%s: %s (error code %lu)", prefix, utf8_msg, (unsigned long)error_code);
+            JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s: %s (error code %lu)", prefix, utf8_msg, (unsigned long)error_code);
             free(utf8_msg);
         } else {
-            JS_ThrowError(ctx, "%s: error code %lu", prefix, (unsigned long)error_code);
+            JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s: error code %lu", prefix, (unsigned long)error_code);
         }
     } else {
         if (msg_buf != NULL)
             LocalFree(msg_buf);
-        JS_ThrowError(ctx, "%s: error code %lu", prefix, (unsigned long)error_code);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s: error code %lu", prefix, (unsigned long)error_code);
     }
     return JS_EXCEPTION;
 }
@@ -1467,7 +1467,7 @@ static WCHAR *cstr_to_wstring(JSContext *ctx, const char *utf8)
                                           &conv_error_offset,
                                           js_malloc_for_utf_conv, ctx);
     if (wide == NULL) {
-        JS_ThrowError(ctx, "UTF-8 to UTF-16 conversion failed at byte offset %lu: %s",
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "UTF-8 to UTF-16 conversion failed at byte offset %lu: %s",
                       (unsigned long)conv_error_offset, utf_conv_strerror(conv_error));
     }
     return wide;
@@ -1480,17 +1480,17 @@ static HANDLE js_get_handle_from_stdio_arg(JSContext *ctx, JSValueConst val)
         JSSTDFile *s = JS_GetOpaque(val, js_std_file_class_id);
         if (s) {
             if (!s->f) {
-                JS_ThrowError(ctx, "FILE object has been closed");
+                JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "FILE object has been closed");
                 return INVALID_HANDLE_VALUE;
             }
             int fd = fileno(s->f);
             if (fd < 0) {
-                JS_ThrowError(ctx, "failed to get fd from FILE object (fileno returned %d)", fd);
+                JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "failed to get fd from FILE object (fileno returned %d)", fd);
                 return INVALID_HANDLE_VALUE;
             }
             HANDLE h = (HANDLE)_get_osfhandle(fd);
             if (h == INVALID_HANDLE_VALUE) {
-                JS_ThrowError(ctx, "_get_osfhandle failed for FILE object (fd %d)", fd);
+                JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "_get_osfhandle failed for FILE object (fd %d)", fd);
                 return INVALID_HANDLE_VALUE;
             }
             return h;
@@ -1503,13 +1503,13 @@ static HANDLE js_get_handle_from_stdio_arg(JSContext *ctx, JSValueConst val)
             return INVALID_HANDLE_VALUE;
         HANDLE h = (HANDLE)_get_osfhandle(fd);
         if (h == INVALID_HANDLE_VALUE) {
-            JS_ThrowError(ctx, "_get_osfhandle failed for fd %d", fd);
+            JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "_get_osfhandle failed for fd %d", fd);
             return INVALID_HANDLE_VALUE;
         }
         return h;
     }
 
-    JS_ThrowTypeError(ctx, "expected a FILE object or file descriptor number");
+    JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "expected a FILE object or file descriptor number");
     return INVALID_HANDLE_VALUE;
 }
 
@@ -1621,7 +1621,7 @@ static WCHAR *js_to_wstring(JSContext *ctx, JSValueConst val)
                                           js_malloc_for_utf_conv, ctx);
     JS_FreeCString(ctx, utf8);
     if (wide == NULL) {
-        JS_ThrowError(ctx, "UTF-8 to UTF-16 conversion failed at byte offset %lu: %s",
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "UTF-8 to UTF-16 conversion failed at byte offset %lu: %s",
                       (unsigned long)conv_error_offset, utf_conv_strerror(conv_error));
     }
     return wide;
@@ -1650,14 +1650,14 @@ static HANDLE js_get_handle(JSContext *ctx, JSValueConst val)
     HANDLE *handle_ptr;
 
     if (!JS_IsObject(val)) {
-        JS_ThrowTypeError(ctx, "expected a Win32Handle object");
+        JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "expected a Win32Handle object");
         return INVALID_HANDLE_VALUE;
     }
 
     if (JS_VALUE_GET_CLASS_ID(val) == js_win32_handle_class_id) {
         handle_ptr = JS_GetOpaque(val, js_win32_handle_class_id);
         if (handle_ptr == NULL) {
-            JS_ThrowTypeError(ctx, "invalid Win32Handle object");
+            JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "invalid Win32Handle object");
             return INVALID_HANDLE_VALUE;
         }
         return *handle_ptr;
@@ -1665,7 +1665,7 @@ static HANDLE js_get_handle(JSContext *ctx, JSValueConst val)
         return (HANDLE)JS_GetOpaque(val, js_pointer_class_id);
     }
 
-    JS_ThrowTypeError(ctx, "expected a Win32Handle or Pointer object");
+    JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "expected a Win32Handle or Pointer object");
     return INVALID_HANDLE_VALUE;
 }
 
@@ -1673,13 +1673,13 @@ static HANDLE js_get_handle(JSContext *ctx, JSValueConst val)
 static int js_close_win32_handle(JSContext *ctx, JSValueConst val)
 {
     if (!JS_IsObject(val) || JS_VALUE_GET_CLASS_ID(val) != js_win32_handle_class_id) {
-        JS_ThrowTypeError(ctx, "expected a Win32Handle object");
+        JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "expected a Win32Handle object");
         return -1;
     }
 
     HANDLE *handle_ptr = JS_GetOpaque(val, js_win32_handle_class_id);
     if (handle_ptr == NULL || *handle_ptr == INVALID_HANDLE_VALUE) {
-        JS_ThrowError(ctx, "handle is already closed");
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "handle is already closed");
         return -1;
     }
 
@@ -1710,7 +1710,7 @@ static JSValue js_os_CreateProcess(JSContext *ctx, JSValueConst this_val,
     startup_info.cb = sizeof(startup_info);
 
     if (argc == 0) {
-        return JS_ThrowTypeError(ctx, "CreateProcess requires at least one argument");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "CreateProcess requires at least one argument");
     }
 
     command_line = JS_ToCString(ctx, argv[0]);
@@ -1838,7 +1838,7 @@ static JSValue js_os_WaitForSingleObject(JSContext *ctx, JSValueConst this_val,
                                          int argc, JSValueConst *argv)
 {
     if (argc < 1) {
-        return JS_ThrowTypeError(ctx, "WaitForSingleObject requires at least 1 argument");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "WaitForSingleObject requires at least 1 argument");
     }
 
     HANDLE handle = js_get_handle(ctx, argv[0]);
@@ -1853,7 +1853,7 @@ static JSValue js_os_WaitForSingleObject(JSContext *ctx, JSValueConst this_val,
         if (isinf(timeout_val) && timeout_val > 0) {
             timeout_ms = INFINITE;
         } else if (timeout_val < 0) {
-            return JS_ThrowRangeError(ctx, "timeout must be non-negative");
+            return JS_ThrowRangeError(ctx, "quickjs-os.c", __LINE__, "timeout must be non-negative");
         } else {
             timeout_ms = (DWORD)timeout_val;
         }
@@ -1872,7 +1872,7 @@ static JSValue js_os_GetExitCodeProcess(JSContext *ctx, JSValueConst this_val,
                                         int argc, JSValueConst *argv)
 {
     if (argc < 1) {
-        return JS_ThrowTypeError(ctx, "GetExitCodeProcess requires 1 argument");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "GetExitCodeProcess requires 1 argument");
     }
 
     HANDLE handle = js_get_handle(ctx, argv[0]);
@@ -1892,7 +1892,7 @@ static JSValue js_os_TerminateProcess(JSContext *ctx, JSValueConst this_val,
                                       int argc, JSValueConst *argv)
 {
     if (argc < 2) {
-        return JS_ThrowTypeError(ctx, "TerminateProcess requires 2 arguments");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "TerminateProcess requires 2 arguments");
     }
 
     HANDLE handle = js_get_handle(ctx, argv[0]);
@@ -1915,7 +1915,7 @@ static JSValue js_os_CloseHandle(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
     if (argc < 1) {
-        return JS_ThrowTypeError(ctx, "CloseHandle requires 1 argument");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "CloseHandle requires 1 argument");
     }
 
     /* For Win32Handle objects, use special close that marks as invalid */
@@ -1967,13 +1967,13 @@ static JSValue js_os_CreatePipe(JSContext *ctx, JSValueConst this_val,
     if (read_fd == -1) {
         CloseHandle(read_handle);
         CloseHandle(write_handle);
-        return JS_ThrowError(ctx, "CreatePipe: _open_osfhandle failed for read end (errno %d)", errno);
+        return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "CreatePipe: _open_osfhandle failed for read end (errno %d)", errno);
     }
     FILE *read_file = fdopen(read_fd, "rb");
     if (!read_file) {
         _close(read_fd); /* also closes read_handle */
         CloseHandle(write_handle);
-        return JS_ThrowError(ctx, "CreatePipe: fdopen failed for read end (errno %d)", errno);
+        return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "CreatePipe: fdopen failed for read end (errno %d)", errno);
     }
 
     /* Convert write HANDLE to FILE* via CRT fd */
@@ -1981,13 +1981,13 @@ static JSValue js_os_CreatePipe(JSContext *ctx, JSValueConst this_val,
     if (write_fd == -1) {
         fclose(read_file); /* closes read_fd and read_handle */
         CloseHandle(write_handle);
-        return JS_ThrowError(ctx, "CreatePipe: _open_osfhandle failed for write end (errno %d)", errno);
+        return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "CreatePipe: _open_osfhandle failed for write end (errno %d)", errno);
     }
     FILE *write_file = fdopen(write_fd, "wb");
     if (!write_file) {
         fclose(read_file);
         _close(write_fd); /* also closes write_handle */
-        return JS_ThrowError(ctx, "CreatePipe: fdopen failed for write end (errno %d)", errno);
+        return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "CreatePipe: fdopen failed for write end (errno %d)", errno);
     }
 
     JSValue result = JS_NewObject(ctx);
@@ -2040,7 +2040,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
     if (ret)
         return JS_EXCEPTION;
     if (exec_argc < 1 || exec_argc > 65535)
-        return JS_ThrowTypeError(ctx, "invalid number of arguments");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "invalid number of arguments");
 
     DynBuf cmd_buf;
     js_dbuf_init(ctx, &cmd_buf);
@@ -2103,7 +2103,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             goto exception;
         if (!JS_IsUndefined(val)) {
             if (!JS_IsObject(val)) {
-                JS_ThrowTypeError(ctx, "'env' option must be an object");
+                JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "'env' option must be an object");
                 JS_FreeValue(ctx, val);
                 goto exception;
             }
@@ -2158,7 +2158,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                     js_malloc_for_utf_conv, ctx);
                 dbuf_free(&entry_buf);
                 if (wide_entry == NULL) {
-                    JS_ThrowTypeError(ctx, "failed to convert environment variable to UTF-16");
+                    JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "failed to convert environment variable to UTF-16");
                     dbuf_free(&env_dbuf);
                     QJU_FreeForEachPropertyState(ctx, foreach);
                     JS_FreeValue(ctx, val);
@@ -2270,7 +2270,7 @@ static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
 
     process_handle = win32_pid_map_find((DWORD)pid);
     if (process_handle == INVALID_HANDLE_VALUE) {
-        JS_ThrowError(ctx, "no child process with pid %d (was it started with os.exec block:false?)", pid);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "no child process with pid %d (was it started with os.exec block:false?)", pid);
         return JS_EXCEPTION;
     }
 
@@ -2316,7 +2316,7 @@ static JSValue js_os_dup(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     ret = dup(fd);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
     return JS_NewInt32(ctx, ret);
@@ -2332,7 +2332,7 @@ static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     ret = dup2(fd, fd2);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
     return JS_NewInt32(ctx, ret);
@@ -2346,7 +2346,7 @@ static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
 
     ret = pipe(pipe_fds);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
 
@@ -2368,7 +2368,7 @@ static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     ret = kill(pid, sig);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
     return JS_UNDEFINED;
@@ -2582,7 +2582,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     /* arbitrary limit to avoid overflow */
     if (exec_argc < 1 || exec_argc > 65535) {
-        return JS_ThrowTypeError(ctx, "invalid number of arguments");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "invalid number of arguments");
     }
     exec_argv = js_mallocz(ctx, sizeof(exec_argv[0]) * (exec_argc + 1));
     if (!exec_argv)
@@ -2679,7 +2679,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
 
     pid = fork();
     if (pid < 0) {
-        JS_ThrowTypeError(ctx, "fork error");
+        JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "fork error");
         goto exception;
     }
     if (pid == 0) {
@@ -2791,7 +2791,7 @@ static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
 
     ret = waitpid(pid, &status, options);
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         return JS_EXCEPTION;
     }
@@ -2840,7 +2840,7 @@ static JSClassDef js_win32_handle_class = {
 static JSValue js_win32_handle_ctor(JSContext *ctx, JSValueConst this_val,
                                     int argc, JSValueConst *argv)
 {
-    return JS_ThrowError(ctx, "Win32Handle objects cannot be created by JavaScript code");
+    return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "Win32Handle objects cannot be created by JavaScript code");
 }
 
 /**********************************************************/
@@ -3047,12 +3047,12 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     /* XXX: in order to avoid problems with resource liberation, we
        don't support creating workers inside workers */
     if (!js_eventloop_is_main_thread(rt))
-        return JS_ThrowTypeError(ctx, "cannot create a worker inside a worker");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "cannot create a worker inside a worker");
 
     /* base name, assuming the calling function is a normal JS function */
     basename_atom = JS_GetScriptOrModuleName(ctx, 1);
     if (basename_atom == JS_ATOM_NULL) {
-        return JS_ThrowTypeError(ctx, "could not determine calling script or module name");
+        return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "could not determine calling script or module name");
     }
     basename = JS_AtomToCString(ctx, basename_atom);
     JS_FreeAtom(ctx, basename_atom);
@@ -3090,7 +3090,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     ret = pthread_create(&tid, &attr, worker_func, args);
     pthread_attr_destroy(&attr);
     if (ret != 0) {
-        JS_ThrowTypeError(ctx, "could not create worker");
+        JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "could not create worker");
         goto fail;
     }
     JS_FreeCString(ctx, basename);
@@ -3210,7 +3210,7 @@ static JSValue js_worker_set_onmessage(JSContext *ctx, JSValueConst this_val,
         }
     } else {
         if (!JS_IsFunction(ctx, func))
-            return JS_ThrowTypeError(ctx, "attempting to set worker.onmessage to a non-null, non-function value.");
+            return JS_ThrowTypeError(ctx, "quickjs-os.c", __LINE__, "attempting to set worker.onmessage to a non-null, non-function value.");
         if (!port) {
             port = js_mallocz(ctx, sizeof(*port));
             if (!port)
@@ -3254,7 +3254,7 @@ static JSClassDef js_worker_class = {
 static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
                               int argc, JSValueConst *argv)
 {
-    return JS_ThrowError(ctx, "the Worker class is not supported on this platform");
+    return JS_ThrowError(ctx, "quickjs-os.c", __LINE__, "the Worker class is not supported on this platform");
 }
 
 #endif /* USE_WORKER */

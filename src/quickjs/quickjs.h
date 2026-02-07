@@ -708,12 +708,12 @@ JSValue JS_GetException(JSContext *ctx);
 JS_BOOL JS_IsError(JSContext *ctx, JSValueConst val);
 void JS_ResetUncatchableError(JSContext *ctx);
 JSValue JS_NewError(JSContext *ctx);
-JSValue __js_printf_like(2, 3) JS_ThrowError(JSContext *ctx, const char *fmt, ...);
-JSValue __js_printf_like(2, 3) JS_ThrowSyntaxError(JSContext *ctx, const char *fmt, ...);
-JSValue __js_printf_like(2, 3) JS_ThrowTypeError(JSContext *ctx, const char *fmt, ...);
-JSValue __js_printf_like(2, 3) JS_ThrowReferenceError(JSContext *ctx, const char *fmt, ...);
-JSValue __js_printf_like(2, 3) JS_ThrowRangeError(JSContext *ctx, const char *fmt, ...);
-JSValue __js_printf_like(2, 3) JS_ThrowInternalError(JSContext *ctx, const char *fmt, ...);
+JSValue __js_printf_like(4, 5) JS_ThrowError(JSContext *ctx, const char *filename, int line_num, const char *fmt, ...);
+JSValue __js_printf_like(4, 5) JS_ThrowSyntaxError(JSContext *ctx, const char *filename, int line_num, const char *fmt, ...);
+JSValue __js_printf_like(4, 5) JS_ThrowTypeError(JSContext *ctx, const char *filename, int line_num, const char *fmt, ...);
+JSValue __js_printf_like(4, 5) JS_ThrowReferenceError(JSContext *ctx, const char *filename, int line_num, const char *fmt, ...);
+JSValue __js_printf_like(4, 5) JS_ThrowRangeError(JSContext *ctx, const char *filename, int line_num, const char *fmt, ...);
+JSValue __js_printf_like(4, 5) JS_ThrowInternalError(JSContext *ctx, const char *filename, int line_num, const char *fmt, ...);
 JSValue JS_ThrowOutOfMemory(JSContext *ctx);
 void JS_AddPropertyToException(JSContext *ctx, const char *propName, JSValue value);
 

@@ -265,7 +265,7 @@ JSModuleDef *jsc_module_loader(JSContext *ctx,
 
         buf = QJU_ReadFile(ctx, &buf_len, module_name);
         if (!buf) {
-            JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
+            JS_ThrowReferenceError(ctx, "qjsc.c", __LINE__, "could not load module filename '%s'",
                                    module_name);
             return NULL;
         }

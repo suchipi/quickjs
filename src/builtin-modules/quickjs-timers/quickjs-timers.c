@@ -91,7 +91,7 @@ static JSValue js_timers_setTimeout(JSContext *ctx, JSValueConst this_val,
 
     func = argv[0];
     if (!JS_IsFunction(ctx, func))
-        return JS_ThrowTypeError(ctx, "first argument to setTimeout was not a function");
+        return JS_ThrowTypeError(ctx, "quickjs-timers.c", __LINE__, "first argument to setTimeout was not a function");
     if (JS_ToInt64(ctx, &delay, argv[1]))
         return JS_EXCEPTION;
     obj = JS_NewObjectClass(ctx, js_timer_class_id);
@@ -123,7 +123,7 @@ static JSValue js_timers_setInterval(JSContext *ctx, JSValueConst this_val,
 
     func = argv[0];
     if (!JS_IsFunction(ctx, func))
-        return JS_ThrowTypeError(ctx, "first argument to setInterval was not a function");
+        return JS_ThrowTypeError(ctx, "quickjs-timers.c", __LINE__, "first argument to setInterval was not a function");
     if (JS_ToInt64(ctx, &delay, argv[1]))
         return JS_EXCEPTION;
     obj = JS_NewObjectClass(ctx, js_timer_class_id);

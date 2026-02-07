@@ -13,7 +13,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val,
     } else if (magic == 2) {
         out = stderr;
     } else {
-        return JS_ThrowInternalError(ctx, "js_print called with incorrect 'magic' value. This is a bug in quickjs-print.");
+        return JS_ThrowInternalError(ctx, "quickjs-print.c", __LINE__, "js_print called with incorrect 'magic' value. This is a bug in quickjs-print.");
     }
 
     for(i = 0; i < argc; i++) {

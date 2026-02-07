@@ -263,10 +263,10 @@ static JSValue js_printf_internal(JSContext *ctx,
             default:
                 /* XXX: should support an extension mechanism */
             invalid:
-                JS_ThrowTypeError(ctx, "invalid conversion specifier in format string");
+                JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "invalid conversion specifier in format string");
                 goto fail;
             missing:
-                JS_ThrowReferenceError(ctx, "missing argument for conversion specifier");
+                JS_ThrowReferenceError(ctx, "quickjs-std.c", __LINE__, "missing argument for conversion specifier");
                 goto fail;
             }
         }
@@ -304,7 +304,7 @@ static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     buf = QJU_ReadFile(ctx, &buf_len, filename);
     if (!buf) {
-        JS_ThrowError(ctx, "%s (errno = %d, filename = %s)", strerror(errno), errno, filename);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d, filename = %s)", strerror(errno), errno, filename);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
 
@@ -428,7 +428,7 @@ static JSValue js_std_getuid(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
 #ifdef _WIN32
-    return JS_ThrowError(ctx, "getuid is not supported on Windows");
+    return JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "getuid is not supported on Windows");
 #else
     int32_t uid = getuid();
     return JS_NewInt32(ctx, uid);
@@ -440,7 +440,7 @@ static JSValue js_std_geteuid(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
 #ifdef _WIN32
-    return JS_ThrowError(ctx, "geteuid is not supported on Windows");
+    return JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "geteuid is not supported on Windows");
 #else
     int32_t uid = geteuid();
     return JS_NewInt32(ctx, uid);
@@ -451,7 +451,7 @@ static JSValue js_std_getgid(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
 #ifdef _WIN32
-    return JS_ThrowError(ctx, "getgid is not supported on Windows");
+    return JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "getgid is not supported on Windows");
 #else
     int32_t gid = getgid();
     return JS_NewInt32(ctx, gid);
@@ -462,7 +462,7 @@ static JSValue js_std_getegid(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
 #ifdef _WIN32
-    return JS_ThrowError(ctx, "getegid is not supported on Windows");
+    return JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "getegid is not supported on Windows");
 #else
     int32_t gid = getegid();
     return JS_NewInt32(ctx, gid);
@@ -473,7 +473,7 @@ static JSValue js_std_getpwuid(JSContext *ctx, JSValueConst this_val,
     int argc, JSValueConst *argv)
 {
 #ifdef _WIN32
-    return JS_ThrowError(ctx, "getpwuid is not supported on Windows");
+    return JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "getpwuid is not supported on Windows");
 #else
     uid_t id = -1;
     struct passwd *pwd = {0};
@@ -634,7 +634,7 @@ static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
     JSValue ret;
 
     if (argc != 2) {
-        return JS_ThrowTypeError(ctx, "open must be called with two arguments: 'filename' and 'flags'. Instead, it was called with %d argument(s).", argc);
+        return JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "open must be called with two arguments: 'filename' and 'flags'. Instead, it was called with %d argument(s).", argc);
     }
 
     filename = JS_ToCString(ctx, argv[0]);
@@ -648,7 +648,7 @@ static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
     }
 
     if (mode[strspn(mode, "rwa+b")] != '\0') {
-        JS_ThrowTypeError(ctx, "invalid file mode: %s", mode);
+        JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "invalid file mode: %s", mode);
         JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
         JS_AddPropertyToException(ctx, "mode", JS_NewString(ctx, mode));
         return JS_EXCEPTION;
@@ -656,7 +656,7 @@ static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
 
     f = fopen(filename, mode);
     if (!f) {
-        JS_ThrowError(ctx, "%s (errno = %d, filename = %s, mode = %s)", strerror(errno), errno, filename, mode);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d, filename = %s, mode = %s)", strerror(errno), errno, filename, mode);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
         JS_AddPropertyToException(ctx, "mode", JS_NewString(ctx, mode));
@@ -684,7 +684,7 @@ static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
     JSValue ret;
 
     if (argc != 2) {
-        return JS_ThrowTypeError(ctx, "popen must be called with two arguments: 'filename' and 'flags'. Instead, it was called with %d argument(s).", argc);
+        return JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "popen must be called with two arguments: 'filename' and 'flags'. Instead, it was called with %d argument(s).", argc);
     }
 
     filename = JS_ToCString(ctx, argv[0]);
@@ -697,7 +697,7 @@ static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     if (mode[strspn(mode, "rw")] != '\0') {
-        JS_ThrowTypeError(ctx, "invalid file mode: %s", mode);
+        JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "invalid file mode: %s", mode);
         JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
         JS_AddPropertyToException(ctx, "mode", JS_NewString(ctx, mode));
         return JS_EXCEPTION;
@@ -705,7 +705,7 @@ static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
 
     f = popen(filename, mode);
     if (!f) {
-        JS_ThrowError(ctx, "%s (errno = %d, filename = %s, mode = %s)", strerror(errno), errno, filename, mode);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d, filename = %s, mode = %s)", strerror(errno), errno, filename, mode);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         JS_AddPropertyToException(ctx, "filename", JS_NewString(ctx, filename));
         JS_AddPropertyToException(ctx, "mode", JS_NewString(ctx, mode));
@@ -734,7 +734,7 @@ static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
     JSValue ret;
 
     if (argc != 2) {
-        return JS_ThrowTypeError(ctx, "fdopen must be called with two arguments: 'fd' and 'flags'. Instead, it was called with %d argument(s).", argc);
+        return JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "fdopen must be called with two arguments: 'fd' and 'flags'. Instead, it was called with %d argument(s).", argc);
     }
 
     if (JS_ToInt32(ctx, &fd, argv[0]))
@@ -744,14 +744,14 @@ static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     if (mode[strspn(mode, "rwa+b")] != '\0') {
-        JS_ThrowTypeError(ctx, "invalid file mode: %s", mode);
+        JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "invalid file mode: %s", mode);
         JS_AddPropertyToException(ctx, "mode", JS_NewString(ctx, mode));
         return JS_EXCEPTION;
     }
 
     f = fdopen(fd, mode);
     if (!f) {
-        JS_ThrowError(ctx, "%s (errno = %d, fd = %d, mode = %s)", strerror(errno), errno, fd, mode);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d, fd = %d, mode = %s)", strerror(errno), errno, fd, mode);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         JS_AddPropertyToException(ctx, "fd", JS_NewInt32(ctx, fd));
         JS_AddPropertyToException(ctx, "mode", JS_NewString(ctx, mode));
@@ -776,7 +776,7 @@ static JSValue js_std_tmpfile(JSContext *ctx, JSValueConst this_val,
 
     f = tmpfile();
     if (!f) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         return JS_EXCEPTION;
     }
@@ -811,7 +811,7 @@ static JSValue js_std_strftime(JSContext *ctx, JSValueConst this_val,
     char *output_str = NULL;
 
     if (argc != 3) {
-        return JS_ThrowTypeError(ctx, "strftime must be called with exactly three arguments: max bytes to write, a format string, and a Date object (or number).");
+        return JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "strftime must be called with exactly three arguments: max bytes to write, a format string, and a Date object (or number).");
     }
 
     if (JS_ToInt32(ctx, &max_bytes, argv[0])) {
@@ -834,7 +834,7 @@ static JSValue js_std_strftime(JSContext *ctx, JSValueConst this_val,
     if (!localtime_r(&epoch, &time)) {
         int err = errno;
         char *err_msg = strerror(err);
-        JS_ThrowTypeError(ctx, "localtime_r failed: %s (errno = %d)", err_msg, err);
+        JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "localtime_r failed: %s (errno = %d)", err_msg, err);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         JS_FreeCString(ctx, format_str);
         return JS_EXCEPTION;
@@ -850,7 +850,7 @@ static JSValue js_std_strftime(JSContext *ctx, JSValueConst this_val,
     JS_FreeCString(ctx, format_str);
     if (returned_str_size == 0) {
         js_free(ctx, output_str);
-        return JS_ThrowRangeError(ctx, "specified size for formatted string was not large enough to hold it. call again with larger max bytes");
+        return JS_ThrowRangeError(ctx, "quickjs-std.c", __LINE__, "specified size for formatted string was not large enough to hold it. call again with larger max bytes");
     }
 
     output_str_val = JS_NewStringLen(ctx, output_str, returned_str_size);
@@ -864,7 +864,7 @@ static FILE *js_std_file_get(JSContext *ctx, JSValueConst obj)
     if (!s)
         return NULL;
     if (!s->f) {
-        JS_ThrowTypeError(ctx, "invalid file handle");
+        JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "invalid file handle");
         return NULL;
     }
     return s->f;
@@ -903,16 +903,16 @@ static JSValue js_std_file_close(JSContext *ctx, JSValueConst this_val,
     if (!s)
         return JS_EXCEPTION;
     if (!s->f)
-        return JS_ThrowTypeError(ctx, "invalid file handle");
+        return JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "invalid file handle");
     if (s->is_popen) {
         if (pclose(s->f) < 0) {
-            JS_ThrowTypeError(ctx, "failed to close file: %s (errno = %d)", strerror(errno), errno);
+            JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "failed to close file: %s (errno = %d)", strerror(errno), errno);
             JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
             return JS_EXCEPTION;
         }
     } else {
         if (fclose(s->f) < 0) {
-            JS_ThrowTypeError(ctx, "failed to close file: %s (errno = %d)", strerror(errno), errno);
+            JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "failed to close file: %s (errno = %d)", strerror(errno), errno);
             JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
             return JS_EXCEPTION;
         }
@@ -995,7 +995,7 @@ static JSValue js_std_file_seek(JSContext *ctx, JSValueConst this_val,
     ret = fseek(f, pos, whence);
 #endif
     if (ret < 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         return JS_EXCEPTION;
     }
@@ -1029,7 +1029,7 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
     size_t bufsize, limit, total_read, total_written;
 
     if (argc < 2) {
-        return JS_ThrowTypeError(ctx, "writeTo must be called with at least two arguments: 'target' and 'bufferSize'. Instead, it was called with %d argument(s).", argc);
+        return JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "writeTo must be called with at least two arguments: 'target' and 'bufferSize'. Instead, it was called with %d argument(s).", argc);
     }
 
     self = js_std_file_get(ctx, this_val);
@@ -1044,7 +1044,7 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     if (bufsize_double <= 0) {
-        return JS_ThrowTypeError(ctx, "'bufferSize' must be greater than 0");
+        return JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "'bufferSize' must be greater than 0");
     }
     bufsize = (size_t) bufsize_double;
 
@@ -1053,7 +1053,7 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
             return JS_EXCEPTION;
         }
         if (limit_double < 0) {
-            return JS_ThrowTypeError(ctx, "'limit' cannot be negative");
+            return JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "'limit' cannot be negative");
         }
         limit = (size_t) limit_double;
     } else {
@@ -1099,7 +1099,7 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
             if (bytes_read < bytes_to_read) {
                 if (ferror(self)) {
                     js_free(ctx, buf);
-                    JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+                    JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
                     JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
                     JS_AddPropertyToException(ctx, "totalBytesWritten", JS_NewInt64(ctx, total_written));
                     JS_AddPropertyToException(ctx, "totalBytesRead", JS_NewInt64(ctx, total_read));
@@ -1115,14 +1115,14 @@ static JSValue js_std_file_writeTo(JSContext *ctx, JSValueConst this_val,
             if (bytes_written < bytes_read) {
                 if (ferror(target)) {
                     js_free(ctx, buf);
-                    JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+                    JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
                     JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
                     JS_AddPropertyToException(ctx, "totalBytesWritten", JS_NewInt64(ctx, total_written));
                     JS_AddPropertyToException(ctx, "totalBytesRead", JS_NewInt64(ctx, total_read));
                     return JS_EXCEPTION;
                 } else {
                     js_free(ctx, buf);
-                    JS_ThrowError(ctx, "Failed to write file: reached EOF before we were done writing data");
+                    JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "Failed to write file: reached EOF before we were done writing data");
                     JS_AddPropertyToException(ctx, "attemptedWriteSize", JS_NewInt64(ctx, bytes_read));
                     JS_AddPropertyToException(ctx, "actualWriteSize", JS_NewInt64(ctx, bytes_written));
                     JS_AddPropertyToException(ctx, "totalBytesWritten", JS_NewInt64(ctx, total_written));
@@ -1160,7 +1160,7 @@ static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
     if (!buf)
         return JS_EXCEPTION;
     if (pos + len > size)
-        return JS_ThrowRangeError(ctx, "read/write array buffer overflow");
+        return JS_ThrowRangeError(ctx, "quickjs-std.c", __LINE__, "read/write array buffer overflow");
     if (is_write) {
         ret = fwrite(buf + pos, 1, len, f);
     } else {
@@ -1168,7 +1168,7 @@ static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
     }
 
     if (ferror(f) != 0) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         return JS_EXCEPTION;
     }
@@ -1279,7 +1279,7 @@ static JSValue js_std_file_putByte(JSContext *ctx, JSValueConst this_val,
     errno = 0;
     c = fputc(c, f);
     if (c == EOF) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
 
         return JS_EXCEPTION;
@@ -1298,7 +1298,7 @@ static JSValue js_std_file_setvbuf(JSContext *ctx, JSValueConst this_val,
 
     if (argc != 2) {
         // we don't support changing the buffer
-        return JS_ThrowTypeError(ctx, "setvbuf must be called exactly two arguments: 'mode' and 'size'.");
+        return JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "setvbuf must be called exactly two arguments: 'mode' and 'size'.");
     }
 
     f = js_std_file_get(ctx, this_val);
@@ -1317,7 +1317,7 @@ static JSValue js_std_file_setvbuf(JSContext *ctx, JSValueConst this_val,
     size = (size_t)size_uint;
 
     if (mode != _IOFBF && mode != _IOLBF && mode != _IONBF) {
-        JS_ThrowError(ctx, "'mode' argument must be either 'std._IOFBF', 'std._IOLBF', or 'std._IONBF'. Instead, received '%d'.", mode);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "'mode' argument must be either 'std._IOFBF', 'std._IOLBF', or 'std._IONBF'. Instead, received '%d'.", mode);
         JS_AddPropertyToException(ctx, "mode", JS_NewInt32(ctx, mode));
 
         return JS_EXCEPTION;
@@ -1325,7 +1325,7 @@ static JSValue js_std_file_setvbuf(JSContext *ctx, JSValueConst this_val,
 
     errno = 0;
     if (setvbuf(f, NULL, mode, size)) {
-        JS_ThrowError(ctx, "%s (errno = %d)", strerror(errno), errno);
+        JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
 
         return JS_EXCEPTION;
@@ -1434,7 +1434,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
 
     f = popen((char *)cmd_buf.buf, "r");
     if (!f) {
-        JS_ThrowTypeError(ctx, "could not start curl: %s", strerror(errno));
+        JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "could not start curl: %s", strerror(errno));
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         dbuf_free(&cmd_buf);
         return JS_EXCEPTION;
@@ -1453,7 +1453,7 @@ read_headers:
     /* get the HTTP status */
     get_header_line_result = http_get_header_line(f, buf, URL_GET_BUF_SIZE, NULL);
     if (get_header_line_result < 0) {
-        JS_ThrowTypeError(ctx, "failed to read output from curl: %s", strerror(-get_header_line_result));
+        JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "failed to read output from curl: %s", strerror(-get_header_line_result));
         goto fail;
     }
     status = http_get_status(buf);
@@ -1464,7 +1464,7 @@ read_headers:
     for(;;) {
         get_header_line_result = http_get_header_line(f, buf, URL_GET_BUF_SIZE, is_redirect ? header_buf : NULL);
         if (get_header_line_result < 0) {
-            JS_ThrowTypeError(ctx, "failed to read output from curl: %s", strerror(-get_header_line_result));
+            JS_ThrowTypeError(ctx, "quickjs-std.c", __LINE__, "failed to read output from curl: %s", strerror(-get_header_line_result));
             goto fail;
         }
         if (!strcmp(buf, "\r\n"))
@@ -1530,7 +1530,7 @@ read_headers:
                                     JS_PROP_C_W_E);
     } else {
         if (!(status >= 200 && status <= 299)) {
-            ret_obj = JS_ThrowError(ctx, "HTTP response status code was %d. Url was: '%s'. To allow non-2xx status codes, pass the 'full' option to urlGet.", status, url);
+            ret_obj = JS_ThrowError(ctx, "quickjs-std.c", __LINE__, "HTTP response status code was %d. Url was: '%s'. To allow non-2xx status codes, pass the 'full' option to urlGet.", status, url);
         } else {
             ret_obj = response;
         }

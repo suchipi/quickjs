@@ -534,7 +534,7 @@ static JSValue js_agent_start(JSContext *ctx, JSValue this_val,
     Test262Agent *agent;
 
     if (JS_GetContextOpaque(ctx) != NULL)
-        return JS_ThrowTypeError(ctx, "cannot be called inside an agent");
+        return JS_ThrowTypeError(ctx, "run-test262.c", __LINE__, "cannot be called inside an agent");
 
     script = JS_ToCString(ctx, argv[0]);
     if (!script)
@@ -569,7 +569,7 @@ static JSValue js_agent_leaving(JSContext *ctx, JSValue this_val,
 {
     Test262Agent *agent = JS_GetContextOpaque(ctx);
     if (!agent)
-        return JS_ThrowTypeError(ctx, "must be called inside an agent");
+        return JS_ThrowTypeError(ctx, "run-test262.c", __LINE__, "must be called inside an agent");
     /* nothing to do */
     return JS_UNDEFINED;
 }
@@ -597,7 +597,7 @@ static JSValue js_agent_broadcast(JSContext *ctx, JSValue this_val,
     int32_t val;
 
     if (JS_GetContextOpaque(ctx) != NULL)
-        return JS_ThrowTypeError(ctx, "cannot be called inside an agent");
+        return JS_ThrowTypeError(ctx, "run-test262.c", __LINE__, "cannot be called inside an agent");
 
     buf = JS_GetArrayBuffer(ctx, &buf_size, sab);
     if (!buf)
@@ -632,9 +632,9 @@ static JSValue js_agent_receiveBroadcast(JSContext *ctx, JSValue this_val,
 {
     Test262Agent *agent = JS_GetContextOpaque(ctx);
     if (!agent)
-        return JS_ThrowTypeError(ctx, "must be called inside an agent");
+        return JS_ThrowTypeError(ctx, "run-test262.c", __LINE__, "must be called inside an agent");
     if (!JS_IsFunction(ctx, argv[0]))
-        return JS_ThrowTypeError(ctx, "expecting function");
+        return JS_ThrowTypeError(ctx, "run-test262.c", __LINE__, "expecting function");
     JS_FreeValue(ctx, agent->broadcast_func);
     agent->broadcast_func = JS_DupValue(ctx, argv[0]);
     return JS_UNDEFINED;
@@ -818,7 +818,7 @@ static JSModuleDef *js_module_loader_test(JSContext *ctx,
 
     buf = QJU_ReadFile(ctx, &buf_len, module_name);
     if (!buf) {
-        JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
+        JS_ThrowReferenceError(ctx, "run-test262.c", __LINE__, "could not load module filename '%s'",
                                module_name);
         return NULL;
     }
@@ -1200,7 +1200,7 @@ static int eval_buf(JSContext *ctx, const char *buf, size_t buf_len,
             } else if (ret == 0) {
                 /* test if the test called $DONE() once */
                 if (async_done != 1) {
-                    res_val = JS_ThrowTypeError(ctx, "$DONE() not called");
+                    res_val = JS_ThrowTypeError(ctx, "run-test262.c", __LINE__, "$DONE() not called");
                 } else {
                     res_val = JS_UNDEFINED;
                 }

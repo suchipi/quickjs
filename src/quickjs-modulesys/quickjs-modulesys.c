@@ -275,7 +275,7 @@ static JSModuleDef *QJMS_ModuleLoader_so(JSContext *ctx,
                                  const char *module_name)
 {
 #if defined(_WIN32)
-  JS_ThrowReferenceError(ctx, "shared library modules are not supported on windows");
+  JS_ThrowReferenceError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "shared library modules are not supported on windows");
   return NULL;
 #elif defined(CONFIG_SHARED_LIBRARY_MODULES)
   JSModuleDef *m;
@@ -301,21 +301,21 @@ static JSModuleDef *QJMS_ModuleLoader_so(JSContext *ctx,
   if (filename != module_name)
     js_free(ctx, filename);
   if (!hd) {
-    JS_ThrowReferenceError(ctx, "could not load module filename '%s' as shared library",
+    JS_ThrowReferenceError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "could not load module filename '%s' as shared library",
                            module_name);
     goto fail;
   }
 
   init = dlsym(hd, "js_init_module");
   if (!init) {
-    JS_ThrowReferenceError(ctx, "could not load module filename '%s': 'js_init_module' function not found",
+    JS_ThrowReferenceError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "could not load module filename '%s': 'js_init_module' function not found",
                            module_name);
     goto fail;
   }
 
   m = init(ctx, module_name);
   if (!m) {
-    JS_ThrowReferenceError(ctx, "could not load module filename '%s': initialization error",
+    JS_ThrowReferenceError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "could not load module filename '%s': initialization error",
                            module_name);
   fail:
     if (hd) {
@@ -325,7 +325,7 @@ static JSModuleDef *QJMS_ModuleLoader_so(JSContext *ctx,
   }
   return m;
 #else
-  JS_ThrowReferenceError(ctx, "shared library modules are not supported in this build of quickjs");
+  JS_ThrowReferenceError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "shared library modules are not supported in this build of quickjs");
   return NULL;
 #endif /* _WIN32 or CONFIG_SHARED_LIBRARY_MODULES */
 }
@@ -390,7 +390,7 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
       }
 
       if (!JS_IsString(result)) {
-        JS_ThrowTypeError(ctx, "ModuleDelegate.read returned non-string");
+        JS_ThrowTypeError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "ModuleDelegate.read returned non-string");
         JS_FreeValue(ctx, result);
         return NULL;
       }
@@ -417,7 +417,7 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
 
       buf = (char *)QJU_ReadFile(ctx, &buf_len, module_name);
       if (!buf) {
-          JS_ThrowReferenceError(ctx, "could not load module filename '%s'", module_name);
+          JS_ThrowReferenceError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "could not load module filename '%s'", module_name);
           return NULL;
       }
 
@@ -601,7 +601,7 @@ static JSValue js_require(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
 {
   if (argc != 1 || !JS_IsString(argv[0])) {
-    return JS_ThrowTypeError(ctx, "require must be called with exactly one argument: a string");
+    return JS_ThrowTypeError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "require must be called with exactly one argument: a string");
   }
 
   return QJMS_Require(ctx, argv[0]);
@@ -614,7 +614,7 @@ JSValue QJMS_RequireResolve(JSContext *ctx, JSValueConst specifier_val)
 
   basename_atom = JS_GetScriptOrModuleName(ctx, 1);
   if (basename_atom == JS_ATOM_NULL) {
-    return JS_ThrowError(ctx, "Failed to identify the filename of the code calling require.resolve");
+    return JS_ThrowError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "Failed to identify the filename of the code calling require.resolve");
   }
 
   result = QJMS_RequireResolve2(ctx, specifier_val, basename_atom);
@@ -655,7 +655,7 @@ JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val, JSAtom 
     JS_FreeCString(ctx, basename);
     JS_FreeCString(ctx, specifier);
 
-    return JS_ThrowError(ctx, "Failed to normalize module name");
+    return JS_ThrowError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "Failed to normalize module name");
   }
 
   normalized_value = JS_NewString(ctx, normalized);
@@ -675,7 +675,7 @@ static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
   JSValue name_val;
 
   if (argc != 1) {
-    return JS_ThrowTypeError(ctx, "require.resolve must be called with exactly one argument");
+    return JS_ThrowTypeError(ctx, "quickjs-modulesys.c", __LINE__, "quickjs-modulesys.c", __LINE__, "require.resolve must be called with exactly one argument");
   }
 
   name_val = JS_ToString(ctx, argv[0]);

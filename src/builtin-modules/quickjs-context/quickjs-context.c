@@ -182,7 +182,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
             }
-            if (get_option_bool(ctx, options_modules, "quickjs:timers", &module_std, module_timers_default)) {
+            if (get_option_bool(ctx, options_modules, "quickjs:timers", &module_timers, module_timers_default)) {
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
             }
@@ -251,6 +251,15 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         JS_EnableBignumExt(target_ctx, TRUE);
     }
 #endif
+    if (module_std) {
+        js_init_module_std(target_ctx, "quickjs:std");
+    }
+    if (module_os) {
+        js_init_module_os(target_ctx, "quickjs:os");
+    }
+    if (module_timers) {
+        js_init_module_timers(target_ctx, "quickjs:timers");
+    }
 
     if (module_bytecode) {
         js_init_module_bytecode(target_ctx, "quickjs:bytecode");
@@ -267,17 +276,8 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     if (module_engine) {
         js_init_module_engine(target_ctx, "quickjs:engine");
     }
-    if (module_os) {
-        js_init_module_os(target_ctx, "quickjs:os");
-    }
     if (module_pointer) {
         js_init_module_pointer(target_ctx, "quickjs:pointer");
-    }
-    if (module_std) {
-        js_init_module_std(target_ctx, "quickjs:std");
-    }
-    if (module_timers) {
-        js_init_module_timers(target_ctx, "quickjs:timers");
     }
 
     if (inspect) {
@@ -315,7 +315,7 @@ static JSValue js_context_eval(JSContext *ctx, JSValueConst this_val,
 
     target_ctx = JS_GetOpaque(this_val, js_context_class_id);
     if (!target_ctx) {
-        return JS_ThrowTypeError(ctx, "'Context.prototype.eval' must be called on a Context instance");
+        return JS_ThrowTypeError(ctx, "quickjs-context.c", __LINE__, "'Context.prototype.eval' must be called on a Context instance");
     }
 
     code = JS_ToCString(ctx, argv[0]);
