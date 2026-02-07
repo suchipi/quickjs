@@ -9,6 +9,7 @@
 #include "quickjs-cmdline.h"
 #include "quickjs-print.h"
 #include "quickjs-modulesys.h"
+#include "quickjs-utils.h"
 
 extern const uint32_t qjsc_loop_size;
 extern const uint8_t qjsc_loop[];

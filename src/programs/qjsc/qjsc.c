@@ -693,6 +693,7 @@ int main(int argc, char **argv)
     if (output_type != OUTPUT_C) {
         fprintf(fo, "#include <stdlib.h>\n"
                 "#include \"quickjs-full-init.h\"\n"
+                "#include \"quickjs-utils.h\"\n"
                 "\n"
                 );
     } else {
