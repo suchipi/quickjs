@@ -33,7 +33,9 @@ export function getScriptArgs(): Array<string>;
 ## "quickjs:cmdline".exit (exported function)
 
 Terminates the process with the given exit code.
-If no exit code is provided, defaults to 0.
+
+If no exit code is provided, uses the value set by `setExitCode`, or 0 if
+one hasn't been set.
 
 ```ts
 export function exit(exitCode?: number): never;
@@ -49,9 +51,12 @@ export function getExitCode(): number;
 
 ## "quickjs:cmdline".setExitCode (exported function)
 
-Sets the exit code to be returned when the process exits.
-This does not terminate the process; it only sets the code
-that will be returned when the process eventually exits.
+Sets the exit code to be returned when the process exits. This does not
+terminate the process; it only sets the code that will be returned when the
+process eventually exits.
+
+If a future `exit` call receives an exitCode argument, the value set by
+setExitCode will be ignored.
 
 ```ts
 export function setExitCode(exitCode: number): void;
