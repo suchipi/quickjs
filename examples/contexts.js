@@ -38,11 +38,15 @@ const c3 = new Context({
   moduleGlobals: false,
   timers: false,
   modules: {
-    "quickjs:std": false,
-    "quickjs:os": false,
     "quickjs:bytecode": false,
+    "quickjs:cmdline": false,
     "quickjs:context": false,
+    "quickjs:encoding": false,
     "quickjs:engine": false,
+    "quickjs:os": false,
+    "quickjs:pointer": false,
+    "quickjs:std": false,
+    "quickjs:timers": false,
   },
 });
 

@@ -144,20 +144,24 @@ declare module "quickjs:context" {
 
       /** Enable builtin modules. */
       modules?: {
-        /** Enables the "quickjs:std" module. Defaults to `true`. */
-        "quickjs:std"?: boolean;
-        /** Enables the "quickjs:os" module. Defaults to `true`. */
-        "quickjs:os"?: boolean;
         /** Enables the "quickjs:bytecode" module. Defaults to `true`. */
         "quickjs:bytecode"?: boolean;
-        /** Enables the "quickjs:context" module. Defaults to `true`. */
-        "quickjs:context"?: boolean;
-        /** Enables the "quickjs:engine" module. Defaults to `true`. */
-        "quickjs:engine"?: boolean;
-        /** Enables the "quickjs:encoding" module. Defaults to `true`. */
-        "quickjs:encoding"?: boolean;
         /** Enables the "quickjs:cmdline" module. Defaults to `true`. */
         "quickjs:cmdline"?: boolean;
+        /** Enables the "quickjs:context" module. Defaults to `true`. */
+        "quickjs:context"?: boolean;
+        /** Enables the "quickjs:encoding" module. Defaults to `true`. */
+        "quickjs:encoding"?: boolean;
+        /** Enables the "quickjs:engine" module. Defaults to `true`. */
+        "quickjs:engine"?: boolean;
+        /** Enables the "quickjs:os" module. Defaults to `true`. */
+        "quickjs:os"?: boolean;
+        /** Enables the "quickjs:pointer" module. Defaults to `true`. */
+        "quickjs:pointer"?: boolean;
+        /** Enables the "quickjs:std" module. Defaults to `true`. */
+        "quickjs:std"?: boolean;
+        /** Enables the "quickjs:timers" module. Defaults to `true`. */
+        "quickjs:timers"?: boolean;
       };
     });
 

@@ -1,7 +1,7 @@
 import { spawn } from "first-base";
 import { binDir, rootDir } from "./_utils";
 
-test("quickjs:context", async () => {
+test("quickjs:context - example", async () => {
   const run = spawn(binDir("qjs"), [rootDir("examples/contexts.js")]);
   await run.completion;
   expect(run.result).toMatchInlineSnapshot(`
@@ -65,3 +65,95 @@ test("quickjs:context", async () => {
     }
   `);
 });
+
+for (const modname of [
+  "quickjs:bytecode",
+  "quickjs:cmdline",
+  "quickjs:context",
+  "quickjs:encoding",
+  "quickjs:engine",
+  "quickjs:os",
+  "quickjs:pointer",
+  "quickjs:std",
+  "quickjs:timers",
+]) {
+  test(`quickjs:context - ${modname} (default)`, async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		try {
+			ctx.globalThis.require(${JSON.stringify(modname)});
+			console.log("worked");
+		} catch (err) {
+			console.log("failed");
+		}
+	`,
+    ]);
+    await run.completion;
+    expect(run.result).toMatchObject({
+      stdout: "worked\n",
+      stderr: "",
+      code: 0,
+      error: false,
+    });
+  });
+
+  test(`quickjs:context - ${modname} (true)`, async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+		  modules: {
+			  ${JSON.stringify(modname)}: true,
+			},
+		});
+		try {
+			ctx.globalThis.require(${JSON.stringify(modname)});
+			console.log("worked");
+		} catch (err) {
+			console.log("failed");
+		}
+	`,
+    ]);
+    await run.completion;
+    expect(run.result).toMatchObject({
+      stdout: "worked\n",
+      stderr: "",
+      code: 0,
+      error: false,
+    });
+  });
+
+  test(`quickjs:context - ${modname} (false)`, async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+		  modules: {
+			  ${JSON.stringify(modname)}: false,
+			},
+		});
+		try {
+			ctx.globalThis.require(${JSON.stringify(modname)});
+			console.log("worked");
+		} catch (err) {
+			console.log("failed");
+		}
+	`,
+    ]);
+    await run.completion;
+    expect(run.result).toMatchObject({
+      stdout: "failed\n",
+      stderr: "",
+      code: 0,
+      error: false,
+    });
+  });
+}

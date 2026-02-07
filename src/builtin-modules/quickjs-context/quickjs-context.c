@@ -1,17 +1,18 @@
 #include <string.h>
 #include "cutils.h"
 #include "quickjs-eventloop.h"
-#include "quickjs-std.h"
-#include "quickjs-timers.h"
-#include "quickjs-os.h"
-#include "quickjs-cmdline.h"
-#include "quickjs-bytecode.h"
-#include "quickjs-pointer.h"
 #include "quickjs-modulesys.h"
-#include "quickjs-engine.h"
-#include "quickjs-context.h"
 #include "quickjs-print.h"
 #include "quickjs-inspect.h"
+#include "quickjs-bytecode.h"
+#include "quickjs-cmdline.h"
+#include "quickjs-context.h"
+#include "quickjs-encoding.h"
+#include "quickjs-engine.h"
+#include "quickjs-os.h"
+#include "quickjs-pointer.h"
+#include "quickjs-std.h"
+#include "quickjs-timers.h"
 
 static JSClassID js_context_class_id;
 
@@ -70,9 +71,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     JSContext *target_ctx;
     BOOL date, eval, stringNormalize, regExp, json, proxy, mapSet, typedArrays,
         promise, bigint, bigfloat, bigdecimal, operators, useMath, inspect,
-        console, print, moduleGlobals, timers, module_std, module_os,
-        module_bytecode, module_context, module_pointer, module_engine,
-        module_encoding, module_cmdline;
+        console, print, moduleGlobals, timers;
+    BOOL module_bytecode, module_cmdline, module_context, module_encoding,
+        module_engine, module_os, module_pointer, module_std, module_timers;
 
     options = argv[0];
     if (get_option_bool(ctx, options, "date", &date, TRUE)) {
@@ -134,45 +135,22 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
 
     {
-        BOOL module_std_default = TRUE;
-        BOOL module_os_default = TRUE;
         BOOL module_bytecode_default = TRUE;
-        BOOL module_context_default = TRUE;
-        BOOL module_pointer_default = TRUE;
-        BOOL module_engine_default = TRUE;
-        BOOL module_encoding_default = TRUE;
         BOOL module_cmdline_default = TRUE;
+        BOOL module_context_default = TRUE;
+        BOOL module_encoding_default = TRUE;
+        BOOL module_engine_default = TRUE;
+        BOOL module_os_default = TRUE;
+        BOOL module_pointer_default = TRUE;
+        BOOL module_std_default = TRUE;
+        BOOL module_timers_default = TRUE;
 
         if (JS_IsObject(options)) {
             JSValue options_modules = JS_GetPropertyStr(ctx, options, "modules");
             if (JS_IsException(options_modules)) {
                 return JS_EXCEPTION;
             }
-            if (get_option_bool(ctx, options_modules, "quickjs:std", &module_std, module_std_default)) {
-                JS_FreeValue(ctx, options_modules);
-                return JS_EXCEPTION;
-            }
-            if (get_option_bool(ctx, options_modules, "quickjs:os", &module_os, module_os_default)) {
-                JS_FreeValue(ctx, options_modules);
-                return JS_EXCEPTION;
-            }
             if (get_option_bool(ctx, options_modules, "quickjs:bytecode", &module_bytecode, module_bytecode_default)) {
-                JS_FreeValue(ctx, options_modules);
-                return JS_EXCEPTION;
-            }
-            if (get_option_bool(ctx, options_modules, "quickjs:context", &module_context, module_context_default)) {
-                JS_FreeValue(ctx, options_modules);
-                return JS_EXCEPTION;
-            }
-            if (get_option_bool(ctx, options_modules, "quickjs:pointer", &module_pointer, module_pointer_default)) {
-                JS_FreeValue(ctx, options_modules);
-                return JS_EXCEPTION;
-            }
-            if (get_option_bool(ctx, options_modules, "quickjs:engine", &module_engine, module_engine_default)) {
-                JS_FreeValue(ctx, options_modules);
-                return JS_EXCEPTION;
-            }
-            if (get_option_bool(ctx, options_modules, "quickjs:encoding", &module_encoding, module_encoding_default)) {
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
             }
@@ -180,17 +158,46 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
             }
+            if (get_option_bool(ctx, options_modules, "quickjs:context", &module_context, module_context_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
+            if (get_option_bool(ctx, options_modules, "quickjs:encoding", &module_encoding, module_encoding_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
+            if (get_option_bool(ctx, options_modules, "quickjs:engine", &module_engine, module_engine_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
+            if (get_option_bool(ctx, options_modules, "quickjs:os", &module_os, module_os_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
+            if (get_option_bool(ctx, options_modules, "quickjs:pointer", &module_pointer, module_pointer_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
+            if (get_option_bool(ctx, options_modules, "quickjs:std", &module_std, module_std_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
+            if (get_option_bool(ctx, options_modules, "quickjs:timers", &module_std, module_timers_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
 
             JS_FreeValue(ctx, options_modules);
         } else {
-            module_std = module_std_default;
-            module_os = module_os_default;
             module_bytecode = module_bytecode_default;
-            module_context = module_context_default;
-            module_pointer = module_pointer_default;
-            module_engine = module_engine_default;
-            module_encoding = module_encoding_default;
             module_cmdline = module_cmdline_default;
+            module_context = module_context_default;
+            module_encoding = module_encoding_default;
+            module_engine = module_engine_default;
+            module_os = module_os_default;
+            module_pointer = module_pointer_default;
+            module_std = module_std_default;
+            module_timers = module_timers_default;
         }
     }
 
@@ -245,26 +252,32 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
 #endif
 
-    if (module_std) {
-        js_init_module_std(target_ctx, "quickjs:std");
-    }
-    if (module_os) {
-        js_init_module_os(target_ctx, "quickjs:os");
-    }
     if (module_bytecode) {
         js_init_module_bytecode(target_ctx, "quickjs:bytecode");
+    }
+    if (module_cmdline) {
+        js_init_module_cmdline(target_ctx, "quickjs:cmdline");
     }
     if (module_context) {
         js_init_module_context(target_ctx, "quickjs:context");
     }
-    if (module_pointer) {
-        js_init_module_pointer(target_ctx, "quickjs:pointer");
+    if (module_encoding) {
+        js_init_module_encoding(target_ctx, "quickjs:encoding");
     }
     if (module_engine) {
         js_init_module_engine(target_ctx, "quickjs:engine");
     }
-    if (module_cmdline) {
-        js_init_module_cmdline(target_ctx, "quickjs:cmdline");
+    if (module_os) {
+        js_init_module_os(target_ctx, "quickjs:os");
+    }
+    if (module_pointer) {
+        js_init_module_pointer(target_ctx, "quickjs:pointer");
+    }
+    if (module_std) {
+        js_init_module_std(target_ctx, "quickjs:std");
+    }
+    if (module_timers) {
+        js_init_module_timers(target_ctx, "quickjs:timers");
     }
 
     if (inspect) {
