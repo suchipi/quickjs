@@ -1,6 +1,7 @@
 .github
 .gitmodules
 .nvmrc
+.claude
 examples
 meta
 node_modules
@@ -16,6 +17,7 @@ build.ninja
 Changelog
 jest.config.js
 build/*/intermediate
+build/*/bin/encoding-fuzzer
 build/**/.ninja_*
 todo.txt
 
