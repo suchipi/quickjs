@@ -17,6 +17,12 @@ build({
 });
 
 build({
+  output: "meta/docs/quickjs-bytecode.md",
+  rule: "dtsmd",
+  inputs: [rel("quickjs-bytecode.d.ts")],
+});
+
+build({
   output: builddir("include/quickjs-bytecode.h"),
   rule: "copy",
   inputs: [rel("quickjs-bytecode.h")],

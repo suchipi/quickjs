@@ -17,6 +17,12 @@ build({
 });
 
 build({
+  output: "meta/docs/quickjs-pointer.md",
+  rule: "dtsmd",
+  inputs: [rel("quickjs-pointer.d.ts")],
+});
+
+build({
   output: builddir("include/quickjs-pointer.h"),
   rule: "copy",
   inputs: [rel("quickjs-pointer.h")],

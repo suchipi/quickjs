@@ -17,6 +17,12 @@ build({
 });
 
 build({
+  output: "meta/docs/quickjs-engine.md",
+  rule: "dtsmd",
+  inputs: [rel("quickjs-engine.d.ts")],
+});
+
+build({
   output: builddir("include/quickjs-engine.h"),
   rule: "copy",
   inputs: [rel("quickjs-engine.h")],

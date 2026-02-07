@@ -17,6 +17,12 @@ build({
 });
 
 build({
+  output: "meta/docs/quickjs-cmdline.md",
+  rule: "dtsmd",
+  inputs: [rel("quickjs-cmdline.d.ts")],
+});
+
+build({
   output: builddir("include/quickjs-cmdline.h"),
   rule: "copy",
   inputs: [rel("quickjs-cmdline.h")],

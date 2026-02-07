@@ -7,13 +7,14 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - APIs from the 'std' and 'os' modules were changed to be more idiomatic-to-JS; notably, they throw Errors on failure instead of returning null or errno numbers.
 - APIs from the 'std' and 'os' modules that were implemented on UNIX platforms but weren't implemented on Windows (exec, readlink, symlink, etc) now are.
 - TypeScript-format type interface files (`.d.ts` files) were added for everything.
+  - There's also markdown generated from these available [here](/meta/docs)
 - Hooks have been added to the module loader that make its functionality more customizable.
 - Some ES2022 features were added, and some non-standard ECMAScript proposals and extensions were added.
 - The way the project is organized and built was changed dramatically.
+- `quickjs-libc.c` was split into separate files: `quickjs-std.c`, `quickjs-os.c`, `quickjs-timers.c`, `quickjs-cmdline.c`, and `quickjs-eventloop.c`
 - Several new JS bindings for C APIs have been added, such as `strftime`, `access`, `fsync`, `setvbuf`, `getuid`...
 - WHATWG TextEncoder/TextDecoder added with support for common encodings and non-standard support for encoding to encodings other than UTF-8
 - Some C source file locations now appear in JS error stack traces, making it easier to debug errors originating from C code
-- `quickjs-libc.c` was split into separate files: `quickjs-std.c`, `quickjs-os.c`, `quickjs-timers.c`, `quickjs-cmdline.c`, and `quickjs-eventloop.c`
 - Scripts were added that cross-compile binaries for several operating systems and architectures
 - FreeBSD support added
 
@@ -224,6 +225,10 @@ See the `meta/ninja/envs` folder to see all the supported platforms. The `host` 
 ### Library Archives
 
 We create `.a` files containing all of quickjs as part of the build.
+
+## API Documentation
+
+Documentation for all extensions and builtin modules can be read [here](/meta/docs).
 
 ## Compiling
 

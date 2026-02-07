@@ -17,6 +17,12 @@ build({
 });
 
 build({
+  output: "meta/docs/quickjs-timers.md",
+  rule: "dtsmd",
+  inputs: [rel("quickjs-timers.d.ts")],
+});
+
+build({
   output: builddir("include/quickjs-timers.h"),
   rule: "copy",
   inputs: [rel("quickjs-timers.h")],

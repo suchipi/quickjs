@@ -70,6 +70,15 @@ rule("qjsc-minimal", {
   implicitInputs: [builddir("intermediate/qjsc-minimal.host")],
 });
 
+rule("dtsmd", {
+  command: `npx dtsmd -i $in -o $out --links-file meta/ninja/doc-links.json5`,
+  description: "DTSMD $out",
+  implicitInputs: [
+    "node_modules/@suchipi/dtsmd/dist/cli.js",
+    "meta/ninja/doc-links.json5",
+  ],
+});
+
 // copy a file from one place to another
 rule("copy", {
   command: `cp $in $out`,

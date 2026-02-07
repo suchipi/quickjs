@@ -17,6 +17,12 @@ build({
 });
 
 build({
+  output: "meta/docs/quickjs-encoding.md",
+  rule: "dtsmd",
+  inputs: [rel("quickjs-encoding.d.ts")],
+});
+
+build({
   output: builddir("include/quickjs-encoding.h"),
   rule: "copy",
   inputs: [rel("quickjs-encoding.h")],

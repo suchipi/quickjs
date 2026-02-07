@@ -41,6 +41,12 @@ build({
 });
 
 build({
+  output: "meta/docs/quickjs-inspect.md",
+  rule: "dtsmd",
+  inputs: [rel("quickjs-inspect.d.ts")],
+});
+
+build({
   output: builddir("include/quickjs-inspect.h"),
   rule: "copy",
   inputs: [rel("quickjs-inspect.h")],
