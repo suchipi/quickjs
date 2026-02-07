@@ -24,7 +24,7 @@ Defaults to `[".js"]`. You can add more strings to this array to
 make the engine search for additional files when resolving a
 require/import.
 
-See the doc comment on [require](/meta/docs/quickjs-modulesys.md#require-requirefunction) for more information.
+See the doc comment on [require](/meta/docs/quickjs-modulesys.md#requirefunction-call-signature) for more information.
 
 NOTE: If you add a new extension to this array, you will likely also want
 to add to [compilers](/meta/docs/quickjs-modulesys.md#moduledelegate-compilers-object-property).

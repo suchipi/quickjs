@@ -7,7 +7,7 @@
   getpwuid: "/meta/docs/quickjs-std.md#quickjs-std-getpwuid-exported-function",
   open: "/meta/docs/quickjs-os.md#quickjs-os-open-exported-function",
   CreateProcess: "/meta/docs/quickjs-os.md#quickjs-createprocess-open-exported-value",
-  require: "/meta/docs/quickjs-modulesys.md#require-requirefunction",
+  require: "/meta/docs/quickjs-modulesys.md#requirefunction-call-signature",
   compilers: "/meta/docs/quickjs-modulesys.md#moduledelegate-compilers-object-property",
   searchExtensions: "/meta/docs/quickjs-modulesys.md#moduledelegate-searchextensions-property",
   "ModuleDelegate.searchExtensions": "/meta/docs/quickjs-modulesys.md#moduledelegate-searchextensions-property",
