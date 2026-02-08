@@ -28,6 +28,7 @@
 #include <string.h>
 #include <signal.h>
 #include <assert.h>
+#include <errno.h>
 
 #if !defined(_WIN32)
 #include <unistd.h>
@@ -248,6 +249,10 @@ void js_eventloop_init(JSRuntime *rt)
     init_list_head(&ts->signal_handlers);
     init_list_head(&ts->timers);
     init_list_head(&ts->port_list);
+#ifdef USE_WORKER
+    ts->worker_done_read_fd = -1;
+    ts->worker_done_write_fd = -1;
+#endif
 
     JS_SetRuntimeOpaque(rt, ts);
 
@@ -292,8 +297,44 @@ void js_eventloop_free(JSRuntime *rt)
     js_worker_message_pipe_free(ts->send_pipe);
 #endif
 
+    if (ts->worker_done_read_fd >= 0)
+        close(ts->worker_done_read_fd);
+    if (ts->worker_done_write_fd >= 0)
+        close(ts->worker_done_write_fd);
+
     free(ts);
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
+}
+
+/* Worker lifecycle tracking.
+   The main thread tracks active workers so the event loop stays alive
+   while workers are running. Workers signal completion by writing a byte
+   to a shared notification pipe. */
+int js_eventloop_register_worker(JSRuntime *rt)
+{
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    if (ts->worker_done_read_fd < 0) {
+        int fds[2];
+        if (pipe(fds) < 0)
+            return -1;
+        ts->worker_done_read_fd = fds[0];
+        ts->worker_done_write_fd = fds[1];
+    }
+    ts->active_worker_count++;
+    return ts->worker_done_write_fd;
+}
+
+void js_eventloop_signal_worker_done(int write_fd)
+{
+    uint8_t ch = 0;
+    int ret;
+    for (;;) {
+        ret = write(write_fd, &ch, 1);
+        if (ret == 1)
+            break;
+        if (ret < 0 && errno != EAGAIN && errno != EINTR)
+            break;
+    }
 }
 
 /* main loop which calls the user JS callbacks */

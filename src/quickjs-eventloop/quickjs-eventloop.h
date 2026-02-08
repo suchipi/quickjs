@@ -64,6 +64,7 @@ typedef struct JSTimer {
     JSValue func;
 } JSTimer;
 
+#ifdef USE_WORKER
 /* Worker message */
 typedef struct JSWorkerMessage {
     struct list_head link;
@@ -77,9 +78,7 @@ typedef struct JSWorkerMessage {
 /* Worker message pipe for inter-thread communication */
 typedef struct JSWorkerMessagePipe {
     int ref_count;
-#ifdef USE_WORKER
     pthread_mutex_t mutex;
-#endif
     struct list_head msg_queue; /* list of JSWorkerMessage.link */
     int read_fd;
     int write_fd;
@@ -91,16 +90,22 @@ typedef struct JSWorkerMessageHandler {
     JSWorkerMessagePipe *recv_pipe;
     JSValue on_message_func;
 } JSWorkerMessageHandler;
+#endif /* USE_WORKER */
 
 /* Thread state - central event loop state attached to runtime */
 typedef struct JSThreadState {
     struct list_head rw_handlers;      /* list of JSRWHandler.link */
     struct list_head signal_handlers;  /* list of JSSignalHandler.link */
     struct list_head timers;           /* list of JSTimer.link */
-    struct list_head port_list;        /* list of JSWorkerMessageHandler.link */
     int eval_script_recurse;           /* only used in the main thread */
-    JSWorkerMessagePipe *recv_pipe, *send_pipe; /* not used in the main thread */
     int exit_code;                     /* only used in the main thread */
+#ifdef USE_WORKER
+    struct list_head port_list;        /* list of JSWorkerMessageHandler.link */
+    JSWorkerMessagePipe *recv_pipe, *send_pipe; /* not used in the main thread */
+    int active_worker_count;           /* number of active worker threads (main thread only) */
+    int worker_done_read_fd;           /* pipe read end for worker completion notifications (main thread only) */
+    int worker_done_write_fd;          /* pipe write end for worker completion notifications (shared with workers) */
+#endif
 } JSThreadState;
 
 /* Global state */
@@ -132,6 +137,10 @@ void js_timer_free(JSRuntime *rt, JSTimer *th);
 
 #ifdef USE_WORKER
 void js_worker_message_pipe_free(JSWorkerMessagePipe *ps);
+
+/* Worker lifecycle tracking (main thread only) */
+int js_eventloop_register_worker(JSRuntime *rt);
+void js_eventloop_signal_worker_done(int write_fd);
 #endif
 
 #ifdef __cplusplus

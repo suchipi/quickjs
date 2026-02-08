@@ -104,6 +104,7 @@ typedef struct {
     char *filename; /* module filename */
     char *basename; /* module base name */
     JSWorkerMessagePipe *recv_pipe, *send_pipe;
+    int worker_done_write_fd; /* fd to signal worker completion to main thread */
 } WorkerFuncArgs;
 #endif
 
@@ -2961,6 +2962,7 @@ static void *worker_func(void *opaque)
     JSRuntime *rt;
     JSThreadState *ts;
     JSContext *ctx;
+    int worker_done_write_fd = args->worker_done_write_fd;
 
     rt = JS_NewRuntime();
     if (rt == NULL) {
@@ -3004,6 +3006,10 @@ static void *worker_func(void *opaque)
     JS_FreeContext(ctx);
     js_eventloop_free(rt);
     JS_FreeRuntime(rt);
+
+    /* notify the main thread that this worker is done */
+    js_eventloop_signal_worker_done(worker_done_write_fd);
+
     return NULL;
 }
 
@@ -3090,6 +3096,16 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
                                   args->send_pipe, args->recv_pipe);
     if (JS_IsException(obj))
         goto fail;
+
+    /* register this worker so the main event loop stays alive */
+    {
+        int write_fd = js_eventloop_register_worker(rt);
+        if (write_fd < 0) {
+            JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "could not create worker notification pipe");
+            goto fail;
+        }
+        args->worker_done_write_fd = write_fd;
+    }
 
     pthread_attr_init(&attr);
     /* no join at the end */
@@ -3459,7 +3475,7 @@ static int js_os_poll(JSContext *ctx)
     }
 
     if (list_empty(&ts->rw_handlers) && list_empty(&ts->timers) &&
-        list_empty(&ts->port_list))
+        list_empty(&ts->port_list) && ts->active_worker_count <= 0)
         return -1;
 
     if (!list_empty(&ts->timers)) {
@@ -3514,6 +3530,19 @@ static int js_os_poll(JSContext *ctx)
         }
     }
 
+    /* watch the worker notification pipe so we wake up when workers finish */
+    if (ts->active_worker_count > 0 && ts->worker_done_read_fd >= 0) {
+        fd_max = max_int(fd_max, ts->worker_done_read_fd);
+        FD_SET(ts->worker_done_read_fd, &rfds);
+        /* if there's nothing else keeping us alive, use a timeout so we
+           don't block forever in select */
+        if (tvp == NULL) {
+            tv.tv_sec = 10;
+            tv.tv_usec = 0;
+            tvp = &tv;
+        }
+    }
+
     ret = select(fd_max + 1, &rfds, &wfds, NULL, tvp);
     if (ret > 0) {
         list_for_each(el, &ts->rw_handlers) {
@@ -3541,6 +3570,15 @@ static int js_os_poll(JSContext *ctx)
             }
         }
 #endif
+
+        /* handle worker completion notifications */
+        if (ts->worker_done_read_fd >= 0 &&
+            FD_ISSET(ts->worker_done_read_fd, &rfds)) {
+            uint8_t buf[16];
+            int n = read(ts->worker_done_read_fd, buf, sizeof(buf));
+            if (n > 0)
+                ts->active_worker_count -= n;
+        }
     }
     return 0;
 }

@@ -10,15 +10,21 @@ test("cmdline.exit in worker throws", async () => {
     {
       "code": 0,
       "error": false,
-      "stderr": "Error: std.exit can only be called from the main thread
-      at somewhere
+      "stderr": "Error: cmdline.exit can only be called from the main thread
+        at <internal>/quickjs-cmdline.c:42
+        at exit (native)
+        at <anonymous> (/Users/suchipi/Code/quickjs/tests/fixtures/worker-exit/worker.js:9)
 
     ",
       "stdout": "in main
     in worker
-    in main, sending try-to-exit
+    in main, sending try-to-exit-with-cmdline
     in worker, received: {
-    	data: "try-to-exit"
+    	data: "try-to-exit-with-cmdline"
+    }
+    in main, sending exit-properly
+    in worker, received: {
+    	data: "exit-properly"
     }
     ",
     }
