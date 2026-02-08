@@ -87,6 +87,10 @@ Ninja configs for building static library archives: `full` (complete engine with
 - `run-test262/` - Test262 compliance test runner
 - `shared-library-modules/` - Example shared library modules (fib, point)
 
+## Research Tasks
+
+When asked to research or investigate something in the codebase, you MUST save findings to a file in `.claude/research/` following the conventions in `.claude/rules/research-conventions.md`. The research file IS the deliverable — do not just present findings in chat without creating the file.
+
 ## Supported Platforms
 
 Linux (amd64, aarch64; glibc, musl, static), macOS (x86_64, arm64), Windows (x86_64 via MSYS2), FreeBSD, Cosmopolitan Libc.
