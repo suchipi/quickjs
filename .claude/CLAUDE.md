@@ -11,9 +11,10 @@ The engine is written in C. Tests and build configuration are in TypeScript/Java
 ## Build Commands
 
 ```bash
-meta/build.sh              # Build for current platform (auto-detects HOST/TARGET OS)
+env QUICKJS_EXTRAS=1 meta/build.sh # Build for current platform
+                                   # (auto-detects HOST/TARGET OS)
 meta/clean.sh              # Clean build artifacts
-npm test                   # Run all tests (jest --runInBand)
+npm test -- --forceExit    # Run all tests (jest --runInBand)
 npx jest tests/foo.test.ts --runInBand  # Run a single test file
 ```
 
@@ -26,6 +27,7 @@ Cross-compilation: Set `HOST` and `TARGET` env vars. `meta/docker/build-all.sh` 
 ## Build System Architecture
 
 The build uses Ninja with a JavaScript-based configuration layer (`@suchipi/shinobi`):
+
 - `meta/ninja/defs.ninja.js` - Variable definitions
 - `meta/ninja/rules.ninja.js` - Build rules (cc, link, ar, shared_lib, qjsc, copy)
 - `meta/ninja/envs/host/*.ninja.js` and `meta/ninja/envs/target/*.ninja.js` - Platform-specific compiler configs
@@ -46,13 +48,17 @@ Tests use Jest with Babel (for TypeScript). Most tests are integration tests tha
 ## Source Architecture
 
 ### Core Engine (`src/quickjs/`)
+
 The QuickJS C engine: parser, compiler, bytecode interpreter, garbage collector. `quickjs.c` is the main ~54k-line file. `quickjs.h` is the C API header. `quickjs.d.ts` has TypeScript type definitions for the JS-facing API.
 
 ### Libraries (`src/lib/`)
+
 Standalone C libraries used by the engine: `libbf` (BigFloat), `libregexp` (regex), `cutils`, `quickjs-utils`, and small helpers like `execpath`, `debugprint`, `list`. The `encoding/` subdirectory contains text encoding libraries: `libunicode`, `utf-conv`, `libbig5`, `libeucjp`, `libeuckr`, `libgb18030`, `libshiftjis`, `libwindows1251`, `libwindows1252`.
 
 ### Builtin Modules (`src/builtin-modules/`)
+
 JS modules compiled to C bytecode and embedded in the engine. Each exposes a `"quickjs:*"` import path:
+
 - `quickjs-std` → `"quickjs:std"` - C stdlib bindings
 - `quickjs-os` → `"quickjs:os"` - OS bindings
 - `quickjs-cmdline` → `"quickjs:cmdline"` - Command line arguments access
@@ -64,13 +70,17 @@ JS modules compiled to C bytecode and embedded in the engine. Each exposes a `"q
 - `quickjs-encoding` → `"quickjs:encoding"` - Text encoding/decoding
 
 ### Event Loop (`src/quickjs-eventloop/`)
+
 The event loop implementation used by the runtime (extracted from the former `quickjs-libc`).
 
 ### Globals (`src/globals/`)
+
 Global functions injected into every context: `inspect()`, `console.log`/`print`. Timer functions (`setTimeout`/`setInterval`/`clearTimeout`/`clearInterval`) are provided by the `quickjs:timers` builtin module but are also available globally.
 
 ### Programs (`src/programs/`)
+
 Standalone executables built from the engine:
+
 - `qjs` - Full REPL and script runner
 - `qjsc` - JavaScript-to-C bytecode compiler
 - `qjsbootstrap` - Binary stub that runs JS appended to it
@@ -78,12 +88,15 @@ Standalone executables built from the engine:
 - `repl` - REPL implementation (JS, compiled into qjs)
 
 ### Module System (`src/quickjs-modulesys/`)
+
 Custom module loader supporting: extension inference (`.js` optional), `index.js` resolution, CommonJS `require()`, `import.meta.require`/`import.meta.resolve`, `ModuleDelegate` hooks, and builtin module registration.
 
 ### Archives (`src/archives/`)
+
 Ninja configs for building static library archives: `full` (complete engine with all builtins) and `core` (minimal engine).
 
 ### Other (`src/`)
+
 - `run-test262/` - Test262 compliance test runner
 - `shared-library-modules/` - Example shared library modules (fib, point)
 
