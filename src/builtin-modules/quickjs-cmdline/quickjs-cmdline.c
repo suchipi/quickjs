@@ -37,6 +37,12 @@ static JSValue js_cmdline_exit(JSContext *ctx, JSValueConst this_val,
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
     int exit_code;
+
+    if (!js_eventloop_is_main_thread(rt)) {
+        return JS_ThrowError(ctx, "<internal>/quickjs-cmdline.c", __LINE__,
+                             "cmdline.exit can only be called from the main thread");
+    }
+
     if (argc > 0 && !JS_IsUndefined(argv[0])) {
         if (JS_ToInt32(ctx, &exit_code, argv[0]))
             exit_code = -1;
