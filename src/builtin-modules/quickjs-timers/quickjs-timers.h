@@ -36,9 +36,6 @@ JSModuleDef *js_init_module_timers(JSContext *ctx, const char *module_name);
 /* Add setTimeout, clearTimeout, setInterval, clearInterval as globals */
 void js_timers_add_globals(JSContext *ctx);
 
-/* Get current time in milliseconds */
-int64_t js_timers_get_time_ms(void);
-
 /* Get timer class ID (for use by poll function) */
 JSClassID js_timers_get_class_id(void);
 

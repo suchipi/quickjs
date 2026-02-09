@@ -32,6 +32,7 @@
 #include <time.h>
 
 #include "cutils.h"
+#include "gettime.h"
 
 /* define it to be able to test unicode.c */
 //#define USE_TEST
@@ -1825,16 +1826,6 @@ void check_case_conv(void)
     }
 }
 
-#ifdef PROFILE
-static int64_t get_time_ns(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (int64_t)ts.tv_sec * 1000000000 + ts.tv_nsec;
-}
-#endif
-
-
 void check_flags(void)
 {
     int c;
@@ -1875,7 +1866,7 @@ void check_flags(void)
 #ifdef PROFILE
     {
         int64_t ti, count;
-        ti = get_time_ns();
+        ti = gettime_ns();
         count = 0;
         for(c = 0x20; c <= 0xffff; c++) {
             flag_ref = get_prop(c, PROP_ID_Start);
@@ -1883,7 +1874,7 @@ void check_flags(void)
             assert(flag == flag_ref);
             count++;
         }
-        ti = get_time_ns() - ti;
+        ti = gettime_ns() - ti;
         printf("flags time=%0.1f ns/char\n",
                (double)ti / count);
     }
@@ -2886,7 +2877,7 @@ void check_cc_table(void)
     {
         int64_t ti, count;
 
-        ti = get_time_ns();
+        ti = gettime_ns();
         count = 0;
         /* only do it on meaningful chars */
         for(c = 0x20; c <= 0xffff; c++) {
@@ -2894,7 +2885,7 @@ void check_cc_table(void)
             cc = unicode_get_cc(c);
             count++;
         }
-        ti = get_time_ns() - ti;
+        ti = gettime_ns() - ti;
         printf("cc time=%0.1f ns/char\n",
                (double)ti / count);
     }

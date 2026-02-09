@@ -37,6 +37,7 @@
 
 #include "cutils.h"
 #include "list.h"
+#include "gettime.h"
 #include "quickjs-utils.h"
 #include "quickjs-std.h"
 #include "quickjs-os.h"
@@ -650,17 +651,10 @@ static JSValue js_agent_sleep(JSContext *ctx, JSValue this_val,
     return JS_UNDEFINED;
 }
 
-static int64_t get_clock_ms(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)ts.tv_sec * 1000 + (ts.tv_nsec / 1000000);
-}
-
 static JSValue js_agent_monotonicNow(JSContext *ctx, JSValue this_val,
                                      int argc, JSValue *argv)
 {
-    return JS_NewInt64(ctx, get_clock_ms());
+    return JS_NewInt64(ctx, gettime_ms());
 }
 
 static JSValue js_agent_getReport(JSContext *ctx, JSValue this_val,
@@ -1893,13 +1887,13 @@ void run_test_dir_list(namelist_t *lp, int start_index, int stop_index)
         } else {
             int ti;
             if (slow_test_threshold != 0) {
-                ti = get_clock_ms();
+                ti = gettime_ms();
             } else {
                 ti = 0;
             }
             run_test(p, test_index);
             if (slow_test_threshold != 0) {
-                ti = get_clock_ms() - ti;
+                ti = gettime_ms() - ti;
                 if (ti >= slow_test_threshold)
                     fprintf(stderr, "\n%s (%d ms)\n", p, ti);
             }

@@ -26,34 +26,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#if defined(__linux__) || defined(__APPLE__)
-#include <time.h>
-#else
-#include <sys/time.h>
-#endif
-
 #include "quickjs-timers.h"
 #include "quickjs-eventloop.h"
 #include "cutils.h"
+#include "gettime.h"
 
 static JSClassID js_timer_class_id;
-
-#if defined(__linux__) || defined(__APPLE__)
-int64_t js_timers_get_time_ms(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)ts.tv_sec * 1000 + (ts.tv_nsec / 1000000);
-}
-#else
-/* more portable, but does not work if the date is updated */
-int64_t js_timers_get_time_ms(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec * 1000 + (tv.tv_usec / 1000);
-}
-#endif
 
 JSClassID js_timers_get_class_id(void)
 {
@@ -103,7 +81,7 @@ static JSValue js_timers_setTimeout(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     th->has_object = TRUE;
-    th->timeout = js_timers_get_time_ms() + delay;
+    th->timeout = gettime_ms() + delay;
     th->interval = 0;
     th->func = JS_DupValue(ctx, func);
     list_add_tail(&th->link, &ts->timers);
@@ -135,7 +113,7 @@ static JSValue js_timers_setInterval(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     th->has_object = TRUE;
-    th->timeout = js_timers_get_time_ms() + delay;
+    th->timeout = gettime_ms() + delay;
     th->interval = delay;
     th->func = JS_DupValue(ctx, func);
     list_add_tail(&th->link, &ts->timers);

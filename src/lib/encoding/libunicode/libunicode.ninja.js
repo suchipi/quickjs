@@ -7,7 +7,7 @@ const unicode_gen_host_o = build({
 const unicode_gen_host = build({
   output: builddir("intermediate/unicode_gen.host"),
   rule: "link_host",
-  inputs: [builddir("intermediate/cutils.host.o"), unicode_gen_host_o],
+  inputs: [builddir("intermediate/cutils.host.o"), builddir("intermediate/gettime.host.o"), unicode_gen_host_o],
 });
 
 rule("unicode_gen", {

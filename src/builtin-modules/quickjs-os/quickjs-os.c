@@ -73,6 +73,7 @@ sighandler_t signal(int signum, sighandler_t handler);
 
 #include "cutils.h"
 #include "list.h"
+#include "gettime.h"
 #include "quickjs-os.h"
 #include "quickjs-eventloop.h"
 #include "quickjs-std.h"
@@ -3362,22 +3363,6 @@ static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
 }
 #endif /* USE_WORKER */
 
-#if defined(__linux__) || defined(__APPLE__)
-static int64_t get_time_ms(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)ts.tv_sec * 1000 + (ts.tv_nsec / 1000000);
-}
-#else
-static int64_t get_time_ms(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec * 1000 + (tv.tv_usec / 1000);
-}
-#endif
-
 #if defined(_WIN32)
 static int js_os_poll(JSContext *ctx)
 {
@@ -3392,7 +3377,7 @@ static int js_os_poll(JSContext *ctx)
         return -1;
 
     if (!list_empty(&ts->timers)) {
-        cur_time = get_time_ms();
+        cur_time = gettime_ms();
         min_delay = 10000;
         list_for_each(el, &ts->timers) {
             JSTimer *th = list_entry(el, JSTimer, link);
@@ -3479,7 +3464,7 @@ static int js_os_poll(JSContext *ctx)
         return -1;
 
     if (!list_empty(&ts->timers)) {
-        cur_time = get_time_ms();
+        cur_time = gettime_ms();
         min_delay = 10000;
         list_for_each(el, &ts->timers) {
             JSTimer *th = list_entry(el, JSTimer, link);
