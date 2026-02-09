@@ -1,4 +1,4 @@
-FROM node:22-bullseye AS node
+FROM node:22.15.0 AS node
 FROM crazymax/osxcross:11.3-r7-ubuntu AS osxcross
 
 FROM ubuntu:20.04
