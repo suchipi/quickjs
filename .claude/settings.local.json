@@ -18,7 +18,10 @@
       "Bash(awk:*)",
       "Bash(QUICKJS_EXTRAS=1 meta/docker/run-build.sh:*)",
       "Bash(npm run test:*)",
-      "Bash(/Users/suchipi/Code/quickjs/build/bin/qjs:*)"
+      "Bash(/Users/suchipi/Code/quickjs/build/bin/qjs:*)",
+      "Bash(wine:*)",
+      "Bash(env QUICKJS_EXTRAS=1 meta/build.sh:*)",
+      "Bash(../../build/bin/qjs:*)"
     ]
   }
 }

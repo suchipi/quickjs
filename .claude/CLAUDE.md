@@ -13,6 +13,7 @@ The engine is written in C. Tests and build configuration are in TypeScript/Java
 ```bash
 env QUICKJS_EXTRAS=1 meta/build.sh # Build for current platform
                                    # (auto-detects HOST/TARGET OS)
+meta/docker/run-build.sh x86_64-pc-windows-static # Build for windows using Docker (needed for tests that use wine)
 meta/clean.sh              # Clean build artifacts
 npm test -- --forceExit    # Run all tests (jest --runInBand)
 npx jest tests/foo.test.ts --runInBand  # Run a single test file
