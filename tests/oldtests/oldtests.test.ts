@@ -1,9 +1,15 @@
 import { spawn } from "first-base";
+import { sleep } from "a-mimir";
 import { binDir } from "../_utils";
 
 async function qjs(args: Array<string>) {
   const run = spawn(binDir("qjs"), args, { cwd: __dirname });
-  await run.completion;
+  await Promise.race([
+    run.completion,
+    sleep.async(4500).then(() => {
+      run.kill("SIGKILL");
+    }),
+  ]);
   return run.result;
 }
 
