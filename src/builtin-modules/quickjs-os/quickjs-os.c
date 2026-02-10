@@ -2925,8 +2925,10 @@ static void js_free_message_pipe_local(JSWorkerMessagePipe *ps)
             js_free_message(msg);
         }
         pthread_mutex_destroy(&ps->mutex);
-        close(ps->read_fd);
-        close(ps->write_fd);
+        if (ps->read_fd >= 0)
+            close(ps->read_fd);
+        if (ps->write_fd >= 0)
+            close(ps->write_fd);
         free(ps);
     }
 }
@@ -2936,7 +2938,10 @@ static void js_free_port(JSRuntime *rt, JSWorkerMessageHandler *port)
     if (port) {
         js_free_message_pipe_local(port->recv_pipe);
         JS_FreeValueRT(rt, port->on_message_func);
-        list_del(&port->link);
+        /* Only remove from list if still in list (link.next != NULL) */
+        if (port->link.next) {
+            list_del(&port->link);
+        }
         js_free_rt(rt, port);
     }
 }
@@ -3229,6 +3234,17 @@ static JSValue js_worker_set_onmessage(JSContext *ctx, JSValueConst this_val,
     port = worker->msg_handler;
     if (JS_IsNull(func)) {
         if (port) {
+            /* Close the send pipe's write end to signal EOF to the worker thread.
+               Use mutex for thread safety. */
+            if (worker->send_pipe) {
+                JSWorkerMessagePipe *ps = worker->send_pipe;
+                pthread_mutex_lock(&ps->mutex);
+                if (ps->write_fd >= 0) {
+                    close(ps->write_fd);
+                    ps->write_fd = -1;
+                }
+                pthread_mutex_unlock(&ps->mutex);
+            }
             js_free_port(rt, port);
             worker->msg_handler = NULL;
         }
@@ -3297,7 +3313,7 @@ void js_os_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt))
 
 #ifdef USE_WORKER
 /* Handle a posted message from a worker.
-   Return 1 if a message was handled, 0 if no message. */
+   Return 1 if a message was handled, 0 if no message, -1 if EOF detected. */
 static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
                                  JSWorkerMessageHandler *port)
 {
@@ -3356,7 +3372,15 @@ static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
         }
         ret = 1;
     } else {
+        /* Queue is empty but fd was marked ready - check for EOF */
+        uint8_t buf[1];
+        int r = read(ps->read_fd, buf, sizeof(buf));
         pthread_mutex_unlock(&ps->mutex);
+
+        if (r == 0) {
+            /* EOF detected - write end was closed */
+            return -1;
+        }
         ret = 0;
     }
     return ret;
@@ -3442,7 +3466,7 @@ static int js_os_poll(JSContext *ctx)
     int64_t cur_time, delay;
     fd_set rfds, wfds;
     JSRWHandler *rh;
-    struct list_head *el;
+    struct list_head *el, *el1;
     struct timeval tv, *tvp;
 
     if (!ts->recv_pipe && unlikely(js_pending_signals != 0)) {
@@ -3544,13 +3568,20 @@ static int js_os_poll(JSContext *ctx)
 
 #ifdef USE_WORKER
         /* Handle worker messages */
-        list_for_each(el, &ts->port_list) {
+        list_for_each_safe(el, el1, &ts->port_list) {
             JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
             if (!JS_IsNull(port->on_message_func)) {
                 JSWorkerMessagePipe *ps = port->recv_pipe;
                 if (FD_ISSET(ps->read_fd, &rfds)) {
-                    if (handle_posted_message(rt, ctx, port))
+                    int result = handle_posted_message(rt, ctx, port);
+                    if (result < 0) {
+                        /* EOF detected - disable port to allow event loop to exit */
+                        list_del(&port->link);
+                        JS_FreeValueRT(rt, port->on_message_func);
+                        port->on_message_func = JS_NULL;
+                    } else if (result > 0) {
                         return 0;
+                    }
                 }
             }
         }
