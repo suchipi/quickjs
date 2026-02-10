@@ -16,6 +16,7 @@ const config = {
   },
   watchPathIgnorePatterns: ["node_modules", path.join(__dirname, "build")],
   testPathIgnorePatterns: ["run-test262"],
+  globalTeardown: "./tests/_teardown.ts",
 };
 
 module.exports = config;
