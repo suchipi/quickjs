@@ -34,6 +34,12 @@
 #include <unistd.h>
 #endif
 
+#if defined(_WIN32)
+#include <io.h>
+#define write _write
+#endif
+
+#include "cutils.h"
 #include "quickjs-eventloop.h"
 
 #ifdef USE_WORKER
@@ -89,8 +95,12 @@ static void js_sab_dup(void *opaque, void *ptr)
 
 JS_BOOL js_eventloop_is_main_thread(JSRuntime *rt)
 {
+#ifdef USE_WORKER
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
     return !ts->recv_pipe;
+#else
+    return TRUE;
+#endif
 }
 
 /* returns 0 when code is unavailable */
@@ -133,7 +143,11 @@ void js_eventloop_interrupt_handler_start(JSContext *ctx)
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
 
+#ifdef USE_WORKER
     if (!ts->recv_pipe && ++ts->eval_script_recurse == 1) {
+#else
+    if (++ts->eval_script_recurse == 1) {
+#endif
         /* install the interrupt handler */
         JS_SetInterruptHandler(rt, interrupt_handler, NULL);
     }
@@ -144,7 +158,11 @@ void js_eventloop_interrupt_handler_finish(JSContext *ctx, JSValue ret)
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
 
+#ifdef USE_WORKER
     if (!ts->recv_pipe && --ts->eval_script_recurse == 0) {
+#else
+    if (--ts->eval_script_recurse == 0) {
+#endif
         /* remove the interrupt handler */
         JS_SetInterruptHandler(JS_GetRuntime(ctx), NULL, NULL);
         js_pending_signals &= ~((uint64_t)1 << SIGINT);
@@ -248,8 +266,8 @@ void js_eventloop_init(JSRuntime *rt)
     init_list_head(&ts->rw_handlers);
     init_list_head(&ts->signal_handlers);
     init_list_head(&ts->timers);
-    init_list_head(&ts->port_list);
 #ifdef USE_WORKER
+    init_list_head(&ts->port_list);
     ts->worker_done_read_fd = -1;
     ts->worker_done_write_fd = -1;
 #endif
@@ -295,12 +313,12 @@ void js_eventloop_free(JSRuntime *rt)
     /* Note: port_list cleanup is handled by the OS module */
     js_worker_message_pipe_free(ts->recv_pipe);
     js_worker_message_pipe_free(ts->send_pipe);
-#endif
 
     if (ts->worker_done_read_fd >= 0)
         close(ts->worker_done_read_fd);
     if (ts->worker_done_write_fd >= 0)
         close(ts->worker_done_write_fd);
+#endif
 
     free(ts);
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
@@ -312,6 +330,7 @@ void js_eventloop_free(JSRuntime *rt)
    to a shared notification pipe. */
 int js_eventloop_register_worker(JSRuntime *rt)
 {
+#ifdef USE_WORKER
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
     if (ts->worker_done_read_fd < 0) {
         int fds[2];
@@ -322,12 +341,20 @@ int js_eventloop_register_worker(JSRuntime *rt)
     }
     ts->active_worker_count++;
     return ts->worker_done_write_fd;
+#else
+    return -1;
+#endif
 }
 
 void js_eventloop_signal_worker_done(int write_fd)
 {
     uint8_t ch = 0;
     int ret;
+
+    if (write_fd == -1) {
+        return;
+    }
+
     for (;;) {
         ret = write(write_fd, &ch, 1);
         if (ret == 1)
