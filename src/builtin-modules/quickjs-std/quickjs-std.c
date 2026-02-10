@@ -565,6 +565,8 @@ static int get_bool_option(JSContext *ctx, BOOL *pbool,
 
 JSClassID js_std_file_class_id;
 
+static void js_std_ensure_file_class_init(JSContext *ctx);
+
 static void js_std_file_finalizer(JSRuntime *rt, JSValue val)
 {
     JSSTDFile *s = JS_GetOpaque(val, js_std_file_class_id);
@@ -600,6 +602,7 @@ JSValue js_std_new_file(JSContext *ctx, FILE *f,
 {
     JSSTDFile *s;
     JSValue obj;
+    js_std_ensure_file_class_init(ctx);
     obj = JS_NewObjectClass(ctx, js_std_file_class_id);
     if (JS_IsException(obj))
         return obj;
@@ -1610,22 +1613,28 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
     JS_CFUNC_DEF("setvbuf", 2, js_std_file_setvbuf ),
 };
 
+static void js_std_ensure_file_class_init(JSContext *ctx)
+{
+    if (js_std_file_class_id != 0)
+        return;
+    /* the class ID is created once */
+    JS_NewClassID(&js_std_file_class_id);
+    /* the class is created once per runtime */
+    JS_NewClass(JS_GetRuntime(ctx), js_std_file_class_id, &js_std_file_class);
+    JSValue proto = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, proto, js_std_file_proto_funcs,
+                               countof(js_std_file_proto_funcs));
+    JS_SetClassProto(ctx, js_std_file_class_id, proto);
+}
+
 static int js_std_init(JSContext *ctx, JSModuleDef *m)
 {
-    JSValue proto;
     JSValue stdin_FILE;
     JSValue stdout_FILE;
     JSValue stderr_FILE;
 
     /* FILE class */
-    /* the class ID is created once */
-    JS_NewClassID(&js_std_file_class_id);
-    /* the class is created once per runtime */
-    JS_NewClass(JS_GetRuntime(ctx), js_std_file_class_id, &js_std_file_class);
-    proto = JS_NewObject(ctx);
-    JS_SetPropertyFunctionList(ctx, proto, js_std_file_proto_funcs,
-                               countof(js_std_file_proto_funcs));
-    JS_SetClassProto(ctx, js_std_file_class_id, proto);
+    js_std_ensure_file_class_init(ctx);
 
     JS_SetModuleExportList(ctx, m, js_std_funcs,
                            countof(js_std_funcs));
