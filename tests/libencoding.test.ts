@@ -1,5 +1,5 @@
 import { spawn } from "first-base";
-import { binDir, fixturesDir, cleanResult } from "./_utils";
+import { binDir, fixturesDir } from "./_utils";
 
 test("quickjs:encoding - basic test", async () => {
   const run = spawn(binDir("qjs"), [

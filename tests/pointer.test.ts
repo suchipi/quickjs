@@ -1,8 +1,8 @@
-import { RunContext, spawn } from "first-base";
+import { RunContext, spawn, sanitizers } from "first-base";
 import { binDir, rootDir } from "./_utils";
 
-function cleanResult(result: RunContext["result"]): RunContext["result"] {
-  function cleanStr(str: string): string {
+beforeAll(() => {
+  sanitizers.push(function cleanStr(str: string): string {
     return (
       str
         // behavior of %p varies with platform, so don't encode it in the test
@@ -20,14 +20,12 @@ function cleanResult(result: RunContext["result"]): RunContext["result"] {
         })
         .join("\n")
     );
-  }
+  });
+});
 
-  return {
-    ...result,
-    stderr: cleanStr(result.stderr),
-    stdout: cleanStr(result.stdout),
-  };
-}
+afterAll(() => {
+  sanitizers.pop();
+});
 
 test("pointer", async () => {
   const run = spawn(
@@ -46,7 +44,7 @@ test("pointer", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,

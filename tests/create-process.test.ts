@@ -1,4 +1,4 @@
-import { spawn } from "first-base";
+import { spawn, sanitizers } from "first-base";
 import { rootDir } from "./_utils";
 import path from "path";
 import type { RunContext } from "first-base";
@@ -15,8 +15,8 @@ const winBinDir = path.join(
 );
 const qjsExe = path.join(winBinDir, "qjs.exe");
 
-function cleanResult(result: RunContext["result"]): RunContext["result"] {
-  const cleanedStderr = result.stderr
+function cleanWineNoise(str: string) {
+  return str
     .split("\n")
     .filter((line) => {
       // Filter out Wine noise: MoltenVK, fixme, err, [mvk-info], GPU info, etc.
@@ -27,12 +27,14 @@ function cleanResult(result: RunContext["result"]): RunContext["result"] {
       return true;
     })
     .join("\n");
-
-  return {
-    ...result,
-    stderr: cleanedStderr,
-  };
 }
+
+beforeAll(() => {
+  sanitizers.push(cleanWineNoise);
+});
+afterAll(() => {
+  sanitizers.pop();
+});
 
 test("CreateProcess returns process info object", async () => {
   const run = spawn(
@@ -53,7 +55,7 @@ test("CreateProcess returns process info object", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -85,7 +87,7 @@ test("CreateProcess with moduleName option", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -115,7 +117,7 @@ test("CreateProcess throws on failure", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -148,7 +150,7 @@ test("WaitForSingleObject and GetExitCodeProcess", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -186,7 +188,7 @@ test("CreatePipe and stdout redirection", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -217,7 +219,7 @@ test("CreatePipe with inheritHandle false", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -258,7 +260,7 @@ test("CreatePipe read end binary read", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -294,7 +296,7 @@ test("stderr redirection", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -325,7 +327,7 @@ test("TerminateProcess", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -353,7 +355,7 @@ test("os.exec block:true returns exit code 0", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -380,7 +382,7 @@ test("os.exec block:true returns nonzero exit code", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -410,7 +412,7 @@ test("os.exec block:false returns pid, waitpid gets status", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -449,7 +451,7 @@ test("os.exec with stdout redirection", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -480,7 +482,7 @@ test("os.exec with env option", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -510,7 +512,7 @@ test("os.waitpid with WNOHANG", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -543,7 +545,7 @@ test("os.pipe returns two fds", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -582,7 +584,7 @@ test("os.dup and os.dup2", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -613,7 +615,7 @@ test("os.kill terminates a process", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -645,7 +647,7 @@ test("WaitForSingleObject with timeout", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,

@@ -1,12 +1,12 @@
 import { spawn } from "first-base";
-import { binDir, rootDir, cleanResult } from "./_utils";
+import { binDir, rootDir } from "./_utils";
 
 const fixture = rootDir("tests/fixtures/import-meta-resolve.js");
 
 test("import.meta.resolve", async () => {
   const run = spawn(binDir("quickjs-run"), [fixture]);
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,

@@ -1,12 +1,6 @@
 import * as fs from "node:fs";
-import { RunContext, spawn } from "first-base";
-import {
-  binDir,
-  rootDir,
-  fixturesDir,
-  testsWorkDir,
-  cleanResult,
-} from "./_utils";
+import { spawn } from "first-base";
+import { binDir, rootDir, fixturesDir, testsWorkDir } from "./_utils";
 
 const ownWorkDir = testsWorkDir.concat("qjsc");
 
@@ -28,7 +22,7 @@ test("qjsc-compiled program has access to both std and bytecode", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -46,7 +40,7 @@ test("qjsc-compiled program has access to both std and bytecode", async () => {
     "-lm",
   ]);
   await run2.completion;
-  expect(cleanResult(run2.result)).toMatchInlineSnapshot(`
+  expect(run2.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -57,7 +51,7 @@ test("qjsc-compiled program has access to both std and bytecode", async () => {
 
   const run3 = spawn(ownWorkDir("uses-std-and-bytecode"));
   await run3.completion;
-  expect(cleanResult(run3.result)).toMatchInlineSnapshot(`
+  expect(run3.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,

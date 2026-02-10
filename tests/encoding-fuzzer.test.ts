@@ -1,10 +1,10 @@
 import { spawn } from "first-base";
-import { binDir, cleanResult } from "./_utils";
+import { binDir } from "./_utils";
 
 test("encoding-fuzzer", async () => {
   const run = spawn(binDir("encoding-fuzzer"), []);
   await run.completion;
-  expect(cleanResult(run.result)).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
