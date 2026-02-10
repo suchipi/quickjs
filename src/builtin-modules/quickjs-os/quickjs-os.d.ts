@@ -193,6 +193,10 @@ declare module "quickjs:os" {
     constructor(moduleFilename: string);
     static parent: Worker;
     postMessage(msg: StructuredClonable): void;
+    /**
+     * Terminate the worker thread. Equivalent to setting `onmessage` to `null`.
+     */
+    terminate(): void;
     onmessage: null | ((event: { data: StructuredClonable }) => void);
   }
 

@@ -167,6 +167,7 @@ declare module "quickjs:os" {
     constructor(moduleFilename: string);
     static parent: Worker;
     postMessage(msg: StructuredClonable): void;
+    terminate(): void;
     onmessage: null | ((event: { data: StructuredClonable }) => void);
   }
   export class Win32Handle {
@@ -1013,6 +1014,7 @@ class Worker {
   constructor(moduleFilename: string);
   static parent: Worker;
   postMessage(msg: StructuredClonable): void;
+  terminate(): void;
   onmessage: null | ((event: { data: StructuredClonable }) => void);
 }
 ```
@@ -1033,6 +1035,14 @@ static parent: Worker;
 
 ```ts
 postMessage(msg: StructuredClonable): void;
+```
+
+### Worker.prototype.terminate (method)
+
+Terminate the worker thread. Equivalent to setting `onmessage` to `null`.
+
+```ts
+terminate(): void;
 ```
 
 ### Worker.prototype.onmessage (property)

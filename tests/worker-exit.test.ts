@@ -52,3 +52,25 @@ test("worker terminates when main sets worker.onmessage = null", async () => {
     }
   `);
 });
+
+test("worker terminates when main calls worker.terminate()", async () => {
+  const run = spawn(binDir("qjs"), [
+    testFixturesDir("main-terminate-method.js"),
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "in main
+    in worker
+    in worker, waiting for termination
+    in main, received: {
+    	data: "ready"
+    }
+    in main, calling worker.terminate()
+    ",
+    }
+  `);
+});

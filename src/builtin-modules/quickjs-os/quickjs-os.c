@@ -3280,8 +3280,17 @@ static JSValue js_worker_get_onmessage(JSContext *ctx, JSValueConst this_val)
     }
 }
 
+static JSValue js_worker_terminate(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv)
+{
+    /* Terminate the worker by setting onmessage to null, which closes
+       the communication pipe and signals EOF to the worker thread */
+    return js_worker_set_onmessage(ctx, this_val, JS_NULL);
+}
+
 static const JSCFunctionListEntry js_worker_proto_funcs[] = {
     JS_CFUNC_DEF("postMessage", 1, js_worker_postMessage ),
+    JS_CFUNC_DEF("terminate", 0, js_worker_terminate ),
     JS_CGETSET_DEF("onmessage", js_worker_get_onmessage, js_worker_set_onmessage ),
 };
 
