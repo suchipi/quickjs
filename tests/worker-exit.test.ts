@@ -30,3 +30,25 @@ test("cmdline.exit in worker throws", async () => {
     }
   `);
 });
+
+test("worker terminates when main sets worker.onmessage = null", async () => {
+  const run = spawn(binDir("qjs"), [
+    testFixturesDir("main-terminate-via-onmessage.js"),
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "in main
+    in worker
+    in worker, waiting for termination
+    in main, received: {
+    	data: "ready"
+    }
+    in main, terminating worker by setting onmessage = null
+    ",
+    }
+  `);
+});
