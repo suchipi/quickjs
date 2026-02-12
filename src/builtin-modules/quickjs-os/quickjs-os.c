@@ -84,7 +84,6 @@ sighandler_t signal(int signum, sighandler_t handler);
 #endif
 #include "quickjs-std.h"
 #include "quickjs-utils.h"
-#include "quickjs-pointer.h"
 #include "utf-conv.h"
 #include "debugprint.h"
 #include "execpath.h"
@@ -1648,7 +1647,7 @@ static JSValue js_new_win32_handle(JSContext *ctx, HANDLE handle)
     return obj;
 }
 
-/* Win32Handle helper: extract HANDLE from a Win32Handle or Pointer object */
+/* Win32Handle helper: extract HANDLE from a Win32Handle */
 static HANDLE js_get_handle(JSContext *ctx, JSValueConst val)
 {
     HANDLE *handle_ptr;
@@ -1667,7 +1666,7 @@ static HANDLE js_get_handle(JSContext *ctx, JSValueConst val)
         return *handle_ptr;
     }
 
-    JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "expected a Win32Handle or Pointer object");
+    JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "expected a Win32Handle object");
     return INVALID_HANDLE_VALUE;
 }
 
@@ -1928,7 +1927,7 @@ static JSValue js_os_CloseHandle(JSContext *ctx, JSValueConst this_val,
         return JS_UNDEFINED;
     }
 
-    /* Fall back to plain Pointer-based handle closing */
+    /* Fall back to plain pointer-based handle closing */
     HANDLE handle = js_get_handle(ctx, argv[0]);
     if (handle == INVALID_HANDLE_VALUE)
         return JS_EXCEPTION;

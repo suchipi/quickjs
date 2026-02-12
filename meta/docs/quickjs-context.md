@@ -30,7 +30,6 @@ declare module "quickjs:context" {
         "quickjs:encoding"?: boolean;
         "quickjs:engine"?: boolean;
         "quickjs:os"?: boolean;
-        "quickjs:pointer"?: boolean;
         "quickjs:std"?: boolean;
         "quickjs:timers"?: boolean;
       };
@@ -74,7 +73,6 @@ class Context {
       "quickjs:encoding"?: boolean;
       "quickjs:engine"?: boolean;
       "quickjs:os"?: boolean;
-      "quickjs:pointer"?: boolean;
       "quickjs:std"?: boolean;
       "quickjs:timers"?: boolean;
     };
@@ -159,7 +157,6 @@ constructor(options?: {
     "quickjs:encoding"?: boolean;
     "quickjs:engine"?: boolean;
     "quickjs:os"?: boolean;
-    "quickjs:pointer"?: boolean;
     "quickjs:std"?: boolean;
     "quickjs:timers"?: boolean;
   };

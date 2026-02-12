@@ -156,8 +156,6 @@ declare module "quickjs:context" {
         "quickjs:engine"?: boolean;
         /** Enables the "quickjs:os" module. Defaults to `true`. */
         "quickjs:os"?: boolean;
-        /** Enables the "quickjs:pointer" module. Defaults to `true`. */
-        "quickjs:pointer"?: boolean;
         /** Enables the "quickjs:std" module. Defaults to `true`. */
         "quickjs:std"?: boolean;
         /** Enables the "quickjs:timers" module. Defaults to `true`. */

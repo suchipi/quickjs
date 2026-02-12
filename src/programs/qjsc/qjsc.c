@@ -544,7 +544,6 @@ int main(int argc, char **argv)
     #ifndef QJSC_MINIMAL
         namelist_add(&cmodule_list, "quickjs:bytecode", "bytecode", 0);
         namelist_add(&cmodule_list, "quickjs:context", "context", 0);
-        namelist_add(&cmodule_list, "quickjs:pointer", "pointer", 0);
         namelist_add(&cmodule_list, "quickjs:engine", "engine", 0);
         namelist_add(&cmodule_list, "quickjs:encoding", "encoding", 0);
     #endif

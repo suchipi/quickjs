@@ -118,13 +118,14 @@ globalThis.__qjms_temp_ModuleDelegate_init =
     };
 
     ModuleDelegate.builtinModuleNames = [
-      "quickjs:std",
-      "quickjs:os",
       "quickjs:bytecode",
+      "quickjs:cmdline",
       "quickjs:context",
-      "quickjs:pointer",
-      "quickjs:engine",
       "quickjs:encoding",
+      "quickjs:engine",
+      "quickjs:os",
+      "quickjs:std",
+      "quickjs:timers",
     ];
 
     function isAbsolute(path) {

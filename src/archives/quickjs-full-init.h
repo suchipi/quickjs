@@ -11,7 +11,6 @@
 #include "quickjs-cmdline.h"
 #include "quickjs-bytecode.h"
 #include "quickjs-context.h"
-#include "quickjs-pointer.h"
 #include "quickjs-modulesys.h"
 #include "quickjs-engine.h"
 #include "quickjs-encoding.h"
