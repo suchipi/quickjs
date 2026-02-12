@@ -34,6 +34,10 @@ import * as os from "quickjs:os";
   /* add bindings for other builtin modules */
   g.engine = require("quickjs:engine");
   g.Bytecode = require("quickjs:bytecode");
+  g.cmdline = require("quickjs:cmdline");
+  g.encoding = require("quickjs:encoding");
+  g.context = require("quickjs:context");
+  g.timers = require("quickjs:timers");
 
   /* close global objects */
   var Object = g.Object;
