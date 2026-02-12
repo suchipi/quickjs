@@ -34,7 +34,6 @@ import * as os from "quickjs:os";
   /* add bindings for other builtin modules */
   g.engine = require("quickjs:engine");
   g.Bytecode = require("quickjs:bytecode");
-  g.ptr = require("quickjs:pointer");
 
   /* close global objects */
   var Object = g.Object;

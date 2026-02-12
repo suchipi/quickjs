@@ -134,16 +134,7 @@ Exports:
 
 A Module that allows JS code to create new JS Contexts (Realms). You can create new Contexts and run code inside them. Contexts can have certain features disabled (like eval) for security purposes. You can share values between Contexts. Contexts are destroyed when they get garbage-collected.
 
-The `Context` class constructor accepts an options object to enable/disable specific features: `date`, `eval`, `stringNormalize`, `regExp`, `json`, `proxy`, `mapSet`, `typedArrays`, `promise`, `bigint`, `bigfloat`, `bigdecimal`, `operators`, `useMath`, `inspect`, `console`, `print`, `moduleGlobals`, `timers`, and a `modules` object to enable/disable specific builtin modules (`quickjs:bytecode`, `quickjs:cmdline`, `quickjs:context`, `quickjs:encoding`, `quickjs:engine`, `quickjs:os`, `quickjs:pointer`, `quickjs:std`, `quickjs:timers`).
-
-### New module: "quickjs:pointer"
-
-A barebones Module that exports a JS class which can be used to represent an opaque pointer. C modules can use the `js_new_pointer` function provided by this module to pass opaque pointer handles to users without needing to make their own wrapper class for stuff. This is mostly just useful in order to have a codified convention for how FFI libraries and such should represent foreign pointers.
-
-The `Pointer` class has:
-
-- `Pointer.NULL` - A static property representing a null pointer
-- `Pointer.isPointer(value)` - A static method to check if a value is a Pointer
+The `Context` class constructor accepts an options object to enable/disable specific features: `date`, `eval`, `stringNormalize`, `regExp`, `json`, `proxy`, `mapSet`, `typedArrays`, `promise`, `bigint`, `bigfloat`, `bigdecimal`, `operators`, `useMath`, `inspect`, `console`, `print`, `moduleGlobals`, `timers`, and a `modules` object to enable/disable specific builtin modules (`quickjs:bytecode`, `quickjs:cmdline`, `quickjs:context`, `quickjs:encoding`, `quickjs:engine`, `quickjs:os`, `quickjs:std`, `quickjs:timers`).
 
 ### New module: "quickjs:encoding"
 

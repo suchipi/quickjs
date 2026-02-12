@@ -67,7 +67,6 @@ JS modules compiled to C bytecode and embedded in the engine. Each exposes a `"q
 - `quickjs-engine` → `"quickjs:engine"` - Script execution, module loading, GC control
 - `quickjs-bytecode` → `"quickjs:bytecode"` - Bytecode serialization
 - `quickjs-context` → `"quickjs:context"` - Realm/Context creation
-- `quickjs-pointer` → `"quickjs:pointer"` - Opaque pointer wrapper
 - `quickjs-encoding` → `"quickjs:encoding"` - Text encoding/decoding
 
 ### Event Loop (`src/quickjs-eventloop/`)
