@@ -1665,8 +1665,6 @@ static HANDLE js_get_handle(JSContext *ctx, JSValueConst val)
             return INVALID_HANDLE_VALUE;
         }
         return *handle_ptr;
-    } else if (JS_VALUE_GET_CLASS_ID(val) == js_pointer_class_id) {
-        return (HANDLE)JS_GetOpaque(val, js_pointer_class_id);
     }
 
     JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "expected a Win32Handle or Pointer object");
