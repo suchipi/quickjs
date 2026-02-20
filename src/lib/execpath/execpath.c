@@ -72,6 +72,34 @@ char *execpath(char *argv0, char *info_message, char *error_message)
 
   return result;
 }
+#elif defined(__wasi__)
+char *execpath(char *argv0, char *info_message, char *error_message)
+{
+  char *result;
+  size_t len;
+
+  if (argv0 == NULL || argv0[0] == '\0') {
+    if (error_message != NULL) {
+      sprintf(error_message, "no executable path available on wasm (argv0 is empty)");
+    }
+    return NULL;
+  }
+
+  len = strlen(argv0);
+  result = malloc(len + 1);
+  if (result == NULL) {
+    if (error_message != NULL) {
+      sprintf(error_message, "malloc failed to allocate %zu bytes", len + 1);
+    }
+    return NULL;
+  }
+
+  memcpy(result, argv0, len + 1);
+  if (info_message != NULL) {
+    sprintf(info_message, "found via argv0 (wasm)");
+  }
+  return result;
+}
 #else
 static int exists(char *path)
 {

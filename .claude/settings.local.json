@@ -21,7 +21,12 @@
       "Bash(/Users/suchipi/Code/quickjs/build/bin/qjs:*)",
       "Bash(wine:*)",
       "Bash(env QUICKJS_EXTRAS=1 meta/build.sh:*)",
-      "Bash(../../build/bin/qjs:*)"
+      "Bash(../../build/bin/qjs:*)",
+      "Bash(/opt/wasi-sdk/bin/llvm-ar:*)",
+      "Bash(/opt/wasi-sdk/bin/llvm-nm:*)",
+      "Bash(env WASI_SDK_PATH=/opt/wasi-sdk TARGET=wasi-p2 QUICKJS_EXTRAS=1 meta/build.sh:*)",
+      "Bash(wasmtime:*)",
+      "Bash(/Users/suchipi/.wasmtime/bin/wasmtime run:*)"
     ]
   }
 }

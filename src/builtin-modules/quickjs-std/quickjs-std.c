@@ -42,6 +42,9 @@
 #if defined(_WIN32)
 #include <windows.h>
 #include <io.h>
+#elif defined(__wasi__)
+/* WASI doesn't have pwd.h */
+extern char **environ;
 #else
 #include <pwd.h>
 
@@ -427,8 +430,10 @@ static JSValue js_std_getenviron(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_getuid(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
-#ifdef _WIN32
+#if defined(_WIN32)
     return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "getuid is not supported on Windows");
+#elif defined(__wasi__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "getuid is not supported on wasm");
 #else
     int32_t uid = getuid();
     return JS_NewInt32(ctx, uid);
@@ -439,8 +444,10 @@ static JSValue js_std_getuid(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_geteuid(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
-#ifdef _WIN32
+#if defined(_WIN32)
     return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "geteuid is not supported on Windows");
+#elif defined(__wasi__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "geteuid is not supported on wasm");
 #else
     int32_t uid = geteuid();
     return JS_NewInt32(ctx, uid);
@@ -450,8 +457,10 @@ static JSValue js_std_geteuid(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_getgid(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
-#ifdef _WIN32
+#if defined(_WIN32)
     return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "getgid is not supported on Windows");
+#elif defined(__wasi__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "getgid is not supported on wasm");
 #else
     int32_t gid = getgid();
     return JS_NewInt32(ctx, gid);
@@ -461,8 +470,10 @@ static JSValue js_std_getgid(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_getegid(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
-#ifdef _WIN32
+#if defined(_WIN32)
     return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "getegid is not supported on Windows");
+#elif defined(__wasi__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "getegid is not supported on wasm");
 #else
     int32_t gid = getegid();
     return JS_NewInt32(ctx, gid);
@@ -472,8 +483,10 @@ static JSValue js_std_getegid(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_getpwuid(JSContext *ctx, JSValueConst this_val,
     int argc, JSValueConst *argv)
 {
-#ifdef _WIN32
+#if defined(_WIN32)
     return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "getpwuid is not supported on Windows");
+#elif defined(__wasi__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "getpwuid is not supported on wasm");
 #else
     uid_t id = -1;
     struct passwd *pwd = {0};
@@ -572,9 +585,11 @@ static void js_std_file_finalizer(JSRuntime *rt, JSValue val)
     JSSTDFile *s = JS_GetOpaque(val, js_std_file_class_id);
     if (s) {
         if (s->f && s->close_in_finalizer) {
+#if !defined(__wasi__)
             if (s->is_popen)
                 pclose(s->f);
             else
+#endif
                 fclose(s->f);
         }
         js_free_rt(rt, s);
@@ -682,6 +697,9 @@ static JSValue js_std_open(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
                             int argc, JSValueConst *argv)
 {
+#if defined(__wasi__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "popen is not supported on wasm");
+#else
     const char *filename, *mode = NULL;
     FILE *f;
     JSValue ret;
@@ -726,6 +744,7 @@ static JSValue js_std_popen(JSContext *ctx, JSValueConst this_val,
     JS_FreeCString(ctx, mode);
 
     return ret;
+#endif /* !__wasi__ */
 }
 
 static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
@@ -774,6 +793,9 @@ static JSValue js_std_fdopen(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_tmpfile(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
 {
+#if defined(__wasi__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "tmpfile is not supported on wasm");
+#else
     FILE *f;
     JSValue ret;
 
@@ -787,6 +809,7 @@ static JSValue js_std_tmpfile(JSContext *ctx, JSValueConst this_val,
     ret = js_std_new_file(ctx, f, TRUE, FALSE);
     JS_SetPropertyStr(ctx, ret, "target", JS_NewString(ctx, "tmpfile"));
     return ret;
+#endif /* !__wasi__ */
 }
 
 static JSValue js_std_sprintf(JSContext *ctx, JSValueConst this_val,
@@ -907,13 +930,16 @@ static JSValue js_std_file_close(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (!s->f)
         return JS_ThrowTypeError(ctx, "<internal>/quickjs-std.c", __LINE__, "invalid file handle");
+#if !defined(__wasi__)
     if (s->is_popen) {
         if (pclose(s->f) < 0) {
             JS_ThrowTypeError(ctx, "<internal>/quickjs-std.c", __LINE__, "failed to close file: %s (errno = %d)", strerror(errno), errno);
             JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
             return JS_EXCEPTION;
         }
-    } else {
+    } else
+#endif
+    {
         if (fclose(s->f) < 0) {
             JS_ThrowTypeError(ctx, "<internal>/quickjs-std.c", __LINE__, "failed to close file: %s (errno = %d)", strerror(errno), errno);
             JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
@@ -1384,6 +1410,9 @@ static int http_get_status(const char *buf)
 static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
+#if defined(__wasi__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "urlGet is not supported on wasm");
+#else
     const char *url;
     DynBuf cmd_buf;
     DynBuf data_buf_s, *data_buf = &data_buf_s;
@@ -1550,6 +1579,7 @@ read_headers:
         dbuf_free(header_buf);
     JS_FreeValue(ctx, response);
     return JS_EXCEPTION;
+#endif /* !__wasi__ */
 }
 
 static JSClassDef js_std_file_class = {

@@ -3,6 +3,8 @@
 // that the filesize of the 'zero' version can be used to create the
 // 'fill' version.
 
+if (!getVar("SKIP_QJSBOOTSTRAP")) {
+
 let qjsbootstrapForExample;
 
 const qjsbootstrap_size_check_rule = rule("qjsbootstrap_size_check", {
@@ -90,3 +92,5 @@ if (env.QUICKJS_EXTRAS === "1") {
     inputs: [qjsbootstrapForExample, rel("is-stdin-a-tty.js")],
   });
 }
+
+} // !SKIP_QJSBOOTSTRAP

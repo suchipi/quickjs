@@ -28,7 +28,7 @@
 #include "quickjs.h"
 #include "list.h"
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__wasi__)
 /* enable the os.Worker API. It relies on POSIX threads */
 #define USE_WORKER
 #endif

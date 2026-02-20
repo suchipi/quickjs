@@ -355,7 +355,12 @@ void namelist_free(namelist_t *lp)
     lp->size = 0;
 }
 
+#if defined(__wasi__)
+static int add_test_file(const char *filename, const struct stat *ptr,
+                         int flag, struct FTW *ftwbuf)
+#else
 static int add_test_file(const char *filename, const struct stat *ptr, int flag)
+#endif
 {
     namelist_t *lp = &test_list;
     if (has_suffix(filename, ".js") && !has_suffix(filename, "_FIXTURE.js"))
@@ -368,7 +373,11 @@ static void enumerate_tests(const char *path)
 {
     namelist_t *lp = &test_list;
     int start = lp->count;
+#if defined(__wasi__)
+    nftw(path, add_test_file, 100, 0);
+#else
     ftw(path, add_test_file, 100);
+#endif
     qsort(lp->array + start, lp->count - start, sizeof(*lp->array),
           namelist_cmp_indirect);
 }

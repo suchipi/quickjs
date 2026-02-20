@@ -50,6 +50,9 @@
 #include <utime.h>
 #include <io.h>
 #include <tchar.h>
+#elif defined(__wasi__)
+/* WASI: no terminal control or process management headers */
+typedef void (*sighandler_t)(int);
 #else
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -296,6 +299,18 @@ static JSValue js_os_ttySetRaw(JSContext *ctx, JSValueConst this_val,
         SetConsoleMode(handle, ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT | __ENABLE_VIRTUAL_TERMINAL_PROCESSING);
     }
     return JS_UNDEFINED;
+}
+#elif defined(__wasi__)
+static JSValue js_os_ttyGetWinSize(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "ttyGetWinSize is not supported on wasm");
+}
+
+static JSValue js_os_ttySetRaw(JSContext *ctx, JSValueConst this_val,
+                               int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "ttySetRaw is not supported on wasm");
 }
 #else
 static JSValue js_os_ttyGetWinSize(JSContext *ctx, JSValueConst this_val,
@@ -2307,6 +2322,104 @@ static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
     return obj;
 }
 
+#elif defined(__wasi__) /* WASI implementations - stubs for unavailable process APIs */
+
+static JSValue js_os_dup(JSContext *ctx, JSValueConst this_val,
+                         int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "dup is not supported on wasm");
+}
+
+static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
+                          int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "dup2 is not supported on wasm");
+}
+
+static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
+                          int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "pipe is not supported on wasm");
+}
+
+static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val,
+                          int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "kill is not supported on wasm");
+}
+
+static JSValue js_os_WEXITSTATUS(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
+{
+    int status;
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+    return JS_NewInt32(ctx, (status >> 8) & 0xff);
+}
+
+static JSValue js_os_WTERMSIG(JSContext *ctx, JSValueConst this_val,
+                               int argc, JSValueConst *argv)
+{
+    int status;
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+    return JS_NewInt32(ctx, status & 0x7f);
+}
+
+static JSValue js_os_WSTOPSIG(JSContext *ctx, JSValueConst this_val,
+                               int argc, JSValueConst *argv)
+{
+    int status;
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+    return JS_NewInt32(ctx, (status >> 8) & 0xff);
+}
+
+static JSValue js_os_WIFEXITED(JSContext *ctx, JSValueConst this_val,
+                                int argc, JSValueConst *argv)
+{
+    int status;
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+    return JS_NewBool(ctx, (status & 0x7f) == 0);
+}
+
+static JSValue js_os_WIFSIGNALED(JSContext *ctx, JSValueConst this_val,
+                                  int argc, JSValueConst *argv)
+{
+    int status;
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+    return JS_NewBool(ctx, (status & 0x7f) != 0 && (status & 0x7f) != 0x7f);
+}
+
+static JSValue js_os_WIFSTOPPED(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
+{
+    int status;
+    if (JS_ToInt32(ctx, &status, argv[0]))
+        return JS_EXCEPTION;
+    return JS_NewBool(ctx, (status & 0xff) == 0x7f);
+}
+
+static JSValue js_os_WIFCONTINUED(JSContext *ctx, JSValueConst this_val,
+                                   int argc, JSValueConst *argv)
+{
+    return JS_NewBool(ctx, FALSE);
+}
+
+static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
+                          int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "exec is not supported on wasm");
+}
+
+static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
+                             int argc, JSValueConst *argv)
+{
+    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "waitpid is not supported on wasm");
+}
+
 #else /* !_WIN32 - Unix implementations */
 
 static JSValue js_os_dup(JSContext *ctx, JSValueConst this_val,
@@ -3472,10 +3585,17 @@ static int js_os_poll(JSContext *ctx)
     int64_t cur_time, delay;
     fd_set rfds, wfds;
     JSRWHandler *rh;
-    struct list_head *el, *el1;
+    struct list_head *el;
+#ifdef USE_WORKER
+    struct list_head *el1;
+#endif
     struct timeval tv, *tvp;
 
-    if (!ts->recv_pipe && unlikely(js_pending_signals != 0)) {
+    if (
+#ifdef USE_WORKER
+        !ts->recv_pipe &&
+#endif
+        unlikely(js_pending_signals != 0)) {
         JSSignalHandler *sh;
         uint64_t mask;
         list_for_each(el, &ts->signal_handlers) {
@@ -3489,8 +3609,11 @@ static int js_os_poll(JSContext *ctx)
         }
     }
 
-    if (list_empty(&ts->rw_handlers) && list_empty(&ts->timers) &&
-        list_empty(&ts->port_list) && ts->active_worker_count <= 0)
+    if (list_empty(&ts->rw_handlers) && list_empty(&ts->timers)
+#ifdef USE_WORKER
+        && list_empty(&ts->port_list) && ts->active_worker_count <= 0
+#endif
+        )
         return -1;
 
     if (!list_empty(&ts->timers)) {
@@ -3536,6 +3659,7 @@ static int js_os_poll(JSContext *ctx)
             FD_SET(rh->fd, &wfds);
     }
 
+#ifdef USE_WORKER
     list_for_each(el, &ts->port_list) {
         JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
         if (!JS_IsNull(port->on_message_func)) {
@@ -3557,6 +3681,7 @@ static int js_os_poll(JSContext *ctx)
             tvp = &tv;
         }
     }
+#endif
 
     ret = select(fd_max + 1, &rfds, &wfds, NULL, tvp);
     if (ret > 0) {
@@ -3593,6 +3718,7 @@ static int js_os_poll(JSContext *ctx)
         }
 #endif
 
+#ifdef USE_WORKER
         /* handle worker completion notifications */
         if (ts->worker_done_read_fd >= 0 &&
             FD_ISSET(ts->worker_done_read_fd, &rfds)) {
@@ -3601,6 +3727,7 @@ static int js_os_poll(JSContext *ctx)
             if (n > 0)
                 ts->active_worker_count -= n;
         }
+#endif
     }
     return 0;
 }
@@ -3615,6 +3742,8 @@ static int js_os_poll(JSContext *ctx)
 #define OS_PLATFORM "darwin"
 #elif defined(EMSCRIPTEN)
 #define OS_PLATFORM "js"
+#elif defined(__wasi__)
+#define OS_PLATFORM "wasm"
 #elif defined(__FreeBSD__)
 #define OS_PLATFORM "freebsd"
 #else
@@ -3743,7 +3872,7 @@ static const JSCFunctionListEntry js_os_funcs[] = {
 #endif
     JS_CFUNC_DEF("exec", 1, js_os_exec ),
     JS_CFUNC_DEF("waitpid", 2, js_os_waitpid ),
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__wasi__)
     JS_PROP_INT32_DEF("WNOHANG", 1, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("WUNTRACED", 2, JS_PROP_CONFIGURABLE ),
 #else
