@@ -1283,12 +1283,16 @@ static JSValue js_os_chmod(JSContext *ctx, JSValueConst this_val,
 static JSValue js_os_gethostname(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
+#if defined(__wasi__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "gethostname is not supported on wasm");
+#else
     char buf[HOST_NAME_MAX + 1];
     if (gethostname(buf, sizeof(buf)) < 0) {
         JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
     return JS_NewString(ctx, buf);
+#endif
 }
 
 /**********************************************************/

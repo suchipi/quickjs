@@ -43,7 +43,9 @@
 #include "quickjs-os.h"
 
 /* enable test262 thread support to test SharedArrayBuffer and Atomics */
+#if !defined(__wasi__)
 #define CONFIG_AGENT
+#endif
 
 #define CMD_NAME "run-test262"
 
@@ -429,6 +431,9 @@ static JSValue js_evalScript(JSContext *ctx, JSValue this_val,
     return ret;
 }
 
+static JSValue add_helpers1(JSContext *ctx);
+static void add_helpers(JSContext *ctx);
+
 #ifdef CONFIG_AGENT
 
 #include <pthread.h>
@@ -449,9 +454,6 @@ typedef struct {
     struct list_head link;
     char *str;
 } AgentReport;
-
-static JSValue add_helpers1(JSContext *ctx);
-static void add_helpers(JSContext *ctx);
 
 static pthread_mutex_t agent_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t agent_cond = PTHREAD_COND_INITIALIZER;
