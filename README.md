@@ -232,6 +232,9 @@ The repo has stuff set up to compile quickjs binaries for:
 - macOS/iOS (x86_64 and arm64)
 - Windows (x86_64)
 - FreeBSD (cross-compilation not supported; you need to compile from a FreeBSD host)
+- WebAssembly (WASI Preview 2, via [wasi-sdk](https://github.com/WebAssembly/wasi-sdk)).
+  - Run the resulting `.wasm` files with [wasmtime](https://wasmtime.dev/) or any WASI P2-compatible runtime.
+  - Functions which are not possible to implement in WASI P2 (like os.exec) will throw an error when called.
 - Cosmopolitan Libc (cross-platform `*.com` binaries). You need the cosmo toolchain installed for this one to work.
 - any arbitrary unix-like OS, if you set env vars for CC, CFLAGS, etc.
 

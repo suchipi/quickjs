@@ -5,4 +5,5 @@ IMAGES=(
   multi-unknown-linux-gnu
   x86_64-pc-windows-static
   x86_64-unknown-linux-musl
+  wasm32-wasi-p2
 )

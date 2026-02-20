@@ -26,7 +26,8 @@
       "Bash(/opt/wasi-sdk/bin/llvm-nm:*)",
       "Bash(env WASI_SDK_PATH=/opt/wasi-sdk TARGET=wasi-p2 QUICKJS_EXTRAS=1 meta/build.sh:*)",
       "Bash(wasmtime:*)",
-      "Bash(/Users/suchipi/.wasmtime/bin/wasmtime run:*)"
+      "Bash(/Users/suchipi/.wasmtime/bin/wasmtime run:*)",
+      "Bash(env SKIP_NPM_INSTALL=1 QUICKJS_EXTRAS=1 WASI_SDK_PATH=/opt/wasi-sdk TARGET=wasi-p2 meta/build.sh:*)"
     ]
   }
 }
