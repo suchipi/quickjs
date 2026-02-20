@@ -67,7 +67,7 @@
 
 /* define to include Atomics.* operations which depend on the OS
    threads */
-#if !defined(EMSCRIPTEN)
+#if !defined(EMSCRIPTEN) && !defined(__wasi__)
 #define CONFIG_ATOMICS
 #endif
 
