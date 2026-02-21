@@ -1,4 +1,4 @@
-if (env.QUICKJS_EXTRAS === "1") {
+if (env.QUICKJS_EXTRAS === "1" && !getVar("SKIP_RUN_TEST262")) {
   const run_test262_target_o = build({
     output: builddir("intermediate/run-test262.target.o"),
     rule: "cc_target",

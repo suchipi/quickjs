@@ -59,6 +59,10 @@ extern char **environ;
 extern char **environ;
 #endif
 
+#if defined(__EMSCRIPTEN__)
+extern char **environ;
+#endif
+
 #endif /* _WIN32 else */
 
 #include "cutils.h"

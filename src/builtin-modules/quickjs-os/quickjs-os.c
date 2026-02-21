@@ -72,6 +72,11 @@ typedef void (*sighandler_t)(int);
 sighandler_t signal(int signum, sighandler_t handler);
 #endif
 
+#if defined(__EMSCRIPTEN__)
+extern char **environ;
+typedef void (*sighandler_t)(int);
+#endif
+
 #endif /* _WIN32 else */
 
 #include "cutils.h"
@@ -3744,7 +3749,7 @@ static int js_os_poll(JSContext *ctx)
 #define OS_PLATFORM "win32"
 #elif defined(__APPLE__)
 #define OS_PLATFORM "darwin"
-#elif defined(EMSCRIPTEN)
+#elif defined(__EMSCRIPTEN__)
 #define OS_PLATFORM "js"
 #elif defined(__wasi__)
 #define OS_PLATFORM "wasm"

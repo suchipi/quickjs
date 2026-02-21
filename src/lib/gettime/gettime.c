@@ -1,4 +1,4 @@
-#if defined(__linux__) || defined(__APPLE__) || defined(__wasi__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__wasi__) || defined(__EMSCRIPTEN__)
 #include <time.h>
 #else
 #include <sys/time.h>
@@ -6,7 +6,7 @@
 
 #include "gettime.h"
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__wasi__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__wasi__) || defined(__EMSCRIPTEN__)
 int64_t gettime_ms(void)
 {
     struct timespec ts;

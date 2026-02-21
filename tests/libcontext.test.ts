@@ -134,7 +134,7 @@ test("quickjs:context - quickjs:bytecode option (false)", async () => {
       "code": 1,
       "error": false,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:bytecode)
-        at <internal>/quickjs-std.c:310
+        at <internal>/quickjs-std.c:314
         at loadFile (native)
         at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
         at require (native)
@@ -214,7 +214,7 @@ test("quickjs:context - quickjs:cmdline option (false)", async () => {
       "code": 1,
       "error": false,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:cmdline)
-        at <internal>/quickjs-std.c:310
+        at <internal>/quickjs-std.c:314
         at loadFile (native)
         at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
         at require (native)
@@ -294,7 +294,7 @@ test("quickjs:context - quickjs:context option (false)", async () => {
       "code": 1,
       "error": false,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:context)
-        at <internal>/quickjs-std.c:310
+        at <internal>/quickjs-std.c:314
         at loadFile (native)
         at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
         at require (native)
@@ -374,7 +374,7 @@ test("quickjs:context - quickjs:encoding option (false)", async () => {
       "code": 1,
       "error": false,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:encoding)
-        at <internal>/quickjs-std.c:310
+        at <internal>/quickjs-std.c:314
         at loadFile (native)
         at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
         at require (native)
@@ -454,7 +454,7 @@ test("quickjs:context - quickjs:engine option (false)", async () => {
       "code": 1,
       "error": false,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:engine)
-        at <internal>/quickjs-std.c:310
+        at <internal>/quickjs-std.c:314
         at loadFile (native)
         at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
         at require (native)
@@ -534,7 +534,7 @@ test("quickjs:context - quickjs:os option (false)", async () => {
       "code": 1,
       "error": false,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:os)
-        at <internal>/quickjs-std.c:310
+        at <internal>/quickjs-std.c:314
         at loadFile (native)
         at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
         at require (native)
@@ -614,7 +614,7 @@ test("quickjs:context - quickjs:std option (false)", async () => {
       "code": 1,
       "error": false,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:std)
-        at <internal>/quickjs-std.c:310
+        at <internal>/quickjs-std.c:314
         at loadFile (native)
         at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
         at require (native)
@@ -694,7 +694,7 @@ test("quickjs:context - quickjs:timers option (false)", async () => {
       "code": 1,
       "error": false,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:timers)
-        at <internal>/quickjs-std.c:310
+        at <internal>/quickjs-std.c:314
         at loadFile (native)
         at <anonymous> (src/quickjs-modulesys/module-impl.js:27)
         at require (native)
