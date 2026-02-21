@@ -8,5 +8,6 @@
     "lib": ["ES2020"],
     "strictNullChecks": true,
     "types": ["node"],
+    "moduleDetection": "force"
   }
 }

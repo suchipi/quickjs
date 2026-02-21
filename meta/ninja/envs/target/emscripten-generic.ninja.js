@@ -1,4 +1,4 @@
-// Target: Emscripten (WebAssembly via Emscripten SDK)
+// Target: Emscripten Generic (WebAssembly via Emscripten SDK)
 // Runnable via Node.js or in a browser
 
 declare("CC_TARGET", "emcc");

@@ -235,12 +235,14 @@ The repo has stuff set up to compile quickjs binaries for:
   - MSYS2 (Windows host)
 - FreeBSD (cross-compilation not supported; you need to compile from a FreeBSD host)
 - WebAssembly:
-  - WASI Preview 2, via [wasi-sdk](https://github.com/WebAssembly/wasi-sdk).
+  - [WASI Preview 2](https://github.com/WebAssembly/WASI/blob/main/docs/Preview2.md), via [wasi-sdk](https://github.com/WebAssembly/wasi-sdk).
     - Run the resulting `.wasm` files with [wasmtime](https://wasmtime.dev/) or any WASI P2-compatible runtime.
     - Functions which are not possible to implement in WASI P2 (like os.exec) will throw an error when called.
-  - [Emscripten](https://emscripten.org/).
-    - Produces `.js` + `.wasm` file pairs that can be run with Node.js or loaded in a browser.
-- Cosmopolitan Libc (cross-platform `*.com` binaries). You need the cosmo toolchain installed for this one to work.
+  - [Emscripten](https://emscripten.org/), with three target variants:
+    - `emscripten-generic` — works in both Node.js and browsers
+    - `emscripten-node` — Node.js-optimized with real filesystem access (NODERAWFS)
+    - `emscripten-web` — browser-optimized
+- [Cosmopolitan Libc](https://github.com/jart/cosmopolitan) (cross-platform `*.com` binaries). You need the cosmo toolchain installed for this one to work.
 - any arbitrary unix-like OS, if you set env vars for CC, CFLAGS, etc.
 
 QuickJS itself has no external dependencies outside this repo except pthreads, and all of the code is C11. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes.
