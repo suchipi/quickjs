@@ -134,7 +134,14 @@ declare module "quickjs:os" {
   export function dup2(oldfd: number, newfd: number): number;
   export function pipe(): [number, number];
   export function sleep(delay_ms: number): void;
-  export var platform: "linux" | "darwin" | "win32" | "freebsd" | "js";
+  export var platform:
+    | "win32"
+    | "darwin"
+    | "emscripten"
+    | "wasm"
+    | "freebsd"
+    | "linux"
+    | "unknown";
   export type StructuredClonable =
     | string
     | number
@@ -971,7 +978,14 @@ export function sleep(delay_ms: number): void;
 ## "quickjs:os".platform (exported value)
 
 ```ts
-var platform: "linux" | "darwin" | "win32" | "freebsd" | "js";
+var platform:
+  | "win32"
+  | "darwin"
+  | "emscripten"
+  | "wasm"
+  | "freebsd"
+  | "linux"
+  | "unknown";
 ```
 
 ## "quickjs:os".StructuredClonable (exported type)

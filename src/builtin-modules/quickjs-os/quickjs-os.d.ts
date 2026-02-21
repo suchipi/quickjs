@@ -160,7 +160,15 @@ declare module "quickjs:os" {
   export function pipe(): [number, number];
   export function sleep(delay_ms: number): void;
 
-  export var platform: "linux" | "darwin" | "win32" | "freebsd" | "js";
+  // keep in sync with quickjs-os.c
+  export var platform:
+    | "win32"
+    | "darwin"
+    | "emscripten"
+    | "wasm"
+    | "freebsd"
+    | "linux"
+    | "unknown";
 
   export type StructuredClonable =
     | string

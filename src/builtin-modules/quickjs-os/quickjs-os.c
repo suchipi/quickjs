@@ -3745,18 +3745,21 @@ static int js_os_poll(JSContext *ctx)
 /**********************************************************/
 /* Module function list and initialization */
 
+// keep in sync with quickjs-os.d.ts
 #if defined(_WIN32)
 #define OS_PLATFORM "win32"
 #elif defined(__APPLE__)
 #define OS_PLATFORM "darwin"
 #elif defined(__EMSCRIPTEN__)
-#define OS_PLATFORM "js"
+#define OS_PLATFORM "emscripten"
 #elif defined(__wasi__)
 #define OS_PLATFORM "wasm"
 #elif defined(__FreeBSD__)
 #define OS_PLATFORM "freebsd"
-#else
+#elif defined(__linux__)
 #define OS_PLATFORM "linux"
+#else
+#define OS_PLATFORM "unknown"
 #endif
 
 #define OS_FLAG(x) JS_PROP_INT32_DEF(#x, x, JS_PROP_CONFIGURABLE )
