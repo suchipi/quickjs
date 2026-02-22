@@ -254,16 +254,17 @@ If you're not gonna use Docker, you'll need to install [Ninja](https://ninja-bui
 
 ### Compilation Instructions
 
-To compile binaries for Linux, macOS, iOS, and Windows (using Docker):
+To compile binaries for Linux, macOS, iOS, Windows, WASM, and JS (using Docker):
 
 - Make sure you have docker installed.
 - Clone the repo and cd to its folder
 - Run `meta/docker/build-all.sh`
 - Build artifacts will be placed in the `build` folder, organized by OS.
 
-Or, to compile binaries for just your own unix system:
+Or, to compile binaries for just your own system:
 
-- Make sure you have both [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) installed. I use Ninja 1.10.1 and Node.js 18.18.0, but it should work with most versions of both of those.
+- If you're on Windows, install MSYS2 and enter a UCRT64 terminal.
+- Make sure you have both [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) installed. I use Ninja 1.10.1 and Node.js 22.15.0, but it should work with most versions of both of those.
 - Make sure you have [bash](https://www.gnu.org/software/bash/) 4 or higher.
 
   > Almost all modern Linux systems have bash 5, but macOS still has bash 3. To get a newer version of bash on macOS, install either [Homebrew](https://brew.sh/) or [MacPorts](https://www.macports.org/) (your preference), then run `brew install bash` or `sudo port install bash`, respectively. You may also need to ensure your shell's [PATH environment variable](https://superuser.com/a/284351) is set correctly; running `which bash` should print the location of the _newer_ bash binary, installed by Homebrew/MacPorts.
