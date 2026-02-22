@@ -1,0 +1,16 @@
+{
+  "aarch64-unknown-linux-musl": "aarch64-unknown-linux-musl",
+  "aarch64-unknown-linux-static": "aarch64-unknown-linux-musl",
+  "x86_64-apple-darwin": "multi-apple-darwin",
+  "aarch64-apple-darwin": "multi-apple-darwin",
+  "wasm32-unknown-emscripten-generic": "multi-unknown-emscripten",
+  "wasm32-unknown-emscripten-node": "multi-unknown-emscripten",
+  "wasm32-unknown-emscripten-web": "multi-unknown-emscripten",
+  "js-unknown-emscripten": "multi-unknown-emscripten",
+  "x86_64-unknown-linux-gnu": "multi-unknown-linux-gnu",
+  "aarch64-unknown-linux-gnu": "multi-unknown-linux-gnu",
+  "wasm32-unknown-wasip2": "wasm32-unknown-wasip2",
+  "x86_64-pc-windows-static": "x86_64-pc-windows-static",
+  "x86_64-unknown-linux-musl": "x86_64-unknown-linux-musl",
+  "x86_64-unknown-linux-static": "x86_64-unknown-linux-musl"
+}

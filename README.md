@@ -254,12 +254,13 @@ If you're not gonna use Docker, you'll need to install [Ninja](https://ninja-bui
 
 ### Compilation Instructions
 
-To compile binaries for Linux, macOS, iOS, Windows, WASM, and JS (using Docker):
+To compile binaries for Linux, macOS, iOS, Windows, WASM, and/or JS (using Docker):
 
 - Make sure you have docker installed.
 - Clone the repo and cd to its folder
-- Run `meta/docker/build-all.sh`
-- Build artifacts will be placed in the `build` folder, organized by OS.
+- Run `meta/build.sh --targets` to list the available targets.
+- Run `meta/build.sh <target>`, or `meta/build.sh all` to build all of them.
+- Build artifacts will be placed in the `build` folder, organized by target triple.
 
 Or, to compile binaries for just your own system:
 
