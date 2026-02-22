@@ -28,12 +28,7 @@
 #include "quickjs.h"
 #include "list.h"
 
-#if !defined(_WIN32) && !defined(__wasi__)
-/* enable the os.Worker API. It relies on POSIX threads */
-#define USE_WORKER
-#endif
-
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 #include <pthread.h>
 #endif
 
@@ -64,7 +59,7 @@ typedef struct JSTimer {
     JSValue func;
 } JSTimer;
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 /* Worker message */
 typedef struct JSWorkerMessage {
     struct list_head link;
@@ -90,7 +85,7 @@ typedef struct JSWorkerMessageHandler {
     JSWorkerMessagePipe *recv_pipe;
     JSValue on_message_func;
 } JSWorkerMessageHandler;
-#endif /* USE_WORKER */
+#endif /* !SKIP_WORKER */
 
 /* Thread state - central event loop state attached to runtime */
 typedef struct JSThreadState {
@@ -99,7 +94,7 @@ typedef struct JSThreadState {
     struct list_head timers;           /* list of JSTimer.link */
     int eval_script_recurse;           /* only used in the main thread */
     int exit_code;                     /* only used in the main thread */
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     struct list_head port_list;        /* list of JSWorkerMessageHandler.link */
     JSWorkerMessagePipe *recv_pipe, *send_pipe; /* not used in the main thread */
     int active_worker_count;           /* number of active worker threads (main thread only) */
@@ -135,7 +130,7 @@ void js_signal_handler_free(JSRuntime *rt, JSSignalHandler *sh);
 void js_timer_unlink(JSRuntime *rt, JSTimer *th);
 void js_timer_free(JSRuntime *rt, JSTimer *th);
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 void js_worker_message_pipe_free(JSWorkerMessagePipe *ps);
 
 /* Worker lifecycle tracking (main thread only) */

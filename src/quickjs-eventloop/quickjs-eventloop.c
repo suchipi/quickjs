@@ -36,13 +36,17 @@
 
 #if defined(_WIN32)
 #include <io.h>
+#include <fcntl.h>
+#define pipe(fds) _pipe(fds, 4096, _O_BINARY)
+#define close _close
+#define read _read
 #define write _write
 #endif
 
 #include "cutils.h"
 #include "quickjs-eventloop.h"
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 #include <stdatomic.h>
 #endif
 #include "quickjs-utils.h"
@@ -51,7 +55,7 @@
 uint64_t js_pending_signals = 0;
 int (*js_poll_func)(JSContext *ctx) = NULL;
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 /* SharedArrayBuffer header for reference counting */
 typedef struct {
     int ref_count;
@@ -91,11 +95,11 @@ static void js_sab_dup(void *opaque, void *ptr)
     sab = (JSSABHeader *)((uint8_t *)ptr - sizeof(JSSABHeader));
     atomic_add_int(&sab->ref_count, 1);
 }
-#endif /* USE_WORKER */
+#endif /* !SKIP_WORKER */
 
 JS_BOOL js_eventloop_is_main_thread(JSRuntime *rt)
 {
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
     return !ts->recv_pipe;
 #else
@@ -143,7 +147,7 @@ void js_eventloop_interrupt_handler_start(JSContext *ctx)
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     if (!ts->recv_pipe && ++ts->eval_script_recurse == 1) {
 #else
     if (++ts->eval_script_recurse == 1) {
@@ -158,7 +162,7 @@ void js_eventloop_interrupt_handler_finish(JSContext *ctx, JSValue ret)
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     if (!ts->recv_pipe && --ts->eval_script_recurse == 0) {
 #else
     if (--ts->eval_script_recurse == 0) {
@@ -216,7 +220,7 @@ void js_timer_free(JSRuntime *rt, JSTimer *th)
     js_free_rt(rt, th);
 }
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 static void js_free_message(JSWorkerMessage *msg)
 {
     size_t i;
@@ -251,7 +255,7 @@ void js_worker_message_pipe_free(JSWorkerMessagePipe *ps)
         free(ps);
     }
 }
-#endif /* USE_WORKER */
+#endif /* !SKIP_WORKER */
 
 void js_eventloop_init(JSRuntime *rt)
 {
@@ -266,7 +270,7 @@ void js_eventloop_init(JSRuntime *rt)
     init_list_head(&ts->rw_handlers);
     init_list_head(&ts->signal_handlers);
     init_list_head(&ts->timers);
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     init_list_head(&ts->port_list);
     ts->worker_done_read_fd = -1;
     ts->worker_done_write_fd = -1;
@@ -274,7 +278,7 @@ void js_eventloop_init(JSRuntime *rt)
 
     JS_SetRuntimeOpaque(rt, ts);
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     /* set the SharedArrayBuffer memory handlers */
     {
         JSSharedArrayBufferFunctions sf;
@@ -309,7 +313,7 @@ void js_eventloop_free(JSRuntime *rt)
             js_timer_free(rt, th);
     }
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     /* Note: port_list cleanup is handled by the OS module */
     js_worker_message_pipe_free(ts->recv_pipe);
     js_worker_message_pipe_free(ts->send_pipe);
@@ -330,7 +334,7 @@ void js_eventloop_free(JSRuntime *rt)
    to a shared notification pipe. */
 int js_eventloop_register_worker(JSRuntime *rt)
 {
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
     if (ts->worker_done_read_fd < 0) {
         int fds[2];

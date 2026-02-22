@@ -28,6 +28,7 @@ declare("PROGRAM_SUFFIX_TARGET", ".wasm");
 
 declare("SKIP_SHARED_LIBS", true);
 declare("SKIP_QJSBOOTSTRAP", true);
+declare("SKIP_WORKER", true);
 
 declareOrAppend(
   "LIBS_TARGET",

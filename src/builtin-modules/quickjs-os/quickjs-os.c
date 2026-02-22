@@ -50,6 +50,10 @@
 #include <utime.h>
 #include <io.h>
 #include <tchar.h>
+#define pipe(fds) _pipe(fds, 4096, _O_BINARY)
+#define close _close
+#define read _read
+#define write _write
 #elif defined(__wasi__)
 /* WASI: no terminal control or process management headers */
 typedef void (*sighandler_t)(int);
@@ -86,7 +90,7 @@ typedef void (*sighandler_t)(int);
 #include "quickjs-eventloop.h"
 #include "quickjs-std.h"
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 #include <pthread.h>
 #include <stdatomic.h>
 #endif
@@ -99,7 +103,7 @@ typedef void (*sighandler_t)(int);
 #include "quickjs-timers.h"
 #include "quickjs-cmdline.h"
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 /* Worker data attached to Worker objects */
 typedef struct {
     JSWorkerMessagePipe *recv_pipe;
@@ -2971,7 +2975,7 @@ static JSValue js_win32_handle_ctor(JSContext *ctx, JSValueConst this_val,
 
 static JSClassID js_worker_class_id;
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 static JSContext *(*js_worker_new_context_func)(JSRuntime *rt);
 
 static int atomic_add_int(int *ptr, int v)
@@ -3413,7 +3417,7 @@ static const JSCFunctionListEntry js_worker_proto_funcs[] = {
     JS_CGETSET_DEF("onmessage", js_worker_get_onmessage, js_worker_set_onmessage ),
 };
 
-#else /* !USE_WORKER */
+#else /* SKIP_WORKER */
 
 static JSClassDef js_worker_class = {
     "Worker",
@@ -3425,11 +3429,11 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "the Worker class is not supported on this platform");
 }
 
-#endif /* USE_WORKER */
+#endif /* !SKIP_WORKER */
 
 void js_os_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt))
 {
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     js_worker_new_context_func = func;
 #else
     (void)func;
@@ -3439,7 +3443,7 @@ void js_os_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt))
 /**********************************************************/
 /* Poll function */
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
 /* Handle a posted message from a worker.
    Return 1 if a message was handled, 0 if no message, -1 if EOF detected. */
 static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
@@ -3513,7 +3517,7 @@ static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
     }
     return ret;
 }
-#endif /* USE_WORKER */
+#endif /* !SKIP_WORKER */
 
 #if defined(_WIN32)
 static int js_os_poll(JSContext *ctx)
@@ -3524,8 +3528,15 @@ static int js_os_poll(JSContext *ctx)
     int64_t cur_time, delay;
     JSRWHandler *rh;
     struct list_head *el;
+#ifndef SKIP_WORKER
+    struct list_head *el1;
+#endif
 
-    if (list_empty(&ts->rw_handlers) && list_empty(&ts->timers))
+    if (list_empty(&ts->rw_handlers) && list_empty(&ts->timers)
+#ifndef SKIP_WORKER
+        && list_empty(&ts->port_list) && ts->active_worker_count <= 0
+#endif
+        )
         return -1;
 
     if (!list_empty(&ts->timers)) {
@@ -3556,6 +3567,11 @@ static int js_os_poll(JSContext *ctx)
         min_delay = -1;
     }
 
+    /* Collect handles to wait on */
+    HANDLE handles[MAXIMUM_WAIT_OBJECTS];
+    int handle_count = 0;
+    int console_handle_idx = -1;
+
     console_fd = -1;
     list_for_each(el, &ts->rw_handlers) {
         rh = list_entry(el, JSRWHandler, link);
@@ -3566,21 +3582,73 @@ static int js_os_poll(JSContext *ctx)
     }
 
     if (console_fd >= 0) {
+        console_handle_idx = handle_count;
+        handles[handle_count++] = (HANDLE)_get_osfhandle(console_fd);
+    }
+
+#ifndef SKIP_WORKER
+    /* Add worker message pipe handles */
+    int port_handle_start = handle_count;
+    list_for_each(el, &ts->port_list) {
+        JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
+        if (!JS_IsNull(port->on_message_func) && handle_count < MAXIMUM_WAIT_OBJECTS) {
+            handles[handle_count++] = (HANDLE)_get_osfhandle(port->recv_pipe->read_fd);
+        }
+    }
+
+    /* Add worker done notification handle */
+    int worker_done_handle_idx = -1;
+    if (ts->active_worker_count > 0 && ts->worker_done_read_fd >= 0 &&
+        handle_count < MAXIMUM_WAIT_OBJECTS) {
+        worker_done_handle_idx = handle_count;
+        handles[handle_count++] = (HANDLE)_get_osfhandle(ts->worker_done_read_fd);
+    }
+#endif
+
+    if (handle_count > 0) {
         DWORD ti, ret;
-        HANDLE handle;
         ti = (min_delay == -1) ? INFINITE : min_delay;
-        handle = (HANDLE)_get_osfhandle(console_fd);
-        ret = WaitForSingleObject(handle, ti);
-        if (ret == WAIT_OBJECT_0) {
-            list_for_each(el, &ts->rw_handlers) {
-                rh = list_entry(el, JSRWHandler, link);
-                if (rh->fd == console_fd && !JS_IsNull(rh->rw_func[0])) {
-                    js_eventloop_call_handler(ctx, rh->rw_func[0]);
-                    break;
+        ret = WaitForMultipleObjects(handle_count, handles, FALSE, ti);
+        if (ret >= WAIT_OBJECT_0 && ret < WAIT_OBJECT_0 + (DWORD)handle_count) {
+            int idx = ret - WAIT_OBJECT_0;
+            if (idx == console_handle_idx) {
+                list_for_each(el, &ts->rw_handlers) {
+                    rh = list_entry(el, JSRWHandler, link);
+                    if (rh->fd == console_fd && !JS_IsNull(rh->rw_func[0])) {
+                        js_eventloop_call_handler(ctx, rh->rw_func[0]);
+                        break;
+                    }
                 }
             }
+#ifndef SKIP_WORKER
+            else if (idx >= port_handle_start &&
+                     (worker_done_handle_idx < 0 || idx < worker_done_handle_idx)) {
+                /* Find the matching port and handle its message */
+                int port_idx = port_handle_start;
+                list_for_each_safe(el, el1, &ts->port_list) {
+                    JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
+                    if (!JS_IsNull(port->on_message_func)) {
+                        if (port_idx == idx) {
+                            int result = handle_posted_message(rt, ctx, port);
+                            if (result < 0) {
+                                list_del(&port->link);
+                                JS_FreeValueRT(rt, port->on_message_func);
+                                port->on_message_func = JS_NULL;
+                            }
+                            break;
+                        }
+                        port_idx++;
+                    }
+                }
+            } else if (idx == worker_done_handle_idx) {
+                uint8_t buf[16];
+                int n = read(ts->worker_done_read_fd, buf, sizeof(buf));
+                if (n > 0)
+                    ts->active_worker_count -= n;
+            }
+#endif
         }
-    } else {
+    } else if (min_delay >= 0) {
         Sleep(min_delay);
     }
     return 0;
@@ -3595,13 +3663,13 @@ static int js_os_poll(JSContext *ctx)
     fd_set rfds, wfds;
     JSRWHandler *rh;
     struct list_head *el;
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     struct list_head *el1;
 #endif
     struct timeval tv, *tvp;
 
     if (
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
         !ts->recv_pipe &&
 #endif
         unlikely(js_pending_signals != 0)) {
@@ -3619,7 +3687,7 @@ static int js_os_poll(JSContext *ctx)
     }
 
     if (list_empty(&ts->rw_handlers) && list_empty(&ts->timers)
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
         && list_empty(&ts->port_list) && ts->active_worker_count <= 0
 #endif
         )
@@ -3668,7 +3736,7 @@ static int js_os_poll(JSContext *ctx)
             FD_SET(rh->fd, &wfds);
     }
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     list_for_each(el, &ts->port_list) {
         JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
         if (!JS_IsNull(port->on_message_func)) {
@@ -3706,7 +3774,7 @@ static int js_os_poll(JSContext *ctx)
             }
         }
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
         /* Handle worker messages */
         list_for_each_safe(el, el1, &ts->port_list) {
             JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
@@ -3727,7 +3795,7 @@ static int js_os_poll(JSContext *ctx)
         }
 #endif
 
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
         /* handle worker completion notifications */
         if (ts->worker_done_read_fd >= 0 &&
             FD_ISSET(ts->worker_done_read_fd, &rfds)) {
@@ -3914,7 +3982,7 @@ static const JSCFunctionListEntry js_os_funcs[] = {
 
 static int js_os_init(JSContext *ctx, JSModuleDef *m)
 {
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
 #endif
@@ -3938,14 +4006,14 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
     {
         JSValue proto, obj;
         proto = JS_NewObject(ctx);
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
         JS_SetPropertyFunctionList(ctx, proto, js_worker_proto_funcs, countof(js_worker_proto_funcs));
 #endif
         obj = JS_NewCFunction2(ctx, js_worker_ctor, "Worker", 1,
                                 JS_CFUNC_constructor, 0);
         JS_SetConstructor(ctx, obj, proto);
         JS_SetClassProto(ctx, js_worker_class_id, proto);
-#ifdef USE_WORKER
+#ifndef SKIP_WORKER
         /* Set 'Worker.parent' if necessary (only in worker threads) */
         if (ts->recv_pipe && ts->send_pipe) {
             JS_DefinePropertyValueStr(ctx, obj, "parent",

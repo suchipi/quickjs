@@ -67,7 +67,7 @@
 
 /* define to include Atomics.* operations which depend on the OS
    threads */
-#if !defined(__wasi__)
+#ifndef SKIP_WORKER
 #define CONFIG_ATOMICS
 #endif
 

@@ -15,4 +15,4 @@ declare("PROGRAM_SUFFIX_TARGET", ".js");
 declare("SKIP_SHARED_LIBS", true);
 declare("SKIP_QJSBOOTSTRAP", true);
 declare("SKIP_RUN_TEST262", true);
-declare("SKIP_PTHREAD", true);
+declare("SKIP_WORKER", true);

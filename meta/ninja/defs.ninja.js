@@ -39,8 +39,10 @@ for (const suffix of ["HOST", "TARGET"]) {
   declareOrAppend(`LIBS_${suffix}`, "-lm");
 
   // multithreading. <pthread.h>
-  if (!getVar("SKIP_PTHREAD")) {
+  if (!getVar("SKIP_WORKER")) {
     declareOrAppend(`LIBS_${suffix}`, "-lpthread");
+  } else {
+    declareOrAppend(`DEFINES_${suffix}`, "-DSKIP_WORKER");
   }
 
   declareOrAppend(
