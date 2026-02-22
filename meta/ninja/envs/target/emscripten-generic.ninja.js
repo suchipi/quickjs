@@ -6,7 +6,10 @@ declare("AR_TARGET", "emar");
 declare("LDEXPORT_TARGET", "");
 
 declareOrAppend("CFLAGS_TARGET", "-pthread");
-declareOrAppend("LDFLAGS_TARGET", "-pthread -sALLOW_MEMORY_GROWTH=1 -sEXIT_RUNTIME=1");
+declareOrAppend(
+  "LDFLAGS_TARGET",
+  "-pthread -sALLOW_MEMORY_GROWTH=1 -sEXIT_RUNTIME=1"
+);
 
 declare("PROGRAM_SUFFIX_TARGET", ".js");
 
