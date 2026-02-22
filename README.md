@@ -238,10 +238,11 @@ The repo has stuff set up to compile quickjs binaries for:
   - [WASI Preview 2](https://github.com/WebAssembly/WASI/blob/main/docs/Preview2.md), via [wasi-sdk](https://github.com/WebAssembly/wasi-sdk).
     - Run the resulting `.wasm` files with [wasmtime](https://wasmtime.dev/) or any WASI P2-compatible runtime.
     - Functions which are not possible to implement in WASI P2 (like os.exec) will throw an error when called.
-  - [Emscripten](https://emscripten.org/), with three target variants:
+  - [Emscripten](https://emscripten.org/), with four target variants:
     - `emscripten-generic` — works in both Node.js and browsers
     - `emscripten-node` — Node.js-optimized with real filesystem access (NODERAWFS)
     - `emscripten-web` — browser-optimized
+    - `emscripten-js` — JS-only output, no .wasm file (`-sWASM=0`)
 - [Cosmopolitan Libc](https://github.com/jart/cosmopolitan) (cross-platform `*.com` binaries). You need the cosmo toolchain installed for this one to work.
 - any arbitrary unix-like OS, if you set env vars for CC, CFLAGS, etc.
 

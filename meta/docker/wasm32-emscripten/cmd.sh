@@ -17,3 +17,8 @@ echo "----"
 echo "---- Building wasm32-emscripten-web ----"
 echo "----"
 env SKIP_NPM_INSTALL=1 BUILDDIR=build/wasm32-emscripten-web HOST=linux TARGET=emscripten-web meta/build.sh
+
+echo "----"
+echo "---- Building wasm32-emscripten-js ----"
+echo "----"
+env SKIP_NPM_INSTALL=1 BUILDDIR=build/wasm32-emscripten-js HOST=linux TARGET=emscripten-js meta/build.sh
