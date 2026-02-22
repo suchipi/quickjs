@@ -9,7 +9,7 @@ pushd "$ROOT_DIR" > /dev/null
   # ensure node_modules are installed
   NODE_VERSION=$(cat .node-version)
   if [ ! -d node_modules ]; then
-    docker run --rm -it \
+    docker run --rm \
       -v $ROOT_DIR:/workdir \
       -w /workdir \
       node:${NODE_VERSION/v/} \

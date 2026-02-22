@@ -3,7 +3,6 @@ set -exuo pipefail
 
 cd $(dirname "$BASH_SOURCE")
 
-source ./IMAGES.sh
-for DIR in "${IMAGES[@]}"; do
-  ./build-image.sh "$DIR"
+for IMAGE in $(cut -f2 ./triples.tsv | sort -u); do
+  ./build-image.sh "$IMAGE"
 done

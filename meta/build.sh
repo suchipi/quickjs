@@ -8,37 +8,25 @@ RESET="\033[22m"
 if [[ "${1:-}" == "--help" ]]; then
   printf "Usage:\n"
   printf "  meta/build.sh $DIM# build for current platform$RESET\n"
-  printf "  meta/build.sh --targets $DIM# list available targets$RESET\n"
-  printf "  meta/build.sh <target> $DIM# use docker to build for a given target$RESET\n"
-  printf "  meta/build.sh all $DIM# use docker to build all targets$RESET\n"
+  printf "  meta/build.sh --platforms $DIM# list available platforms$RESET\n"
+  printf "  meta/build.sh <platform> $DIM# use docker to build for a given platform$RESET\n"
+  printf "  meta/build.sh all $DIM# use docker to build all platforms$RESET\n"
   printf "  env HOST=\"...\" TARGET=\"...\" meta/build.sh $DIM# build using specific meta/ninja/envs files (advanced)$RESET\n"
-  exit 2
-elif [[ "${1:-}" == "--targets" ]]; then
-  node -e '
-    console.log(
-      Object.keys(
-        JSON.parse(
-          fs.readFileSync("./meta/docker/targets.json", "utf-8")
-        )
-      ).sort().join("\n")
-    )'
-elif [[ "${1:-}" != "all" ]]; then
+elif [[ "${1:-}" == "--platforms" ]]; then
+  cut -f1 ./meta/docker/triples.tsv | sort
+elif [[ "${1:-}" == "all" ]]; then
   meta/docker/build-all.sh
 elif [[ "${1:-}" != "" ]]; then
-  TARGET="${1:-}"
-  echo "Using docker to build for target $TARGET..."
-  IMAGE="$(node -e '
-    console.log(
-      JSON.parse(
-        fs.readFileSync(
-          "./meta/docker/targets.json",
-          "utf-8"
-        )
-      )
-      ["'"$TARGET"'"]
-    )
-  ')"
-  meta/docker/build.sh "$IMAGE"
+  TRIPLE="${1:-}"
+  echo "Using docker to build for platform $TRIPLE..."
+  if ! LINE="$(grep "^${TRIPLE}"$'\t' ./meta/docker/triples.tsv)"; then
+    echo "Unknown platform: $TRIPLE" >&2
+    echo "Available platforms:" >&2
+    cut -f1 ./meta/docker/triples.tsv | sort >&2
+    exit 1
+  fi
+  IFS=$'\t' read -r _ IMAGE HOST TARGET <<< "$LINE"
+  meta/docker/build.sh "$IMAGE" "${TRIPLE}"$'\t'"${HOST}"$'\t'"${TARGET}"
 else
   # normal build
   if [[ "$(uname)" == "Darwin" ]]; then

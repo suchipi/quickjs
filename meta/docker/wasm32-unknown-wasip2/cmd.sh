@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export WASI_SDK_PATH=/opt/wasi-sdk
+
 mkdir -p build
 
-echo "----"
-echo "---- Building wasm32-unknown-wasip2 ----"
-echo "----"
-env SKIP_NPM_INSTALL=1 BUILDDIR=build/wasm32-unknown-wasip2 WASI_SDK_PATH=/opt/wasi-sdk HOST=linux TARGET=wasi-p2 meta/build.sh
+while IFS=$'\t' read -r TRIPLE HOST TARGET; do
+  echo "----"
+  echo "---- Building $TRIPLE ----"
+  echo "----"
+  env SKIP_NPM_INSTALL=1 BUILDDIR="build/$TRIPLE" HOST="$HOST" TARGET="$TARGET" meta/build.sh
+done <<< "$QUICKJS_BUILDS"

@@ -258,9 +258,9 @@ To compile binaries for Linux, macOS, iOS, Windows, WASM, and/or JS (using Docke
 
 - Make sure you have docker installed.
 - Clone the repo and cd to its folder
-- Run `meta/build.sh --targets` to list the available targets.
-- Run `meta/build.sh <target>`, or `meta/build.sh all` to build all of them.
-- Build artifacts will be placed in the `build` folder, organized by target triple.
+- Run `meta/build.sh --platforms` to list the available platforms.
+- Run `meta/build.sh <platform>`, or `meta/build.sh all` to build all of them.
+- Build artifacts will be placed in the `build` folder, organized by platform triple.
 
 Or, to compile binaries for just your own system:
 
