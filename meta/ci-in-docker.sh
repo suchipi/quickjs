@@ -1,21 +1,15 @@
 #!/usr/bin/env bash
-set -e
+set -exuo pipefail
 
 # Runs meta/ci.sh inside a Docker container similar to GitHub Actions' ubuntu-latest.
-# Usage: meta/docker/run-ci-linux.sh
+# Usage: meta/ci-in-docker.sh
 
-# move to root dir
-cd "$(dirname "$BASH_SOURCE")"
-cd ../..
+pushd "$(dirname "$BASH_SOURCE")" > /dev/null
+  source ./docker/ROOT_DIR.sh
+popd > /dev/null
 
-HEREDIR="$PWD"
-if command -v cygpath >/dev/null 2>&1; then
-  HEREDIR="$(cygpath -m "$PWD")"
-fi
-
+# temporary volume for node_modules
 VOLUME_NAME="quickjs-ci-linux-node-modules"
-
-# Create a temporary volume for node_modules
 docker volume create "$VOLUME_NAME" > /dev/null
 
 cleanup() {
@@ -24,13 +18,13 @@ cleanup() {
 trap cleanup EXIT
 
 docker run --rm \
-  -v "$HEREDIR":/opt/quickjs \
+  -v "$ROOT_DIR":/opt/quickjs \
   -v "$VOLUME_NAME":/opt/quickjs/node_modules \
   -w /opt/quickjs \
   -e CI=true \
   ubuntu:22.04 \
   bash -c '
-    set -ex
+    set -exuo pipefail
 
     apt-get update
     apt-get install -y sudo curl git build-essential ninja-build

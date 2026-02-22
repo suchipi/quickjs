@@ -1,34 +1,19 @@
 #!/usr/bin/env bash
-set -ex
+set -exuo pipefail
 
-# move to root dir
-cd $(dirname "$BASH_SOURCE")
-cd ../..
+pushd "$(dirname "$BASH_SOURCE")" > /dev/null
+  source ./ROOT_DIR.sh
+popd > /dev/null
 
-meta/clean.sh
+pushd "$ROOT_DIR" > /dev/null
+  meta/clean.sh
+  meta/docker/prebuild.sh
 
-NODE_VERSION=$(cat .node-version)
-HEREDIR="$PWD"
-if command -v cygpath >/dev/null 2>&1; then
-  HEREDIR="$(cygpath -m "$PWD")"
-  export MSYS2_ARG_CONV_EXCL="*"
-fi
+  source meta/docker/IMAGES.sh
+  for IMAGE in "${IMAGES[@]}"; do
+    meta/docker/build.sh "$IMAGE"
+  done
 
-docker run --rm -it -v $HEREDIR:/workdir -w /workdir node:${NODE_VERSION/v/} \
-  npm install
-
-# defines IMAGES
-source meta/docker/images.sh
-
-meta/docker/build-images.sh
-
-for DIR in "${IMAGES[@]}"; do
-  docker run --rm \
-  -v $HEREDIR:/opt/quickjs \
-  -e QUICKJS_EXTRAS=1 \
-  "suchipi/quickjs-builder-${DIR}" \
-  "/opt/quickjs/meta/docker/$DIR/cmd.sh"
-done
-
-cp -r build/*/dts build/
-rm -rf build/*/dts
+  cp -r build/*/dts build/
+  rm -rf build/*/dts
+popd > /dev/null

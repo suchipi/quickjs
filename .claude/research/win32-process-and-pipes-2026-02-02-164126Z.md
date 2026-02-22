@@ -58,7 +58,7 @@ Constants: `WAIT_OBJECT_0`, `WAIT_ABANDONED`, `WAIT_TIMEOUT`, `WAIT_FAILED`.
 
 Tests in `tests/create-process.test.ts` use Wine to run cross-compiled `build/x86_64-pc-windows-static/bin/qjs.exe`. Skipped when `CI=true` (Wine not available in CI).
 
-Cross-compile command: `meta/docker/run-build.sh x86_64-pc-windows-static`
+Cross-compile command: `meta/docker/build.sh x86_64-pc-windows-static`
 
 Test command: `npx jest tests/create-process.test.ts --runInBand --forceExit`
 

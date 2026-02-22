@@ -1,17 +1,9 @@
 #!/usr/bin/env bash
-set -ex
+set -exuo pipefail
 
-# defines IMAGES
-source meta/docker/images.sh
+cd $(dirname "$BASH_SOURCE")
 
-pushd meta/docker > /dev/null
-  for DIR in "${IMAGES[@]}"; do
-    pushd "$DIR" > /dev/null
-      docker build \
-        --build-arg UID=$(id -u) \
-        --build-arg GID=$(id -g) \
-        -t "suchipi/quickjs-builder-${DIR}" \
-        .
-    popd > /dev/null
-  done
-popd > /dev/null
+source ./IMAGES.sh
+for DIR in "${IMAGES[@]}"; do
+  ./build-image.sh "$DIR"
+done
