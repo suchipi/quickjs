@@ -16,11 +16,13 @@ build({
   inputs: [rel("quickjs-context.d.ts")],
 });
 
-build({
-  output: "meta/docs/quickjs-context.md",
-  rule: "dtsmd",
-  inputs: [rel("quickjs-context.d.ts")],
-});
+if (env.QUICKJS_BUILD_DOCS === "1") {
+  build({
+    output: "meta/docs/quickjs-context.md",
+    rule: "dtsmd",
+    inputs: [rel("quickjs-context.d.ts")],
+  });
+}
 
 build({
   output: builddir("include/quickjs-context.h"),

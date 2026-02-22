@@ -16,11 +16,13 @@ build({
   inputs: [rel("quickjs-engine.d.ts")],
 });
 
-build({
-  output: "meta/docs/quickjs-engine.md",
-  rule: "dtsmd",
-  inputs: [rel("quickjs-engine.d.ts")],
-});
+if (env.QUICKJS_BUILD_DOCS === "1") {
+  build({
+    output: "meta/docs/quickjs-engine.md",
+    rule: "dtsmd",
+    inputs: [rel("quickjs-engine.d.ts")],
+  });
+}
 
 build({
   output: builddir("include/quickjs-engine.h"),

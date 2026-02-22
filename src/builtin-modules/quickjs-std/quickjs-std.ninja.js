@@ -16,11 +16,13 @@ build({
   inputs: [rel("quickjs-std.d.ts")],
 });
 
-build({
-  output: "meta/docs/quickjs-std.md",
-  rule: "dtsmd",
-  inputs: [rel("quickjs-std.d.ts")],
-});
+if (env.QUICKJS_BUILD_DOCS === "1") {
+  build({
+    output: "meta/docs/quickjs-std.md",
+    rule: "dtsmd",
+    inputs: [rel("quickjs-std.d.ts")],
+  });
+}
 
 build({
   output: builddir("include/quickjs-std.h"),

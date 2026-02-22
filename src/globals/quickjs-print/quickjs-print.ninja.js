@@ -16,11 +16,13 @@ build({
   inputs: [rel("quickjs-print.d.ts")],
 });
 
-build({
-  output: "meta/docs/quickjs-print.md",
-  rule: "dtsmd",
-  inputs: [rel("quickjs-print.d.ts")],
-});
+if (env.QUICKJS_BUILD_DOCS === "1") {
+  build({
+    output: "meta/docs/quickjs-print.md",
+    rule: "dtsmd",
+    inputs: [rel("quickjs-print.d.ts")],
+  });
+}
 
 build({
   output: builddir("include/quickjs-print.h"),

@@ -2,4 +2,7 @@
 set -euo pipefail
 
 git clean -dfX
-rm -rf meta/docs/{,.}*
+
+if [[ "$QUICKJS_BUILD_DOCS" == "1" ]]; then
+  rm -rf meta/docs/{,.}*
+fi

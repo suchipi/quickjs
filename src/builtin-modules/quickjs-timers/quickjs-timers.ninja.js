@@ -16,11 +16,13 @@ build({
   inputs: [rel("quickjs-timers.d.ts")],
 });
 
-build({
-  output: "meta/docs/quickjs-timers.md",
-  rule: "dtsmd",
-  inputs: [rel("quickjs-timers.d.ts")],
-});
+if (env.QUICKJS_BUILD_DOCS === "1") {
+  build({
+    output: "meta/docs/quickjs-timers.md",
+    rule: "dtsmd",
+    inputs: [rel("quickjs-timers.d.ts")],
+  });
+}
 
 build({
   output: builddir("include/quickjs-timers.h"),
