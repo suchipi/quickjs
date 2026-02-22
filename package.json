@@ -20,7 +20,7 @@
     "@types/shelljs": "^0.8.15",
     "a-mimir": "^1.0.1",
     "babel-jest": "^29.7.0",
-    "first-base": "^1.6.0",
+    "first-base": "^1.6.1",
     "jest": "^29.7.0",
     "path-less-traveled": "^2.1.0",
     "prettier": "^2.8.1",
