@@ -29,7 +29,11 @@
       "Bash(/Users/suchipi/.wasmtime/bin/wasmtime run:*)",
       "Bash(env SKIP_NPM_INSTALL=1 QUICKJS_EXTRAS=1 WASI_SDK_PATH=/opt/wasi-sdk TARGET=wasi-p2 meta/build.sh:*)",
       "Bash(meta/build.sh:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(git mv:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(expect:*)"
     ]
   }
 }

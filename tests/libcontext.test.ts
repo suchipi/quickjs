@@ -705,3 +705,387 @@ test("quickjs:context - quickjs:timers option (false)", async () => {
     }
   `);
 });
+
+// =========== Context options (globals) ===========
+
+test("quickjs:context - date: false disables Date", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ date: false });
+      console.log(ctx.eval("typeof Date"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - eval: false disables eval", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ eval: false });
+      try {
+        ctx.eval("eval('1 + 1')");
+        console.log("no error");
+      } catch (e) {
+        console.log("error:", e.message);
+      }
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "error: eval is not supported
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - stringNormalize: false disables String.prototype.normalize", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ stringNormalize: false });
+      console.log(ctx.eval("typeof String.prototype.normalize"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - regExp: false disables RegExp", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ regExp: false });
+      console.log(ctx.eval("typeof RegExp"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - json: false disables JSON", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ json: false });
+      console.log(ctx.eval("typeof JSON"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - proxy: false disables Proxy", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ proxy: false });
+      console.log(ctx.eval("typeof Proxy"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - mapSet: false disables Map and Set", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ mapSet: false });
+      console.log(ctx.eval("typeof Map"), ctx.eval("typeof Set"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - typedArrays: false disables ArrayBuffer and typed arrays", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ typedArrays: false });
+      console.log(ctx.eval("typeof ArrayBuffer"), ctx.eval("typeof Uint8Array"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - promise: false disables Promise", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ promise: false });
+      console.log(ctx.eval("typeof Promise"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - bigint: false disables BigInt", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ bigint: false });
+      console.log(ctx.eval("typeof BigInt"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - inspect: false disables inspect", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ inspect: false });
+      console.log(ctx.eval("typeof inspect"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - console: false disables console", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ console: false });
+      console.log(ctx.eval("typeof console"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - print: false disables print", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ print: false });
+      console.log(ctx.eval("typeof print"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - timers: false disables timer globals", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ timers: false });
+      console.log(
+        ctx.eval("typeof setTimeout"),
+        ctx.eval("typeof setInterval"),
+        ctx.eval("typeof clearTimeout"),
+        ctx.eval("typeof clearInterval")
+      );
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "undefined undefined undefined undefined
+    ",
+    }
+  `);
+});
+
+// =========== Context.eval ===========
+
+test("quickjs:context - ctx.eval returns result", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context();
+      console.log("result:", ctx.eval("2 + 3"));
+      console.log("string:", ctx.eval("'hello' + ' world'"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "result: 5
+    string: hello world
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - ctx.eval can access context globals", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context();
+      ctx.globalThis.myValue = 42;
+      console.log("result:", ctx.eval("myValue"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "result: 42
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - ctx.eval with all options enabled (default)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context();
+      const checks = [
+        ctx.eval("typeof Date"),
+        ctx.eval("typeof RegExp"),
+        ctx.eval("typeof JSON"),
+        ctx.eval("typeof Proxy"),
+        ctx.eval("typeof Map"),
+        ctx.eval("typeof Promise"),
+        ctx.eval("typeof BigInt"),
+        ctx.eval("typeof ArrayBuffer"),
+      ];
+      console.log(checks.join(" "));
+    `,
+  ]);
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "function function object function function function function function
+    ",
+    }
+  `);
+});

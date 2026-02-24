@@ -356,3 +356,65 @@ test("setInterval callback still runs even if console.error and print both fail"
     }
   `);
 });
+
+// =========== Module imports match globals ===========
+
+test("quickjs:timers exports match global timer functions", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-m",
+      "-e",
+      `
+        import * as timers from "quickjs:timers";
+        console.log("setTimeout:", timers.setTimeout === globalThis.setTimeout);
+        console.log("clearTimeout:", timers.clearTimeout === globalThis.clearTimeout);
+        console.log("setInterval:", timers.setInterval === globalThis.setInterval);
+        console.log("clearInterval:", timers.clearInterval === globalThis.clearInterval);
+      `,
+    ],
+    { cwd: __dirname }
+  );
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "setTimeout: false
+    clearTimeout: false
+    setInterval: false
+    clearInterval: false
+    ",
+    }
+  `);
+});
+
+// =========== Timer toStringTag ===========
+
+test("Timer objects have correct Symbol.toStringTag", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const t = setTimeout(() => {}, 100000);
+        console.log("toString:", String(t));
+        console.log("tag:", t[Symbol.toStringTag]);
+        clearTimeout(t);
+      `,
+    ],
+    { cwd: __dirname }
+  );
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "toString: [object Timer]
+    tag: Timer
+    ",
+    }
+  `);
+});

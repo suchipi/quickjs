@@ -133,3 +133,155 @@ test("bytecode - module file", async () => {
     }
   `);
 });
+
+// =========== fromFile with encodedFileName ===========
+
+test("bytecode - fromFile with encodedFileName option", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+
+        const bc = bytecode.fromFile("tests/fixtures/log-four.js", {
+          encodedFileName: "custom-name.js",
+        });
+        const fn = bytecode.toValue(bc);
+        // The function should run and print 4
+        fn();
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "4
+    ",
+    }
+  `);
+});
+
+// =========== toValue with invalid bytecode ===========
+
+test("bytecode - toValue with invalid bytecode throws", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+        try {
+          bytecode.toValue(new ArrayBuffer(4));
+          console.log("no error");
+        } catch (e) {
+          console.log("error:", e.constructor.name);
+        }
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "error: SyntaxError
+    ",
+    }
+  `);
+});
+
+// =========== fromValue with various types ===========
+
+test("bytecode - fromValue with string", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+        const bc = bytecode.fromValue("hello world");
+        console.log("type:", typeof bc, bc instanceof ArrayBuffer);
+        const val = bytecode.toValue(bc);
+        console.log("back:", val);
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "type: object true
+    back: hello world
+    ",
+    }
+  `);
+});
+
+test("bytecode - fromValue with array", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+        const bc = bytecode.fromValue([1, 2, 3]);
+        console.log("type:", typeof bc, bc instanceof ArrayBuffer);
+        const val = bytecode.toValue(bc);
+        console.log("back:", JSON.stringify(val));
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "type: object true
+    back: [1,2,3]
+    ",
+    }
+  `);
+});
+
+test("bytecode - fromValue with function", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+        const bc = bytecode.fromValue(function add(a, b) { return a + b; });
+        console.log("type:", typeof bc, bc instanceof ArrayBuffer);
+        const fn = bytecode.toValue(bc);
+        console.log("result:", fn(3, 4));
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.result).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": false,
+      "stderr": "TypeError: unsupported object class
+        at quickjs.c:34688
+        at fromValue (native)
+        at <eval> (<cmdline>:3)
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
