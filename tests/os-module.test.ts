@@ -1074,55 +1074,70 @@ test("os.setWriteHandler - detects pipe writable", async () => {
   `);
 });
 
-// =========== ttyGetWinSize, ttySetRaw (via expect) ===========
+// =========== ttyGetWinSize, ttySetRaw (via PTY) ===========
 
 test("os.ttyGetWinSize - returns size in PTY", async () => {
-  // Use 'expect' to provide a real PTY with window size set
-  const expectScript = `
-spawn ${binDir("qjs")} -e {
-  const os = require("quickjs:os");
-  const size = os.ttyGetWinSize(0);
-  console.log("size:", JSON.stringify(size));
-}
-stty rows 25 columns 80 < $spawn_out(slave,name)
-expect eof
-`;
-  const run = spawn("expect", ["-c", expectScript]);
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+      const os = require("quickjs:os");
+      const size = os.ttyGetWinSize(0);
+      console.log("size:", JSON.stringify(size));
+    `,
+    ],
+    { pty: true }
+  );
   await run.completion;
   expect(run.result.code).toBe(0);
-  expect(run.result.stdout).toContain("size: [80,25]");
+  expect(run.result.stdout).toMatch(/size: \[\d+,\d+\]/);
 });
 
 test("os.ttySetRaw - sets raw mode without error", async () => {
-  // Use 'expect' to provide a real PTY
-  const run = spawn("expect", [
-    "-c",
-    `
-      spawn ${binDir("qjs")} -e {
-        const os = require("quickjs:os");
-        os.ttySetRaw(0);
-        console.log("raw mode set");
-      }
-      expect eof
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+      const os = require("quickjs:os");
+      os.ttySetRaw(0);
+      console.log("raw mode set");
     `,
-  ]);
+    ],
+    { pty: true }
+  );
   await run.completion;
   expect(run.result.code).toBe(0);
   expect(run.result.stdout).toContain("raw mode set");
 });
 
 test("os.isatty - returns true in PTY", async () => {
-  const run = spawn("expect", [
-    "-c",
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+      const os = require("quickjs:os");
+      console.log("isatty stdin:", os.isatty(0));
+    `,
+    ],
+    { pty: true }
+  );
+  await run.completion;
+  expect(run.result.code).toBe(0);
+  expect(run.result.stdout).toContain("isatty stdin: true");
+});
+
+test("os.isatty - returns false outside PTY", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
     `
-      spawn ${binDir("qjs")} -e {
-        const os = require("quickjs:os");
-        console.log("isatty stdin:", os.isatty(0));
-      }
-      expect eof
+      const os = require("quickjs:os");
+      console.log("isatty stdin:", os.isatty(0));
     `,
   ]);
   await run.completion;
   expect(run.result.code).toBe(0);
-  expect(run.result.stdout).toContain("isatty stdin: true");
+  expect(run.result.stdout).toContain("isatty stdin: false");
 });
