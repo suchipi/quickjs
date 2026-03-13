@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -exuo pipefail
 
-if [ -z "${1:-}" ]; then
+if [ -z "${1:-}" ] || [[ "${1:-}" == "--help" ]]; then
   echo "Usage: meta/docker/build-image.sh <image-name>"
   echo "  (where <image-name> is the name of one of the subdirectories of"
   echo "  meta/docker)"
