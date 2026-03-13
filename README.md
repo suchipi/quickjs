@@ -233,7 +233,7 @@ The repo has stuff set up to compile quickjs binaries for:
 - Windows (x86_64)
   - MinGW (cross-compilation)
   - MSYS2 (Windows host)
-- FreeBSD (cross-compilation not supported; you need to compile from a FreeBSD host)
+- FreeBSD
 - WebAssembly:
   - [WASI Preview 2](https://github.com/WebAssembly/WASI/blob/main/docs/Preview2.md), via [wasi-sdk](https://github.com/WebAssembly/wasi-sdk).
     - Run the resulting `.wasm` files with [wasmtime](https://wasmtime.dev/) or any WASI P2-compatible runtime.
@@ -248,21 +248,17 @@ The repo has stuff set up to compile quickjs binaries for:
 
 QuickJS itself has no external dependencies outside this repo except pthreads, and all of the code is C11. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes.
 
-Linux, macOS, iOS, and Windows binaries can be compiled using Docker. Or, you can compile binaries for just your own unix system, without using Docker.
+If you want to cross-compile for another platform, Docker will be used. If you just want to compile for the same system you're compiling on, you don't need Docker.
 
-If you're not gonna use Docker, you'll need to install [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) in order to compile. I use Ninja 1.10.1 and Node.js 18.18.0, but it should work with most versions of both of those.
+### Compilation Instructions (Docker)
 
-### Compilation Instructions
-
-To compile binaries for Linux, macOS, iOS, Windows, WASM, and/or JS (using Docker):
-
-- Make sure you have docker installed.
+- Make sure you have Docker installed.
 - Clone the repo and cd to its folder
 - Run `meta/build.sh --platforms` to list the available platforms.
 - Run `meta/build.sh <platform>`, or `meta/build.sh all` to build all of them.
 - Build artifacts will be placed in the `build` folder, organized by platform triple.
 
-Or, to compile binaries for just your own system:
+### Compilation Instructions (Native, for same system)
 
 - If you're on Windows, install MSYS2 and enter a UCRT64 terminal.
 - Make sure you have both [Ninja](https://ninja-build.org/) and [Node.js](https://nodejs.org/) installed. I use Ninja 1.10.1 and Node.js 22.15.0, but it should work with most versions of both of those.

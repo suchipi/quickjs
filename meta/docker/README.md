@@ -88,6 +88,7 @@ Each subdirectory contains a `Dockerfile` and a `cmd.sh` that runs inside the co
 | `multi-apple-darwin`         | macOS cross-compilation (x86_64 and aarch64, via osxcross)                       |
 | `multi-unknown-linux-gnu`    | Linux glibc cross-compilation (x86_64 and aarch64)                               |
 | `multi-unknown-emscripten`   | Emscripten/WebAssembly targets                                                   |
+| `multi-unknown-freebsd`      | FreeBSD cross-compilation (x86_64 and aarch64, via clang)                        |
 | `wasm32-unknown-wasip2`      | WASI Preview 2 (via wasi-sdk)                                                    |
 | `x86_64-pc-windows-static`   | Windows cross-compilation (via MinGW)                                            |
 | `imitation-ci-image`         | Simulated CI environment for local testing. Not part of the docker build system. |

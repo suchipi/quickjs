@@ -1,0 +1,2 @@
+#!/bin/sh
+exec clang --target=aarch64-unknown-freebsd${FREEBSD_RELEASE} --sysroot="$FREEBSD_SYSROOT_AARCH64" -fuse-ld=lld "$@"
