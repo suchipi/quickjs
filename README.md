@@ -243,14 +243,16 @@ The repo has stuff set up to compile quickjs binaries for:
     - `emscripten-node` — Node.js-optimized with real filesystem access (NODERAWFS)
     - `emscripten-web` — browser-optimized
     - `emscripten-js` — JS-only output, no .wasm file (`-sWASM=0`)
-- [Cosmopolitan Libc](https://github.com/jart/cosmopolitan) (cross-platform `*.com` binaries). You need the cosmo toolchain installed for this one to work.
+- [Cosmopolitan Libc](https://github.com/jart/cosmopolitan) (cross-platform `*.com` binaries).
 - any arbitrary unix-like OS, if you set env vars for CC, CFLAGS, etc.
 
 QuickJS itself has no external dependencies outside this repo except pthreads, and all of the code is C11. As such, it shouldn't be too difficult to get it compiling on other Unix-like OSes.
 
-If you want to cross-compile for another platform, Docker will be used. If you just want to compile for the same system you're compiling on, you don't need Docker.
+---
 
-### Compilation Instructions (Docker)
+If you want to cross-compile for another platform, Docker will be used. If you just want to compile for the same system you're compiling on, you don't need Docker, but you'll need to install a couple dependencies if you choose not to use Docker.
+
+### Compilation Instructions (Docker, for different system)
 
 - Make sure you have Docker installed.
 - Clone the repo and cd to its folder

@@ -14,3 +14,4 @@ wasm32-unknown-wasip2	wasm32-unknown-wasip2	linux	wasi-p2
 x86_64-unknown-freebsd-15	multi-unknown-freebsd	linux	cross-freebsd-x86_64
 aarch64-unknown-freebsd-15	multi-unknown-freebsd	linux	cross-freebsd-aarch64
 x86_64-pc-windows-static	x86_64-pc-windows-static	linux	cross-windows-x86_64
+unknown-unknown-cosmo	unknown-unknown-cosmo	linux	cross-cosmo

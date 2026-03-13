@@ -35,6 +35,7 @@
       "Bash(tail:*)",
       "Bash(expect:*)",
       "WebFetch(domain:github.com)"
-    ]
+    ],
+    "additionalDirectories": ["/tmp", "/private/tmp"]
   }
 }
