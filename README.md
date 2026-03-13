@@ -209,7 +209,7 @@ Timer functions extracted from quickjs-libc into their own module. Exports `setT
 
 ### More target OSes/runtimes
 
-We now include support for more platforms, and cross-compilation scripts to build most of those platforms from any platform where Docker is available.
+We now include support for more platforms, and cross-compilation scripts to build those platforms from any platform where Docker is available.
 
 See the `meta/ninja/envs` folder to see all the supported platforms. The `host` folder represents the machine where compilation is taking place, and the `target` folder represents the target platform for the output binaries.
 
@@ -222,6 +222,14 @@ We create `.a` files containing all of quickjs as part of the build.
 Documentation for all extensions and builtin modules can be read [here](/meta/docs).
 
 ## Compiling
+
+> TL;DR:
+>
+> 1. Install Docker
+> 1. Run `meta/build.sh --platforms`
+> 1. Choose a platform
+> 1. Run `meta/build.sh <platform>`
+> 1. Look in the `build/` folder
 
 The repo has stuff set up to compile quickjs binaries for:
 
