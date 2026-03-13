@@ -21,45 +21,45 @@ You can also invoke the Docker scripts directly using Docker image names:
 
 ```bash
 # Build all targets for a specific Docker image:
-meta/docker/build.sh x86_64-pc-windows-static
+meta/docker/compile.sh x86_64-pc-windows-static
 
 # Build all platforms:
-meta/docker/build-all.sh
+meta/docker/compile-all.sh
 ```
 
 ## Scripts in `meta/docker`
 
-### `build.sh`
+### `compile.sh`
 
 Builds one or more targets using a specific Docker image. Can be called with just an image name (reads targets from `triples.tsv`), or with explicit TSV data as a second argument.
 
 ```bash
 # Automatic lookup from triples.tsv:
-meta/docker/build.sh x86_64-pc-windows-static
+meta/docker/compile.sh x86_64-pc-windows-static
 
-# Explicit TSV data (used by meta/docker/build-all.sh and meta/build.sh):
-meta/docker/build.sh multi-apple-darwin "$TSV_DATA"
+# Explicit TSV data (used by meta/docker/compile-all.sh and meta/build.sh):
+meta/docker/compile.sh multi-apple-darwin "$TSV_DATA"
 ```
 
-Runs prebuild, builds the Docker image, then runs the build inside the container.
+Runs precompile, builds the Docker image, then runs the compilation inside the container.
 
-### `build-all.sh`
+### `compile-all.sh`
 
-Builds all platforms defined in `triples.tsv`. Cleans build artifacts first, groups targets by Docker image, calls `build.sh` for each image, then consolidates TypeScript definition outputs.
+Builds all platforms defined in `triples.tsv`. Cleans build artifacts first, groups targets by Docker image, calls `compile.sh` for each image, then consolidates TypeScript definition outputs.
 
 ### `build-image.sh`
 
 Builds a single Docker image by subdirectory name. Passes your UID/GID as build args so file permissions work correctly inside the container.
 
-### `build-images.sh`
+### `build-all-images.sh`
 
 Builds all Docker images referenced in `triples.tsv` without running any builds.
 
-### `prebuild.sh`
+### `precompile.sh`
 
 Ensures `node_modules` is installed by running `npm install` inside a Node.js Docker container (using the version from `.node-version`). Skipped if `node_modules` already exists.
 
-### `run-build-cmd.sh`
+### `run-compile-cmd.sh`
 
 Low-level script that runs a Docker container for a given image. Volume-mounts the repository into the container and sets build environment variables (`QUICKJS_EXTRAS`, `QUICKJS_BUILDS`). Delegates to the image's `cmd.sh`.
 

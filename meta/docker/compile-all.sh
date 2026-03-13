@@ -7,7 +7,7 @@ popd > /dev/null
 
 pushd "$ROOT_DIR" > /dev/null
   meta/clean.sh
-  meta/docker/prebuild.sh
+  meta/docker/precompile.sh
 
   # Group triples by image, then build each image with its triples
   declare -A IMAGE_BUILDS
@@ -20,7 +20,7 @@ pushd "$ROOT_DIR" > /dev/null
   done < meta/docker/triples.tsv
 
   for IMAGE in "${!IMAGE_BUILDS[@]}"; do
-    meta/docker/build.sh "$IMAGE" "${IMAGE_BUILDS[$IMAGE]}"
+    meta/docker/compile.sh "$IMAGE" "${IMAGE_BUILDS[$IMAGE]}"
   done
 
   cp -r build/*/dts build/

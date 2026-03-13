@@ -22,7 +22,7 @@ First, compile QuickJS and qjsbootstrap:
 
 - Make sure you have docker installed and running.
 - Clone this repo and cd to its folder.
-- Run `meta/docker/build-all.sh`
+- Run `meta/docker/compile-all.sh`
 
 Then, write your script, and test it using the `qjs` binary for your OS:
 

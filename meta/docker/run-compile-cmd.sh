@@ -2,7 +2,7 @@
 set -exuo pipefail
 
 if [ -z "${1:-}" ] || [ -z "${2:-}" ]; then
-  echo "Usage: meta/docker/run-build-cmd.sh <image-name> <builds-tsv>"
+  echo "Usage: meta/docker/run-compile-cmd.sh <image-name> <builds-tsv>"
   echo "  <builds-tsv> is newline-delimited, tab-separated lines of: triple host target"
   exit 1
 fi

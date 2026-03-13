@@ -2,7 +2,7 @@
 set -exuo pipefail
 
 if [ -z "${1:-}" ] || [[ "${1:-}" == "--help" ]]; then
-  echo "Usage: meta/docker/build.sh <image-name> <builds-tsv>"
+  echo "Usage: meta/docker/compile.sh <image-name> [<builds-tsv>]"
   echo "  <builds-tsv> is newline-delimited, tab-separated lines of: triple host target"
   echo "  If omitted, builds all triples for the associated image (by reading triples.tsv)."
   exit 1
@@ -32,7 +32,7 @@ else
 fi
 
 pushd "$(dirname "$BASH_SOURCE")" > /dev/null
-  ./prebuild.sh
+  ./precompile.sh
   ./build-image.sh "$IMAGE"
-  ./run-build-cmd.sh "$IMAGE" "$QUICKJS_BUILDS"
+  ./run-compile-cmd.sh "$IMAGE" "$QUICKJS_BUILDS"
 popd > /dev/null

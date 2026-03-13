@@ -13,7 +13,7 @@ The engine is written in C. Tests and build configuration are in TypeScript/Java
 ```bash
 env QUICKJS_EXTRAS=1 meta/build.sh # Build for current platform
                                    # (auto-detects HOST/TARGET OS)
-meta/docker/build.sh x86_64-pc-windows-static # Build for windows using Docker (needed for tests that use wine)
+meta/build.sh x86_64-pc-windows-static # Build for windows using Docker (needed for tests that use wine)
 meta/clean.sh              # Clean build artifacts
 npm test -- --forceExit    # Run all tests (jest --runInBand)
 npx jest tests/foo.test.ts --runInBand  # Run a single test file
@@ -23,7 +23,7 @@ Build requires: Ninja, Node.js 18+, Bash 4+, a C compiler (gcc/clang).
 
 `meta/build.sh` runs `npm install`, generates `build.ninja` from `src/**/*.ninja.js` files via `meta/ninja/generate.js`, then runs `ninja`. Build outputs go to `build/` (bin, lib, include, dts, intermediate).
 
-Cross-compilation: Set `HOST` and `TARGET` env vars. `meta/docker/build-all.sh` builds for all supported platforms via Docker.
+Cross-compilation: Set `HOST` and `TARGET` env vars. `meta/docker/compile-all.sh` builds for all supported platforms via Docker.
 
 ## Build System Architecture
 

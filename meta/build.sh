@@ -15,7 +15,7 @@ if [[ "${1:-}" == "--help" ]]; then
 elif [[ "${1:-}" == "--platforms" ]]; then
   cut -f1 ./meta/docker/triples.tsv | sort
 elif [[ "${1:-}" == "all" ]]; then
-  meta/docker/build-all.sh
+  meta/docker/compile-all.sh
 elif [[ "${1:-}" != "" ]]; then
   TRIPLE="${1:-}"
   echo "Using docker to build for platform $TRIPLE..."
@@ -26,7 +26,7 @@ elif [[ "${1:-}" != "" ]]; then
     exit 1
   fi
   IFS=$'\t' read -r _ IMAGE HOST TARGET <<< "$LINE"
-  meta/docker/build.sh "$IMAGE" "${TRIPLE}"$'\t'"${HOST}"$'\t'"${TARGET}"
+  meta/docker/compile.sh "$IMAGE" "${TRIPLE}"$'\t'"${HOST}"$'\t'"${TARGET}"
 else
   # normal build
   if [[ "$(uname)" == "Darwin" ]]; then
