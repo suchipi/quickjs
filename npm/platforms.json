@@ -61,5 +61,19 @@
     "os": "linux",
     "abi": "musl",
     "programSuffix": ""
+  },
+  {
+    "name": "x86_64-unknown-freebsd-15",
+    "architectures": ["x86_64", "amd64", "x64"],
+    "os": "freebsd",
+    "abi": "15",
+    "programSuffix": ""
+  },
+  {
+    "name": "aarch64-unknown-freebsd-15",
+    "architectures": ["aarch64", "arm64"],
+    "os": "freebsd",
+    "abi": "15",
+    "programSuffix": ""
   }
 ]
