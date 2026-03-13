@@ -31,3 +31,8 @@ build/extras
 # only include static linux builds in npm releases
 build/*-linux-gnu
 build/*-linux-musl
+
+# weird targets
+build/js-unknown-emscripten
+build/unknown-unknown-cosmo
+build/wasm32-unknown-*
