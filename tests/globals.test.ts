@@ -16,7 +16,7 @@ test("globals", async () => {
       let value;
       try {
         value = globalThis[key];
-        if (Object.isFrozen(value)) {
+        if (typeof value === "object" && value !== null && Object.isFrozen(value)) {
           logLine += " frozen";
         }
         logLine += " " + typeof value;
@@ -91,9 +91,9 @@ test("globals", async () => {
     encodeURIComponent: function (CW)
     escape: function (CW)
     unescape: function (CW)
-    Infinity: frozen number readonly ()
-    NaN: frozen number readonly ()
-    undefined: frozen undefined readonly ()
+    Infinity: number readonly ()
+    NaN: number readonly ()
+    undefined: undefined readonly ()
     __date_clock: function (CW)
     Number: function (CW)
     Boolean: function (CW)
