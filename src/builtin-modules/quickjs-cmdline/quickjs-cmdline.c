@@ -88,6 +88,7 @@ void js_cmdline_add_scriptArgs(JSContext *ctx, int argc, char **argv)
     for (i = 0; i < argc; i++) {
         JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, argv[i]));
     }
+    JS_FreezeObjectValue(ctx, args);
     JS_SetPropertyStr(ctx, global_obj, "scriptArgs", args);
 
     JS_FreeValue(ctx, global_obj);
