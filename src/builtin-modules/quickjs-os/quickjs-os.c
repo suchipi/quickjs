@@ -3356,18 +3356,19 @@ static JSValue js_worker_set_onmessage(JSContext *ctx, JSValueConst this_val,
 
     port = worker->msg_handler;
     if (JS_IsNull(func)) {
-        if (port) {
-            /* Close the send pipe's write end to signal EOF to the worker thread.
-               Use mutex for thread safety. */
-            if (worker->send_pipe) {
-                JSWorkerMessagePipe *ps = worker->send_pipe;
-                pthread_mutex_lock(&ps->mutex);
-                if (ps->write_fd >= 0) {
-                    close(ps->write_fd);
-                    ps->write_fd = -1;
-                }
-                pthread_mutex_unlock(&ps->mutex);
+        /* Close the send pipe's write end to signal EOF to the worker thread.
+           Do this regardless of whether a handler was previously set, so that
+           terminate() / setting onmessage to null always signals the worker. */
+        if (worker->send_pipe) {
+            JSWorkerMessagePipe *ps = worker->send_pipe;
+            pthread_mutex_lock(&ps->mutex);
+            if (ps->write_fd >= 0) {
+                close(ps->write_fd);
+                ps->write_fd = -1;
             }
+            pthread_mutex_unlock(&ps->mutex);
+        }
+        if (port) {
             js_free_port(rt, port);
             worker->msg_handler = NULL;
         }
