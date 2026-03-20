@@ -156,10 +156,35 @@ test("SIGKILL kills process while worker is running", async () => {
   // Give the worker time to start
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  // SIGKILL the process
   run.kill("SIGKILL");
+  await run.completion;
 
-  // completion should resolve promptly (jest timeout catches if it doesn't)
+  expect(run.result.code).not.toBe(0);
+});
+
+test("SIGTERM kills process while worker is running", async () => {
+  const run = spawn(binDir("qjs"), [
+    testFixturesDir("main-worker-runs-forever.js"),
+  ]);
+
+  // Give the worker time to start
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  run.kill("SIGTERM");
+  await run.completion;
+
+  expect(run.result.code).not.toBe(0);
+});
+
+test("SIGINT kills process while worker is running", async () => {
+  const run = spawn(binDir("qjs"), [
+    testFixturesDir("main-worker-runs-forever.js"),
+  ]);
+
+  // Give the worker time to start
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  run.kill("SIGINT");
   await run.completion;
 
   expect(run.result.code).not.toBe(0);
