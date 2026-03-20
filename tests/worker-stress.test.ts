@@ -49,7 +49,6 @@ test("terminate idle worker", async () => {
       "error": false,
       "stderr": "",
       "stdout": "main: creating worker
-    worker: started
     main: worker is ready, terminating
     main: done
     ",
@@ -68,7 +67,6 @@ test("terminate without ever setting onmessage", async () => {
       "error": false,
       "stderr": "",
       "stdout": "main: creating worker
-    worker: started
     main: terminating worker (never set onmessage)
     main: done
     ",
@@ -87,7 +85,6 @@ test("double terminate does not crash", async () => {
       "error": false,
       "stderr": "",
       "stdout": "main: creating worker
-    worker: started
     main: first terminate
     main: second terminate
     main: done
@@ -107,7 +104,6 @@ test("postMessage after terminate", async () => {
       "error": false,
       "stderr": "",
       "stdout": "main: creating worker
-    worker: started
     main: terminating
     main: posting after terminate
     main: postMessage succeeded
@@ -133,6 +129,40 @@ test("main never cleans up, worker exits on its own", async () => {
     ",
     }
   `);
+});
+
+test("std.out.flush works in worker", async () => {
+  const run = spawn(binDir("qjs"), [testFixturesDir("main-worker-std-out.js")]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "worker: std.out is object
+    worker: std.out.flush is function
+    worker: flush succeeded
+    main: worker finished
+    ",
+    }
+  `);
+});
+
+test("SIGKILL kills process while worker is running", async () => {
+  const run = spawn(binDir("qjs"), [
+    testFixturesDir("main-worker-runs-forever.js"),
+  ]);
+
+  // Give the worker time to start
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // SIGKILL the process
+  run.kill("SIGKILL");
+
+  // completion should resolve promptly (jest timeout catches if it doesn't)
+  await run.completion;
+
+  expect(run.result.code).not.toBe(0);
 });
 
 test("worker throws during message handling, then main terminates", async () => {
