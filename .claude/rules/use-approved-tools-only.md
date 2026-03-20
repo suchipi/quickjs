@@ -14,10 +14,6 @@ ALWAYS use the dedicated tools (Read, Glob, Grep, Edit, Write) instead of shell 
 
 The `.claude/settings.local.json` permissions allowlist is deliberately narrow — only safe, read-only shell commands are approved. If you reach for an unapproved shell command, the permission prompt will block until the user returns, which could be hours. The dedicated tools don't require shell permissions and are always available.
 
-## Privacy
-
-Read, Glob, and Grep are allowed without path restrictions, but only read files outside the repository when strictly necessary for the task (e.g. system headers, tool configs). Do not read the user's personal files, other projects, or anything outside the repo unless you are sure you need to.
-
 ## How to apply
 
 Before using any Bash tool call, ask yourself: "Is there a dedicated tool that does this?" If yes, use it. Only use Bash for operations that genuinely require shell execution (git commands, compiled binaries, etc.) and that are on the approved list.
