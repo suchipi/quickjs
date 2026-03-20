@@ -56,7 +56,8 @@
       "Bash(objdump:*)",
       "Bash(strings:*)",
       "Bash(xxd:*)",
-      "Bash(hexdump:*)"
+      "Bash(hexdump:*)",
+      "Bash(mkdir:*)"
     ],
     "additionalDirectories": ["/tmp", "/private/tmp"]
   }
