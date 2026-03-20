@@ -190,6 +190,24 @@ test("SIGINT kills process while worker is running", async () => {
   expect(run.result.code).not.toBe(0);
 });
 
+test("os.exec works while worker is running", async () => {
+  const run = spawn(binDir("qjs"), [
+    testFixturesDir("main-exec-with-worker.js"),
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "hello from exec
+    exec returned: 0
+    done
+    ",
+    }
+  `);
+});
+
 test("worker throws during message handling, then main terminates", async () => {
   const run = spawn(binDir("qjs"), [testFixturesDir("main-worker-throws.js")]);
   await run.completion;

@@ -63,6 +63,7 @@ typedef void (*sighandler_t)(int);
 #include <sys/wait.h>
 
 #if defined(__APPLE__)
+#include <spawn.h>
 typedef sig_t sighandler_t;
 #if !defined(environ)
 #include <crt_externs.h>
@@ -2685,6 +2686,45 @@ static int my_execvpe(const char *filename, char **argv, char **envp)
     return -1;
 }
 
+/* Resolve an executable name via PATH search without calling exec.
+   Returns the resolved path in 'buf', or NULL if not found.
+   This is used before vfork() since getenv() is not async-signal-safe. */
+static const char *resolve_exec_path(const char *filename, char *buf,
+                                     size_t buf_size)
+{
+    char *path, *p, *p_next, *p1;
+    size_t filename_len, path_len;
+
+    filename_len = strlen(filename);
+    if (filename_len == 0)
+        return NULL;
+    if (strchr(filename, '/'))
+        return filename;
+
+    path = getenv("PATH");
+    if (!path)
+        path = (char *)"/bin:/usr/bin";
+    for (p = path; p != NULL; p = p_next) {
+        p1 = strchr(p, ':');
+        if (!p1) {
+            p_next = NULL;
+            path_len = strlen(p);
+        } else {
+            p_next = p1 + 1;
+            path_len = p1 - p;
+        }
+        if ((path_len + 1 + filename_len + 1) > buf_size)
+            continue;
+        memcpy(buf, p, path_len);
+        buf[path_len] = '/';
+        memcpy(buf + path_len + 1, filename, filename_len);
+        buf[path_len + 1 + filename_len] = '\0';
+        if (access(buf, X_OK) == 0)
+            return buf;
+    }
+    return NULL;
+}
+
 /* exec(args[, options]) -> exitcode */
 static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
@@ -2804,9 +2844,115 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
         }
     }
 
+#if defined(__APPLE__)
+    if (uid == (uint32_t)-1 && gid == (uint32_t)-1) {
+        /* Common case: use posix_spawn to avoid fork() in multi-threaded
+           processes. fork() on macOS triggers libc atfork handlers that can
+           deadlock on Mach IPC when worker threads exist, causing an
+           uninterruptible (UE) state that SIGKILL cannot resolve. */
+        posix_spawn_file_actions_t file_actions;
+        posix_spawnattr_t spawn_attr;
+        short spawn_flags = POSIX_SPAWN_CLOEXEC_DEFAULT;
+        const char *spawn_file;
+
+        posix_spawn_file_actions_init(&file_actions);
+        posix_spawnattr_init(&spawn_attr);
+
+        /* Inherit stdin/stdout/stderr (or remap them) */
+        for (i = 0; i < 3; i++) {
+            posix_spawn_file_actions_adddup2(&file_actions, std_fds[i], i);
+        }
+
+        if (cwd) {
+            posix_spawn_file_actions_addchdir_np(&file_actions, cwd);
+        }
+
+        posix_spawnattr_setflags(&spawn_attr, spawn_flags);
+
+        spawn_file = file ? file : exec_argv[0];
+
+        if (use_path) {
+            ret = posix_spawnp(&pid, spawn_file, &file_actions, &spawn_attr,
+                               (char **)exec_argv, envp);
+        } else {
+            ret = posix_spawn(&pid, spawn_file, &file_actions, &spawn_attr,
+                              (char **)exec_argv, envp);
+        }
+
+        posix_spawn_file_actions_destroy(&file_actions);
+        posix_spawnattr_destroy(&spawn_attr);
+
+        if (ret != 0) {
+            JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                              "posix_spawn error: %s", strerror(ret));
+            goto exception;
+        }
+    } else {
+        /* uid/gid specified: posix_spawn can't do setuid/setgid,
+           so fall back to vfork + exec. vfork avoids the atfork handler
+           deadlock since it doesn't invoke them. */
+        char resolved_path_buf[PATH_MAX];
+        const char *resolved_file;
+        int fd_max;
+
+        /* Pre-resolve executable path before vfork (getenv is not
+           async-signal-safe) */
+        resolved_file = file ? file : exec_argv[0];
+        if (use_path) {
+            resolved_file = resolve_exec_path(resolved_file,
+                                              resolved_path_buf,
+                                              sizeof(resolved_path_buf));
+            if (!resolved_file) {
+                JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                                  "command not found: %s",
+                                  file ? file : exec_argv[0]);
+                goto exception;
+            }
+        }
+
+        /* Pre-compute fd_max before vfork (sysconf is not
+           async-signal-safe) */
+        fd_max = (int)sysconf(_SC_OPEN_MAX);
+        if (fd_max < 0 || fd_max > 65536)
+            fd_max = 65536;
+
+        pid = vfork();
+        if (pid < 0) {
+            JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                              "vfork error: %s", strerror(errno));
+            goto exception;
+        }
+        if (pid == 0) {
+            /* child (async-signal-safe only) */
+            for (i = 0; i < 3; i++) {
+                if (std_fds[i] != (int)i) {
+                    if (dup2(std_fds[i], i) < 0)
+                        _exit(127);
+                }
+            }
+            for (i = 3; i < (uint32_t)fd_max; i++)
+                close(i);
+            if (cwd) {
+                if (chdir(cwd) < 0)
+                    _exit(127);
+            }
+            if (uid != (uint32_t)-1) {
+                if (setuid(uid) < 0)
+                    _exit(127);
+            }
+            if (gid != (uint32_t)-1) {
+                if (setgid(gid) < 0)
+                    _exit(127);
+            }
+            execve(resolved_file, (char **)exec_argv, envp);
+            _exit(127);
+        }
+    }
+#else /* !__APPLE__ */
     pid = fork();
     if (pid < 0) {
-        JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "fork error");
+        JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                          "fork error: %s", strerror(errno));
         goto exception;
     }
     if (pid == 0) {
@@ -2862,6 +3008,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             ret = execve(file, (char **)exec_argv, envp);
         _exit(127);
     }
+#endif /* __APPLE__ */
     /* parent */
     if (block_flag) {
         for(;;) {
