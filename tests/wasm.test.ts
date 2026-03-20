@@ -6,7 +6,12 @@ if (process.env.CI) {
   test.only("skipped in CI (we don't compile wasm in CI)", () => {});
 }
 
-const wasmBinDir = path.join(rootDir(), "build", "bin");
+const wasmBinDir = path.join(
+  rootDir(),
+  "build",
+  "wasm32-unknown-wasip2",
+  "bin"
+);
 const qjsWasm = path.join(wasmBinDir, "qjs.wasm");
 
 test("basic JS execution", async () => {
