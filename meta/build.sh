@@ -11,11 +11,16 @@ if [[ "${1:-}" == "--help" ]]; then
   printf "  meta/build.sh --platforms $DIM# list available platforms$RESET\n"
   printf "  meta/build.sh <platform> $DIM# use docker to build for a given platform$RESET\n"
   printf "  meta/build.sh all $DIM# use docker to build all platforms$RESET\n"
+  printf "  meta/build.sh test-platforms $DIM# build native + docker platforms needed for tests (win32, wasip2)$RESET\n"
   printf "  env HOST=\"...\" TARGET=\"...\" meta/build.sh $DIM# build using specific meta/ninja/envs files (advanced)$RESET\n"
 elif [[ "${1:-}" == "--platforms" ]]; then
   cut -f1 ./meta/docker/triples.tsv | sort
 elif [[ "${1:-}" == "all" ]]; then
   meta/docker/compile-all.sh
+elif [[ "${1:-}" == "test-platforms" ]]; then
+  meta/build.sh
+  meta/build.sh x86_64-pc-windows-static
+  meta/build.sh wasm32-unknown-wasip2
 elif [[ "${1:-}" != "" ]]; then
   TRIPLE="${1:-}"
   echo "Using docker to build for platform $TRIPLE..."
