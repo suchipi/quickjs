@@ -493,7 +493,7 @@ static JSValue js_std_getpwuid(JSContext *ctx, JSValueConst this_val,
     return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "getpwuid is not supported on wasm");
 #else
     uid_t id = -1;
-    struct passwd *pwd = {0};
+    struct passwd *pwd = NULL;
     JSValue result_val = JS_NULL;
     JSValue name_val = JS_NULL;
     JSValue passwd_val = JS_NULL;

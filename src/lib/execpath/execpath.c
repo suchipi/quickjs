@@ -167,14 +167,14 @@ char *execpath(char *argv0, char *info_message, char *error_message)
     }
   }
   if (!found && argv0[0] == '/') {
-    strcpy(result, argv0);
+    snprintf(result, PATH_MAX, "%s", argv0);
     if (info_message != NULL) {
       sprintf(info_message, "found by nature of argv0 being an absolute path");
     }
     found = 1;
   }
   if (!found && strchr(argv0, '/')) {
-    strcpy(result, argv0);
+    snprintf(result, PATH_MAX, "%s", argv0);
     if (info_message != NULL) {
       sprintf(info_message, "found by nature of argv0 being a relative path");
     }
