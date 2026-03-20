@@ -6,13 +6,14 @@ This document explains how unattended research tasks work in this repo, so a fre
 
 The user gives you a research question or investigation task, then goes away (e.g. overnight). You research the codebase autonomously and produce a written deliverable. The user reviews your findings when they return.
 
-## Deliverable
+## Deliverable — IMPORTANT: not always a research file
 
-The user will tell you whether the deliverable is:
-- A **research file** in `.claude/research/` (for investigations), or
-- A **plan** (for implementation tasks the user wants to review before executing)
+The deliverable is ONE of two things, depending on what the user asks for:
 
-If they don't specify, ask before starting.
+1. A **research file** in `.claude/research/` — for investigations and codebase questions
+2. A **plan** — for implementation tasks the user wants to review before executing
+
+These are equally valid deliverable types. Do NOT assume the deliverable is always a research file. The user will tell you which one they want. If they don't specify, ask before starting.
 
 ## Key constraint: no permission prompts
 
