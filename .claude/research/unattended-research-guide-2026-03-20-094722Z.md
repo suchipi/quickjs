@@ -43,6 +43,16 @@ When the deliverable is a research file, follow `.claude/rules/research-conventi
 - Content: non-obvious findings, gotchas, quirks — not a log of what you did
 - The research file IS the deliverable
 
+## Subagent constraint propagation
+
+Subagents (launched via the `Agent` tool) do NOT automatically inherit the rules in `.claude/rules/`. They only know what you tell them in the prompt. If you launch a subagent without explicitly stating the constraints, it will use unapproved Bash commands (`sed`, `cat`, `head`, `grep`, `find`), write to `/tmp`, and trigger permission prompts — defeating the entire purpose of unattended mode.
+
+**You MUST include the following constraints in every subagent prompt:**
+
+> You MUST only use the Read, Glob, and Grep tools to read and search files. NEVER use Bash commands like `sed`, `cat`, `head`, `tail`, `grep`, `rg`, `find`, `awk`, or `echo` — use the dedicated tools instead. NEVER write to `/tmp` — use `.tmp/` in the repo root if needed. For reading large files, use the Read tool's `offset` and `limit` parameters to read in chunks.
+
+This is the single most important rule for unattended research. A subagent that triggers a permission prompt will silently block the entire task.
+
 ## Tips
 
 - Use `Agent` with `subagent_type=Explore` for broad codebase exploration
