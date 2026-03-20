@@ -34,7 +34,7 @@ beforeAll(async () => {
   // Warm up wineserver so first test doesn't pay cold-start cost
   const run = spawn("wine", [qjsExe, "-e", "2 + 2"], { cwd: rootDir() });
   await run.completion;
-});
+}, 10000);
 afterAll(() => {
   sanitizers.pop();
 });
