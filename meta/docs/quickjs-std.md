@@ -237,6 +237,7 @@ declare module "quickjs:std" {
   export var _IOFBF: number;
   export var _IOLBF: number;
   export var _IONBF: number;
+  export var BUFSIZ: number;
   export function getenv(name: string): string | undefined;
   export function setenv(name: string, value: string): void;
   export function unsetenv(name: string): void;
@@ -505,6 +506,14 @@ Constant for [FILE.setvbuf](/meta/docs/quickjs-std.md#file-setvbuf-method). Decl
 
 ```ts
 var _IONBF: number;
+```
+
+## "quickjs:std".BUFSIZ (exported number)
+
+The default buffer size for a buffered FILE. Useful for passing into [FILE.setvbuf](/meta/docs/quickjs-std.md#file-setvbuf-method).
+
+```ts
+var BUFSIZ: number;
 ```
 
 ## "quickjs:std".getenv (exported function)

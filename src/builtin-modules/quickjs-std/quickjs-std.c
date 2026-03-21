@@ -1622,6 +1622,7 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_PROP_INT32_DEF("_IOFBF", _IOFBF, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("_IOLBF", _IOLBF, JS_PROP_CONFIGURABLE ),
     JS_PROP_INT32_DEF("_IONBF", _IONBF, JS_PROP_CONFIGURABLE ),
+    JS_PROP_INT32_DEF("BUFSIZ", BUFSIZ, JS_PROP_CONFIGURABLE ),
 };
 
 static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
