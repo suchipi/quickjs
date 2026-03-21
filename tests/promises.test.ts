@@ -46,9 +46,9 @@ test("Promises work", async () => {
       "error": false,
       "stderr": "",
       "stdout": "one
-      two
-      three
-      four Error: "nah"
+    two
+    three
+    four Error: nah
     ",
     }
   `);
