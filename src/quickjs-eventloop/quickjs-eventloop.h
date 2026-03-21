@@ -104,7 +104,7 @@ typedef struct JSThreadState {
 } JSThreadState;
 
 /* Global state */
-extern volatile uint64_t js_pending_signals;
+extern uint64_t js_pending_signals;
 extern int (*js_poll_func)(JSContext *ctx);
 
 /* Lifecycle */

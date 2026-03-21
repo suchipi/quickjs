@@ -52,7 +52,7 @@
 #include "quickjs-utils.h"
 
 /* Global state */
-volatile uint64_t js_pending_signals = 0;
+uint64_t js_pending_signals = 0;
 int (*js_poll_func)(JSContext *ctx) = NULL;
 
 #ifndef SKIP_WORKER
@@ -70,8 +70,6 @@ static int atomic_add_int(int *ptr, int v)
 static void *js_sab_alloc(void *opaque, size_t size)
 {
     JSSABHeader *sab;
-    if (size > SIZE_MAX - sizeof(JSSABHeader))
-        return NULL;
     sab = malloc(sizeof(JSSABHeader) + size);
     if (!sab)
         return NULL;

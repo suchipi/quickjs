@@ -72,8 +72,6 @@ static JSValue js_timers_setTimeout(JSContext *ctx, JSValueConst this_val,
         return JS_ThrowTypeError(ctx, "<internal>/quickjs-timers.c", __LINE__, "first argument to setTimeout was not a function");
     if (JS_ToInt64(ctx, &delay, argv[1]))
         return JS_EXCEPTION;
-    if (delay < 0)
-        delay = 0;
     obj = JS_NewObjectClass(ctx, js_timer_class_id);
     if (JS_IsException(obj))
         return obj;
@@ -106,8 +104,6 @@ static JSValue js_timers_setInterval(JSContext *ctx, JSValueConst this_val,
         return JS_ThrowTypeError(ctx, "<internal>/quickjs-timers.c", __LINE__, "first argument to setInterval was not a function");
     if (JS_ToInt64(ctx, &delay, argv[1]))
         return JS_EXCEPTION;
-    if (delay < 0)
-        delay = 0;
     obj = JS_NewObjectClass(ctx, js_timer_class_id);
     if (JS_IsException(obj))
         return obj;

@@ -130,8 +130,6 @@ void perror_exit(int errcode, const char *s)
 char *strdup_len(const char *str, int len)
 {
     char *p = malloc(len + 1);
-    if (!p)
-        return NULL;
     memcpy(p, str, len);
     p[len] = '\0';
     return p;
@@ -149,8 +147,6 @@ char *str_append(char **pp, const char *sep, const char *str) {
         len = strlen(p) + strlen(sep);
     }
     res = malloc(len + strlen(str) + 1);
-    if (!res)
-        return *pp = p; /* keep old pointer on OOM */
     if (p) {
         strcpy(res, p);
         strcat(res, sep);

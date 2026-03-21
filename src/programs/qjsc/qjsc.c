@@ -98,10 +98,7 @@ void namelist_add(namelist_t *lp, const char *name, const char *short_name,
         size_t newsize = lp->size + (lp->size >> 1) + 4;
         namelist_entry_t *a =
             realloc(lp->array, sizeof(lp->array[0]) * newsize);
-        if (!a) {
-            fprintf(stderr, "qjsc: out of memory\n");
-            exit(1);
-        }
+        /* XXX: check for realloc failure */
         lp->array = a;
         lp->size = newsize;
     }

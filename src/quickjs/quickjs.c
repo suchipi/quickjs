@@ -1360,11 +1360,9 @@ static no_inline int js_realloc_array(JSContext *ctx, void **parray,
     int new_size;
     size_t slack;
     void *new_array;
-    /* use int64_t to avoid overflow in growth calculation */
-    new_size = max_int(req_size, (int)min_int64((int64_t)*psize * 3 / 2, INT32_MAX));
-    if (new_size > 0 && elem_size > 0 && (size_t)new_size > SIZE_MAX / (size_t)elem_size)
-        return -1;
-    new_array = js_realloc2(ctx, *parray, (size_t)new_size * elem_size, &slack);
+    /* XXX: potential arithmetic overflow */
+    new_size = max_int(req_size, *psize * 3 / 2);
+    new_array = js_realloc2(ctx, *parray, new_size * elem_size, &slack);
     if (!new_array)
         return -1;
     new_size += slack / elem_size;
@@ -1773,8 +1771,6 @@ int JS_EnqueueJob(JSContext *ctx, JSJobFunc *job_func,
     JSJobEntry *e;
     int i;
 
-    if (argc > (int)((SIZE_MAX - sizeof(*e)) / sizeof(JSValue)))
-        return -1;
     e = js_malloc(ctx, sizeof(*e) + argc * sizeof(JSValue));
     if (!e)
         return -1;
@@ -35706,10 +35702,8 @@ static JSValue JS_ReadSharedArrayBuffer(BCReaderState *s)
         return JS_EXCEPTION;
     if (bc_get_u64(s, &u64))
         return JS_EXCEPTION;
-    /* SECURITY: raw pointer from serialized bytecode. This is safe for
-       internal SAB cloning between workers, but this code path must never
-       be used to load untrusted/external bytecode. */
     data_ptr = (uint8_t *)(uintptr_t)u64;
+    /* the SharedArrayBuffer is cloned */
     obj = js_array_buffer_constructor3(ctx, JS_UNDEFINED, byte_length,
                                        JS_CLASS_SHARED_ARRAY_BUFFER,
                                        data_ptr,
