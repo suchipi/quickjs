@@ -69,8 +69,13 @@
       "Bash(strings:*)",
       "Bash(xxd:*)",
       "Bash(hexdump:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
-    "additionalDirectories": ["/tmp", "/private/tmp"]
+    "additionalDirectories": [
+      "/tmp",
+      "/private/tmp"
+    ]
   }
 }
