@@ -43,9 +43,21 @@ meta/docker/compile.sh multi-apple-darwin "$TSV_DATA"
 
 Runs precompile, builds the Docker image, then runs the compilation inside the container.
 
+### `compile-triples.sh`
+
+Groups the given platform triples by Docker image (from `triples.tsv`), then calls `compile.sh` once per image. This avoids re-running multi-target images (like `multi-apple-darwin`) when building multiple triples that share the same image.
+
+```bash
+# Build two triples, grouped by image:
+meta/docker/compile-triples.sh x86_64-pc-windows-static wasm32-unknown-wasip2
+
+# Build all npm platform triples:
+meta/docker/compile-triples.sh aarch64-apple-darwin x86_64-apple-darwin ...
+```
+
 ### `compile-all.sh`
 
-Builds all platforms defined in `triples.tsv`. Cleans build artifacts first, groups targets by Docker image, calls `compile.sh` for each image, then consolidates TypeScript definition outputs.
+Builds all platforms defined in `triples.tsv`. Cleans build artifacts first, uses `compile-triples.sh` to group targets by Docker image, then consolidates TypeScript definition outputs.
 
 ### `build-image.sh`
 

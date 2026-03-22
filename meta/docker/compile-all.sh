@@ -9,19 +9,8 @@ pushd "$ROOT_DIR" > /dev/null
   meta/clean.sh
   meta/docker/precompile.sh
 
-  # Group triples by image, then build each image with its triples
-  declare -A IMAGE_BUILDS
-
-  while IFS=$'\t' read -r TRIPLE IMAGE HOST TARGET; do
-    if [[ -n "${IMAGE_BUILDS[$IMAGE]:-}" ]]; then
-      IMAGE_BUILDS[$IMAGE]+=$'\n'
-    fi
-    IMAGE_BUILDS[$IMAGE]+="${TRIPLE}"$'\t'"${HOST}"$'\t'"${TARGET}"
-  done < meta/docker/triples.tsv
-
-  for IMAGE in "${!IMAGE_BUILDS[@]}"; do
-    meta/docker/compile.sh "$IMAGE" "${IMAGE_BUILDS[$IMAGE]}"
-  done
+  readarray -t ALL_TRIPLES < <(cut -f1 meta/docker/triples.tsv)
+  meta/docker/compile-triples.sh "${ALL_TRIPLES[@]}"
 
   cp -r build/*/dts build/
   rm -rf build/*/dts

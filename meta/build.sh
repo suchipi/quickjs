@@ -19,28 +19,14 @@ elif [[ "${1:-}" == "all" ]]; then
   meta/docker/compile-all.sh
 elif [[ "${1:-}" == "test-platforms" ]]; then
   meta/build.sh
-  meta/build.sh x86_64-pc-windows-static
-  meta/build.sh wasm32-unknown-wasip2
+  meta/docker/compile-triples.sh x86_64-pc-windows-static wasm32-unknown-wasip2
 elif [[ "${1:-}" == "npm-platforms" ]]; then
-  # todo: organize builds by image so we don't have to re-run the "multi" images
-  meta/build.sh aarch64-apple-darwin
-  meta/build.sh x86_64-apple-darwin
-  meta/build.sh aarch64-unknown-linux-static
-  meta/build.sh x86_64-unknown-linux-static
-  meta/build.sh x86_64-pc-windows-static
-  meta/build.sh aarch64-unknown-freebsd-15
-  meta/build.sh x86_64-unknown-freebsd-15
+  readarray -t NPM_TRIPLES < <(jq -r '.[].name' ./npm/platforms.json)
+  meta/docker/compile-triples.sh "${NPM_TRIPLES[@]}"
+  cp -r build/*/dts build/
+  rm -rf build/*/dts
 elif [[ "${1:-}" != "" ]]; then
-  TRIPLE="${1:-}"
-  echo "Using docker to build for platform $TRIPLE..."
-  if ! LINE="$(grep "^${TRIPLE}"$'\t' ./meta/docker/triples.tsv)"; then
-    echo "Unknown platform: $TRIPLE" >&2
-    echo "Available platforms:" >&2
-    cut -f1 ./meta/docker/triples.tsv | sort >&2
-    exit 1
-  fi
-  IFS=$'\t' read -r _ IMAGE HOST TARGET <<< "$LINE"
-  meta/docker/compile.sh "$IMAGE" "${TRIPLE}"$'\t'"${HOST}"$'\t'"${TARGET}"
+  meta/docker/compile-triples.sh "${1:-}"
 else
   # normal build
   if [[ "$(uname)" == "Darwin" ]]; then
