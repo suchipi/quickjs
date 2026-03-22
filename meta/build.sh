@@ -21,7 +21,7 @@ elif [[ "${1:-}" == "test-platforms" ]]; then
   meta/build.sh
   meta/docker/compile-triples.sh x86_64-pc-windows-static wasm32-unknown-wasip2
 elif [[ "${1:-}" == "npm-platforms" ]]; then
-  readarray -t NPM_TRIPLES < <(jq -r '.[].name' ./npm/platforms.json)
+  readarray -t NPM_TRIPLES < <(docker run --rm -i ghcr.io/jqlang/jq:1.8.1 -r '.[].name' < ./npm/platforms.json)
   meta/docker/compile-triples.sh "${NPM_TRIPLES[@]}"
   cp -r build/*/dts build/
   rm -rf build/*/dts
