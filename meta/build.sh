@@ -21,6 +21,15 @@ elif [[ "${1:-}" == "test-platforms" ]]; then
   meta/build.sh
   meta/build.sh x86_64-pc-windows-static
   meta/build.sh wasm32-unknown-wasip2
+elif [[ "${1:-}" == "npm-platforms" ]]; then
+  # todo: organize builds by image so we don't have to re-run the "multi" images
+  meta/build.sh aarch64-apple-darwin
+  meta/build.sh x86_64-apple-darwin
+  meta/build.sh aarch64-unknown-linux-static
+  meta/build.sh x86_64-unknown-linux-static
+  meta/build.sh x86_64-pc-windows-static
+  meta/build.sh aarch64-unknown-freebsd-15
+  meta/build.sh x86_64-unknown-freebsd-15
 elif [[ "${1:-}" != "" ]]; then
   TRIPLE="${1:-}"
   echo "Using docker to build for platform $TRIPLE..."
