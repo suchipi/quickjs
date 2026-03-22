@@ -32,7 +32,10 @@ build/extras
 build/*-linux-gnu
 build/*-linux-musl
 
-# weird targets
+# weird platforms
 build/js-unknown-emscripten
 build/unknown-unknown-cosmo
 build/wasm32-unknown-*
+
+# platform extras
+build/*/extras
