@@ -2,7 +2,8 @@
 
 declare("CC_TARGET", "gcc");
 declare("AR_TARGET", "ar");
-declare("LDEXPORT_TARGET", "-static");
+// 8MB stack size (Windows default is 1MB, which is too small)
+declare("LDEXPORT_TARGET", "-static -Wl,--stack,8388608");
 declare("PROGRAM_SUFFIX_TARGET", ".exe");
 
 // needed for localtime_r

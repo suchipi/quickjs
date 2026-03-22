@@ -12,7 +12,8 @@ declare("DEFINES_TARGET", [
   "-D_POSIX_THREAD_SAFE_FUNCTIONS",
 ]);
 // statically-linked so that it doesn't depend on libwinpthread-1.dll
-declare("LDEXPORT_TARGET", "-static");
+// 8MB stack size (Windows default is 1MB, which is too small)
+declare("LDEXPORT_TARGET", "-static -Wl,--stack,8388608");
 
 declare("PROGRAM_SUFFIX_TARGET", ".exe");
 
