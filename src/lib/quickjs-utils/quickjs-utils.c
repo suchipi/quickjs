@@ -126,28 +126,89 @@ static void QJU_ToStringValueAndPrint(JSContext *ctx, FILE *f, JSValueConst val)
 {
   const char *str;
 
+  if (JS_IsException(val)) {
+    fprintf(f, "[exception]");
+    return;
+  }
+
   str = JS_ToCString(ctx, val);
   if (str) {
-    fprintf(f, "%s\n", str);
+    fprintf(f, "%s", str);
     JS_FreeCString(ctx, str);
   } else {
-    fprintf(f, "[exception]\n");
+    // clear ToString exception
+    JS_GetException(ctx);
+
+    if (JS_IsError(ctx, val)) {
+      JSValue name_val, message_val;
+
+      name_val = JS_GetPropertyStr(ctx, val, "name");
+      QJU_ToStringValueAndPrint(ctx, f, name_val);
+      JS_FreeValue(ctx, name_val);
+
+      fprintf(f, ": ");
+
+      message_val = JS_GetPropertyStr(ctx, val, "message");
+      QJU_ToStringValueAndPrint(ctx, f, message_val);
+      JS_FreeValue(ctx, message_val);
+    } else {
+      JSValue toString_result;
+      JSValue global_obj, object_ctor, object_proto, toString_fn;
+
+      global_obj = JS_GetGlobalObject(ctx);
+      object_ctor = JS_GetPropertyStr(ctx, global_obj, "Object");
+      object_proto = JS_GetPropertyStr(ctx, object_ctor, "prototype");
+      toString_fn = JS_GetPropertyStr(ctx, object_proto, "toString");
+
+      toString_result = JS_Call(ctx, toString_fn, val, 0, NULL);
+
+      JS_FreeValue(ctx, toString_fn);
+      JS_FreeValue(ctx, object_proto);
+      JS_FreeValue(ctx, object_ctor);
+      JS_FreeValue(ctx, global_obj);
+
+      if (!JS_IsException(toString_result)) {
+        const char *result_str = JS_ToCString(ctx, toString_result);
+        if (result_str) {
+          fprintf(f, "%s", result_str);
+          JS_FreeCString(ctx, result_str);
+        }
+        JS_FreeValue(ctx, toString_result);
+      } else {
+        fprintf(f, "[thrown object upon which Object.prototype.toString.call(...) failed]");
+      }
+    }
   }
 }
 
 void QJU_PrintError(JSContext *ctx, FILE *f, JSValueConst exception_val)
 {
-  JSValue val;
-  BOOL is_error;
+  JSValue stack_val;
 
-  is_error = JS_IsError(ctx, exception_val);
-  QJU_ToStringValueAndPrint(ctx, f, exception_val);
-  if (is_error) {
-    val = JS_GetPropertyStr(ctx, exception_val, "stack");
-    if (!JS_IsUndefined(val)) {
-      QJU_ToStringValueAndPrint(ctx, f, val);
+  if (JS_IsError(ctx, exception_val)) {
+    QJU_ToStringValueAndPrint(ctx, f, exception_val);
+    fprintf(f, "\n");
+
+    stack_val = JS_GetPropertyStr(ctx, exception_val, "stack");
+    if (!JS_IsUndefined(stack_val)) {
+      QJU_ToStringValueAndPrint(ctx, f, stack_val);
+      fprintf(f, "\n");
     }
-    JS_FreeValue(ctx, val);
+    JS_FreeValue(ctx, stack_val);
+  } else {
+    fprintf(f, "thrown non-Error value: ");
+
+    if (JS_IsString(exception_val)) {
+      JSValue json_val = JS_JSONStringify(ctx, exception_val, JS_UNDEFINED, JS_UNDEFINED);
+      const char *json_str = JS_ToCString(ctx, json_val);
+      fprintf(f, "%s", json_str);
+      JS_FreeCString(ctx, json_str);
+      JS_FreeValue(ctx, json_val);
+    } else {
+      QJU_ToStringValueAndPrint(ctx, f, exception_val);
+    }
+
+    fprintf(f, "\n");
   }
 }
 
