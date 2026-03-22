@@ -23,8 +23,6 @@ elif [[ "${1:-}" == "test-platforms" ]]; then
 elif [[ "${1:-}" == "npm-platforms" ]]; then
   readarray -t NPM_TRIPLES < <(docker run --rm -i ghcr.io/jqlang/jq:1.8.1 -r '.[].name' < ./npm/platforms.json)
   meta/docker/compile-triples.sh "${NPM_TRIPLES[@]}"
-  cp -r build/*/dts build/
-  rm -rf build/*/dts
 elif [[ "${1:-}" != "" ]]; then
   meta/docker/compile-triples.sh "${1:-}"
 else
