@@ -64,6 +64,7 @@ typedef void (*sighandler_t)(int);
 
 #if defined(__APPLE__)
 #include <spawn.h>
+#include <dlfcn.h>
 typedef sig_t sighandler_t;
 #if !defined(environ)
 #include <crt_externs.h>
@@ -2685,6 +2686,7 @@ static const char *resolve_exec_path(const char *filename, char *buf,
     return NULL;
 }
 
+#ifndef __APPLE__
 /* execvpe is not available on non GNU systems */
 static int my_execvpe(const char *filename, char **argv, char **envp)
 {
@@ -2703,6 +2705,7 @@ static int my_execvpe(const char *filename, char **argv, char **envp)
         return -1; /* errno set by resolve_exec_path */
     return execve(resolved, argv, envp);
 }
+#endif
 
 /* exec(args[, options]) -> exitcode */
 static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
@@ -2824,109 +2827,122 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
     }
 
 #if defined(__APPLE__)
-    if (uid == (uint32_t)-1 && gid == (uint32_t)-1) {
-        /* Common case: use posix_spawn to avoid fork() in multi-threaded
-           processes. fork() on macOS triggers libc atfork handlers that can
-           deadlock on Mach IPC when worker threads exist, causing an
-           uninterruptible (UE) state that SIGKILL cannot resolve. */
-        posix_spawn_file_actions_t file_actions;
-        posix_spawnattr_t spawn_attr;
-        short spawn_flags = POSIX_SPAWN_CLOEXEC_DEFAULT;
-        const char *spawn_file;
+    {
+        /* Check if posix_spawn_file_actions_addchdir_np is available at
+           runtime (macOS 10.15+). If cwd is needed and it's not available,
+           we fall back to vfork. */
+        typedef int (*addchdir_fn)(posix_spawn_file_actions_t *, const char *);
+        addchdir_fn addchdir_np = (addchdir_fn)dlsym(RTLD_DEFAULT,
+            "posix_spawn_file_actions_addchdir_np");
+        BOOL use_posix_spawn = (uid == (uint32_t)-1 && gid == (uint32_t)-1 &&
+                                (!cwd || addchdir_np != NULL));
 
-        posix_spawn_file_actions_init(&file_actions);
-        posix_spawnattr_init(&spawn_attr);
+        if (use_posix_spawn) {
+            /* Common case: use posix_spawn to avoid fork() in multi-threaded
+               processes. fork() on macOS triggers libc atfork handlers that
+               can deadlock on Mach IPC when worker threads exist, causing an
+               uninterruptible (UE) state that SIGKILL cannot resolve.
+               Falls back to vfork if uid or gid are set, or if cwd is set and
+               addchdir_np is unavailable (macOS < 10.15). */
+            posix_spawn_file_actions_t file_actions;
+            posix_spawnattr_t spawn_attr;
+            short spawn_flags = POSIX_SPAWN_CLOEXEC_DEFAULT;
+            const char *spawn_file;
 
-        /* Inherit stdin/stdout/stderr (or remap them) */
-        for (i = 0; i < 3; i++) {
-            posix_spawn_file_actions_adddup2(&file_actions, std_fds[i], i);
-        }
+            posix_spawn_file_actions_init(&file_actions);
+            posix_spawnattr_init(&spawn_attr);
 
-        if (cwd) {
-            posix_spawn_file_actions_addchdir_np(&file_actions, cwd);
-        }
+            /* Inherit stdin/stdout/stderr (or remap them) */
+            for (i = 0; i < 3; i++) {
+                posix_spawn_file_actions_adddup2(&file_actions, std_fds[i], i);
+            }
 
-        posix_spawnattr_setflags(&spawn_attr, spawn_flags);
+            if (cwd) {
+                addchdir_np(&file_actions, cwd);
+            }
 
-        spawn_file = file ? file : exec_argv[0];
+            posix_spawnattr_setflags(&spawn_attr, spawn_flags);
 
-        if (use_path) {
-            ret = posix_spawnp(&pid, spawn_file, &file_actions, &spawn_attr,
-                               (char **)exec_argv, envp);
-        } else {
-            ret = posix_spawn(&pid, spawn_file, &file_actions, &spawn_attr,
-                              (char **)exec_argv, envp);
-        }
+            spawn_file = file ? file : exec_argv[0];
 
-        posix_spawn_file_actions_destroy(&file_actions);
-        posix_spawnattr_destroy(&spawn_attr);
+            if (use_path) {
+                ret = posix_spawnp(&pid, spawn_file, &file_actions,
+                                   &spawn_attr, (char **)exec_argv, envp);
+            } else {
+                ret = posix_spawn(&pid, spawn_file, &file_actions,
+                                  &spawn_attr, (char **)exec_argv, envp);
+            }
 
-        if (ret != 0) {
-            JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
-                              "posix_spawn error: %s", strerror(ret));
-            goto exception;
-        }
-    } else {
-        /* uid/gid specified: posix_spawn can't do setuid/setgid,
-           so fall back to vfork + exec. vfork avoids the atfork handler
-           deadlock since it doesn't invoke them. */
-        char resolved_path_buf[PATH_MAX];
-        const char *resolved_file;
-        int fd_max;
+            posix_spawn_file_actions_destroy(&file_actions);
+            posix_spawnattr_destroy(&spawn_attr);
 
-        /* Pre-resolve executable path before vfork (getenv is not
-           async-signal-safe) */
-        resolved_file = file ? file : exec_argv[0];
-        if (use_path) {
-            resolved_file = resolve_exec_path(resolved_file,
-                                              resolved_path_buf,
-                                              sizeof(resolved_path_buf));
-            if (!resolved_file) {
+            if (ret != 0) {
                 JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
-                                  errno == EACCES
-                                  ? "command not executable: %s"
-                                  : "command not found: %s",
-                                  file ? file : exec_argv[0]);
+                                  "posix_spawn error: %s", strerror(ret));
                 goto exception;
             }
-        }
+        } else {
+            /* uid/gid specified or cwd specified and addchdir_np unavailable:
+               fall back to vfork + exec. vfork avoids the atfork handler
+               deadlock since it doesn't invoke them. */
+            char resolved_path_buf[PATH_MAX];
+            const char *resolved_file;
+            int fd_max;
 
-        /* Pre-compute fd_max before vfork (sysconf is not
-           async-signal-safe) */
-        fd_max = (int)sysconf(_SC_OPEN_MAX);
-        if (fd_max < 0 || fd_max > 65536)
-            fd_max = 65536;
-
-        pid = vfork();
-        if (pid < 0) {
-            JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
-                              "vfork error: %s", strerror(errno));
-            goto exception;
-        }
-        if (pid == 0) {
-            /* child (async-signal-safe only) */
-            for (i = 0; i < 3; i++) {
-                if (std_fds[i] != (int)i) {
-                    if (dup2(std_fds[i], i) < 0)
-                        _exit(127);
+            /* Pre-resolve executable path before vfork (getenv is not
+               async-signal-safe) */
+            resolved_file = file ? file : exec_argv[0];
+            if (use_path) {
+                resolved_file = resolve_exec_path(resolved_file,
+                                                  resolved_path_buf,
+                                                  sizeof(resolved_path_buf));
+                if (!resolved_file) {
+                    JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                                      errno == EACCES
+                                      ? "command not executable: %s"
+                                      : "command not found: %s",
+                                      file ? file : exec_argv[0]);
+                    goto exception;
                 }
             }
-            for (i = 3; i < (uint32_t)fd_max; i++)
-                close(i);
-            if (cwd) {
-                if (chdir(cwd) < 0)
-                    _exit(127);
+
+            /* Pre-compute fd_max before vfork (sysconf is not
+               async-signal-safe) */
+            fd_max = (int)sysconf(_SC_OPEN_MAX);
+            if (fd_max < 0 || fd_max > 65536)
+                fd_max = 65536;
+
+            pid = vfork();
+            if (pid < 0) {
+                JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                                  "vfork error: %s", strerror(errno));
+                goto exception;
             }
-            if (uid != (uint32_t)-1) {
-                if (setuid(uid) < 0)
-                    _exit(127);
+            if (pid == 0) {
+                /* child (async-signal-safe only) */
+                for (i = 0; i < 3; i++) {
+                    if (std_fds[i] != (int)i) {
+                        if (dup2(std_fds[i], i) < 0)
+                            _exit(127);
+                    }
+                }
+                for (i = 3; i < (uint32_t)fd_max; i++)
+                    close(i);
+                if (cwd) {
+                    if (chdir(cwd) < 0)
+                        _exit(127);
+                }
+                if (uid != (uint32_t)-1) {
+                    if (setuid(uid) < 0)
+                        _exit(127);
+                }
+                if (gid != (uint32_t)-1) {
+                    if (setgid(gid) < 0)
+                        _exit(127);
+                }
+                execve(resolved_file, (char **)exec_argv, envp);
+                _exit(127);
             }
-            if (gid != (uint32_t)-1) {
-                if (setgid(gid) < 0)
-                    _exit(127);
-            }
-            execve(resolved_file, (char **)exec_argv, envp);
-            _exit(127);
         }
     }
 #else /* !__APPLE__ */
