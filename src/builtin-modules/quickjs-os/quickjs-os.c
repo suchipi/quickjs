@@ -2630,74 +2630,23 @@ static char **build_envp(JSContext *ctx, JSValueConst obj)
     goto done;
 }
 
-/* execvpe is not available on non GNU systems */
-static int my_execvpe(const char *filename, char **argv, char **envp)
-{
-    char *path, *p, *p_next, *p1;
-    char buf[PATH_MAX];
-    size_t filename_len, path_len;
-    BOOL eacces_error;
-
-    filename_len = strlen(filename);
-    if (filename_len == 0) {
-        errno = ENOENT;
-        return -1;
-    }
-    if (strchr(filename, '/'))
-        return execve(filename, argv, envp);
-
-    path = getenv("PATH");
-    if (!path)
-        path = (char *)"/bin:/usr/bin";
-    eacces_error = FALSE;
-    p = path;
-    for(p = path; p != NULL; p = p_next) {
-        p1 = strchr(p, ':');
-        if (!p1) {
-            p_next = NULL;
-            path_len = strlen(p);
-        } else {
-            p_next = p1 + 1;
-            path_len = p1 - p;
-        }
-        /* path too long */
-        if ((path_len + 1 + filename_len + 1) > PATH_MAX)
-            continue;
-        memcpy(buf, p, path_len);
-        buf[path_len] = '/';
-        memcpy(buf + path_len + 1, filename, filename_len);
-        buf[path_len + 1 + filename_len] = '\0';
-
-        execve(buf, argv, envp);
-
-        switch(errno) {
-        case EACCES:
-            eacces_error = TRUE;
-            break;
-        case ENOENT:
-        case ENOTDIR:
-            break;
-        default:
-            return -1;
-        }
-    }
-    if (eacces_error)
-        errno = EACCES;
-    return -1;
-}
-
 /* Resolve an executable name via PATH search without calling exec.
    Returns the resolved path in 'buf', or NULL if not found.
+   On failure, sets errno to EACCES if a matching file was found but not
+   executable, or ENOENT if no matching file was found at all.
    This is used before vfork() since getenv() is not async-signal-safe. */
 static const char *resolve_exec_path(const char *filename, char *buf,
                                      size_t buf_size)
 {
     char *path, *p, *p_next, *p1;
     size_t filename_len, path_len;
+    BOOL eacces_error = FALSE;
 
     filename_len = strlen(filename);
-    if (filename_len == 0)
+    if (filename_len == 0) {
+        errno = ENOENT;
         return NULL;
+    }
     if (strchr(filename, '/'))
         return filename;
 
@@ -2721,8 +2670,38 @@ static const char *resolve_exec_path(const char *filename, char *buf,
         buf[path_len + 1 + filename_len] = '\0';
         if (access(buf, X_OK) == 0)
             return buf;
+        switch (errno) {
+        case EACCES:
+            eacces_error = TRUE;
+            continue;
+        case ENOENT:
+        case ENOTDIR:
+            continue;
+        default:
+            return NULL;
+        }
     }
+    errno = eacces_error ? EACCES : ENOENT;
     return NULL;
+}
+
+/* execvpe is not available on non GNU systems */
+static int my_execvpe(const char *filename, char **argv, char **envp)
+{
+    char buf[PATH_MAX];
+    const char *resolved;
+
+    if (strlen(filename) == 0) {
+        errno = ENOENT;
+        return -1;
+    }
+    if (strchr(filename, '/'))
+        return execve(filename, argv, envp);
+
+    resolved = resolve_exec_path(filename, buf, sizeof(buf));
+    if (!resolved)
+        return -1; /* errno set by resolve_exec_path */
+    return execve(resolved, argv, envp);
 }
 
 /* exec(args[, options]) -> exitcode */
@@ -2904,7 +2883,9 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                                               sizeof(resolved_path_buf));
             if (!resolved_file) {
                 JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
-                                  "command not found: %s",
+                                  errno == EACCES
+                                  ? "command not executable: %s"
+                                  : "command not found: %s",
                                   file ? file : exec_argv[0]);
                 goto exception;
             }
