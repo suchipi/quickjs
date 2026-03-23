@@ -135,6 +135,8 @@ test("globals", async () => {
     clearTimeout: function (CWE)
     setInterval: function (CWE)
     clearInterval: function (CWE)
+    fetch: function (CWE)
+    Headers: function (CWE)
     scriptArgs: frozen object (CWE)
     require: function (CWE)
     ",

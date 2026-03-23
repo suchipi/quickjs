@@ -105,6 +105,16 @@ typedef void (*sighandler_t)(int);
 #include "quickjs-timers.h"
 #include "quickjs-cmdline.h"
 
+/* Function pointer for fetch globals — set by quickjs-fetch module when linked.
+ * NULL in minimal/core builds where fetch is not available. */
+static void (*js_os_fetch_add_globals)(JSContext *ctx) = NULL;
+
+/* Called by quickjs-fetch.c to register itself */
+void js_os_register_fetch_globals(void (*fn)(JSContext *ctx));
+void js_os_register_fetch_globals(void (*fn)(JSContext *ctx)) {
+    js_os_fetch_add_globals = fn;
+}
+
 #ifndef SKIP_WORKER
 /* Worker data attached to Worker objects */
 typedef struct {
@@ -3260,6 +3270,8 @@ static void *worker_func(void *opaque)
 
     js_cmdline_add_scriptArgs(ctx, -1, NULL);
     js_timers_add_globals(ctx);
+    if (js_os_fetch_add_globals)
+        js_os_fetch_add_globals(ctx);
 
     if (QJMS_InitContext(ctx, TRUE)) {
         QJU_PrintException(ctx, stderr);

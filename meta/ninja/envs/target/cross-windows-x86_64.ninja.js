@@ -22,3 +22,7 @@ declare("SKIP_SHARED_LIBS", true);
 // Without this, we get a linking error "undefined reference to __imp_gethostname".
 // But it's not clear why we weren't getting that error before...
 declareOrAppend("LIBS_TARGET", "-lws2_32");
+
+if (process.env.CONFIG_FETCH !== "0") {
+  declareOrAppend("LIBS_TARGET", "-lwinhttp");
+}

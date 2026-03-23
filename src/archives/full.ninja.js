@@ -28,6 +28,12 @@ const deps_target = [
   builddir("intermediate/quickjs-modulesys/module-impl.target.o"),
 ];
 
+// Conditionally include fetch module based on CONFIG_FETCH env var
+if (process.env.CONFIG_FETCH !== "0") {
+  deps_target.push(builddir("intermediate/quickjs-fetch.target.o"));
+  deps_target.push(builddir("intermediate/httpclient.target.o"));
+}
+
 // Conditionally include encoding libraries based on CONFIG_* env vars
 if (process.env.CONFIG_SHIFTJIS !== "0") {
   deps_target.push(builddir("intermediate/libshiftjis.target.o"));
@@ -72,6 +78,12 @@ const deps_host = [
   builddir("intermediate/quickjs-encoding.host.o"),
   builddir("intermediate/quickjs-modulesys/module-impl.host.o"),
 ];
+
+// Conditionally include fetch module based on CONFIG_FETCH env var
+if (process.env.CONFIG_FETCH !== "0") {
+  deps_host.push(builddir("intermediate/quickjs-fetch.host.o"));
+  deps_host.push(builddir("intermediate/httpclient.host.o"));
+}
 
 // Conditionally include encoding libraries based on CONFIG_* env vars
 if (process.env.CONFIG_SHIFTJIS !== "0") {

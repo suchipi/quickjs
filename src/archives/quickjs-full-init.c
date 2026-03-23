@@ -27,6 +27,11 @@ static int quickjs_full_init_modules(JSContext *ctx)
     if (js_init_module_encoding(ctx, "quickjs:encoding") == NULL) {
         return -1;
     }
+#if !defined(CONFIG_FETCH) || CONFIG_FETCH != 0
+    if (js_init_module_fetch(ctx, "quickjs:fetch") == NULL) {
+        return -1;
+    }
+#endif
 
     return 0;
 }
@@ -40,6 +45,10 @@ static int quickjs_full_init_globals(JSContext *ctx)
     js_print_add_print_global(ctx);
     js_print_add_console_global(ctx);
     js_timers_add_globals(ctx);
+
+#if !defined(CONFIG_FETCH) || CONFIG_FETCH != 0
+    js_fetch_add_globals(ctx);
+#endif
 
     return 0;
 }

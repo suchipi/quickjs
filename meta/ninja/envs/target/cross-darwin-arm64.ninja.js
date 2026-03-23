@@ -7,3 +7,7 @@ declare("SHARED_LIBRARY_FLAGS_TARGET", "-undefined dynamic_lookup");
 // arm64 Macs only exist on macOS 11+
 declareOrAppend("CFLAGS_TARGET", "-mmacosx-version-min=11.0");
 declareOrAppend("LDFLAGS_TARGET", "-mmacosx-version-min=11.0");
+
+if (process.env.CONFIG_FETCH !== "0") {
+  declareOrAppend("LIBS_TARGET", "-lcurl");
+}
