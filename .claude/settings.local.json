@@ -71,7 +71,8 @@
       "Bash(hexdump:*)",
       "Bash(mkdir:*)",
       "WebSearch",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(meta/docker/compile-triples.sh:*)"
     ],
     "additionalDirectories": [
       "/tmp",

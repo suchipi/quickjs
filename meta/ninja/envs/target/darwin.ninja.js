@@ -4,3 +4,5 @@ declare("CC_TARGET", "clang");
 declare("AR_TARGET", "ar");
 declare("LDEXPORT_TARGET", "-rdynamic");
 declare("SHARED_LIBRARY_FLAGS_TARGET", "-undefined dynamic_lookup");
+declareOrAppend("CFLAGS_TARGET", "-mmacosx-version-min=10.13");
+declareOrAppend("LDFLAGS_TARGET", "-mmacosx-version-min=10.13");

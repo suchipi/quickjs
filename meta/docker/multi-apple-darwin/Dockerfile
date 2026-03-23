@@ -35,6 +35,7 @@ USER user
 
 ENV PATH="/osxcross/bin:$PATH"
 ENV LD_LIBRARY_PATH="/osxcross/lib:$LD_LIBRARY_PATH"
+ENV MACOSX_DEPLOYMENT_TARGET=10.13
 
 # The intent is that you volume-mount the repo into /opt/quickjs.
 WORKDIR /opt/quickjs
