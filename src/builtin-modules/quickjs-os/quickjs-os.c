@@ -105,6 +105,16 @@ typedef void (*sighandler_t)(int);
 #include "quickjs-timers.h"
 #include "quickjs-cmdline.h"
 
+/* Function pointer for fetch globals — set by quickjs-fetch module when linked.
+ * NULL in minimal/core builds where fetch is not available. */
+static void (*js_os_fetch_add_globals)(JSContext *ctx) = NULL;
+
+/* Called by quickjs-fetch.c to register itself */
+void js_os_register_fetch_globals(void (*fn)(JSContext *ctx));
+void js_os_register_fetch_globals(void (*fn)(JSContext *ctx)) {
+    js_os_fetch_add_globals = fn;
+}
+
 #ifndef SKIP_WORKER
 /* Worker data attached to Worker objects */
 typedef struct {
@@ -3260,6 +3270,8 @@ static void *worker_func(void *opaque)
 
     js_cmdline_add_scriptArgs(ctx, -1, NULL);
     js_timers_add_globals(ctx);
+    if (js_os_fetch_add_globals)
+        js_os_fetch_add_globals(ctx);
 
     if (QJMS_InitContext(ctx, TRUE)) {
         QJU_PrintException(ctx, stderr);
@@ -3717,16 +3729,26 @@ static int js_os_poll(JSContext *ctx)
     int handle_count = 0;
     int console_handle_idx = -1;
 
+    /* Track non-console rw_handler fds (e.g. fetch completion sockets) */
+    int rw_handle_start = -1;
+    int rw_fds[MAXIMUM_WAIT_OBJECTS];
+    int rw_fd_count = 0;
+
     console_fd = -1;
     list_for_each(el, &ts->rw_handlers) {
         rh = list_entry(el, JSRWHandler, link);
         if (rh->fd == 0 && !JS_IsNull(rh->rw_func[0])) {
             console_fd = rh->fd;
-            break;
+        } else if (rh->fd != 0 && !JS_IsNull(rh->rw_func[0]) &&
+                   handle_count < MAXIMUM_WAIT_OBJECTS) {
+            if (rw_handle_start < 0)
+                rw_handle_start = handle_count;
+            rw_fds[rw_fd_count++] = rh->fd;
+            handles[handle_count++] = (HANDLE)_get_osfhandle(rh->fd);
         }
     }
 
-    if (console_fd >= 0) {
+    if (console_fd >= 0 && handle_count < MAXIMUM_WAIT_OBJECTS) {
         console_handle_idx = handle_count;
         handles[handle_count++] = (HANDLE)_get_osfhandle(console_fd);
     }
@@ -3756,7 +3778,18 @@ static int js_os_poll(JSContext *ctx)
         ret = WaitForMultipleObjects(handle_count, handles, FALSE, ti);
         if (ret >= WAIT_OBJECT_0 && ret < WAIT_OBJECT_0 + (DWORD)handle_count) {
             int idx = ret - WAIT_OBJECT_0;
-            if (idx == console_handle_idx) {
+            if (rw_handle_start >= 0 && idx >= rw_handle_start &&
+                idx < rw_handle_start + rw_fd_count) {
+                /* A non-console rw_handler fd is ready (e.g. fetch completion) */
+                int target_fd = rw_fds[idx - rw_handle_start];
+                list_for_each(el, &ts->rw_handlers) {
+                    rh = list_entry(el, JSRWHandler, link);
+                    if (rh->fd == target_fd && !JS_IsNull(rh->rw_func[0])) {
+                        js_eventloop_call_handler(ctx, rh->rw_func[0]);
+                        break;
+                    }
+                }
+            } else if (idx == console_handle_idx) {
                 list_for_each(el, &ts->rw_handlers) {
                     rh = list_entry(el, JSRWHandler, link);
                     if (rh->fd == console_fd && !JS_IsNull(rh->rw_func[0])) {

@@ -9,3 +9,7 @@ declare("PROGRAM_SUFFIX_HOST", ".exe");
 declare("DEFINES_HOST", "-D_POSIX_C_SOURCE");
 // needed for __imp_gethostname
 declare("LIBS_HOST", "-lws2_32");
+
+if (process.env.CONFIG_FETCH !== "0") {
+  declareOrAppend("LIBS_HOST", "-lwinhttp");
+}

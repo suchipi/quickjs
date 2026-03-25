@@ -123,6 +123,7 @@ globalThis.__qjms_temp_ModuleDelegate_init =
       "quickjs:context",
       "quickjs:encoding",
       "quickjs:engine",
+      "quickjs:fetch",
       "quickjs:os",
       "quickjs:std",
       "quickjs:timers",

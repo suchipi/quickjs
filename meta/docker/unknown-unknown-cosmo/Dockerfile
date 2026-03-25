@@ -13,6 +13,7 @@ RUN apt-get update && \
     curl \
     ca-certificates \
     unzip \
+    libcurl4-openssl-dev \
   && rm -rf /var/lib/apt/lists/*
 
 # Download and install cosmocc toolchain

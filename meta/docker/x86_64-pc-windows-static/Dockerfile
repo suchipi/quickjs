@@ -10,7 +10,8 @@ RUN apt-get update && \
     build-essential \
     git \
     gcc-mingw-w64-x86-64 \
-    ninja-build
+    ninja-build \
+    libcurl4-openssl-dev
 
 ARG UID=1000
 ARG GID=1000

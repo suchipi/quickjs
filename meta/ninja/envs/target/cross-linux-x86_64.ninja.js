@@ -10,4 +10,8 @@ if (process.arch === "x64") {
   declare("DEFINES_TARGET", "-D_GNU_SOURCE");
   declare("LDEXPORT_TARGET", "-rdynamic");
   declare("LDFLAGS_TARGET", "-L/usr/x86_64-linux-gnu/lib/");
+
+  if (process.env.CONFIG_FETCH !== "0") {
+    declareOrAppend("LIBS_TARGET", "-lcurl");
+  }
 }

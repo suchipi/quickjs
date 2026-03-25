@@ -9,4 +9,8 @@ if (process.arch === "arm64") {
   declare("AR_TARGET", "aarch64-linux-gnu-gcc-ar");
   declare("DEFINES_TARGET", "-D_GNU_SOURCE");
   declare("LDEXPORT_TARGET", "-rdynamic");
+
+  if (process.env.CONFIG_FETCH !== "0") {
+    declareOrAppend("LIBS_TARGET", "-lcurl");
+  }
 }

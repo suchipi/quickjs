@@ -8,7 +8,11 @@ RUN apk add \
   gcc \
   ninja \
   nodejs \
-  npm
+  npm \
+  curl-dev \
+  curl-static \
+  openssl-libs-static \
+  zlib-static
 
 ARG UID=1000
 ARG GID=1000

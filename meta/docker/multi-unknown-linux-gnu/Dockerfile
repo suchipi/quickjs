@@ -9,7 +9,8 @@ RUN apt-get update && \
     sudo \
     build-essential \
     git \
-    ninja-build
+    ninja-build \
+    libcurl4-openssl-dev
 
 # Depending on the docker host arch, one of these will be available
 # and the other one won't be. So we use `|| true` to ignore failure

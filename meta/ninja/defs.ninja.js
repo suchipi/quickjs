@@ -90,6 +90,18 @@ for (const suffix of ["HOST", "TARGET"]) {
     declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_GB18030=0");
   }
 
+  // Fetch module configuration - disabled if CONFIG_FETCH=0
+  if (process.env.CONFIG_FETCH === "0") {
+    declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_FETCH=0");
+  }
+
+  // Fetch module - add libcurl link flag for HOST builds (cross-compilation)
+  if (suffix === "HOST" && process.env.CONFIG_FETCH !== "0") {
+    if (process.platform === "darwin" || process.platform === "linux" || process.platform === "freebsd") {
+      declareOrAppend(`LIBS_${suffix}`, "-lcurl");
+    }
+  }
+
   // always treat chars as unsigned for consistent bytecode
   declareOrAppend(`CFLAGS_${suffix}`, "-funsigned-char");
 
