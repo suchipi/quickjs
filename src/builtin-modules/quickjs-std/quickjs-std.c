@@ -47,6 +47,7 @@
 extern char **environ;
 #else
 #include <pwd.h>
+#include <dlfcn.h>
 
 #if defined(__APPLE__)
 #if !defined(environ)
@@ -1367,67 +1368,183 @@ static JSValue js_std_file_setvbuf(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-/* urlGet */
+/* urlGet - uses libcurl loaded via dlopen */
 
-#define URL_GET_PROGRAM "curl -s -i -L"
-#define URL_GET_BUF_SIZE 4096
+#if !defined(__wasi__) && !defined(__EMSCRIPTEN__)
 
-static int http_get_header_line(FILE *f, char *buf, size_t buf_size,
-                                DynBuf *dbuf)
+/* Platform abstraction for dynamic loading */
+#if defined(__COSMO__)
+#define URLGET_DLOPEN(name) cosmo_dlopen(name, RTLD_NOW | RTLD_LOCAL)
+#define URLGET_DLSYM(handle, name) cosmo_dlsym(handle, name)
+#define URLGET_DLCLOSE(handle) cosmo_dlclose(handle)
+#elif defined(_WIN32)
+#define URLGET_DLOPEN(name) ((void *)LoadLibraryA(name))
+#define URLGET_DLSYM(handle, name) ((void *)GetProcAddress((HMODULE)(handle), name))
+#define URLGET_DLCLOSE(handle) FreeLibrary((HMODULE)(handle))
+#else
+#define URLGET_DLOPEN(name) dlopen(name, RTLD_NOW | RTLD_LOCAL)
+#define URLGET_DLSYM(handle, name) dlsym(handle, name)
+#define URLGET_DLCLOSE(handle) dlclose(handle)
+#endif
+
+/* libcurl ABI constants (stable across versions) */
+#define QJS_CURLOPT_URL             10002
+#define QJS_CURLOPT_WRITEDATA       10001
+#define QJS_CURLOPT_WRITEFUNCTION   20011
+#define QJS_CURLOPT_HEADERDATA      10029
+#define QJS_CURLOPT_HEADERFUNCTION  20079
+#define QJS_CURLOPT_FOLLOWLOCATION  52
+#define QJS_CURLINFO_RESPONSE_CODE  0x200002
+#define QJS_CURLE_OK                0
+
+/* libcurl function pointer types */
+typedef void *(*qjs_curl_easy_init_fn)(void);
+typedef int (*qjs_curl_easy_setopt_fn)(void *handle, int option, ...);
+typedef int (*qjs_curl_easy_perform_fn)(void *handle);
+typedef int (*qjs_curl_easy_getinfo_fn)(void *handle, int info, ...);
+typedef void (*qjs_curl_easy_cleanup_fn)(void *handle);
+typedef const char *(*qjs_curl_easy_strerror_fn)(int code);
+
+static struct {
+    BOOL initialized;
+    BOOL loaded;
+    void *handle;
+    qjs_curl_easy_init_fn easy_init;
+    qjs_curl_easy_setopt_fn easy_setopt;
+    qjs_curl_easy_perform_fn easy_perform;
+    qjs_curl_easy_getinfo_fn easy_getinfo;
+    qjs_curl_easy_cleanup_fn easy_cleanup;
+    qjs_curl_easy_strerror_fn easy_strerror;
+} qjs_libcurl;
+
+/* Try to load libcurl. Returns 0 on success, -1 on failure with message in errbuf. */
+static int ensure_libcurl_loaded(char *errbuf, size_t errbuf_size)
 {
-    int c, read = 0;
-    char *p;
+    void *lib_handle;
+    const char *lib_names[] = {
+#if defined(__APPLE__)
+        "libcurl.dylib",
+#elif defined(_WIN32)
+        "libcurl.dll",
+        "libcurl-4.dll",
+#else
+        "libcurl.so.4",
+        "libcurl.so",
+#endif
+        NULL
+    };
+    int i;
 
-    p = buf;
-    for(;;) {
-        c = fgetc(f);
-        if (c < 0)
-            return 0 - errno;
-        read++;
-        if ((p - buf) < buf_size - 1) {
-            *p++ = c;
-        } else {
-            errno = EOVERFLOW;
-            return 0 - errno;
-        }
-        if (dbuf)
-            dbuf_putc(dbuf, c);
-        if (c == '\n')
+    if (qjs_libcurl.initialized) {
+        if (qjs_libcurl.loaded)
+            return 0;
+        snprintf(errbuf, errbuf_size, "libcurl was already tried and failed to load");
+        return -1;
+    }
+
+    qjs_libcurl.initialized = TRUE;
+
+    lib_handle = NULL;
+    for (i = 0; lib_names[i] != NULL; i++) {
+        lib_handle = URLGET_DLOPEN(lib_names[i]);
+        if (lib_handle)
             break;
     }
-    *p = '\0';
-    return read;
+
+    if (!lib_handle) {
+        snprintf(errbuf, errbuf_size,
+                 "could not load libcurl (tried:");
+        for (i = 0; lib_names[i] != NULL; i++) {
+            size_t len = strlen(errbuf);
+            snprintf(errbuf + len, errbuf_size - len, " %s", lib_names[i]);
+        }
+        {
+            size_t len = strlen(errbuf);
+            snprintf(errbuf + len, errbuf_size - len, ")");
+        }
+        return -1;
+    }
+
+#define LOAD_SYM(field, name) do { \
+    qjs_libcurl.field = (typeof(qjs_libcurl.field))URLGET_DLSYM(lib_handle, name); \
+    if (!qjs_libcurl.field) { \
+        snprintf(errbuf, errbuf_size, "could not find symbol '%s' in libcurl", name); \
+        URLGET_DLCLOSE(lib_handle); \
+        return -1; \
+    } \
+} while(0)
+
+    LOAD_SYM(easy_init, "curl_easy_init");
+    LOAD_SYM(easy_setopt, "curl_easy_setopt");
+    LOAD_SYM(easy_perform, "curl_easy_perform");
+    LOAD_SYM(easy_getinfo, "curl_easy_getinfo");
+    LOAD_SYM(easy_cleanup, "curl_easy_cleanup");
+    LOAD_SYM(easy_strerror, "curl_easy_strerror");
+
+#undef LOAD_SYM
+
+    qjs_libcurl.handle = lib_handle;
+    qjs_libcurl.loaded = TRUE;
+    return 0;
 }
 
-static int http_get_status(const char *buf)
+/* libcurl write callback: appends data to a DynBuf */
+static size_t urlget_write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    const char *p = buf;
-    while (*p != ' ' && *p != '\0')
-        p++;
-    if (*p != ' ')
+    DynBuf *buf = (DynBuf *)userdata;
+    size_t total = size * nmemb;
+    dbuf_put(buf, (const uint8_t *)ptr, total);
+    if (dbuf_error(buf))
         return 0;
-    while (*p == ' ')
-        p++;
-    return atoi(p);
+    return total;
 }
+
+/* libcurl header callback: collects headers into a DynBuf.
+   Resets on "HTTP/" lines so only the final response's headers are kept. */
+static size_t urlget_header_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+    DynBuf *buf = (DynBuf *)userdata;
+    size_t total = size * nmemb;
+
+    /* When we see a new HTTP status line, reset to discard redirect headers */
+    if (total >= 5 && memcmp(ptr, "HTTP/", 5) == 0) {
+        buf->size = 0;
+        return total;
+    }
+
+    /* Skip the blank line that terminates the header block */
+    if (total == 2 && ptr[0] == '\r' && ptr[1] == '\n')
+        return total;
+
+    dbuf_put(buf, (const uint8_t *)ptr, total);
+    if (dbuf_error(buf))
+        return 0;
+    return total;
+}
+
+#endif /* !__wasi__ && !__EMSCRIPTEN__ */
 
 static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
-#if defined(__wasi__)
-    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "urlGet is not supported on wasm");
+#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+    return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "urlGet is not supported on this platform");
 #else
     const char *url;
-    DynBuf cmd_buf;
     DynBuf data_buf_s, *data_buf = &data_buf_s;
     DynBuf header_buf_s, *header_buf = &header_buf_s;
-    char *buf;
-    size_t i, len;
-    int c, status = 0, get_header_line_result, is_redirect;
+    int status = 0, curl_err;
+    long response_code;
     JSValue response = JS_UNDEFINED, ret_obj;
     JSValueConst options_obj;
-    FILE *f;
+    void *curl = NULL;
     BOOL binary_flag, full_flag;
+    char errbuf[256];
+
+    /* Ensure libcurl is loaded */
+    if (ensure_libcurl_loaded(errbuf, sizeof(errbuf))) {
+        return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "%s", errbuf);
+    }
 
     url = JS_ToCString(ctx, argv[0]);
     if (!url)
@@ -1449,101 +1566,57 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
         }
     }
 
-    js_std_dbuf_init(ctx, &cmd_buf);
-    dbuf_printf(&cmd_buf, "%s ''", URL_GET_PROGRAM);
-    len = strlen(url);
-    for(i = 0; i < len; i++) {
-        c = url[i];
-        if (c == '\'' || c == '\\')
-            dbuf_putc(&cmd_buf, '\\');
-        dbuf_putc(&cmd_buf, c);
-    }
-    JS_FreeCString(ctx, url);
-    dbuf_putstr(&cmd_buf, "''");
-    dbuf_putc(&cmd_buf, '\0');
-    if (dbuf_error(&cmd_buf)) {
-        dbuf_free(&cmd_buf);
-        return JS_EXCEPTION;
-    }
-
-    debugprint("Running curl: %s\n", (char *)cmd_buf.buf);
-
-    f = popen((char *)cmd_buf.buf, "r");
-    if (!f) {
-        JS_ThrowTypeError(ctx, "<internal>/quickjs-std.c", __LINE__, "could not start curl: %s", strerror(errno));
-        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
-        dbuf_free(&cmd_buf);
-        return JS_EXCEPTION;
-    } else {
-        dbuf_free(&cmd_buf);
-    }
-
     js_std_dbuf_init(ctx, data_buf);
     js_std_dbuf_init(ctx, header_buf);
 
-    buf = js_malloc(ctx, URL_GET_BUF_SIZE);
-    if (!buf)
-        goto fail;
-
-read_headers:
-    /* get the HTTP status */
-    get_header_line_result = http_get_header_line(f, buf, URL_GET_BUF_SIZE, NULL);
-    if (get_header_line_result < 0) {
-        JS_ThrowTypeError(ctx, "<internal>/quickjs-std.c", __LINE__, "failed to read output from curl: %s", strerror(-get_header_line_result));
+    curl = qjs_libcurl.easy_init();
+    if (!curl) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "curl_easy_init failed");
         goto fail;
     }
-    status = http_get_status(buf);
 
-    is_redirect = 300 <= status && status <= 399;
+    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_URL, url);
+    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_FOLLOWLOCATION, 1L);
+    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_WRITEFUNCTION, urlget_write_cb);
+    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_WRITEDATA, data_buf);
+    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HEADERFUNCTION, urlget_header_cb);
+    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HEADERDATA, header_buf);
 
-    /* wait until there is an empty line */
-    for(;;) {
-        get_header_line_result = http_get_header_line(f, buf, URL_GET_BUF_SIZE, is_redirect ? header_buf : NULL);
-        if (get_header_line_result < 0) {
-            JS_ThrowTypeError(ctx, "<internal>/quickjs-std.c", __LINE__, "failed to read output from curl: %s", strerror(-get_header_line_result));
-            goto fail;
-        }
-        if (!strcmp(buf, "\r\n"))
-            break;
-    }
+    debugprint("urlGet: fetching %s\n", url);
 
-    if (dbuf_error(header_buf))
+    curl_err = qjs_libcurl.easy_perform(curl);
+    if (curl_err != QJS_CURLE_OK) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__,
+                      "urlGet request failed: %s",
+                      qjs_libcurl.easy_strerror(curl_err));
         goto fail;
-
-    if (header_buf->size >= 2) {
-        header_buf->size -= 2; /* remove the trailing CRLF */
     }
 
-    // if 3xx response code
-    if (is_redirect) {
-        debugprint("following redirect (%d)\n", status);
-        goto read_headers;
-    }
+    response_code = 0;
+    qjs_libcurl.easy_getinfo(curl, QJS_CURLINFO_RESPONSE_CODE, &response_code);
+    status = (int)response_code;
 
-    /* download the data */
-    for(;;) {
-        errno = 0;
-        len = fread(buf, 1, URL_GET_BUF_SIZE, f);
-        if (len == 0)
-            break;
-        dbuf_put(data_buf, (uint8_t *)buf, len);
-    }
+    qjs_libcurl.easy_cleanup(curl);
+    curl = NULL;
 
     if (dbuf_error(data_buf))
         goto fail;
+
+    /* Remove trailing CRLF from headers if present */
+    if (header_buf->size >= 2 &&
+        header_buf->buf[header_buf->size - 2] == '\r' &&
+        header_buf->buf[header_buf->size - 1] == '\n') {
+        header_buf->size -= 2;
+    }
+
     if (binary_flag) {
-        response = JS_NewArrayBufferCopy(ctx,
-                                         data_buf->buf, data_buf->size);
+        response = JS_NewArrayBufferCopy(ctx, data_buf->buf, data_buf->size);
     } else {
         response = JS_NewStringLen(ctx, (char *)data_buf->buf, data_buf->size);
     }
     if (JS_IsException(response))
         goto fail;
 
-    js_free(ctx, buf);
-    buf = NULL;
-    pclose(f);
-    f = NULL;
     dbuf_free(data_buf);
     data_buf = NULL;
 
@@ -1571,19 +1644,20 @@ read_headers:
             ret_obj = response;
         }
     }
+    JS_FreeCString(ctx, url);
     dbuf_free(header_buf);
     return ret_obj;
  fail:
-    if (f)
-        pclose(f);
-    js_free(ctx, buf);
+    if (curl)
+        qjs_libcurl.easy_cleanup(curl);
+    JS_FreeCString(ctx, url);
     if (data_buf)
         dbuf_free(data_buf);
     if (header_buf)
         dbuf_free(header_buf);
     JS_FreeValue(ctx, response);
     return JS_EXCEPTION;
-#endif /* !__wasi__ */
+#endif /* !__wasi__ && !__EMSCRIPTEN__ */
 }
 
 static JSClassDef js_std_file_class = {

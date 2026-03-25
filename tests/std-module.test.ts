@@ -1351,7 +1351,7 @@ describe("std.urlGet", () => {
       response type: string
       response: hello from server
       has headers: true
-      has x-custom: false
+      has x-custom: true
       ",
       }
     `);

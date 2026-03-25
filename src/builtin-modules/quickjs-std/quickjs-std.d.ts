@@ -272,63 +272,61 @@ declare module "quickjs:std" {
 
   interface UrlGet {
     /**
-     * Download `url` using the `curl` command line utility. Returns string
-     * when the http status code is between 200 and 299, and throws otherwise.
+     * Download `url` using libcurl (dynamically loaded). Returns string when
+     * the http status code is between 200 and 299, and throws otherwise.
      *
-     * Pass an object with { full: true } as the second argument to get
-     * response headers and status code.
+     * Pass an object with { full: true } as the second argument to get response
+     * headers and status code.
      */
     (url: string): string;
 
     /**
-     * Download `url` using the `curl` command line utility. Returns string
-     * when the http status code is between 200 and 299, and throws otherwise.
+     * Download `url` using libcurl (dynamically loaded). Returns string when
+     * the http status code is between 200 and 299, and throws otherwise.
      *
-     * Pass an object with { full: true } as the second argument to get
-     * response headers and status code.
+     * Pass an object with { full: true } as the second argument to get response
+     * headers and status code.
      */
     (url: string, options: { binary: false }): string;
 
     /**
-     * Download `url` using the `curl` command line utility. Returns string
-     * when the http status code is between 200 and 299, and throws otherwise.
+     * Download `url` using libcurl (dynamically loaded). Returns string when
+     * the http status code is between 200 and 299, and throws otherwise.
      *
-     * Pass an object with { full: true } as the second argument to get
-     * response headers and status code.
+     * Pass an object with { full: true } as the second argument to get response
+     * headers and status code.
      */
     (url: string, options: { full: false }): string;
 
     /**
-     * Download `url` using the `curl` command line utility. Returns string
-     * when the http status code is between 200 and 299, and throws otherwise.
+     * Download `url` using libcurl (dynamically loaded). Returns string when
+     * the http status code is between 200 and 299, and throws otherwise.
      *
-     * Pass an object with { full: true } as the second argument to get
-     * response headers and status code.
+     * Pass an object with { full: true } as the second argument to get response
+     * headers and status code.
      */
     (url: string, options: { binary: false; full: false }): string;
 
     /**
-     * Download `url` using the `curl` command line utility. Returns
-     * ArrayBuffer when the http status code is between 200 and 299, and throws
-     * otherwise.
+     * Download `url` using libcurl (dynamically loaded). Returns ArrayBuffer
+     * when the http status code is between 200 and 299, and throws otherwise.
      *
-     * Pass an object with { full: true } as the second argument to get
-     * response headers and status code.
+     * Pass an object with { full: true } as the second argument to get response
+     * headers and status code.
      */
     (url: string, options: { binary: true }): ArrayBuffer;
 
     /**
-     * Download `url` using the `curl` command line utility. Returns
-     * ArrayBuffer when the http status code is between 200 and 299, and throws
-     * otherwise.
+     * Download `url` using libcurl (dynamically loaded). Returns ArrayBuffer
+     * when the http status code is between 200 and 299, and throws otherwise.
      *
-     * Pass an object with { full: true } as the second argument to get
-     * response headers and status code.
+     * Pass an object with { full: true } as the second argument to get response
+     * headers and status code.
      */
     (url: string, options: { binary: true; full: false }): ArrayBuffer;
 
     /**
-     * Download `url` using the `curl` command line utility.
+     * Download `url` using libcurl (dynamically loaded).
      *
      * Returns an object with three properties:
      *
@@ -343,7 +341,7 @@ declare module "quickjs:std" {
     };
 
     /**
-     * Download `url` using the `curl` command line utility.
+     * Download `url` using libcurl (dynamically loaded).
      *
      * Returns an object with three properties:
      *
@@ -358,7 +356,7 @@ declare module "quickjs:std" {
     };
 
     /**
-     * Download `url` using the `curl` command line utility.
+     * Download `url` using libcurl (dynamically loaded).
      *
      * Returns an object with three properties:
      *
