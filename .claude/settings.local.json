@@ -72,7 +72,8 @@
       "Bash(mkdir:*)",
       "WebSearch",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(meta/docker/compile-triples.sh:*)"
+      "Bash(meta/docker/compile-triples.sh:*)",
+      "WebFetch(domain:justine.lol)"
     ],
     "additionalDirectories": [
       "/tmp",

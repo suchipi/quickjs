@@ -1370,14 +1370,10 @@ static JSValue js_std_file_setvbuf(JSContext *ctx, JSValueConst this_val,
 
 /* urlGet - uses libcurl loaded via dlopen */
 
-#if !defined(__wasi__) && !defined(__EMSCRIPTEN__)
+#if !defined(__wasi__) && !defined(__EMSCRIPTEN__) && !defined(__COSMO__)
 
 /* Platform abstraction for dynamic loading */
-#if defined(__COSMO__)
-#define URLGET_DLOPEN(name) cosmo_dlopen(name, RTLD_NOW | RTLD_LOCAL)
-#define URLGET_DLSYM(handle, name) cosmo_dlsym(handle, name)
-#define URLGET_DLCLOSE(handle) cosmo_dlclose(handle)
-#elif defined(_WIN32)
+#if defined(_WIN32)
 #define URLGET_DLOPEN(name) ((void *)LoadLibraryA(name))
 #define URLGET_DLSYM(handle, name) ((void *)GetProcAddress((HMODULE)(handle), name))
 #define URLGET_DLCLOSE(handle) FreeLibrary((HMODULE)(handle))
@@ -1398,6 +1394,7 @@ static JSValue js_std_file_setvbuf(JSContext *ctx, JSValueConst this_val,
 #define QJS_CURLE_OK                0
 
 /* libcurl function pointer types */
+typedef int (*qjs_curl_global_init_fn)(long flags);
 typedef void *(*qjs_curl_easy_init_fn)(void);
 typedef int (*qjs_curl_easy_setopt_fn)(void *handle, int option, ...);
 typedef int (*qjs_curl_easy_perform_fn)(void *handle);
@@ -1405,10 +1402,13 @@ typedef int (*qjs_curl_easy_getinfo_fn)(void *handle, int info, ...);
 typedef void (*qjs_curl_easy_cleanup_fn)(void *handle);
 typedef const char *(*qjs_curl_easy_strerror_fn)(int code);
 
+#define QJS_CURL_GLOBAL_DEFAULT 3L
+
 static struct {
     BOOL initialized;
     BOOL loaded;
     void *handle;
+    qjs_curl_global_init_fn global_init;
     qjs_curl_easy_init_fn easy_init;
     qjs_curl_easy_setopt_fn easy_setopt;
     qjs_curl_easy_perform_fn easy_perform;
@@ -1446,9 +1446,12 @@ static int ensure_libcurl_loaded(char *errbuf, size_t errbuf_size)
 
     lib_handle = NULL;
     for (i = 0; lib_names[i] != NULL; i++) {
+        debugprint("urlGet: trying to load %s\n", lib_names[i]);
         lib_handle = URLGET_DLOPEN(lib_names[i]);
-        if (lib_handle)
+        if (lib_handle) {
+            debugprint("urlGet: loaded %s\n", lib_names[i]);
             break;
+        }
     }
 
     if (!lib_handle) {
@@ -1474,6 +1477,7 @@ static int ensure_libcurl_loaded(char *errbuf, size_t errbuf_size)
     } \
 } while(0)
 
+    LOAD_SYM(global_init, "curl_global_init");
     LOAD_SYM(easy_init, "curl_easy_init");
     LOAD_SYM(easy_setopt, "curl_easy_setopt");
     LOAD_SYM(easy_perform, "curl_easy_perform");
@@ -1482,6 +1486,17 @@ static int ensure_libcurl_loaded(char *errbuf, size_t errbuf_size)
     LOAD_SYM(easy_strerror, "curl_easy_strerror");
 
 #undef LOAD_SYM
+
+    /* Initialize libcurl (sets up SSL backends, protocol handlers, etc.) */
+    {
+        int rc = qjs_libcurl.global_init(QJS_CURL_GLOBAL_DEFAULT);
+        debugprint("urlGet: curl_global_init returned %d\n", rc);
+        if (rc != QJS_CURLE_OK) {
+            snprintf(errbuf, errbuf_size, "curl_global_init failed (code %d)", rc);
+            URLGET_DLCLOSE(lib_handle);
+            return -1;
+        }
+    }
 
     qjs_libcurl.handle = lib_handle;
     qjs_libcurl.loaded = TRUE;
@@ -1522,12 +1537,12 @@ static size_t urlget_header_cb(char *ptr, size_t size, size_t nmemb, void *userd
     return total;
 }
 
-#endif /* !__wasi__ && !__EMSCRIPTEN__ */
+#endif /* !__wasi__ && !__EMSCRIPTEN__ && !__COSMO__ */
 
 static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
-#if defined(__wasi__) || defined(__EMSCRIPTEN__)
+#if defined(__wasi__) || defined(__EMSCRIPTEN__) || defined(__COSMO__)
     return JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__, "urlGet is not supported on this platform");
 #else
     const char *url;
@@ -1575,12 +1590,48 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
         goto fail;
     }
 
-    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_URL, url);
-    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_FOLLOWLOCATION, 1L);
-    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_WRITEFUNCTION, urlget_write_cb);
-    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_WRITEDATA, data_buf);
-    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HEADERFUNCTION, urlget_header_cb);
-    qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HEADERDATA, header_buf);
+    curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_URL, url);
+    if (curl_err != QJS_CURLE_OK) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__,
+                      "curl_easy_setopt(CURLOPT_URL) failed: %s",
+                      qjs_libcurl.easy_strerror(curl_err));
+        goto fail;
+    }
+    curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_FOLLOWLOCATION, 1L);
+    if (curl_err != QJS_CURLE_OK) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__,
+                      "curl_easy_setopt(CURLOPT_FOLLOWLOCATION) failed: %s",
+                      qjs_libcurl.easy_strerror(curl_err));
+        goto fail;
+    }
+    curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_WRITEFUNCTION, urlget_write_cb);
+    if (curl_err != QJS_CURLE_OK) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__,
+                      "curl_easy_setopt(CURLOPT_WRITEFUNCTION) failed: %s",
+                      qjs_libcurl.easy_strerror(curl_err));
+        goto fail;
+    }
+    curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_WRITEDATA, data_buf);
+    if (curl_err != QJS_CURLE_OK) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__,
+                      "curl_easy_setopt(CURLOPT_WRITEDATA) failed: %s",
+                      qjs_libcurl.easy_strerror(curl_err));
+        goto fail;
+    }
+    curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HEADERFUNCTION, urlget_header_cb);
+    if (curl_err != QJS_CURLE_OK) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__,
+                      "curl_easy_setopt(CURLOPT_HEADERFUNCTION) failed: %s",
+                      qjs_libcurl.easy_strerror(curl_err));
+        goto fail;
+    }
+    curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HEADERDATA, header_buf);
+    if (curl_err != QJS_CURLE_OK) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__,
+                      "curl_easy_setopt(CURLOPT_HEADERDATA) failed: %s",
+                      qjs_libcurl.easy_strerror(curl_err));
+        goto fail;
+    }
 
     debugprint("urlGet: fetching %s\n", url);
 
@@ -1593,7 +1644,13 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
     }
 
     response_code = 0;
-    qjs_libcurl.easy_getinfo(curl, QJS_CURLINFO_RESPONSE_CODE, &response_code);
+    curl_err = qjs_libcurl.easy_getinfo(curl, QJS_CURLINFO_RESPONSE_CODE, &response_code);
+    if (curl_err != QJS_CURLE_OK) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__,
+                      "curl_easy_getinfo(CURLINFO_RESPONSE_CODE) failed: %s",
+                      qjs_libcurl.easy_strerror(curl_err));
+        goto fail;
+    }
     status = (int)response_code;
 
     qjs_libcurl.easy_cleanup(curl);
