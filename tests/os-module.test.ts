@@ -1,16 +1,26 @@
-import { spawn } from "first-base";
+import { spawn, sanitizers } from "first-base";
 import { binDir, rootDir, testsWorkDir } from "./_utils";
 import fs from "fs";
 
 const workDir = testsWorkDir.concat("os-module");
 
+const localSanitizers = [
+  (str: string) => str.replace(/\/private\/tmp/g, "/tmp"),
+];
+
 beforeAll(() => {
   fs.rmSync(workDir(), { recursive: true, force: true });
   fs.mkdirSync(workDir(), { recursive: true });
+
+  sanitizers.push(...localSanitizers);
 });
 
 afterAll(() => {
   fs.rmSync(workDir(), { recursive: true, force: true });
+
+  for (const _sanitizer of localSanitizers) {
+    sanitizers.pop();
+  }
 });
 
 // =========== os.open, os.close, os.read, os.write (fd-based) ===========
@@ -35,7 +45,7 @@ test("os.open and os.read - read file by fd", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -74,7 +84,7 @@ test("os.open and os.write - write file by fd", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -113,7 +123,7 @@ test("os.seek - seek within file by fd", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -142,7 +152,7 @@ test("os.seek - bigint offset returns bigint", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -171,7 +181,7 @@ test("os.O_* constants exist", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -202,7 +212,7 @@ test("os.isatty - returns false for pipe", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -237,7 +247,7 @@ test("os.remove - removes a file", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -279,7 +289,7 @@ test("os.rename - renames a file", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -305,7 +315,7 @@ test("os.realpath - resolves path", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -337,14 +347,14 @@ test("os.getcwd and os.chdir", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
       "stderr": "",
       "stdout": "cwd type: string
     cwd absolute: true
-    after chdir: /private/tmp
+    after chdir: /tmp
     restored: true
     ",
     }
@@ -371,7 +381,7 @@ test("os.mkdir - creates directory", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -409,7 +419,7 @@ test("os.stat - returns file stats", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -464,7 +474,7 @@ test("os.S_I* permission constants", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -515,7 +525,7 @@ test("os.chmod - changes file mode", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -560,7 +570,7 @@ test("os.access - check file accessibility", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -588,7 +598,7 @@ test("os access constants exist", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -624,7 +634,7 @@ test("os.utimes - update file times", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -662,7 +672,7 @@ test("os.dup - duplicates file descriptor", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -702,7 +712,7 @@ test("os.dup2 - duplicates fd to specific fd", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -727,7 +737,7 @@ test("os.sleep - sleeps for specified ms", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -765,7 +775,7 @@ test("os.signal - signal constants exist", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -816,7 +826,7 @@ test("os.signal - register and unregister handler", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -841,7 +851,7 @@ test("os.execPath - returns path to qjs binary", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -866,7 +876,7 @@ test("os.gethostname - returns hostname", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -891,16 +901,8 @@ test("os.platform - returns platform string", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
-    {
-      "code": 0,
-      "error": false,
-      "stderr": "",
-      "stdout": "platform: darwin
-    valid: true
-    ",
-    }
-  `);
+  expect(run.result.code).toBe(0);
+  expect(run.result.stdout).toContain("valid: true");
 });
 
 // =========== WNOHANG ===========
@@ -914,7 +916,7 @@ test("os.WNOHANG constant", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -942,7 +944,7 @@ test("os wait status functions exist", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -979,7 +981,7 @@ test("os.readdir - lists directory entries", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -1023,7 +1025,7 @@ test("os.setReadHandler - detects data on pipe", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
@@ -1063,7 +1065,7 @@ test("os.setWriteHandler - detects pipe writable", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": false,
