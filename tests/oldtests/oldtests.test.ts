@@ -2,8 +2,11 @@ import { spawn } from "first-base";
 import { sleep } from "a-mimir";
 import { binDir } from "../_utils";
 
-async function qjs(args: Array<string>) {
+async function qjs(args: Array<string>, debug?: boolean) {
   const run = spawn(binDir("qjs"), args, { cwd: __dirname });
+  if (debug) {
+    run.debug();
+  }
   await Promise.race([
     run.completion,
     sleep.async(4500).then(() => {
@@ -105,7 +108,7 @@ describe("oldtests", () => {
   });
 
   test("test_worker.js", async () => {
-    expect(await qjs(["./test_worker.js"])).toMatchInlineSnapshot(`
+    expect(await qjs(["./test_worker.js"], true)).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
