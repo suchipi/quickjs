@@ -1096,6 +1096,27 @@ test("os.ttyGetWinSize - returns size in PTY", async () => {
   expect(run.result.stdout).toMatch(/size: \[\d+,\d+\]/);
 });
 
+test("os.ttyGetWinSize - returns null in when not a tty", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const os = require("quickjs:os");
+      const size = os.ttyGetWinSize(0);
+      console.log("size:", JSON.stringify(size));
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "size: null
+    ",
+    }
+  `);
+});
+
 test("os.ttySetRaw - sets raw mode without error", async () => {
   const run = spawn(
     binDir("qjs"),
@@ -1112,6 +1133,27 @@ test("os.ttySetRaw - sets raw mode without error", async () => {
   await run.completion;
   expect(run.result.code).toBe(0);
   expect(run.result.stdout).toContain("raw mode set");
+});
+
+test("os.ttySetRaw - silently fails in non-tty", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const os = require("quickjs:os");
+      os.ttySetRaw(0);
+      console.log("raw mode set");
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": false,
+      "stderr": "",
+      "stdout": "raw mode set
+    ",
+    }
+  `);
 });
 
 test("os.isatty - returns true in PTY", async () => {
