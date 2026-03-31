@@ -231,10 +231,16 @@ test("engine.getFileNameFromStack - returns current filename", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result.code).toBe(0);
-  expect(run.result.stdout).toContain("level0:");
-  expect(run.result.stdout).toContain("get-filename-from-stack.js");
-  expect(run.result.stdout).toContain("level1 error:");
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "level0: <rootDir>/tests/fixtures/get-filename-from-stack.js
+    level1 error: Cannot determine the caller filename for the given stack level. Maybe you're using eval?
+    ",
+    }
+  `);
 });
 
 // =========== gc ===========
