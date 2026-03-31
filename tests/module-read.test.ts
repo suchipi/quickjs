@@ -17,7 +17,7 @@ describe("ModuleDelegate.read", () => {
     expect(run.result).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "4
       ",
@@ -49,7 +49,7 @@ describe("ModuleDelegate.read", () => {
     expect(run.result).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "<__dirname>/fixtures/log-four.js
       ",
         "stdout": "17

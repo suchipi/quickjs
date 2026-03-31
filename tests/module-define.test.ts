@@ -26,7 +26,7 @@ test("defineBuiltinModule - basic test", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "builtins contains mymodule: false
     builtins contains mymodule: true
@@ -58,7 +58,7 @@ test("defineBuiltinModule - never imported", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "builtins contains mymodule: false
     builtins contains mymodule: true
@@ -92,7 +92,7 @@ test("defineBuiltinModule - bypasses toplevel module resolution", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "called false
     ",

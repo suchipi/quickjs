@@ -23,7 +23,7 @@ test("qjsbootstrap - can access bytecode lib", async () => {
   expect(run2.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "{
     	Null prototype

@@ -48,7 +48,7 @@ test("os.open and os.read - read file by fd", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "fd type: number
     fd > 2: true
@@ -87,7 +87,7 @@ test("os.open and os.write - write file by fd", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "bytes written: 14
     content: written via fd
@@ -126,7 +126,7 @@ test("os.seek - seek within file by fd", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "pos after seek: 5
     read: fghij
@@ -155,7 +155,7 @@ test("os.seek - bigint offset returns bigint", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "type: bigint
     value: 3
@@ -184,7 +184,7 @@ test("os.O_* constants exist", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "O_RDONLY: number
     O_WRONLY: number
@@ -215,7 +215,7 @@ test("os.isatty - returns false for pipe", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "stdin: false
     stdout: false
@@ -250,7 +250,7 @@ test("os.remove - removes a file", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "removed
     confirmed gone
@@ -292,7 +292,7 @@ test("os.rename - renames a file", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "renamed
     old gone
@@ -318,7 +318,7 @@ test("os.realpath - resolves path", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "type: string
     absolute: true
@@ -350,7 +350,7 @@ test("os.getcwd and os.chdir", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "cwd type: string
     cwd absolute: true
@@ -384,7 +384,7 @@ test("os.mkdir - creates directory", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "is dir: true
     ",
@@ -422,7 +422,7 @@ test("os.stat - returns file stats", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "dev: number
     ino: number
@@ -477,7 +477,7 @@ test("os.S_I* permission constants", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "S_IFMT: number
     S_IFIFO: number
@@ -528,7 +528,7 @@ test("os.chmod - changes file mode", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "perms: 755
     ",
@@ -573,7 +573,7 @@ test("os.access - check file accessibility", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "F_OK: ok
     R_OK: ok
@@ -601,7 +601,7 @@ test("os access constants exist", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "R_OK: number
     W_OK: number
@@ -637,7 +637,7 @@ test("os.utimes - update file times", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "atime: 1000000000
     mtime: 1000000000
@@ -675,7 +675,7 @@ test("os.dup - duplicates file descriptor", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "fd2 type: number
     fd2 != fd: true
@@ -715,7 +715,7 @@ test("os.dup2 - duplicates fd to specific fd", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "content: dup2 test
     ",
@@ -740,7 +740,7 @@ test("os.sleep - sleeps for specified ms", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "slept: true
     ",
@@ -778,7 +778,7 @@ test("os.signal - signal constants exist", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "SIGINT: number
     SIGABRT: number
@@ -829,7 +829,7 @@ test("os.signal - register and unregister handler", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "handler set
     handler cleared
@@ -854,7 +854,7 @@ test("os.execPath - returns path to qjs binary", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "type: string
     ends with qjs: true
@@ -879,7 +879,7 @@ test("os.gethostname - returns hostname", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "type: string
     non-empty: true
@@ -919,7 +919,7 @@ test("os.WNOHANG constant", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "WNOHANG: number true
     ",
@@ -947,7 +947,7 @@ test("os wait status functions exist", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "WEXITSTATUS: function
     WTERMSIG: function
@@ -984,7 +984,7 @@ test("os.readdir - lists directory entries", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "["a.txt","b.txt","subdir"]
     ",
@@ -1028,7 +1028,7 @@ test("os.setReadHandler - detects data on pipe", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "read: handler test
     ",
@@ -1068,7 +1068,7 @@ test("os.setWriteHandler - detects pipe writable", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "read: write handler test
     ",
@@ -1109,7 +1109,7 @@ test("os.ttyGetWinSize - returns null in when not a tty", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "size: null
     ",
@@ -1148,7 +1148,7 @@ test("os.ttySetRaw - silently fails in non-tty", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "raw mode set
     ",

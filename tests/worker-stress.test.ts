@@ -11,7 +11,7 @@ test("worker spams messages, main terminates without reading", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "main: creating worker
     worker: sent 500 messages
@@ -28,7 +28,7 @@ test("worker spams messages, main reads them all", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "main: creating worker
     worker: sent 500 messages
@@ -46,7 +46,7 @@ test("terminate idle worker", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "main: creating worker
     main: worker is ready, terminating
@@ -64,7 +64,7 @@ test("terminate without ever setting onmessage", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "main: creating worker
     main: terminating worker (never set onmessage)
@@ -82,7 +82,7 @@ test("double terminate does not crash", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "main: creating worker
     main: first terminate
@@ -101,7 +101,7 @@ test("postMessage after terminate", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "main: creating worker
     main: terminating
@@ -119,7 +119,7 @@ test("main never cleans up, worker exits on its own", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "main: creating worker
     main: worker created, not doing anything with it
@@ -137,7 +137,7 @@ test("std.out.flush works in worker", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "worker: std.out is object
     worker: std.out.flush is function
@@ -198,7 +198,7 @@ test("os.exec works while worker is running", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hello from exec
     exec returned: 0
@@ -214,7 +214,7 @@ test("worker throws during message handling, then main terminates", async () => 
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: worker error
         at somewhere
 

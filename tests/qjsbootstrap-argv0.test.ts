@@ -18,7 +18,7 @@ test("qjsbootstrap - finds itself properly when argv0 is indirect", async () => 
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "append UTF-8 encoded JavaScript to the end of this binary to change this binary into a program that executes that JavaScript code
     ",
@@ -36,7 +36,7 @@ test("qjsbootstrap - finds itself properly when argv0 is indirect", async () => 
   expect(run2.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "4
     ",

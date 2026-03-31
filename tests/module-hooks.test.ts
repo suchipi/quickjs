@@ -11,7 +11,7 @@ test("ModuleDelegate.compilers and ModuleDelegate.searchExtensions", async () =>
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "content: hello world!
 

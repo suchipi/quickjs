@@ -10,7 +10,7 @@ test("normal Error - prints message and stack", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: hello
         at <eval> (<cmdline>)
 
@@ -26,7 +26,7 @@ test("thrown string - prints string, no stack", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "thrown non-Error value: "some string"
     ",
       "stdout": "",
@@ -40,7 +40,7 @@ test("thrown number - prints number, no stack", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "thrown non-Error value: 42
     ",
       "stdout": "",
@@ -61,7 +61,7 @@ test("Error with overridden toString that throws - falls back to .message", asyn
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: the message
         at <eval> (<cmdline>:2)
 
@@ -80,7 +80,7 @@ test("non-error object with throwing toString - falls back to Object.prototype.t
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "thrown non-Error value: [object Object]
     ",
       "stdout": "",
@@ -100,7 +100,7 @@ test("non-error object where Object.prototype.toString also fails", async () => 
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "thrown non-Error value: [thrown object upon which Object.prototype.toString.call(...) failed]
     ",
       "stdout": "",
@@ -121,7 +121,7 @@ test("Error with null stack - prints message but no stack", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: no stack
     ",
       "stdout": "",

@@ -10,7 +10,7 @@ describe("module resolution", () => {
     expect(run.result).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "5
       ",
@@ -26,7 +26,7 @@ describe("module resolution", () => {
     expect(run.result).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "4
       ",
@@ -46,7 +46,7 @@ describe("module resolution", () => {
     expect(run.result).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "hello there
       ",
@@ -62,7 +62,7 @@ describe("module resolution", () => {
     expect(run.result).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "function
       ",

@@ -11,7 +11,7 @@ test("RegExp: escaped dash in character set", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "/([\\w\\-:])/suy
     ",

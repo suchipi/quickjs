@@ -9,7 +9,7 @@ test("cmdline.exit in worker throws", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: cmdline.exit can only be called from the main thread
         at somewhere
 

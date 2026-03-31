@@ -24,7 +24,7 @@ test("quickjs:encoding - basic test", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "{
     	result: 4
@@ -62,7 +62,7 @@ test("quickjs:encoding - fromUtf8 is inverse of toUtf8", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "{
     	input: "hi あ"
@@ -94,7 +94,7 @@ test("TextEncoder - basic encode", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: utf-8
     instanceof: true
@@ -121,7 +121,7 @@ test("TextEncoder - multibyte characters", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "e3 81 82 f0 9f 98 80
     ",
@@ -161,7 +161,7 @@ test("TextEncoder.encodeInto", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "full: {"read":5,"written":5}
     partial: {"read":1,"written":3}
@@ -197,7 +197,7 @@ test("TextDecoder - UTF-8 basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: utf-8
     fatal: false
@@ -230,7 +230,7 @@ test("TextDecoder - UTF-8 fatal mode", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "fatal: true
     caught: TypeError
@@ -257,7 +257,7 @@ test("TextDecoder - UTF-8 replacement mode", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "len: 2
     cp0: fffd
@@ -289,7 +289,7 @@ test("TextDecoder - UTF-8 BOM handling", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "stripped: A
     preserved len: 2
@@ -321,7 +321,7 @@ test("TextDecoder - UTF-8 streaming", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "result: あ
     incomplete cps: fffd,fffd
@@ -354,7 +354,7 @@ test("TextDecoder - UTF-16LE", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: utf-16le
     hi
@@ -385,7 +385,7 @@ test("TextDecoder - UTF-16BE", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: utf-16be
     hi
@@ -412,7 +412,7 @@ test("TextDecoder - invalid label throws RangeError", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "RangeError
     ",
@@ -436,7 +436,7 @@ test("TextDecoder - label aliases", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "utf-8
     utf-8
@@ -471,7 +471,7 @@ test("TextDecoder - Shift_JIS basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: shift_jis
     Hi
@@ -501,7 +501,7 @@ test("TextDecoder - Shift_JIS half-width katakana", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "ｱﾝ
     cp0: ff71
@@ -531,7 +531,7 @@ test("TextDecoder - Shift_JIS label aliases", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "shift_jis
     shift_jis
@@ -575,7 +575,7 @@ test("TextDecoder - Shift_JIS fatal mode", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "caught: TypeError
     incomplete caught: TypeError
@@ -602,7 +602,7 @@ test("TextDecoder - Shift_JIS replacement mode", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "len: 2
     cp0: fffd
@@ -634,7 +634,7 @@ test("TextDecoder - Shift_JIS streaming", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "result: 日
     incomplete cp: fffd
@@ -663,7 +663,7 @@ test("TextDecoder - Shift_JIS trail byte error recovery", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "len: 2
     cp0: fffd
@@ -694,7 +694,7 @@ test("TextEncoder - UTF-16LE basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: utf-16le
     bytes: 68 00 69 00
@@ -725,7 +725,7 @@ test("TextEncoder - UTF-16BE basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: utf-16be
     bytes: 00 68 00 69
@@ -760,7 +760,7 @@ test("TextEncoder - Shift_JIS basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: shift_jis
     ascii: 48 69
@@ -795,7 +795,7 @@ test("TextEncoder - Shift_JIS special mappings", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "yen: 5c
     overline: 7e
@@ -822,7 +822,7 @@ test("TextEncoder - label aliases", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "utf-8
     utf-8
@@ -863,7 +863,7 @@ test("TextEncoder.encodeInto - UTF-16LE", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "full: {"read":2,"written":4}
     bytes: 41 00 42 00
@@ -902,7 +902,7 @@ test("TextEncoder.encodeInto - Shift_JIS", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "full: {"read":2,"written":4}
     bytes: 93 fa 96 7b
@@ -930,7 +930,7 @@ test("TextEncoder - invalid label throws RangeError", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "RangeError
     ",
@@ -961,7 +961,7 @@ test("TextDecoder - Windows-1252 basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: windows-1252
     Hi
@@ -988,7 +988,7 @@ test("TextDecoder - Windows-1252 aliases", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "windows-1252
     windows-1252
@@ -1025,7 +1025,7 @@ test("TextEncoder - Windows-1252 basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: windows-1252
     ascii: 48 69
@@ -1059,7 +1059,7 @@ test("TextDecoder - Windows-1251 basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: windows-1251
     Hi
@@ -1085,7 +1085,7 @@ test("TextEncoder - Windows-1251 basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: windows-1251
     cyrillic: c0 c1 ff
@@ -1116,7 +1116,7 @@ test("TextDecoder - Big5 basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: big5
     Hi
@@ -1143,7 +1143,7 @@ test("TextDecoder - Big5 streaming", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "result: 中
     ",
@@ -1167,7 +1167,7 @@ test("TextEncoder - Big5 basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: big5
     chinese: a4 a4 a4 e5
@@ -1198,7 +1198,7 @@ test("TextDecoder - EUC-KR basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: euc-kr
     Hi
@@ -1224,7 +1224,7 @@ test("TextEncoder - EUC-KR basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: euc-kr
     korean: c7 d1 b1 db
@@ -1260,7 +1260,7 @@ test("TextDecoder - EUC-JP basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: euc-jp
     Hi
@@ -1291,7 +1291,7 @@ test("TextEncoder - EUC-JP basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: euc-jp
     japanese: c6 fc cb dc
@@ -1323,7 +1323,7 @@ test("TextDecoder - GB18030 basic 2-byte", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: gb18030
     Hi
@@ -1351,7 +1351,7 @@ test("TextDecoder - GB18030 4-byte sequences", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: gb18030
     4-byte cp: 10000
@@ -1375,7 +1375,7 @@ test("TextDecoder - GB18030 aliases", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "gb18030
     gb18030
@@ -1402,7 +1402,7 @@ test("TextEncoder - GB18030 basic", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: gb18030
     chinese: d6 d0 ce c4
@@ -1434,7 +1434,7 @@ test("TextEncoder - GB18030 4-byte encoding", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "encoding: gb18030
     emoji len: 4
@@ -1469,7 +1469,7 @@ test("TextDecoder - GB18030 streaming", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "2-byte streaming: 中
     4-byte streaming cp: 10000

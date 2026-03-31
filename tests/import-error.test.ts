@@ -22,7 +22,7 @@ test("module with error is gc'd properly: esm", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: that ain't good
     ",
       "stdout": "4

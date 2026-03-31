@@ -9,7 +9,7 @@ test("cmdline.exit in worker throws", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: cmdline.exit can only be called from the main thread
         at somewhere
 
@@ -37,7 +37,7 @@ test("worker terminates when main sets worker.onmessage = null", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "in main
     in worker
@@ -59,7 +59,7 @@ test("worker terminates when main calls worker.terminate()", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "in main
     in worker

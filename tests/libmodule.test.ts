@@ -9,7 +9,7 @@ test("isModuleNamespace", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "exporting 5
     isModuleNamespace(ns): true

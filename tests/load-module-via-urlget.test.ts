@@ -9,7 +9,7 @@ test("using custom Module.resolve and custom Module.read to import stuff via std
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "function
     ",

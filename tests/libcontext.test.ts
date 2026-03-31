@@ -7,7 +7,7 @@ test("quickjs:context - example", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "TypeError: eval is not supported
     ReferenceError: 'console' is not defined
     TypeError: eval is not supported
@@ -80,7 +80,7 @@ test("quickjs:context - quickjs:bytecode option (default value)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -106,7 +106,7 @@ test("quickjs:context - quickjs:bytecode option (true)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -132,7 +132,7 @@ test("quickjs:context - quickjs:bytecode option (false)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:bytecode)
         at <internal>/quickjs-std.c:315
         at loadFile (native)
@@ -160,7 +160,7 @@ test("quickjs:context - quickjs:cmdline option (default value)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -186,7 +186,7 @@ test("quickjs:context - quickjs:cmdline option (true)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -212,7 +212,7 @@ test("quickjs:context - quickjs:cmdline option (false)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:cmdline)
         at <internal>/quickjs-std.c:315
         at loadFile (native)
@@ -240,7 +240,7 @@ test("quickjs:context - quickjs:context option (default value)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -266,7 +266,7 @@ test("quickjs:context - quickjs:context option (true)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -292,7 +292,7 @@ test("quickjs:context - quickjs:context option (false)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:context)
         at <internal>/quickjs-std.c:315
         at loadFile (native)
@@ -320,7 +320,7 @@ test("quickjs:context - quickjs:encoding option (default value)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -346,7 +346,7 @@ test("quickjs:context - quickjs:encoding option (true)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -372,7 +372,7 @@ test("quickjs:context - quickjs:encoding option (false)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:encoding)
         at <internal>/quickjs-std.c:315
         at loadFile (native)
@@ -400,7 +400,7 @@ test("quickjs:context - quickjs:engine option (default value)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -426,7 +426,7 @@ test("quickjs:context - quickjs:engine option (true)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -452,7 +452,7 @@ test("quickjs:context - quickjs:engine option (false)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:engine)
         at <internal>/quickjs-std.c:315
         at loadFile (native)
@@ -480,7 +480,7 @@ test("quickjs:context - quickjs:os option (default value)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -506,7 +506,7 @@ test("quickjs:context - quickjs:os option (true)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -532,7 +532,7 @@ test("quickjs:context - quickjs:os option (false)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:os)
         at <internal>/quickjs-std.c:315
         at loadFile (native)
@@ -560,7 +560,7 @@ test("quickjs:context - quickjs:std option (default value)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -586,7 +586,7 @@ test("quickjs:context - quickjs:std option (true)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -612,7 +612,7 @@ test("quickjs:context - quickjs:std option (false)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:std)
         at <internal>/quickjs-std.c:315
         at loadFile (native)
@@ -640,7 +640,7 @@ test("quickjs:context - quickjs:timers option (default value)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -666,7 +666,7 @@ test("quickjs:context - quickjs:timers option (true)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -692,7 +692,7 @@ test("quickjs:context - quickjs:timers option (false)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:timers)
         at <internal>/quickjs-std.c:315
         at loadFile (native)
@@ -721,7 +721,7 @@ test("quickjs:context - date: false disables Date", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -747,7 +747,7 @@ test("quickjs:context - eval: false disables eval", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "error: eval is not supported
     ",
@@ -768,7 +768,7 @@ test("quickjs:context - stringNormalize: false disables String.prototype.normali
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -789,7 +789,7 @@ test("quickjs:context - regExp: false disables RegExp", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -810,7 +810,7 @@ test("quickjs:context - json: false disables JSON", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -831,7 +831,7 @@ test("quickjs:context - proxy: false disables Proxy", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -852,7 +852,7 @@ test("quickjs:context - mapSet: false disables Map and Set", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined undefined
     ",
@@ -873,7 +873,7 @@ test("quickjs:context - typedArrays: false disables ArrayBuffer and typed arrays
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined undefined
     ",
@@ -894,7 +894,7 @@ test("quickjs:context - promise: false disables Promise", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -915,7 +915,7 @@ test("quickjs:context - bigint: false disables BigInt", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -936,7 +936,7 @@ test("quickjs:context - inspect: false disables inspect", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -957,7 +957,7 @@ test("quickjs:context - console: false disables console", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -978,7 +978,7 @@ test("quickjs:context - print: false disables print", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined
     ",
@@ -1004,7 +1004,7 @@ test("quickjs:context - timers: false disables timer globals", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "undefined undefined undefined undefined
     ",
@@ -1028,7 +1028,7 @@ test("quickjs:context - ctx.eval returns result", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "result: 5
     string: hello world
@@ -1051,7 +1051,7 @@ test("quickjs:context - ctx.eval can access context globals", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "result: 42
     ",
@@ -1082,7 +1082,7 @@ test("quickjs:context - ctx.eval with all options enabled (default)", async () =
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "function function object function function function function function
     ",

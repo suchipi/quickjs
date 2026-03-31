@@ -18,7 +18,7 @@ describe("oldtests", () => {
     expect(await qjs(["--bignum", "./test_bignum.js"])).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "",
       }
@@ -29,7 +29,7 @@ describe("oldtests", () => {
     expect(await qjs(["./test_builtin.js"])).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "",
       }
@@ -40,7 +40,7 @@ describe("oldtests", () => {
     expect(await qjs(["./test_closure.js"])).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "",
       }
@@ -51,7 +51,7 @@ describe("oldtests", () => {
     expect(await qjs(["./test_language.js"])).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "",
       }
@@ -62,7 +62,7 @@ describe("oldtests", () => {
     expect(await qjs(["./test_loop.js"])).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "",
       }
@@ -74,7 +74,7 @@ describe("oldtests", () => {
       .toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "",
       }
@@ -86,7 +86,7 @@ describe("oldtests", () => {
       .toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "",
       }
@@ -97,7 +97,7 @@ describe("oldtests", () => {
     expect(await qjs(["./test_std.js"])).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "",
       }
@@ -108,7 +108,7 @@ describe("oldtests", () => {
     expect(await qjs(["./test_worker.js"])).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "",
       }

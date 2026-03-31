@@ -9,7 +9,7 @@ test("import.meta.resolve", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "{
     	import.meta.resolve: Function "require.resolve" {

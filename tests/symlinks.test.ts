@@ -49,7 +49,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
       stdout: expect.stringContaining("symlink created"),
     });
     expect(run.cleanResult().stdout).toContain("content: hello from target");
@@ -80,7 +80,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
       stdout: expect.stringContaining("symlink created"),
     });
     expect(run.cleanResult().stdout).toContain('entries: ["inside.txt"]');
@@ -110,7 +110,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
       stdout: expect.stringContaining("target: target.txt"),
     });
   });
@@ -145,7 +145,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
     });
     expect(run.cleanResult().stdout).toContain("lstat sees symlink: true");
     expect(run.cleanResult().stdout).toContain("stat sees regular file: true");
@@ -181,7 +181,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
     });
     expect(run.cleanResult().stdout).toContain("lstat sees symlink: true");
     expect(run.cleanResult().stdout).toContain("stat sees directory: true");
@@ -203,7 +203,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
     });
     expect(run.cleanResult().stdout).toContain("S_IFLNK: 120000");
     expect(run.cleanResult().stdout).toContain("S_IFMT: 170000");
@@ -229,7 +229,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
     });
     expect(run.cleanResult().stdout).toContain("caught error");
   });
@@ -257,7 +257,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
     });
     expect(run.cleanResult().stdout).toContain("caught error");
   });
@@ -286,7 +286,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
     });
     expect(run.cleanResult().stdout).toContain(
       "target: nonexistent-for-readlink"
@@ -326,7 +326,7 @@ describe("symlinks", () => {
     await run.completion;
     expect(run.cleanResult()).toMatchObject({
       code: 0,
-      error: false,
+      error: null,
     });
     expect(run.cleanResult().stdout).toContain(
       "lstat works on broken symlink: true"

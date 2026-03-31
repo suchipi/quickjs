@@ -15,7 +15,7 @@ test("os.exec - run a command with block: true", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hello from exec
     exit status: 0
@@ -41,7 +41,7 @@ test("os.exec - run a command with block: false and waitpid", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hello async
     got pid: true
@@ -70,7 +70,7 @@ test("os.exec - kill a child process with SIGTERM", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "got pid: true
     signaled: true
@@ -98,7 +98,7 @@ test("os.exec - file option overrides executable", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "from file option
     exit status: 0
@@ -121,7 +121,7 @@ test("os.exec - cwd option changes working directory", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "/usr
     exit status: 0
@@ -148,7 +148,7 @@ test("os.exec - env option sets environment variables", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hello_from_env
     exit status: 0
@@ -183,7 +183,7 @@ test("os.exec - stdout option redirects child stdout to pipe", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "read from pipe: piped output
     ",
@@ -217,7 +217,7 @@ test("os.exec - stderr option redirects child stderr to pipe", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "read from pipe: error_msg
     ",
@@ -251,7 +251,7 @@ test("os.exec - stdin option feeds data to child process", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hello from stdin
     exit code: 0

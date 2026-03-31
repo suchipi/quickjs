@@ -9,7 +9,7 @@ test("String.cooked", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "{
     	raw: "C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common"

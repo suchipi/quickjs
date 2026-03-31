@@ -23,7 +23,7 @@ test("setInterval and clearInterval are present", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "function function
     [object Timer]
@@ -55,7 +55,7 @@ test("setTimeout and setInterval work", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hello! 0
     hello! 1
@@ -88,7 +88,7 @@ test("setInterval callback continues to re-run even if it errors", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: uh oh! an error!
         at <anonymous> (<cmdline>:3)
 
@@ -133,7 +133,7 @@ test("failure in setInterval callback uses console.error", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: uh oh! an error!
         at <anonymous> (<cmdline>:8)
 
@@ -186,7 +186,7 @@ test("setInterval callback falls back to print if console.error isn't present", 
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: uh oh! an error!
         at <anonymous> (<cmdline>:14)
 
@@ -242,7 +242,7 @@ test("setInterval callback falls back to print if console.error errors", async (
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: uh oh! an error!
         at <anonymous> (<cmdline>:16)
 
@@ -289,7 +289,7 @@ test("setInterval callback still runs even if console.error and print aren't ava
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: uh oh! an error!
         at <anonymous> (<cmdline>:8)
 
@@ -339,7 +339,7 @@ test("setInterval callback still runs even if console.error and print both fail"
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "Error: uh oh! an error!
         at <anonymous> (<cmdline>:12)
 
@@ -379,7 +379,7 @@ test("quickjs:timers exports match global timer functions", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "setTimeout: false
     clearTimeout: false
@@ -410,7 +410,7 @@ test("Timer objects have correct Symbol.toStringTag", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "toString: [object Timer]
     tag: Timer

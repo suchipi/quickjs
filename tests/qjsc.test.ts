@@ -25,7 +25,7 @@ test("qjsc-compiled program has access to both std and bytecode", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -43,7 +43,7 @@ test("qjsc-compiled program has access to both std and bytecode", async () => {
   expect(run2.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -54,7 +54,7 @@ test("qjsc-compiled program has access to both std and bytecode", async () => {
   expect(run3.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "typeof std: object
     typeof Bytecode: object

@@ -18,7 +18,7 @@ test("setting exit code and exiting normally", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 5,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -43,7 +43,7 @@ test("setting exit code and exiting with cmdline.exit", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 5,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -68,7 +68,7 @@ test("overriding the set exit code by exiting with cmdline.exit", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 2,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -93,7 +93,7 @@ test("overriding the set exit code with unhandled exception", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "Error: that's bad!
         at <eval> (<cmdline>:5)
 
@@ -122,7 +122,7 @@ test("getting the set exit code", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 5,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "5
     ",
@@ -150,7 +150,7 @@ test("setting the exit code multiple times (last wins)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 2,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }
@@ -177,7 +177,7 @@ test("cmdline.getScriptArgs returns script arguments", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "type: object true
     length > 0: true
@@ -206,7 +206,7 @@ test("cmdline.getScriptArgs includes extra arguments", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "arg1 arg2
     ",
@@ -235,7 +235,7 @@ test("scriptArgs global matches cmdline.getScriptArgs()", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "same ref: true
     both arrays: true true
@@ -264,7 +264,7 @@ test("cmdline.exit() with no argument uses default exit code 0", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "before exit
     ",
@@ -289,7 +289,7 @@ test("cmdline.exit() with no argument uses setExitCode value", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 3,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "",
     }

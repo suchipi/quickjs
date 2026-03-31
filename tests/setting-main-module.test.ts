@@ -14,7 +14,7 @@ test("setting the main module - import syntax", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hi from mod2 false
     hi from mod3 false
@@ -32,7 +32,7 @@ test("setting the main module - std.importModule", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hi from mod1 false
     hi from mod2 false

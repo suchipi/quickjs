@@ -61,7 +61,7 @@ test("CreateProcess returns process info object", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "has pid: true
     has tid: true
@@ -93,7 +93,7 @@ test("CreateProcess with moduleName option", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "pid is number: true
     ",
@@ -123,7 +123,7 @@ test("CreateProcess throws on failure", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "caught: CreateProcess failed: Path not found. (error code 3)
     ",
@@ -156,7 +156,7 @@ test("WaitForSingleObject and GetExitCodeProcess", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "wait result: 0
     is WAIT_OBJECT_0: true
@@ -194,7 +194,7 @@ test("CreatePipe and stdout redirection", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "output: "hello from pipe"
     ",
@@ -225,7 +225,7 @@ test("CreatePipe with inheritHandle false", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "has readEnd: true
     has writeEnd: true
@@ -266,7 +266,7 @@ test("CreatePipe read end binary read", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "bytesRead > 0: true
     content: "binary test"
@@ -302,7 +302,7 @@ test("stderr redirection", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "stderr: "stderr output"
     ",
@@ -333,7 +333,7 @@ test("TerminateProcess", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "exit code after terminate: 99
     ",
@@ -361,7 +361,7 @@ test("os.exec block:true returns exit code 0", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hello
     exit code: 0
@@ -388,7 +388,7 @@ test("os.exec block:true returns nonzero exit code", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "exit code: 42
     ",
@@ -418,7 +418,7 @@ test("os.exec block:false returns pid, waitpid gets status", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "pid is number: true
     ret === pid: true
@@ -457,7 +457,7 @@ test("os.exec with stdout redirection", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "output: "piped output"
     exit code: 0
@@ -488,7 +488,7 @@ test("os.exec with env option", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hello_from_env
     exit code: 0
@@ -518,7 +518,7 @@ test("os.waitpid with WNOHANG", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "ret: 0
     status: 0
@@ -551,7 +551,7 @@ test("os.pipe returns two fds", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "is array: true
     length: 2
@@ -590,7 +590,7 @@ test("os.dup and os.dup2", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "dup fd is number: true
     dup fd !== original: true
@@ -621,7 +621,7 @@ test("os.kill terminates a process", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "ret === pid: true
     done
@@ -653,7 +653,7 @@ test("WaitForSingleObject with timeout", async () => {
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "is WAIT_TIMEOUT: true
     ",

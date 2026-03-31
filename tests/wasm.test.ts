@@ -24,7 +24,7 @@ test("basic JS execution", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "hello from wasm
     ",
@@ -42,7 +42,7 @@ test("arithmetic and typeof", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "number 4 string
     ",
@@ -65,7 +65,7 @@ test("os.platform returns wasm", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "wasm
     ",
@@ -89,7 +89,7 @@ test("file I/O via quickjs:std", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "string true
     ",
@@ -120,7 +120,7 @@ test("unsupported functions throw errors", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "caught: exec is not supported on wasm
     ",
@@ -151,7 +151,7 @@ test("popen throws on wasm", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "caught: popen is not supported on wasm
     ",

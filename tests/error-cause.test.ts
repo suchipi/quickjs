@@ -15,7 +15,7 @@ test("error cause", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "Error {
     	Error: hi

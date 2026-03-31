@@ -23,7 +23,7 @@ test("pwuid", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "arity 1
     ["name","passwd","uid","gid","gecos","dir","shell"]

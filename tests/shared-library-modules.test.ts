@@ -12,7 +12,7 @@ describe("shared library modules (examples)", () => {
     expect(run.result).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "fib(10)= 55
       ",
@@ -30,7 +30,7 @@ describe("shared library modules (examples)", () => {
     expect(run.result).toMatchInlineSnapshot(`
       {
         "code": 0,
-        "error": false,
+        "error": null,
         "stderr": "",
         "stdout": "normal usage... PASS
       subclass usage... PASS

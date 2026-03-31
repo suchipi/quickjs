@@ -7,7 +7,7 @@ test("quickjs-print", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "console.warn 3 [object Object]
     console.error 4 [object Object]
     ",

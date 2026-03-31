@@ -23,7 +23,7 @@ test("files with 0, 1, or 2 shebangs all load properly", async () => {
   expect(await runFile(noShebang)).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "4
     ",
@@ -35,7 +35,7 @@ test("files with 0, 1, or 2 shebangs all load properly", async () => {
   expect(await runFile(oneShebang)).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "4
     ",
@@ -50,7 +50,7 @@ test("files with 0, 1, or 2 shebangs all load properly", async () => {
   expect(await runFile(twoShebangs)).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "4
     ",

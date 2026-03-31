@@ -23,7 +23,7 @@ test("inspect.custom", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "{
     	something: <

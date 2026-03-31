@@ -18,7 +18,7 @@ test("module detection works as intended", async () => {
   expect(await runFile("explicit-module.mjs")).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "isScript: false
     ",
@@ -29,7 +29,7 @@ test("module detection works as intended", async () => {
     .toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "isScript: false
     ",
@@ -40,7 +40,7 @@ test("module detection works as intended", async () => {
     .toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "isScript: false
     ",
@@ -50,7 +50,7 @@ test("module detection works as intended", async () => {
   expect(await runFile("implicit-module.js")).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "isScript: false
     ",
@@ -60,7 +60,7 @@ test("module detection works as intended", async () => {
   expect(await runFile("implicit-script.js")).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "isScript: true
     ",

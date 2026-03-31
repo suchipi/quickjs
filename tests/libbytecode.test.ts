@@ -25,7 +25,7 @@ test("bytecode - normal values", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "fromValue 7 ArrayBuffer {
     	│0x00000000│ 02 00 05 0E
@@ -65,7 +65,7 @@ test("bytecode - script file", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "fromFile ArrayBuffer {
     	│0x00000000│ 02 03 0E 63 6F 6E 73 6F 6C 65 06 6C 6F 67 34 74
@@ -110,7 +110,7 @@ test("bytecode - module file", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "fromFile ArrayBuffer {
     	│0x00000000│ 02 05 3C 74 65 73 74 73 2F 66 69 78 74 75 72 65
@@ -158,7 +158,7 @@ test("bytecode - fromFile with encodedFileName option", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "4
     ",
@@ -189,7 +189,7 @@ test("bytecode - toValue with invalid bytecode throws", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "error: SyntaxError
     ",
@@ -218,7 +218,7 @@ test("bytecode - fromValue with string", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "type: object true
     back: hello world
@@ -246,7 +246,7 @@ test("bytecode - fromValue with array", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "type: object true
     back: [1,2,3]
@@ -274,7 +274,7 @@ test("bytecode - fromValue with function", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 1,
-      "error": false,
+      "error": null,
       "stderr": "TypeError: unsupported object class
         at quickjs.c:34688
         at fromValue (native)

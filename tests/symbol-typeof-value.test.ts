@@ -17,7 +17,7 @@ test("Symbol.typeofValue - normal behavior", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "string
     ",
@@ -43,7 +43,7 @@ test("Symbol.typeofValue - method throws", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "object
     ",
@@ -69,7 +69,7 @@ test("Symbol.typeofValue - accessing the method throws", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "object
     ",
@@ -95,7 +95,7 @@ test("Symbol.typeofValue - returning weird value", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "object
     ",
@@ -122,7 +122,7 @@ test("Symbol.typeofValue - returning weird value 2", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "object
     ",
@@ -151,7 +151,7 @@ test("Symbol.typeofValue - returning weird value 3", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "object
     ",
@@ -189,7 +189,7 @@ test("Symbol.typeofValue - allowed return values (non-bignum)", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "All good!
     ",
@@ -224,7 +224,7 @@ test("Symbol.typeofValue - allowed return values (bignum-specific)", async () =>
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "All good!
     ",
@@ -253,7 +253,7 @@ test("Symbol.typeofValue - invalid method retains 'function' for callables", asy
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "function
     ",

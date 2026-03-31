@@ -13,7 +13,7 @@ test("error properties - normal Error constructor", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "Error {
     	Error: hi
@@ -49,7 +49,7 @@ test("error properties - child Error constructor", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "TypeError {
     	TypeError: hi
@@ -85,7 +85,7 @@ test("error properties - AggregateError constructor", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "AggregateError {
     	AggregateError: hi

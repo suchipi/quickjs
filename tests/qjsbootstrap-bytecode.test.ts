@@ -30,7 +30,7 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
   expect(run2.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "4
     ",

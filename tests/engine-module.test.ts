@@ -17,7 +17,7 @@ test("engine.evalScript - basic evaluation", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "result: 5
     ",
@@ -42,7 +42,7 @@ test("engine.evalScript - with filename option", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "    at <eval> (my-script.js)
         at evalScript (native)
@@ -70,7 +70,7 @@ test("engine.evalScript - with backtraceBarrier option", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "    at <eval> (<evalScript>)
 
@@ -98,7 +98,7 @@ test("engine.runScript - executes a script file", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "4
     ",
@@ -126,7 +126,7 @@ test("engine.importModule - synchronous dynamic import", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "exporting 5
     five: 5
@@ -155,7 +155,7 @@ test("engine.importModule - with basename", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "exporting 5
     five: 5
@@ -185,7 +185,7 @@ test("engine.resolveModule - resolves module path", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "ends with: true
     absolute: true
@@ -214,7 +214,7 @@ test("engine.resolveModule - with basename", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "ends with: true
     ",
@@ -257,7 +257,7 @@ test("engine.gc - runs without error", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "gc completed
     ",
@@ -294,7 +294,7 @@ test("engine.ModuleDelegate.resolve - custom resolution", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "4
     ",
@@ -321,7 +321,7 @@ test("engine.isMainModule and setMainModule", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "before: false
     after: true
@@ -352,7 +352,7 @@ test("engine.isModuleNamespace - checks module namespace", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "namespace: true
     object: false

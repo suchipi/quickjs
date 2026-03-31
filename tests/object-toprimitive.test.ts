@@ -21,7 +21,7 @@ test("Object.toPrimitive - normal object", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "[
       "[object Object]",
@@ -54,7 +54,7 @@ test("Object.toPrimitive - string", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "[
       "47",
@@ -93,7 +93,7 @@ test("Object.toPrimitive - interaction with Symbol.toPrimitive", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "[
       "hi - default",

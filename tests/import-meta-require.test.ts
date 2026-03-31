@@ -9,7 +9,7 @@ test("import.meta.require", async () => {
   expect(run.result).toMatchInlineSnapshot(`
     {
       "code": 0,
-      "error": false,
+      "error": null,
       "stderr": "",
       "stdout": "{
     	import.meta.require: Function "require" {
