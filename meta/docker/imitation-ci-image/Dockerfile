@@ -6,7 +6,8 @@ RUN apt-get update && \
     curl \
     git \
     build-essential \
-    ninja-build
+    ninja-build \
+    python3
 
 # ci.sh expects nvm, so set up nvm
 ENV HOME=/root
