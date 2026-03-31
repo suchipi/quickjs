@@ -2912,7 +2912,9 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             if (fd_max < 0 || fd_max > 65536)
                 fd_max = 65536;
 
+            suppress_warning("-Wdeprecated-declarations")
             pid = vfork();
+            unsuppress_warning
             if (pid < 0) {
                 JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
                                   "vfork error: %s", strerror(errno));

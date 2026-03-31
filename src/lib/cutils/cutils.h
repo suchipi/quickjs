@@ -42,6 +42,17 @@
 #define stringify(s)    tostring(s)
 #define tostring(s)     #s
 
+#ifdef __clang__
+#define suppress_warning(w) _Pragma("clang diagnostic push") _Pragma("clang diagnostic ignored \"-Wunknown-pragmas\"") _Pragma(tostring(clang diagnostic ignored w))
+#define unsuppress_warning _Pragma("clang diagnostic pop")
+#elif defined(__GNUC__)
+#define suppress_warning(w) _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wpragmas\"") _Pragma(tostring(GCC diagnostic ignored w))
+#define unsuppress_warning _Pragma("GCC diagnostic pop")
+#else
+#define suppress_warning(w)
+#define unsuppress_warning
+#endif
+
 #ifndef offsetof
 #define offsetof(type, field) ((size_t) &((type *)0)->field)
 #endif
