@@ -47,12 +47,16 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-      stdout: expect.stringContaining("symlink created"),
-    });
-    expect(run.cleanResult().stdout).toContain("content: hello from target");
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "symlink created
+      content: hello from target
+      ",
+      }
+    `);
   });
 
   test("os.symlink creates a symlink to a directory", async () => {
@@ -78,12 +82,16 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-      stdout: expect.stringContaining("symlink created"),
-    });
-    expect(run.cleanResult().stdout).toContain('entries: ["inside.txt"]');
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "symlink created
+      entries: ["inside.txt"]
+      ",
+      }
+    `);
   });
 
   test("os.readlink returns the symlink target", async () => {
@@ -108,11 +116,15 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-      stdout: expect.stringContaining("target: target.txt"),
-    });
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "target: target.txt
+      ",
+      }
+    `);
   });
 
   test("os.lstat returns info about the symlink itself", async () => {
@@ -143,12 +155,16 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-    });
-    expect(run.cleanResult().stdout).toContain("lstat sees symlink: true");
-    expect(run.cleanResult().stdout).toContain("stat sees regular file: true");
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "lstat sees symlink: true
+      stat sees regular file: true
+      ",
+      }
+    `);
   });
 
   test("os.lstat on a directory symlink", async () => {
@@ -179,12 +195,16 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-    });
-    expect(run.cleanResult().stdout).toContain("lstat sees symlink: true");
-    expect(run.cleanResult().stdout).toContain("stat sees directory: true");
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "lstat sees symlink: true
+      stat sees directory: true
+      ",
+      }
+    `);
   });
 
   test("S_IFLNK constant is available", async () => {
@@ -201,12 +221,16 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-    });
-    expect(run.cleanResult().stdout).toContain("S_IFLNK: 120000");
-    expect(run.cleanResult().stdout).toContain("S_IFMT: 170000");
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "S_IFLNK: 120000
+      S_IFMT: 170000
+      ",
+      }
+    `);
   });
 
   test("os.symlink throws on failure", async () => {
@@ -227,11 +251,15 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-    });
-    expect(run.cleanResult().stdout).toContain("caught error");
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "caught error
+      ",
+      }
+    `);
   });
 
   test("os.readlink throws on non-symlink", async () => {
@@ -255,11 +283,15 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-    });
-    expect(run.cleanResult().stdout).toContain("caught error");
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "caught error
+      ",
+      }
+    `);
   });
 
   test("os.readlink works on broken symlink", async () => {
@@ -284,13 +316,15 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-    });
-    expect(run.cleanResult().stdout).toContain(
-      "target: nonexistent-for-readlink"
-    );
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "target: nonexistent-for-readlink
+      ",
+      }
+    `);
   });
 
   test("os.stat on broken symlink throws", async () => {
@@ -324,15 +358,15 @@ describe("symlinks", () => {
       { cwd: rootDir() }
     );
     await run.completion;
-    expect(run.cleanResult()).toMatchObject({
-      code: 0,
-      error: null,
-    });
-    expect(run.cleanResult().stdout).toContain(
-      "lstat works on broken symlink: true"
-    );
-    expect(run.cleanResult().stdout).toContain(
-      "stat throws on broken symlink: true"
-    );
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "lstat works on broken symlink: true
+      stat throws on broken symlink: true
+      ",
+      }
+    `);
   });
 });
