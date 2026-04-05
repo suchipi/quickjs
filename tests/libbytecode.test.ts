@@ -276,7 +276,7 @@ test("bytecode - fromValue with function", async () => {
       "code": 1,
       "error": null,
       "stderr": "TypeError: unsupported object class
-        at quickjs.c:34688
+        at quickjs.c:34691
         at fromValue (native)
         at <eval> (<cmdline>:3)
 
