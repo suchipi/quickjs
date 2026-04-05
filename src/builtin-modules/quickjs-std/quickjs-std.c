@@ -564,6 +564,7 @@ fail:
 #endif
 }
 
+#if !defined(__wasi__) && !defined(__EMSCRIPTEN__) && !defined(__COSMO__)
 static int get_bool_option(JSContext *ctx, BOOL *pbool,
                            JSValueConst obj,
                            const char *option)
@@ -578,6 +579,7 @@ static int get_bool_option(JSContext *ctx, BOOL *pbool,
     JS_FreeValue(ctx, val);
     return 0;
 }
+#endif
 
 /* FILE class */
 
