@@ -105,7 +105,7 @@ describe("oldtests", () => {
   });
 
   test("test_worker.js", async () => {
-    expect(await qjs(["./test_worker.js"])).toMatchInlineSnapshot(`
+    expect(await qjs(["./test_worker.js"], true)).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
