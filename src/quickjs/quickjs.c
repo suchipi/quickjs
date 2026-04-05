@@ -10828,13 +10828,14 @@ static int JS_ToInt64SatFree(JSContext *ctx, int64_t *pres, JSValue val)
                 *pres = 0;
             } else {
                 suppress_warning("-Wimplicit-int-float-conversion")
-                if (d < INT64_MIN)
+                if (d < INT64_MIN) {
                     *pres = INT64_MIN;
-                else if (d > INT64_MAX)
+                    unsuppress_warning
+                } else if (d > INT64_MAX) {
                     *pres = INT64_MAX;
-                unsuppress_warning
-                else
+                } else {
                     *pres = (int64_t)d;
+                }
             }
         }
         return 0;
@@ -54125,13 +54126,14 @@ static JSValue js_atomics_wait(JSContext *ctx,
     if (JS_ToFloat64(ctx, &d, argv[3]))
         return JS_EXCEPTION;
     suppress_warning("-Wimplicit-int-float-conversion")
-    if (isnan(d) || d > INT64_MAX)
+    if (isnan(d) || d > INT64_MAX) {
         timeout = INT64_MAX;
-    unsuppress_warning
-    else if (d < 0)
+        unsuppress_warning
+    } else if (d < 0) {
         timeout = 0;
-    else
+    } else {
         timeout = (int64_t)d;
+    }
     if (!ctx->rt->can_block)
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot block in this thread");
 
