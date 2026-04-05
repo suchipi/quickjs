@@ -229,7 +229,11 @@ static void find_unique_cname(char *cname, size_t cname_size)
         cname[max_len] = '\0';
     suffix_num = 1;
     for(;;) {
+        // it's safe to suppress this warning because we limit the size to
+        // cname_size - 16 above.
+        suppress_warning("-Wformat-truncation")
         snprintf(cname1, sizeof(cname1), "%s_%d", cname, suffix_num);
+        unsuppress_warning
         if (!namelist_find(&cname_list, cname1))
             break;
         suffix_num++;
