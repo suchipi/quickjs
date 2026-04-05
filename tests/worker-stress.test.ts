@@ -118,7 +118,13 @@ test("main never cleans up, worker exits on its own", async () => {
   const run = spawn(binDir("qjs"), [testFixturesDir("main-no-cleanup.js")]);
   await run.completion;
   const { code, error, stderr, stdout } = run.cleanResult();
-  expect({ code, error, stderr }).toMatchInlineSnapshot();
+  expect({ code, error, stderr }).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+    }
+  `);
 
   // ordering is indeterminate
   const stdoutLines = stdout.split("\n");
