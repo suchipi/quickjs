@@ -117,19 +117,18 @@ test("postMessage after terminate", async () => {
 test("main never cleans up, worker exits on its own", async () => {
   const run = spawn(binDir("qjs"), [testFixturesDir("main-no-cleanup.js")]);
   await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
-    {
-      "code": 0,
-      "error": null,
-      "stderr": "",
-      "stdout": "main: creating worker
-    main: worker created, not doing anything with it
-    worker: started
-    worker: doing work
-    worker: done, exiting on own
-    ",
-    }
-  `);
+  const { code, error, stderr, stdout } = run.cleanResult();
+  expect({ code, error, stderr }).toMatchInlineSnapshot();
+
+  // ordering is indeterminate
+  const stdoutLines = stdout.split("\n");
+  expect(stdoutLines).toContain("main: creating worker");
+  expect(stdoutLines).toContain(
+    "main: worker created, not doing anything with it"
+  );
+  expect(stdoutLines).toContain("worker: started");
+  expect(stdoutLines).toContain("worker: doing work");
+  expect(stdoutLines).toContain("worker: done, exiting on own");
 });
 
 test("std.out.flush works in worker", async () => {
