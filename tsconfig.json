@@ -1,17 +1,23 @@
 {
   "files": [
     "./src/quickjs/quickjs.d.ts",
-    "./src/quickjs-inspect/quickjs-inspect.d.ts",
-    "./src/builtin-modules/**/*.d.ts"
+    "./src/globals/quickjs-inspect/quickjs-inspect.d.ts",
+    "./src/builtin-modules/quickjs-bytecode/quickjs-bytecode.d.ts",
+    "./src/builtin-modules/quickjs-cmdline/quickjs-cmdline.d.ts",
+    "./src/builtin-modules/quickjs-context/quickjs-context.d.ts",
+    "./src/builtin-modules/quickjs-encoding/quickjs-encoding.d.ts",
+    "./src/builtin-modules/quickjs-engine/quickjs-engine.d.ts",
+    "./src/builtin-modules/quickjs-os/quickjs-os.d.ts",
+    "./src/builtin-modules/quickjs-std/quickjs-std.d.ts",
+    "./src/builtin-modules/quickjs-timers/quickjs-timers.d.ts"
   ],
-  "include": ["./**/*.js", "./**/*.ts"],
+  "include": ["./src/**/*.ts", "./tests/**/*.ts"],
   "exclude": [
-    "tests/oldtests/**/*.js",
     "build/**/*",
     "examples/**/*",
-    "meta/microbench.js",
     "src/run-test262/test262",
-    "src/run-test262/test262o"
+    "src/run-test262/test262o",
+    "tests/fixtures"
   ],
   "compilerOptions": {
     "allowJs": true,
@@ -19,10 +25,11 @@
     "noEmit": true,
     "lib": ["ES2021"],
     "module": "ES2020",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strictNullChecks": true,
     "esModuleInterop": true,
-    "types": ["jest"],
-    "resolveJsonModule": true
+    "types": [],
+    "resolveJsonModule": true,
+    "skipLibCheck": true
   }
 }

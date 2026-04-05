@@ -1,3 +1,4 @@
+import { test, beforeEach, expect } from "vitest";
 import * as fs from "node:fs";
 import { spawn } from "first-base";
 import { binDir, rootDir, fixturesDir, testsWorkDir } from "./_utils";

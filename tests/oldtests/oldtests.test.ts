@@ -1,3 +1,4 @@
+import { test, describe, expect } from "vitest";
 import { spawn } from "first-base";
 import { sleep } from "a-mimir";
 import { binDir } from "../_utils";

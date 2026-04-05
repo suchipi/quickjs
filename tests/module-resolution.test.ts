@@ -1,3 +1,4 @@
+import { test, describe, expect } from "vitest";
 import { spawn } from "first-base";
 import { binDir } from "./_utils";
 

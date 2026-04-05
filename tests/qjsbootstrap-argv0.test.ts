@@ -1,3 +1,4 @@
+import { test, beforeEach, expect } from "vitest";
 import path from "path";
 import { cp, rm, mkdir, echo } from "shelljs";
 import { spawn } from "first-base";

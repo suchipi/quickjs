@@ -1,3 +1,4 @@
+import { test, beforeAll, afterAll, expect } from "vitest";
 import { spawn, sanitizers } from "first-base";
 import { binDir, rootDir, testsWorkDir } from "./_utils";
 import fs from "fs";

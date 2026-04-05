@@ -1,3 +1,4 @@
+import { test, expect } from "vitest";
 import { pathMarker } from "path-less-traveled";
 import { spawn } from "first-base";
 import { binDir, rootDir } from "./_utils";

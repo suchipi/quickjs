@@ -24,4 +24,5 @@ nvm use
 set -x
 
 env QUICKJS_EXTRAS=1 meta/build.sh
+npm typecheck
 npm test

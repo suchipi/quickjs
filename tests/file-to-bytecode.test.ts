@@ -1,3 +1,4 @@
+import { test, beforeEach, expect } from "vitest";
 import fs from "fs";
 import inspect from "@suchipi/print";
 import { pathMarker } from "path-less-traveled";
