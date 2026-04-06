@@ -9,3 +9,4 @@ microbench-new.txt
 cmake-build-debug
 .idea
 .tmp
+.claude/settings.local.json
