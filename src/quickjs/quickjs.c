@@ -43105,7 +43105,7 @@ static JSValue js_regexp_Symbol_match(JSContext *ctx, JSValueConst this_val,
 {
     // [Symbol.match](str)
     JSValueConst rx = this_val;
-    JSValue A, S, result, matchStr;
+    JSValue A, S, result, matchStr, flags;
     int global, n, fullUnicode, isEmpty;
     JSString *p;
 
@@ -43115,21 +43115,26 @@ static JSValue js_regexp_Symbol_match(JSContext *ctx, JSValueConst this_val,
     A = JS_UNDEFINED;
     result = JS_UNDEFINED;
     matchStr = JS_UNDEFINED;
+    flags = JS_UNDEFINED;
     S = JS_ToString(ctx, argv[0]);
     if (JS_IsException(S))
         goto exception;
 
-    global = JS_ToBoolFree(ctx, JS_GetProperty(ctx, rx, JS_ATOM_global));
-    if (global < 0)
+    // Per sec-regexp.prototype-@@match step 4: read the user-visible `flags`
+    // property (observing any overriding getter) and derive `global` /
+    // `unicode` by scanning the resulting string, rather than reading the
+    // `global` / `unicode` accessors directly.
+    flags = JS_ToStringFree(ctx, JS_GetProperty(ctx, rx, JS_ATOM_flags));
+    if (JS_IsException(flags))
         goto exception;
+    global = string_indexof_char(JS_VALUE_GET_STRING(flags), 'g', 0) >= 0;
+    fullUnicode = string_indexof_char(JS_VALUE_GET_STRING(flags), 'u', 0) >= 0;
+    JS_FreeValue(ctx, flags);
+    flags = JS_UNDEFINED;
 
     if (!global) {
         A = JS_RegExpExec(ctx, rx, S);
     } else {
-        fullUnicode = JS_ToBoolFree(ctx, JS_GetProperty(ctx, rx, JS_ATOM_unicode));
-        if (fullUnicode < 0)
-            goto exception;
-
         if (JS_SetProperty(ctx, rx, JS_ATOM_lastIndex, JS_NewInt32(ctx, 0)) < 0)
             goto exception;
         A = JS_NewArray(ctx);
@@ -43170,6 +43175,7 @@ static JSValue js_regexp_Symbol_match(JSContext *ctx, JSValueConst this_val,
     return A;
 
 exception:
+    JS_FreeValue(ctx, flags);
     JS_FreeValue(ctx, A);
     JS_FreeValue(ctx, result);
     JS_FreeValue(ctx, S);
@@ -43414,7 +43420,7 @@ static JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
     // [Symbol.replace](str, rep)
     JSValueConst rx = this_val, rep = argv[1];
     JSValueConst args[6];
-    JSValue str, rep_val, matched, tab, rep_str, namedCaptures, res;
+    JSValue str, rep_val, matched, tab, rep_str, namedCaptures, res, flags;
     JSString *sp, *rp;
     StringBuffer b_s, *b = &b_s;
     ValueBuffer v_b, *results = &v_b;
@@ -43433,6 +43439,7 @@ static JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
     tab = JS_UNDEFINED;
     rep_str = JS_UNDEFINED;
     namedCaptures = JS_UNDEFINED;
+    flags = JS_UNDEFINED;
 
     str = JS_ToString(ctx, argv[0]);
     if (JS_IsException(str))
@@ -43447,14 +43454,18 @@ static JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
             goto exception;
         rp = JS_VALUE_GET_STRING(rep_val);
     }
-    fullUnicode = 0;
-    is_global = JS_ToBoolFree(ctx, JS_GetProperty(ctx, rx, JS_ATOM_global));
-    if (is_global < 0)
+    // Per sec-regexp.prototype-@@replace step 8: read the user-visible
+    // `flags` property (observing any overriding getter) and derive
+    // `global` / `unicode` from the string, rather than reading the
+    // `global` / `unicode` accessors directly.
+    flags = JS_ToStringFree(ctx, JS_GetProperty(ctx, rx, JS_ATOM_flags));
+    if (JS_IsException(flags))
         goto exception;
+    is_global = string_indexof_char(JS_VALUE_GET_STRING(flags), 'g', 0) >= 0;
+    fullUnicode = string_indexof_char(JS_VALUE_GET_STRING(flags), 'u', 0) >= 0;
+    JS_FreeValue(ctx, flags);
+    flags = JS_UNDEFINED;
     if (is_global) {
-        fullUnicode = JS_ToBoolFree(ctx, JS_GetProperty(ctx, rx, JS_ATOM_unicode));
-        if (fullUnicode < 0)
-            goto exception;
         if (JS_SetProperty(ctx, rx, JS_ATOM_lastIndex, JS_NewInt32(ctx, 0)) < 0)
             goto exception;
     }
@@ -43587,6 +43598,7 @@ done1:
     JS_FreeValue(ctx, tab);
     JS_FreeValue(ctx, rep_str);
     JS_FreeValue(ctx, namedCaptures);
+    JS_FreeValue(ctx, flags);
     JS_FreeValue(ctx, str);
     return res;
 }
