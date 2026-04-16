@@ -21325,39 +21325,42 @@ static off_t shebangs_end_index(char *buf, size_t len)
 {
     off_t offset = 0;
     char *p = buf;
+    char *end = buf + len;
 
-    while (strncmp(p, "#!", 2) == 0 && (p - buf < len)) {
-        char *next_carriage_return = strchr(p, '\r');
-        char *next_line_feed = strchr(p, '\n');
-        char *start_of_next_line;
-
-        if (next_line_feed != NULL && next_carriage_return != NULL) {
-            if (next_line_feed > next_carriage_return) {
-                // \r\n line ending
-                start_of_next_line = next_line_feed + 1;
-            } else {
-                // \n\r line ending
-                start_of_next_line = next_carriage_return + 1;
+    while ((end - p) >= 2 && p[0] == '#' && p[1] == '!') {
+        char *q = p + 2;
+        // scan to first LineTerminator: LF, CR, U+2028 (E2 80 A8), U+2029 (E2 80 A9)
+        while (q < end) {
+            uint8_t c = (uint8_t)*q;
+            if (c == '\n' || c == '\r')
+                break;
+            if (c == 0xE2 && (end - q) >= 3 &&
+                (uint8_t)q[1] == 0x80 &&
+                ((uint8_t)q[2] == 0xA8 || (uint8_t)q[2] == 0xA9)) {
+                break;
             }
-        } else if (next_line_feed != NULL) {
-            // \n line ending
-            start_of_next_line = next_line_feed + 1;
-        } else if (next_carriage_return != NULL) {
-            // \r line ending
-            start_of_next_line = next_carriage_return + 1;
-        } else {
-            // reached EOF and all lines were shebangs
-            start_of_next_line = buf + len;
+            q++;
         }
-
-        p = start_of_next_line;
+        if (q >= end) {
+            p = end;
+            break;
+        }
+        if (*q == '\r') {
+            q++;
+            if (q < end && *q == '\n') q++; // \r\n counts as one LineTerminatorSequence
+        } else if (*q == '\n') {
+            q++;
+            if (q < end && *q == '\r') q++; // also swallow \n\r as a combined line ending
+        } else {
+            q += 3; // U+2028 or U+2029 (3-byte UTF-8)
+        }
+        p = q;
     }
 
     offset = p - buf;
-    if (offset > len) {
+    if ((size_t)offset > len) {
         offset = len;
     }
-
     return offset;
 }
 

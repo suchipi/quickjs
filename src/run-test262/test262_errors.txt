@@ -50,10 +50,6 @@ test262/test/built-ins/TypedArrayConstructors/internals/Set/key-is-minus-zero.js
 test262/test/built-ins/TypedArrayConstructors/internals/Set/key-is-not-integer.js:22: Test262Error: Reflect.set(sample, "1.1", 1) must return true Expected SameValue(«false», «true») to be true (Testing with Float64Array.)
 test262/test/built-ins/TypedArrayConstructors/internals/Set/key-is-out-of-bounds.js:22: Test262Error: Reflect.set(sample, "-1", 1) must return true Expected SameValue(«false», «true») to be true (Testing with Float64Array.)
 test262/test/built-ins/TypedArrayConstructors/internals/Set/tonumber-value-detached-buffer.js:39: Test262Error: Expected SameValue(«false», «true») to be true (Testing with Float64Array.)
-test262/test/language/comments/hashbang/line-terminator-carriage-return.js:1: SyntaxError: unexpected token in expression: '}'
-test262/test/language/comments/hashbang/line-terminator-line-separator.js:1: SyntaxError: unexpected token in expression: '}'
-test262/test/language/comments/hashbang/line-terminator-paragraph-separator.js:1: SyntaxError: unexpected token in expression: '}'
-test262/test/language/comments/hashbang/preceding-hashbang.js:1: unexpected error type: Test262: This statement should not be evaluated.
 test262/test/language/expressions/assignment/target-member-computed-reference-null.js:32: Test262Error: Expected a DummyError but got a TypeError
 test262/test/language/expressions/assignment/target-member-computed-reference-undefined.js:32: Test262Error: Expected a DummyError but got a TypeError
 test262/test/language/expressions/compound-assignment/left-hand-side-private-reference-accessor-property-add.js:59: Test262Error: The expression should evaluate to the result Expected SameValue(«undefined», «3») to be true
