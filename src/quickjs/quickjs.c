@@ -48377,31 +48377,48 @@ static JSValue set_date_field(JSContext *ctx, JSValueConst this_val,
 {
     // _field(obj, first_field, end_field, args, is_local)
     double fields[9];
+    // Spec ordering (e.g. sec-date.prototype.sethours):
+    //   1. thisTimeValue(this)                         — validates `this`, throws if not a Date
+    //   2. ToNumber on every provided argument         — side effects must fire
+    //   3. If the stored time is NaN, return NaN      — AFTER coercions
+    // So validation must precede coercion, but coercion must precede the
+    // NaN short-circuit. We buffer the coerced values in `values[]` so we
+    // can skip the NaN-short-circuit decision until after coercion.
+    double values[4]; // max n is 4 (setHours)
     int res, first_field, end_field, is_local, i, n;
     double d, a;
+    BOOL any_nonfinite;
 
     d = NAN;
     first_field = (magic >> 8) & 0x0F;
     end_field = (magic >> 4) & 0x0F;
     is_local = magic & 0x0F;
 
+    /* Step 1: validate `this` — throws TypeError if not a Date object. */
     res = get_date_fields(ctx, this_val, fields, is_local, first_field == 0);
     if (res < 0)
         return JS_EXCEPTION;
-    if (res && argc > 0) {
-        n = end_field - first_field;
-        if (argc < n)
-            n = argc;
+
+    /* Step 2: ToNumber on all arguments regardless of whether the time is NaN. */
+    n = end_field - first_field;
+    if (argc < n)
+        n = argc;
+    any_nonfinite = FALSE;
+    for(i = 0; i < n; i++) {
+        if (JS_ToFloat64(ctx, &a, argv[i]))
+            return JS_EXCEPTION;
+        values[i] = a;
+        if (!isfinite(a))
+            any_nonfinite = TRUE;
+    }
+
+    /* Step 3: build new fields if thisTimeValue is not NaN and all values finite. */
+    if (res && !any_nonfinite && argc > 0) {
         for(i = 0; i < n; i++) {
-            if (JS_ToFloat64(ctx, &a, argv[i]))
-                return JS_EXCEPTION;
-            if (!isfinite(a))
-                goto done;
-            fields[first_field + i] = trunc(a);
+            fields[first_field + i] = trunc(values[i]);
         }
         d = set_date_fields(fields, is_local);
     }
-done:
     return JS_SetThisTimeValue(ctx, this_val, d);
 }
 
