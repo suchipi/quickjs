@@ -51277,15 +51277,17 @@ void JS_AddIntrinsicBaseObjects(JSContext *ctx)
                               ctx->function_proto);
 
     /* Error */
+    // Error constructors accept (message [, options]) but the spec pins
+    // .length to 1 for Error and the NativeErrors, and 2 for AggregateError.
     obj1 = JS_NewCFunctionMagic(ctx, js_error_constructor,
-                                "Error", 2, JS_CFUNC_constructor_or_func_magic, -1);
+                                "Error", 1, JS_CFUNC_constructor_or_func_magic, -1);
     JS_NewGlobalCConstructor2(ctx, obj1,
                               "Error", ctx->class_proto[JS_CLASS_ERROR]);
 
     for(i = 0; i < JS_NATIVE_ERROR_COUNT; i++) {
         JSValue func_obj;
         int n_args;
-        n_args = 2 + (i == JS_AGGREGATE_ERROR);
+        n_args = 1 + (i == JS_AGGREGATE_ERROR);
         func_obj = JS_NewCFunction3(ctx, (JSCFunction *)js_error_constructor,
                                     native_error_name[i], n_args,
                                     JS_CFUNC_constructor_or_func_magic, i, obj1);
