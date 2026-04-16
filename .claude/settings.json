@@ -77,8 +77,15 @@
       "WebSearch",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(meta/docker/compile-triples.sh:*)",
-      "WebFetch(domain:justine.lol)"
+      "WebFetch(domain:justine.lol)",
+      "Bash(src/run-test262/run.sh)",
+      "Bash(src/run-test262/run.sh -u)",
+      "Bash(echo \"exit=$?\")"
     ],
-    "additionalDirectories": ["/tmp", "/private/tmp"]
+    "additionalDirectories": [
+      "/tmp",
+      "/private/tmp",
+      "/Users/suchipi/Code/quickjs/.tmp"
+    ]
   }
 }
