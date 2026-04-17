@@ -8556,11 +8556,23 @@ retry:
                             return -1;
                         }
                     typed_array_oob:
-                        val = JS_ToNumberFree(ctx, val);
-                        JS_FreeValue(ctx, val);
-                        if (JS_IsException(val))
-                            return -1;
-                        return JS_ThrowTypeErrorOrFalse(ctx, flags, "out-of-bound numeric index");
+                        // Per sec-integer-indexed-exotic-objects-set-p-v-receiver,
+                        // [[Set]] on an invalid numeric index (OOB / detached /
+                        // non-integer / -0) is a spec-required silent no-op that
+                        // returns true. We still coerce the value for side effects,
+                        // using the right conversion for the array's ContentType.
+                        if (p1->class_id == JS_CLASS_BIG_INT64_ARRAY ||
+                            p1->class_id == JS_CLASS_BIG_UINT64_ARRAY) {
+                            int64_t v64;
+                            if (JS_ToBigInt64Free(ctx, &v64, val))
+                                return -1;
+                        } else {
+                            val = JS_ToNumberFree(ctx, val);
+                            if (JS_IsException(val))
+                                return -1;
+                            JS_FreeValue(ctx, val);
+                        }
+                        return TRUE;
                     }
                 }
             } else {
@@ -8794,7 +8806,12 @@ int JS_SetPropertyValue(JSContext *ctx, JSValueConst this_obj,
                 return -1;
             if (unlikely(idx >= (uint32_t)p->u.array.count)) {
             ta_out_of_bound:
-                return JS_ThrowTypeErrorOrFalse(ctx, flags, "out-of-bound numeric index");
+                // Per sec-integer-indexed-exotic-objects-set-p-v-receiver,
+                // [[Set]] on an invalid (OOB / detached / negative / non-integer)
+                // numeric index is a spec-required no-op that still returns true.
+                // The value has already been coerced per class above, preserving
+                // observable side effects.
+                return TRUE;
             }
             p->u.array.u.double_ptr[idx] = d;
             break;
@@ -8927,7 +8944,22 @@ static int JS_CreateProperty(JSContext *ctx, JSObject *p,
             if (ret != 0) {
                 if (ret < 0)
                     return -1;
-                return JS_ThrowTypeErrorOrFalse(ctx, flags, "cannot create numeric index in typed array");
+                // Per sec-integer-indexed-exotic-objects-set-p-v-receiver,
+                // [[Set]] on an invalid numeric index (OOB / non-integer /
+                // -0 / detached) is a spec-required silent no-op that
+                // returns true. Coerce the value via the class's ContentType
+                // to preserve observable side effects.
+                if (p->class_id == JS_CLASS_BIG_INT64_ARRAY ||
+                    p->class_id == JS_CLASS_BIG_UINT64_ARRAY) {
+                    int64_t v64;
+                    if (JS_ToBigInt64(ctx, &v64, val))
+                        return -1;
+                } else {
+                    double d;
+                    if (JS_ToFloat64(ctx, &d, val))
+                        return -1;
+                }
+                return TRUE;
             }
         } else if (!(flags & JS_PROP_NO_EXOTIC)) {
             const JSClassExoticMethods *em = ctx->rt->class_array[p->class_id].exotic;
@@ -9309,7 +9341,10 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
             }
             idx = __JS_AtomToUInt32(prop);
             /* if the typed array is detached, p->u.array.count = 0 */
-            if (idx >= typed_array_get_length(ctx, p)) {
+            /* typed_array_get_length() still returns the pre-detach length,
+               so check for a detached buffer separately. */
+            if (typed_array_is_detached(ctx, p) ||
+                idx >= typed_array_get_length(ctx, p)) {
             typed_array_oob:
                 return JS_ThrowTypeErrorOrFalse(ctx, flags, "out-of-bound index in typed array");
             }
@@ -53061,9 +53096,19 @@ static int js_TA_cmp_generic(const void *a, const void *b, void *opaque) {
     JSValueConst argv[2];
     JSValue res;
     int cmp;
+    JSObject *p;
 
     cmp = 0;
     if (!psc->exception) {
+        // A previous comparefn call may have detached the underlying
+        // buffer, which would leave psc->array_ptr dangling. Per the 2022
+        // `align-detached-buffer-semantics-with-web-reality` update
+        // (sort-tonumber.js), we must NOT throw in this case — just stop
+        // consuming data.
+        p = JS_VALUE_GET_OBJ(psc->arr);
+        if (typed_array_is_detached(ctx, p))
+            return 0;
+
         a_idx = *(uint32_t *)a;
         b_idx = *(uint32_t *)b;
         argv[0] = psc->getfun(ctx, psc->array_ptr +
@@ -53090,9 +53135,6 @@ static int js_TA_cmp_generic(const void *a, const void *b, void *opaque) {
         if (cmp == 0) {
             /* make sort stable: compare array offsets */
             cmp = (a_idx > b_idx) - (a_idx < b_idx);
-        }
-        if (validate_typed_array(ctx, psc->arr) < 0) {
-            psc->exception = 1;
         }
     done:
         JS_FreeValue(ctx, (JSValue)argv[0]);
@@ -53434,15 +53476,11 @@ static JSValue js_typed_array_constructor_ta(JSContext *ctx,
     len = p->u.array.count;
     src_buffer = ta->buffer;
     src_abuf = src_buffer->u.array_buffer;
-    if (!src_abuf->shared) {
-        ctor = JS_SpeciesConstructor(ctx, JS_MKPTR(JS_TAG_OBJECT, src_buffer),
-                                     JS_UNDEFINED);
-        if (JS_IsException(ctor))
-            goto fail;
-    } else {
-        /* force ArrayBuffer default constructor */
-        ctor = JS_UNDEFINED;
-    }
+    /* Per sec-typedarray-create and the 2022 spec update that motivates
+       the `no-species` test: creating a TypedArray from another TypedArray
+       always uses the default %ArrayBuffer% constructor; the source buffer's
+       Symbol.species is intentionally not consulted. */
+    ctor = JS_UNDEFINED;
     size_log2 = typed_array_size_log2(classid);
     buffer = js_array_buffer_constructor1(ctx, ctor,
                                           (uint64_t)len << size_log2);
