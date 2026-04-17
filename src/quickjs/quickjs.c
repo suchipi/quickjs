@@ -30213,6 +30213,12 @@ static int resolve_scope_private_field(JSContext *ctx, JSFunctionDef *s,
                 /* obj func value */
                 dbuf_putc(bc, OP_call_method);
                 dbuf_put_u16(bc, 1);
+                // OP_put_private_field-family ops must have a net stack
+                // delta of -2 (consume `obj value`); OP_call_method leaves
+                // the setter's return value on the stack, so drop it so
+                // the surrounding PUT_LVALUE_KEEP_TOP / NOKEEP contracts
+                // work for compound assignment and simple assignment alike.
+                dbuf_putc(bc, OP_drop);
             }
             break;
         default:
