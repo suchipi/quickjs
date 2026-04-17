@@ -22,7 +22,7 @@ test("basic JS execution", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -40,7 +40,7 @@ test("arithmetic and typeof", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -63,7 +63,7 @@ test("os.platform returns wasm", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -87,7 +87,7 @@ test("file I/O via quickjs:std", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -118,7 +118,7 @@ test("unsupported functions throw errors", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -149,7 +149,7 @@ test("popen throws on wasm", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

@@ -13,7 +13,7 @@ test("os.exec - run a command with block: true", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -39,7 +39,7 @@ test("os.exec - run a command with block: false and waitpid", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -68,7 +68,7 @@ test("os.exec - kill a child process with SIGTERM", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -96,7 +96,7 @@ test("os.exec - file option overrides executable", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -119,7 +119,7 @@ test("os.exec - cwd option changes working directory", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -146,7 +146,7 @@ test("os.exec - env option sets environment variables", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -181,7 +181,7 @@ test("os.exec - stdout option redirects child stdout to pipe", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -215,7 +215,7 @@ test("os.exec - stderr option redirects child stderr to pipe", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -249,7 +249,7 @@ test("os.exec - stdin option feeds data to child process", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

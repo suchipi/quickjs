@@ -16,7 +16,7 @@ test("qjsbootstrap - finds itself properly when argv0 is indirect", async () => 
     argv0: "something not particularly helpful",
   });
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

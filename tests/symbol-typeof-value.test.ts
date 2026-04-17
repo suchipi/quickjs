@@ -15,7 +15,7 @@ test("Symbol.typeofValue - normal behavior", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -41,7 +41,7 @@ test("Symbol.typeofValue - method throws", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -67,7 +67,7 @@ test("Symbol.typeofValue - accessing the method throws", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -93,7 +93,7 @@ test("Symbol.typeofValue - returning weird value", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -120,7 +120,7 @@ test("Symbol.typeofValue - returning weird value 2", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -149,7 +149,7 @@ test("Symbol.typeofValue - returning weird value 3", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -187,7 +187,7 @@ test("Symbol.typeofValue - allowed return values (non-bignum)", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -222,7 +222,7 @@ test("Symbol.typeofValue - allowed return values (bignum-specific)", async () =>
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -251,7 +251,7 @@ test("Symbol.typeofValue - invalid method retains 'function' for callables", asy
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

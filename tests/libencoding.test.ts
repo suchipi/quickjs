@@ -22,7 +22,7 @@ test("quickjs:encoding - basic test", async () => {
 		`,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -60,7 +60,7 @@ test("quickjs:encoding - fromUtf8 is inverse of toUtf8", async () => {
   `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -92,7 +92,7 @@ test("TextEncoder - basic encode", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -119,7 +119,7 @@ test("TextEncoder - multibyte characters", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -159,7 +159,7 @@ test("TextEncoder.encodeInto", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -195,7 +195,7 @@ test("TextDecoder - UTF-8 basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -228,7 +228,7 @@ test("TextDecoder - UTF-8 fatal mode", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -255,7 +255,7 @@ test("TextDecoder - UTF-8 replacement mode", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -287,7 +287,7 @@ test("TextDecoder - UTF-8 BOM handling", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -319,7 +319,7 @@ test("TextDecoder - UTF-8 streaming", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -352,7 +352,7 @@ test("TextDecoder - UTF-16LE", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -383,7 +383,7 @@ test("TextDecoder - UTF-16BE", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -410,7 +410,7 @@ test("TextDecoder - invalid label throws RangeError", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -434,7 +434,7 @@ test("TextDecoder - label aliases", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -469,7 +469,7 @@ test("TextDecoder - Shift_JIS basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -499,7 +499,7 @@ test("TextDecoder - Shift_JIS half-width katakana", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -529,7 +529,7 @@ test("TextDecoder - Shift_JIS label aliases", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -573,7 +573,7 @@ test("TextDecoder - Shift_JIS fatal mode", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -600,7 +600,7 @@ test("TextDecoder - Shift_JIS replacement mode", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -632,7 +632,7 @@ test("TextDecoder - Shift_JIS streaming", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -661,7 +661,7 @@ test("TextDecoder - Shift_JIS trail byte error recovery", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -692,7 +692,7 @@ test("TextEncoder - UTF-16LE basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -723,7 +723,7 @@ test("TextEncoder - UTF-16BE basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -758,7 +758,7 @@ test("TextEncoder - Shift_JIS basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -793,7 +793,7 @@ test("TextEncoder - Shift_JIS special mappings", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -820,7 +820,7 @@ test("TextEncoder - label aliases", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -861,7 +861,7 @@ test("TextEncoder.encodeInto - UTF-16LE", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -900,7 +900,7 @@ test("TextEncoder.encodeInto - Shift_JIS", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -928,7 +928,7 @@ test("TextEncoder - invalid label throws RangeError", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -959,7 +959,7 @@ test("TextDecoder - Windows-1252 basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -986,7 +986,7 @@ test("TextDecoder - Windows-1252 aliases", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1023,7 +1023,7 @@ test("TextEncoder - Windows-1252 basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1057,7 +1057,7 @@ test("TextDecoder - Windows-1251 basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1083,7 +1083,7 @@ test("TextEncoder - Windows-1251 basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1114,7 +1114,7 @@ test("TextDecoder - Big5 basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1141,7 +1141,7 @@ test("TextDecoder - Big5 streaming", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1165,7 +1165,7 @@ test("TextEncoder - Big5 basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1196,7 +1196,7 @@ test("TextDecoder - EUC-KR basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1222,7 +1222,7 @@ test("TextEncoder - EUC-KR basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1258,7 +1258,7 @@ test("TextDecoder - EUC-JP basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1289,7 +1289,7 @@ test("TextEncoder - EUC-JP basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1321,7 +1321,7 @@ test("TextDecoder - GB18030 basic 2-byte", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1349,7 +1349,7 @@ test("TextDecoder - GB18030 4-byte sequences", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1373,7 +1373,7 @@ test("TextDecoder - GB18030 aliases", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1400,7 +1400,7 @@ test("TextEncoder - GB18030 basic", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1432,7 +1432,7 @@ test("TextEncoder - GB18030 4-byte encoding", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1467,7 +1467,7 @@ test("TextDecoder - GB18030 streaming", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

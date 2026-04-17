@@ -24,7 +24,7 @@ test("defineBuiltinModule - basic test", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -56,7 +56,7 @@ test("defineBuiltinModule - never imported", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -90,7 +90,7 @@ test("defineBuiltinModule - bypasses toplevel module resolution", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

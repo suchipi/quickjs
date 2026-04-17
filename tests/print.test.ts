@@ -5,7 +5,7 @@ import { binDir, rootDir } from "./_utils";
 test("quickjs-print", async () => {
   const run = spawn(binDir("qjs"), [rootDir("examples/logging.js")]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

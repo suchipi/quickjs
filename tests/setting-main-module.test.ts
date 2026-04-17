@@ -12,7 +12,7 @@ test("setting the main module - import syntax", async () => {
     cwd: __dirname,
   });
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -30,7 +30,7 @@ test("setting the main module - std.importModule", async () => {
     cwd: __dirname,
   });
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

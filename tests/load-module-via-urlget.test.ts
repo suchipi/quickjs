@@ -7,7 +7,7 @@ test("using custom Module.resolve and custom Module.read to import stuff via std
     cwd: __dirname,
   });
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

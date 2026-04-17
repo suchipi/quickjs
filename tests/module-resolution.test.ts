@@ -8,7 +8,7 @@ describe("module resolution", () => {
       cwd: __dirname,
     });
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -24,7 +24,7 @@ describe("module resolution", () => {
       cwd: __dirname,
     });
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -44,7 +44,7 @@ describe("module resolution", () => {
       }
     );
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -60,7 +60,7 @@ describe("module resolution", () => {
       cwd: __dirname,
     });
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,

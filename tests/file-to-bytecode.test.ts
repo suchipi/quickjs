@@ -25,7 +25,7 @@ test("file-to-bytecode.js works", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

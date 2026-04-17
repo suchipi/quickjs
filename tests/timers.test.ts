@@ -21,7 +21,7 @@ test("setInterval and clearInterval are present", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -53,7 +53,7 @@ test("setTimeout and setInterval work", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -86,18 +86,18 @@ test("setInterval callback continues to re-run even if it errors", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
       "stderr": "Error: uh oh! an error!
-        at <anonymous> (<cmdline>:3)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:3)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:3)
+        at somewhere
 
     ",
       "stdout": "exiting
@@ -131,18 +131,18 @@ test("failure in setInterval callback uses console.error", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
       "stderr": "Error: uh oh! an error!
-        at <anonymous> (<cmdline>:8)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:8)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:8)
+        at somewhere
 
     ",
       "stdout": "receivedArgs.length: 0
@@ -184,18 +184,18 @@ test("setInterval callback falls back to print if console.error isn't present", 
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
       "stderr": "Error: uh oh! an error!
-        at <anonymous> (<cmdline>:14)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:14)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:14)
+        at somewhere
 
     ",
       "stdout": "times print called: 0
@@ -240,18 +240,18 @@ test("setInterval callback falls back to print if console.error errors", async (
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
       "stderr": "Error: uh oh! an error!
-        at <anonymous> (<cmdline>:16)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:16)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:16)
+        at somewhere
 
     ",
       "stdout": "times print called: 0
@@ -287,18 +287,18 @@ test("setInterval callback still runs even if console.error and print aren't ava
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
       "stderr": "Error: uh oh! an error!
-        at <anonymous> (<cmdline>:8)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:8)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:8)
+        at somewhere
 
     ",
       "stdout": "times interval callback ran: 3
@@ -337,18 +337,18 @@ test("setInterval callback still runs even if console.error and print both fail"
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
       "stderr": "Error: uh oh! an error!
-        at <anonymous> (<cmdline>:12)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:12)
+        at somewhere
 
     Error: uh oh! an error!
-        at <anonymous> (<cmdline>:12)
+        at somewhere
 
     ",
       "stdout": "times interval callback ran: 3
@@ -377,7 +377,7 @@ test("quickjs:timers exports match global timer functions", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -408,7 +408,7 @@ test("Timer objects have correct Symbol.toStringTag", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

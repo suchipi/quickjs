@@ -15,7 +15,7 @@ test("engine.evalScript - basic evaluation", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -40,14 +40,13 @@ test("engine.evalScript - with filename option", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
       "stderr": "",
       "stdout": "    at <eval> (my-script.js)
-        at evalScript (native)
-        at <anonymous> (<cmdline>:4)
+        at somewhere
 
     ",
     }
@@ -68,7 +67,7 @@ test("engine.evalScript - with backtraceBarrier option", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -96,7 +95,7 @@ test("engine.runScript - executes a script file", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -124,7 +123,7 @@ test("engine.importModule - synchronous dynamic import", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -153,7 +152,7 @@ test("engine.importModule - with basename", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -183,7 +182,7 @@ test("engine.resolveModule - resolves module path", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -212,7 +211,7 @@ test("engine.resolveModule - with basename", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -261,7 +260,7 @@ test("engine.gc - runs without error", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -298,7 +297,7 @@ test("engine.ModuleDelegate.resolve - custom resolution", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -325,7 +324,7 @@ test("engine.isMainModule and setMainModule", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -356,7 +355,7 @@ test("engine.isModuleNamespace - checks module namespace", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

@@ -7,7 +7,7 @@ test("isModuleNamespace", async () => {
 
   const run = spawn(binDir("qjs"), [fixture], { cwd: rootDir() });
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

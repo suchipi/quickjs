@@ -13,26 +13,26 @@ test("error cause", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
       "stderr": "",
       "stdout": "Error {
     	Error: hi
-    		at <eval> (<cmdline>:2)
+    		at somewhere
     	
     	
     	cause: Error {
     		Error: yeah
-    			at <eval> (<cmdline>:2)
+    			at somewhere
     		
     	}
     }
     {
     	value: Error {
     		Error: yeah
-    			at <eval> (<cmdline>:2)
+    			at somewhere
     		
     	}
     	writable: true

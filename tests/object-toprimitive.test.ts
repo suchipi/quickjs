@@ -19,7 +19,7 @@ test("Object.toPrimitive - normal object", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -52,7 +52,7 @@ test("Object.toPrimitive - string", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -91,7 +91,7 @@ test("Object.toPrimitive - interaction with Symbol.toPrimitive", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

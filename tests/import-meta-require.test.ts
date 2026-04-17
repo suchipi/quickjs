@@ -7,7 +7,7 @@ const fixture = rootDir("tests/fixtures/import-meta-require.js");
 test("import.meta.require", async () => {
   const run = spawn(binDir("quickjs-run"), [fixture]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

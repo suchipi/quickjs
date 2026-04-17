@@ -16,7 +16,7 @@ test("setting exit code and exiting normally", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 5,
       "error": null,
@@ -41,7 +41,7 @@ test("setting exit code and exiting with cmdline.exit", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 5,
       "error": null,
@@ -66,7 +66,7 @@ test("overriding the set exit code by exiting with cmdline.exit", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 2,
       "error": null,
@@ -91,12 +91,12 @@ test("overriding the set exit code with unhandled exception", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 1,
       "error": null,
       "stderr": "Error: that's bad!
-        at <eval> (<cmdline>:5)
+        at somewhere
 
     ",
       "stdout": "",
@@ -120,7 +120,7 @@ test("getting the set exit code", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 5,
       "error": null,
@@ -148,7 +148,7 @@ test("setting the exit code multiple times (last wins)", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 2,
       "error": null,
@@ -175,7 +175,7 @@ test("cmdline.getScriptArgs returns script arguments", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -204,7 +204,7 @@ test("cmdline.getScriptArgs includes extra arguments", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -233,7 +233,7 @@ test("scriptArgs global matches cmdline.getScriptArgs()", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -262,7 +262,7 @@ test("cmdline.exit() with no argument uses default exit code 0", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -287,7 +287,7 @@ test("cmdline.exit() with no argument uses setExitCode value", async () => {
     { cwd: __dirname }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 3,
       "error": null,

@@ -23,7 +23,7 @@ test("bytecode - normal values", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -63,7 +63,7 @@ test("bytecode - script file", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -108,7 +108,7 @@ test("bytecode - module file", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -156,7 +156,7 @@ test("bytecode - fromFile with encodedFileName option", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -187,7 +187,7 @@ test("bytecode - toValue with invalid bytecode throws", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -216,7 +216,7 @@ test("bytecode - fromValue with string", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -244,7 +244,7 @@ test("bytecode - fromValue with array", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

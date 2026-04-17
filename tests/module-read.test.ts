@@ -15,7 +15,7 @@ describe("ModuleDelegate.read", () => {
       { cwd: __dirname }
     );
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -47,7 +47,7 @@ describe("ModuleDelegate.read", () => {
     );
     await run.completion;
     run.result.stderr = run.result.stderr.replace(__dirname, "<__dirname>");
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,

@@ -35,7 +35,7 @@ test("worker terminates when main sets worker.onmessage = null", async () => {
     testFixturesDir("main-terminate-via-onmessage.js"),
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -57,7 +57,7 @@ test("worker terminates when main calls worker.terminate()", async () => {
     testFixturesDir("main-terminate-method.js"),
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,

@@ -8,12 +8,12 @@ import { binDir } from "./_utils";
 test("normal Error - prints message and stack", async () => {
   const run = spawn(binDir("qjs"), ["-e", `throw new Error("hello");`]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 1,
       "error": null,
       "stderr": "Error: hello
-        at <eval> (<cmdline>)
+        at somewhere
 
     ",
       "stdout": "",
@@ -24,7 +24,7 @@ test("normal Error - prints message and stack", async () => {
 test("thrown string - prints string, no stack", async () => {
   const run = spawn(binDir("qjs"), ["-e", `throw "some string";`]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 1,
       "error": null,
@@ -38,7 +38,7 @@ test("thrown string - prints string, no stack", async () => {
 test("thrown number - prints number, no stack", async () => {
   const run = spawn(binDir("qjs"), ["-e", `throw 42;`]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 1,
       "error": null,
@@ -59,12 +59,12 @@ test("Error with overridden toString that throws - falls back to .message", asyn
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 1,
       "error": null,
       "stderr": "Error: the message
-        at <eval> (<cmdline>:2)
+        at somewhere
 
     ",
       "stdout": "",
@@ -78,7 +78,7 @@ test("non-error object with throwing toString - falls back to Object.prototype.t
     `throw { toString() { throw "nope"; } };`,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 1,
       "error": null,
@@ -98,7 +98,7 @@ test("non-error object where Object.prototype.toString also fails", async () => 
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 1,
       "error": null,
@@ -119,7 +119,7 @@ test("Error with null stack - prints message but no stack", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 1,
       "error": null,

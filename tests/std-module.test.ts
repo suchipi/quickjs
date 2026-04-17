@@ -29,7 +29,7 @@ test("std.loadFile - reads file as string", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -60,7 +60,7 @@ test("std.isFILE - returns true for FILE objects", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -92,7 +92,7 @@ test("std.open - read mode", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -124,7 +124,7 @@ test("std.open - write and read back", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -155,7 +155,7 @@ test("std.open - append mode", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -195,7 +195,7 @@ test("std.open - binary read/write", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -221,7 +221,7 @@ test("std.popen - read from process", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -250,7 +250,7 @@ test("std.fdopen - open from file descriptor", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -278,7 +278,7 @@ test("std.tmpfile - creates temporary file", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -301,7 +301,7 @@ test("std.puts - writes to stdout", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -321,7 +321,7 @@ test("std.printf - formatted output", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -342,7 +342,7 @@ test("std.sprintf - formatted string", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -371,7 +371,7 @@ test("FILE.puts - writes string to file", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -399,7 +399,7 @@ test("FILE.printf - writes formatted string to file", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -426,7 +426,7 @@ test("FILE.flush - flushes buffer", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -451,7 +451,7 @@ test("FILE.sync - syncs to disk", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -492,7 +492,7 @@ test("FILE.seek and FILE.tell", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -523,7 +523,7 @@ test("FILE.tello - returns bigint position", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -553,7 +553,7 @@ test("FILE.eof - detects end of file", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -583,7 +583,7 @@ test("FILE.fileno - returns file descriptor", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -627,7 +627,7 @@ test("FILE.writeTo - copies between files", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -661,7 +661,7 @@ test("FILE.writeTo - with limit", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -689,7 +689,7 @@ test("FILE.getline - reads lines", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -717,7 +717,7 @@ test("FILE.readAsString - with maxSize", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -748,7 +748,7 @@ test("FILE.getByte and FILE.putByte", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -779,7 +779,7 @@ test("FILE.setvbuf - set buffering mode", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -810,7 +810,7 @@ test("FILE.target - provides debug info", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -837,7 +837,7 @@ test("std.in, std.out, std.err exist and are FILEs", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -863,7 +863,7 @@ test("std.SEEK_* constants", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -887,7 +887,7 @@ test("std._IO* buffer mode constants", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -912,7 +912,7 @@ test("std.getenv - reads environment variable", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -940,7 +940,7 @@ test("std.setenv and std.unsetenv", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -969,7 +969,7 @@ test("std.getenviron - returns env object", async () => {
     { env: { ...process.env, QJS_GETENVIRON_TEST: "yes" } }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -999,7 +999,7 @@ test("std.getuid and std.geteuid", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1027,7 +1027,7 @@ test("std.getgid and std.getegid", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1053,7 +1053,7 @@ test("std.parseExtJSON - standard JSON", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1080,7 +1080,7 @@ test("std.parseExtJSON - comments", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1103,7 +1103,7 @@ test("std.parseExtJSON - trailing commas", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1125,7 +1125,7 @@ test("std.parseExtJSON - unquoted keys", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1146,7 +1146,7 @@ test("std.parseExtJSON - single quoted strings", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1171,7 +1171,7 @@ test("std.parseExtJSON - hex and octal numbers", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1199,7 +1199,7 @@ test("std.strftime - format date", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1221,7 +1221,7 @@ test("std.strftime - with Date object", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -1289,7 +1289,7 @@ describe("std.urlGet", () => {
       `,
     ]);
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -1314,7 +1314,7 @@ describe("std.urlGet", () => {
       `,
     ]);
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -1342,7 +1342,7 @@ describe("std.urlGet", () => {
       `,
     ]);
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -1370,7 +1370,7 @@ describe("std.urlGet", () => {
       `,
     ]);
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -1397,7 +1397,7 @@ describe("std.urlGet", () => {
       `,
     ]);
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -1419,7 +1419,7 @@ describe("std.urlGet", () => {
       `,
     ]);
     await run.completion;
-    expect(run.result).toMatchInlineSnapshot(`
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
