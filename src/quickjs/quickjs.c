@@ -9329,6 +9329,12 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
             JSValue num;
             int ret;
 
+            // Per sec-integer-indexed-exotic-objects-defineownproperty-p-desc
+            // (with align-detached-buffer-semantics-with-web-reality): the
+            // abstract op returns false for any invalid numeric index. We
+            // still route through JS_ThrowTypeErrorOrFalse so Object.define-
+            // Property (JS_PROP_THROW) throws while Reflect.defineProperty
+            // returns false.
             if (!__JS_AtomIsTaggedInt(prop)) {
                 /* slow path with to handle all numeric indexes */
                 num = JS_AtomIsNumericIndex1(ctx, prop);
@@ -9351,15 +9357,13 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
                     return JS_ThrowTypeErrorOrFalse(ctx, flags, "negative index in typed array");
                 }
                 if (!__JS_AtomIsTaggedInt(prop))
-                    goto typed_array_oob;
+                    return JS_ThrowTypeErrorOrFalse(ctx, flags, "out-of-bound index in typed array");
             }
             idx = __JS_AtomToUInt32(prop);
-            /* if the typed array is detached, p->u.array.count = 0 */
             /* typed_array_get_length() still returns the pre-detach length,
                so check for a detached buffer separately. */
             if (typed_array_is_detached(ctx, p) ||
                 idx >= typed_array_get_length(ctx, p)) {
-            typed_array_oob:
                 return JS_ThrowTypeErrorOrFalse(ctx, flags, "out-of-bound index in typed array");
             }
             prop_flags = get_prop_flags(flags, JS_PROP_ENUMERABLE | JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
@@ -9368,7 +9372,13 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
                 return JS_ThrowTypeErrorOrFalse(ctx, flags, "invalid descriptor flags");
             }
             if (flags & JS_PROP_HAS_VALUE) {
-                return JS_SetPropertyValue(ctx, this_obj, JS_NewInt32(ctx, idx), JS_DupValue(ctx, val), flags);
+                // IntegerIndexedElementSet: may detach buffer / shift the
+                // valid index range during value coercion. JS_SetPropertyValue
+                // returns TRUE even on post-coercion OOB now; propagate that.
+                ret = JS_SetPropertyValue(ctx, this_obj, JS_NewInt32(ctx, idx), JS_DupValue(ctx, val), flags);
+                if (ret < 0)
+                    return ret;
+                return TRUE;
             }
             return TRUE;
         typed_array_done: ;
