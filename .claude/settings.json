@@ -4,7 +4,7 @@
       "Bash(QUICKJS_EXTRAS=1 meta/build.sh:*)",
       "Bash(meta/docker/compile.sh:*)",
       "Bash(npm test:*)",
-      "Bash(npx jest:*)",
+      "Bash(npx vitest:*)",
       "Bash(wine build/x86_64-pc-windows-static/bin/:*)",
       "Bash(meta/clean.sh)",
       "Bash(meta/build.sh)",
