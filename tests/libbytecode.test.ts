@@ -272,14 +272,12 @@ test("bytecode - fromValue with function", async () => {
     { cwd: rootDir() }
   );
   await run.completion;
-  expect(run.result).toMatchInlineSnapshot(`
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 1,
       "error": null,
       "stderr": "TypeError: unsupported object class
-        at quickjs.c:34771
-        at fromValue (native)
-        at <eval> (<cmdline>:3)
+        at somewhere
 
     ",
       "stdout": "",
