@@ -6,7 +6,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 
 | Short SHA | Status | Subject | Notes |
 |-----------|--------|---------|-------|
-| 6de52d8 | PENDING | bf_set_ui() fix (github issue #133) |  |
+| 6de52d8 | SKIP-DONE | bf_set_ui() fix (github issue #133) | Already applied in fork: shld/shrd at src/lib/libbf/libbf.c:169-182, bf_set_ui uses shld at :256. |
 | 03cc5ec | PENDING | fixed js_proxy_isArray stack overflow (github issue #178) |  |
 | 94010ed | PENDING | the BigInt support is now always included |  |
 | cdeca4d | PENDING | updated to unicode 15.0.0 |  |
