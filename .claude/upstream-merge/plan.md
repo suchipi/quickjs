@@ -134,11 +134,11 @@ upstream: <full-sha>
 "
 ```
 
-Build + run the full test suite to verify the port didn't break things:
+**You MUST build and run the full test suite after every PORT commit.** Do not skip this step or defer it.
 
 ```
 env QUICKJS_EXTRAS=1 meta/build.sh test-platforms
-npm test -- --forceExit
+npm test
 ```
 
 Both must be green before proceeding. If either fails, fix it before the port commit is finalized (amending or adding follow-up commits is fine, as long as everything is green before step 5's merge marker lands). Then mark merged (step 5).
@@ -213,7 +213,7 @@ git log --merges --grep='^upstream ' --pretty='%H %s' main
 
 ## Verification
 
-- After every PORT: full build (covering Windows / WASM targets) + full test suite must pass — `env QUICKJS_EXTRAS=1 meta/build.sh test-platforms` then `npm test -- --forceExit`. No commit lands with red tests.
+- After every PORT: full build (covering Windows / WASM targets) + full test suite must pass — `env QUICKJS_EXTRAS=1 meta/build.sh test-platforms` then `npm test`. No commit lands with red tests. This step is mandatory; never skip it.
 - When done, GitHub's compare page should report `suchipi/quickjs@main` as 0 behind `bellard/quickjs@master`. Locally: `git rev-list --count main..upstream/master` returns `0`.
 
 ## When in doubt, ask

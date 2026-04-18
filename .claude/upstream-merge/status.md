@@ -12,7 +12,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | cdeca4d | SKIP-DONE | updated to unicode 15.0.0 | Fork is already on Unicode 15 (unicode_download.sh URL, Kawi + Nag_Mundari in unicode_gen_def.h, test262.conf matches). libunicode-table.h is generated from the .txt inputs, not vendored. test262_errors.txt is a fork-specific baseline. |
 | 3106401 | SKIP-NA | keep LTO | Makefile only; fork uses Ninja/meta build and doesn't vendor Makefile. |
 | f87cab0 | SKIP-DONE | added String.prototype.at, Array.prototype.at and TypedArray.prototype.at | Fork already has js_array_at (:39784), js_string_at (:40759), js_typed_array_at (:52465) in src/quickjs/quickjs.c |
-| 321dbfa | PENDING | added missing bignum error tests (github issue #159) |  |
+| 321dbfa | PORT | added missing bignum error tests (github issue #159) | Added null checks after JS_ToBigFloat/JS_ToBigDecimal/JS_ToBigInt calls in CONFIG_BIGNUM code |
 | 55a4878 | PENDING | fixed private field setters (github issue #194) |  |
 | b14d77b | PENDING | fixed negative zero date |  |
 | 26fdf65 | PENDING | Make Date methods argument coercion spec compliant (bnoordhuis) |  |

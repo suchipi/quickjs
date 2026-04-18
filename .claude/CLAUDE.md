@@ -15,8 +15,8 @@ env QUICKJS_EXTRAS=1 meta/build.sh # Build for current platform
                                    # (auto-detects HOST/TARGET OS)
 meta/build.sh x86_64-pc-windows-static # Build for windows using Docker (needed for tests that use wine)
 meta/clean.sh              # Clean build artifacts
-npm test -- --forceExit    # Run all tests (jest --runInBand)
-npx jest tests/foo.test.ts --runInBand  # Run a single test file
+npm test                   # Run all tests (vitest)
+npx vitest tests/foo.test.ts  # Run a single test file
 ```
 
 Build requires: Ninja, Node.js 18+, Bash 4+, a C compiler (gcc/clang).
@@ -38,7 +38,7 @@ All rules have `_host` and `_target` variants for cross-compilation.
 
 ## Test Infrastructure
 
-Tests use Jest with Babel (for TypeScript). Most tests are integration tests that spawn compiled binaries using the `first-base` library and snapshot stdout/stderr/exit codes.
+Tests use Vitest (for TypeScript). Most tests are integration tests that spawn compiled binaries using the `first-base` library and snapshot stdout/stderr/exit codes.
 
 - Test files: `tests/*.test.ts`
 - Test utilities: `tests/_utils.ts` (provides `rootDir`, `binDir`, `fixturesDir`, `testsWorkDir`, `cleanString`, `cleanResult`)
