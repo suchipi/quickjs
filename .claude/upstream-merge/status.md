@@ -8,7 +8,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 |-----------|--------|---------|-------|
 | 6de52d8 | SKIP-DONE | bf_set_ui() fix (github issue #133) | Already applied in fork: shld/shrd at src/lib/libbf/libbf.c:169-182, bf_set_ui uses shld at :256. |
 | 03cc5ec | SKIP-DONE | fixed js_proxy_isArray stack overflow (github issue #178) | Already applied in fork at src/quickjs/quickjs.c:45622-45625. |
-| 94010ed | PENDING | the BigInt support is now always included |  |
+| 94010ed | SKIP-BAD | the BigInt support is now always included | Fork wants to keep CONFIG_BIGNUM as a meaningful toggle; do not remove the ifdef guards around BigInt code. |
 | cdeca4d | PENDING | updated to unicode 15.0.0 |  |
 | 3106401 | PENDING | keep LTO |  |
 | f87cab0 | PENDING | added String.prototype.at, Array.prototype.at and TypedArray.prototype.at |  |
