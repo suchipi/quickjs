@@ -93,6 +93,11 @@ for (const suffix of ["HOST", "TARGET"]) {
   // always treat chars as unsigned for consistent bytecode
   declareOrAppend(`CFLAGS_${suffix}`, "-funsigned-char");
 
+  // make signed integer overflow well-defined (two's-complement wrap) rather
+  // than UB. Matches upstream Makefile; the engine has several places that
+  // rely on wrapping semantics for hashing and arithmetic.
+  declareOrAppend(`CFLAGS_${suffix}`, "-fwrapv");
+
   if (getVar(`LDEXPORT_${suffix}`)?.match(/-rdynamic/)) {
     // Enable importing *.so library modules from JS code.
     declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_SHARED_LIBRARY_MODULES");

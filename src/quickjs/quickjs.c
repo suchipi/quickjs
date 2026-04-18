@@ -38030,12 +38030,13 @@ static JSValue js_error_constructor(JSContext *ctx, JSValueConst new_target,
         return obj;
     }
 
+    // Reflect.construct(Error, []) can call with argc < 2, so guard the reads.
     if (magic == JS_AGGREGATE_ERROR) {
-        message = argv[1];
-        options = argv[2];
+        message = (argc > 1) ? argv[1] : JS_UNDEFINED;
+        options = (argc > 2) ? argv[2] : JS_UNDEFINED;
     } else {
-        message = argv[0];
-        options = argv[1];
+        message = (argc > 0) ? argv[0] : JS_UNDEFINED;
+        options = (argc > 1) ? argv[1] : JS_UNDEFINED;
     }
 
     if (!JS_IsUndefined(message)) {
