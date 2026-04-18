@@ -20,7 +20,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 4949d75 | SKIP-DONE | Retrieve RegExp 'g' flag in spec conformant way (original patch by bnoordhuis) | Fork already reads flags via JS_ATOM_flags in Symbol.match (:43243) and Symbol.replace |
 | 20a57f9 | PORT | Implement extended named capture group identifiers (bnoordhuis) | Extended re_parse_group_name to handle surrogate pairs; removed is_utf16 param. 1 test262 error resolved. |
 | 58f374e | PORT | reworked set property and fixed corner cases of typed array set property | Merged JS_SetPropertyGeneric into JS_SetPropertyInternal (new receiver param); callers updated to pass obj+this_obj. Two prior fork pre-ports (4832473, 2bc4159) were reverted first so the port applies cleanly. Items 3 (explicit detach check in JS_DefineProperty), 4 (species), 5 (sort-on-detach) from 4832473 are now re-earned as the corresponding upstream commits get processed. 14 test262 errors fixed; sort-tonumber and no-species still pending upstream b180cd2/b8791e9. |
-| e182050 | PENDING | fixed delete super.x error |  |
+| e182050 | PORT | fixed delete super.x error | 2-line fix in js_parse_delete: for the OP_get_super_value case, reset byte_code.size and last_opcode_pos before emitting the throw_error opcode so the thrown error is a ReferenceError, not TypeError. 1 test262 error resolved. |
 | b180cd2 | PENDING | Symbol.species is no longer used in TypedArray constructor from a TypedArray |  |
 | 177af41 | PENDING | fixed duplicate static private setter/getter test |  |
 | a057008 | PENDING | added Array.prototype.findLast{Index} and TypeArray.prototype.findLast{index} (initial patch by bnoordhuis) |  |
