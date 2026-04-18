@@ -11,7 +11,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 94010ed | SKIP-BAD | the BigInt support is now always included | Fork wants to keep CONFIG_BIGNUM as a meaningful toggle; do not remove the ifdef guards around BigInt code. |
 | cdeca4d | SKIP-DONE | updated to unicode 15.0.0 | Fork is already on Unicode 15 (unicode_download.sh URL, Kawi + Nag_Mundari in unicode_gen_def.h, test262.conf matches). libunicode-table.h is generated from the .txt inputs, not vendored. test262_errors.txt is a fork-specific baseline. |
 | 3106401 | SKIP-NA | keep LTO | Makefile only; fork uses Ninja/meta build and doesn't vendor Makefile. |
-| f87cab0 | PENDING | added String.prototype.at, Array.prototype.at and TypedArray.prototype.at |  |
+| f87cab0 | SKIP-DONE | added String.prototype.at, Array.prototype.at and TypedArray.prototype.at | Fork already has js_array_at (:39784), js_string_at (:40759), js_typed_array_at (:52465) in src/quickjs/quickjs.c |
 | 321dbfa | PENDING | added missing bignum error tests (github issue #159) |  |
 | 55a4878 | PENDING | fixed private field setters (github issue #194) |  |
 | b14d77b | PENDING | fixed negative zero date |  |
