@@ -1,4 +1,7 @@
-import { test, beforeAll, afterAll, expect } from "vitest";
+import { test, beforeAll, afterAll, expect, vi } from "vitest";
+
+// Wine tests need longer timeout since first-base waits for stream drain
+vi.setConfig({ testTimeout: 15000 });
 import { spawn, sanitizers } from "first-base";
 import { rootDir } from "./_utils";
 import path from "path";
@@ -35,7 +38,7 @@ beforeAll(async () => {
   // Warm up wineserver so first test doesn't pay cold-start cost
   const run = spawn("wine", [qjsExe, "-e", "2 + 2"], { cwd: rootDir() });
   await run.completion;
-}, 10000);
+}, 15000);
 afterAll(() => {
   sanitizers.pop();
 });
@@ -68,6 +71,7 @@ test("CreateProcess returns process info object", async () => {
     has tid: true
     has processHandle: true
     has threadHandle: true
+    hello from CreateProcess
     ",
     }
   `);
@@ -97,6 +101,7 @@ test("CreateProcess with moduleName option", async () => {
       "error": null,
       "stderr": "",
       "stdout": "pid is number: true
+    moduleName test
     ",
     }
   `);
