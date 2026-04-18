@@ -503,11 +503,6 @@ typedef struct JSVarDef {
     uint8_t is_lexical : 1;
     uint8_t is_captured : 1;
     uint8_t var_kind : 4; /* see JSVarKindEnum */
-    /* for JS_VAR_PRIVATE_* entries only: 1 if the private name was declared
-       with the `static` modifier. Used during class parsing to enforce the
-       spec rule that a given private name must appear on only one side
-       (all-static or all-non-static). */
-    uint8_t is_private_static : 1;
     /* only used during compilation: function pool index for lexical
        variables with var_kind =
        JS_VAR_FUNCTION_DECL/JS_VAR_NEW_FUNCTION_DECL or scope level of
@@ -21981,8 +21976,7 @@ static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
 
 /* add a private field variable in the current scope */
 static int add_private_class_field(JSParseState *s, JSFunctionDef *fd,
-                                   JSAtom name, JSVarKindEnum var_kind,
-                                   BOOL is_static)
+                                   JSAtom name, JSVarKindEnum var_kind)
 {
     JSContext *ctx = s->ctx;
     JSVarDef *vd;
@@ -21994,7 +21988,6 @@ static int add_private_class_field(JSParseState *s, JSFunctionDef *fd,
     vd = &fd->vars[idx];
     vd->is_lexical = 1;
     vd->is_const = 1;
-    vd->is_private_static = is_static;
     return idx;
 }
 
@@ -22951,17 +22944,10 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
                         var_kind == (JS_VAR_PRIVATE_GETTER + is_set)) {
                         goto private_field_already_defined;
                     }
-                    /* a private name can only pair a getter with a setter
-                       on the same side of the class body */
-                    if (fd->vars[idx].is_private_static != is_static) {
-                        js_parse_error(s, "private class field is already defined");
-                        goto fail;
-                    }
                     fd->vars[idx].var_kind = JS_VAR_PRIVATE_GETTER_SETTER;
                 } else {
                     if (add_private_class_field(s, fd, name,
-                                                JS_VAR_PRIVATE_GETTER + is_set,
-                                                is_static) < 0)
+                                                JS_VAR_PRIVATE_GETTER + is_set) < 0)
                         goto fail;
                 }
                 if (add_brand(s, &class_fields[is_static]) < 0)
@@ -22987,8 +22973,7 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
                         goto fail;
                     emit_atom(s, setter_name);
                     ret = add_private_class_field(s, fd, setter_name,
-                                                  JS_VAR_PRIVATE_SETTER,
-                                                  is_static);
+                                                  JS_VAR_PRIVATE_SETTER);
                     JS_FreeAtom(ctx, setter_name);
                     if (ret < 0)
                         goto fail;
@@ -23023,8 +23008,7 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
                     goto private_field_already_defined;
                 }
                 if (add_private_class_field(s, fd, name,
-                                            JS_VAR_PRIVATE_FIELD,
-                                            is_static) < 0)
+                                            JS_VAR_PRIVATE_FIELD) < 0)
                     goto fail;
                 emit_op(s, OP_private_symbol);
                 emit_atom(s, name);
@@ -23131,8 +23115,7 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
                     goto fail;
                 }
                 if (add_private_class_field(s, fd, name,
-                                            JS_VAR_PRIVATE_METHOD,
-                                            is_static) < 0)
+                                            JS_VAR_PRIVATE_METHOD) < 0)
                     goto fail;
                 emit_op(s, OP_set_home_object);
                 emit_op(s, OP_set_name);
