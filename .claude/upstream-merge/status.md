@@ -14,7 +14,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | f87cab0 | SKIP-DONE | added String.prototype.at, Array.prototype.at and TypedArray.prototype.at | Fork already has js_array_at (:39784), js_string_at (:40759), js_typed_array_at (:52465) in src/quickjs/quickjs.c |
 | 321dbfa | PORT | added missing bignum error tests (github issue #159) | Added null checks after JS_ToBigFloat/JS_ToBigDecimal/JS_ToBigInt calls in CONFIG_BIGNUM code |
 | 55a4878 | PORT | fixed private field setters (github issue #194) | Fixed scope_put_private_field opcode stack counts (2,0 not 1,1); typo fix unconsistent→inconsistent. OP_drop after setter call_method already present in fork. |
-| b14d77b | PENDING | fixed negative zero date |  |
+| b14d77b | PORT | fixed negative zero date | Reject negative zero in string_get_signed_digits for Date parsing; 2 test262 errors resolved |
 | 26fdf65 | PENDING | Make Date methods argument coercion spec compliant (bnoordhuis) |  |
 | c4cdd61 | PENDING | fixed lexical scope of 'this' with eval (github issue #192) |  |
 | 4949d75 | PENDING | Retrieve RegExp 'g' flag in spec conformant way (original patch by bnoordhuis) |  |

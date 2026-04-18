@@ -2,8 +2,6 @@ test262/test/built-ins/AsyncGeneratorPrototype/return/return-state-completed-bro
 test262/test/built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise.js:34: TypeError: $DONE() not called
 test262/test/built-ins/AsyncGeneratorPrototype/return/return-suspendedYield-broken-promise-try-catch.js:39: TypeError: $DONE() not called
 test262/test/built-ins/Date/UTC/fp-evaluation-order.js:19: Test262Error: precision in MakeDate Expected SameValue(«34448384», «34447360») to be true
-test262/test/built-ins/Date/parse/year-zero.js:13: Test262Error: reject minus zero as extended year Expected SameValue(«-62159440500000», «NaN») to be true
-test262/test/built-ins/Date/year-zero.js:13: Test262Error: reject minus zero as extended year Expected SameValue(«-62159440500000», «NaN») to be true
 test262/test/built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js:20: Test262Error: Expected a ReferenceError but got a different error constructor with the same name
 test262/test/built-ins/RegExp/named-groups/non-unicode-property-names-valid.js:46: SyntaxError: invalid group name
 test262/test/built-ins/RegExp/unicode_restricted_identity_escape.js:13: Test262Error: Invalid IdentityEscape in AtomEscape: '\-' Expected a SyntaxError to be thrown but no exception was thrown at all
