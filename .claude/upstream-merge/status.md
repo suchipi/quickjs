@@ -18,7 +18,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 26fdf65 | SKIP-DONE | Make Date methods argument coercion spec compliant (bnoordhuis) | Fork already has unconditional argument coercion in set_date_field() at src/quickjs/quickjs.c:48502 |
 | c4cdd61 | PORT | fixed lexical scope of 'this' with eval (github issue #192) | Pass vd->is_lexical instead of FALSE in get_closure_var calls in add_eval_variables |
 | 4949d75 | SKIP-DONE | Retrieve RegExp 'g' flag in spec conformant way (original patch by bnoordhuis) | Fork already reads flags via JS_ATOM_flags in Symbol.match (:43243) and Symbol.replace |
-| 20a57f9 | PENDING | Implement extended named capture group identifiers (bnoordhuis) |  |
+| 20a57f9 | PORT | Implement extended named capture group identifiers (bnoordhuis) | Extended re_parse_group_name to handle surrogate pairs; removed is_utf16 param. 1 test262 error resolved. |
 | 58f374e | PENDING | reworked set property and fixed corner cases of typed array set property |  |
 | e182050 | PENDING | fixed delete super.x error |  |
 | b180cd2 | PENDING | Symbol.species is no longer used in TypedArray constructor from a TypedArray |  |
