@@ -38,7 +38,7 @@ All rules have `_host` and `_target` variants for cross-compilation.
 
 ## Test Infrastructure
 
-Tests use Vitest (for TypeScript). Most tests are integration tests that spawn compiled binaries using the `first-base` library and snapshot stdout/stderr/exit codes.
+Tests use Vitest. Most tests are integration tests that spawn compiled binaries using the `first-base` library and snapshot stdout/stderr/exit codes.
 
 - Test files: `tests/*.test.ts`
 - Test utilities: `tests/_utils.ts` (provides `rootDir`, `binDir`, `fixturesDir`, `testsWorkDir`, `cleanString`, `cleanResult`)

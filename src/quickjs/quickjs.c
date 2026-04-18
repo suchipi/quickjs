@@ -32405,7 +32405,7 @@ static __exception int ss_check(JSContext *ctx, StackSizeState *s,
     if (s->stack_level_tab[pos] != 0xffff) {
         /* already explored: check that the stack size is consistent */
         if (s->stack_level_tab[pos] != stack_len) {
-            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "unconsistent stack size: %d %d (pc=%d)",
+            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "inconsistent stack size: %d %d (pc=%d)",
                                   s->stack_level_tab[pos], stack_len, pos);
             return -1;
         } else {

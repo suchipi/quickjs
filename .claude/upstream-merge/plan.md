@@ -139,9 +139,10 @@ upstream: <full-sha>
 ```
 env QUICKJS_EXTRAS=1 meta/build.sh test-platforms
 npm test
+src/run-test262/run.sh -u
 ```
 
-Both must be green before proceeding. If either fails, fix it before the port commit is finalized (amending or adding follow-up commits is fine, as long as everything is green before step 5's merge marker lands). Then mark merged (step 5).
+All three must be green before proceeding. For test262, `-u` updates the error file; if `git diff src/run-test262/test262_errors.txt` shows changes, either the port fixed tests (good — include the updated error file in the commit) or broke tests (bad — fix before proceeding). If either fails, fix it before the port commit is finalized (amending or adding follow-up commits is fine, as long as everything is green before step 5's merge marker lands). Then mark merged (step 5).
 
 ### 3b. SKIP paths
 
@@ -213,7 +214,7 @@ git log --merges --grep='^upstream ' --pretty='%H %s' main
 
 ## Verification
 
-- After every PORT: full build (covering Windows / WASM targets) + full test suite must pass — `env QUICKJS_EXTRAS=1 meta/build.sh test-platforms` then `npm test`. No commit lands with red tests. This step is mandatory; never skip it.
+- After every PORT: full build (covering Windows / WASM targets) + full test suite + test262 must pass — `env QUICKJS_EXTRAS=1 meta/build.sh test-platforms`, then `npm test`, then `src/run-test262/run.sh -u`. No commit lands with red tests. This step is mandatory; never skip it.
 - When done, GitHub's compare page should report `suchipi/quickjs@main` as 0 behind `bellard/quickjs@master`. Locally: `git rev-list --count main..upstream/master` returns `0`.
 
 ## When in doubt, ask
