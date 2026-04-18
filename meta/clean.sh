@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-git clean -dfX
+git clean -dfX -e '!.claude/settings.local.json' -e '!.tmp/'
 
 if [[ "${QUICKJS_BUILD_DOCS:-}" == "1" ]]; then
   echo 'Removing meta/docs/*'
