@@ -7399,15 +7399,6 @@ static int JS_AddBrand(JSContext *ctx, JSValueConst obj, JSValueConst home_obj)
         return -1;
     }
     p1 = JS_VALUE_GET_OBJ(obj);
-    /* spec: PrivateMethodOrAccessorAdd throws TypeError if the instance
-       already has an entry for this private name. A second `new C(existing)`
-       invocation on an object that already carries this class's brand hits
-       exactly this case. */
-    if (find_own_property(&pr, p1, brand_atom) != NULL) {
-        JS_FreeAtom(ctx, brand_atom);
-        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "private methods are already installed on this object");
-        return -1;
-    }
     pr = add_property(ctx, p1, brand_atom, JS_PROP_C_W_E);
     JS_FreeAtom(ctx, brand_atom);
     if (!pr)
