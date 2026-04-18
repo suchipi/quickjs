@@ -74,7 +74,7 @@ Commit both [.claude/upstream-merge/plan.md](.claude/upstream-merge/plan.md) and
 "Next" = the first row in [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md) still marked `PENDING`. Cross-check against git ancestry — these should agree:
 
 ```
-git rev-list --reverse --ancestry-path main..upstream/master | head -1
+git rev-list --reverse main..upstream/master | head -1
 ```
 
 Because each completed commit is marked via `git merge -s ours <sha>`, it becomes an ancestor of main and drops out of this list. If the tracking file and `git rev-list` disagree, trust `git rev-list` and fix the tracking file.
@@ -189,7 +189,7 @@ Go to step 1 until `git rev-list main..upstream/master` is empty. The final mark
 
 A new session can reconstruct everything from the tracking file, with git as the source of truth if they disagree:
 
-- **What's next?** → first `PENDING` row in [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md). Confirm with `git rev-list --reverse --ancestry-path main..upstream/master | head -1`.
+- **What's next?** → first `PENDING` row in [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md). Confirm with `git rev-list --reverse main..upstream/master | head -1`.
 - **What's been done, and how?** → read [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md); or `git log --merges --grep='^upstream ' main` for the git-log view.
 - **Why was commit X skipped?** → the Notes column in the tracking file, or `git log --merges --grep='upstream <short-sha>' -1 main`.
 
@@ -199,7 +199,7 @@ If the tracking file shows a commit as done but `git rev-list` still lists it as
 
 ```
 # list remaining upstream commits oldest-first with subjects
-git log --reverse --ancestry-path --oneline main..upstream/master
+git log --reverse --oneline main..upstream/master
 
 # inspect a single upstream commit
 git show --stat <sha>
