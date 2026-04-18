@@ -16,7 +16,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 55a4878 | PORT | fixed private field setters (github issue #194) | Fixed scope_put_private_field opcode stack counts (2,0 not 1,1); typo fix unconsistent→inconsistent. OP_drop after setter call_method already present in fork. |
 | b14d77b | PORT | fixed negative zero date | Reject negative zero in string_get_signed_digits for Date parsing; 2 test262 errors resolved |
 | 26fdf65 | SKIP-DONE | Make Date methods argument coercion spec compliant (bnoordhuis) | Fork already has unconditional argument coercion in set_date_field() at src/quickjs/quickjs.c:48502 |
-| c4cdd61 | PENDING | fixed lexical scope of 'this' with eval (github issue #192) |  |
+| c4cdd61 | PORT | fixed lexical scope of 'this' with eval (github issue #192) | Pass vd->is_lexical instead of FALSE in get_closure_var calls in add_eval_variables |
 | 4949d75 | PENDING | Retrieve RegExp 'g' flag in spec conformant way (original patch by bnoordhuis) |  |
 | 20a57f9 | PENDING | Implement extended named capture group identifiers (bnoordhuis) |  |
 | 58f374e | PENDING | reworked set property and fixed corner cases of typed array set property |  |
