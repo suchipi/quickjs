@@ -443,8 +443,16 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
   return m;
 }
 
-int QJMS_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
-                 const char *filename, int eval_flags)
+/* Common helper: compile + set import.meta + evaluate. If is_async is TRUE,
+   module-type input is evaluated with JS_EvalFunctionAsync — the caller
+   receives back a promise that the engine will resolve once TLA and all
+   dependencies settle, driven by the caller's own event loop. If FALSE,
+   module-type input is evaluated synchronously via JS_EvalFunction, which
+   refuses top-level-await modules (Zalgo-safe) with a TypeError.
+   Returns 0 on success, -1 on exception (already printed). */
+static int qjms_eval_buf_impl(JSContext *ctx, const void *buf, int buf_len,
+                              const char *filename, int eval_flags,
+                              BOOL is_async)
 {
     JSValue val;
     int ret;
@@ -456,7 +464,11 @@ int QJMS_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
 
       if (!JS_IsException(val)) {
         QJMS_SetModuleImportMeta(ctx, val);
-        val = JS_EvalFunction(ctx, val);
+        if (is_async) {
+          val = JS_EvalFunctionAsync(ctx, val);
+        } else {
+          val = JS_EvalFunction(ctx, val);
+        }
       }
     } else {
       val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
@@ -471,7 +483,31 @@ int QJMS_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
     return ret;
 }
 
-int QJMS_EvalFile(JSContext *ctx, const char *filename, int module)
+/* Synchronous module eval: refuses top-level-await modules (Zalgo-safe).
+   Used by require(), engine.importModule, and any C caller that needs
+   the module to be fully evaluated before this function returns. */
+int QJMS_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
+                 const char *filename, int eval_flags)
+{
+    return qjms_eval_buf_impl(ctx, buf, buf_len, filename, eval_flags,
+                              /*is_async=*/FALSE);
+}
+
+/* Async module eval: returns 0 after kicking off module evaluation. The
+   returned promise is discarded — the caller is expected to pump the
+   event loop (e.g. js_eventloop_run) to drive it to completion. Modules
+   with top-level await are supported. Used by qjs's main entry point
+   and other drivers that run their own event loop after eval. */
+int QJMS_EvalBufAsync(JSContext *ctx, const void *buf, int buf_len,
+                      const char *filename, int eval_flags)
+{
+    return qjms_eval_buf_impl(ctx, buf, buf_len, filename, eval_flags,
+                              /*is_async=*/TRUE);
+}
+
+/* Common helper for QJMS_EvalFile / QJMS_EvalFileAsync. */
+static int qjms_eval_file_impl(JSContext *ctx, const char *filename, int module,
+                               BOOL is_async)
 {
     uint8_t *buf;
     int ret, eval_flags;
@@ -492,13 +528,24 @@ int QJMS_EvalFile(JSContext *ctx, const char *filename, int module)
     } else {
       eval_flags = JS_EVAL_TYPE_GLOBAL;
     }
-    ret = QJMS_EvalBuf(ctx, buf, buf_len, filename, eval_flags);
+    ret = qjms_eval_buf_impl(ctx, buf, buf_len, filename, eval_flags, is_async);
     js_free(ctx, buf);
     return ret;
 }
 
-int QJMS_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                    int load_only)
+int QJMS_EvalFile(JSContext *ctx, const char *filename, int module)
+{
+    return qjms_eval_file_impl(ctx, filename, module, /*is_async=*/FALSE);
+}
+
+int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module)
+{
+    return qjms_eval_file_impl(ctx, filename, module, /*is_async=*/TRUE);
+}
+
+/* Common helper for QJMS_EvalBinary / QJMS_EvalBinaryAsync. */
+static int qjms_eval_binary_impl(JSContext *ctx, const uint8_t *buf, size_t buf_len,
+                                 int load_only, BOOL is_async)
 {
     JSValue obj, val;
     obj = JS_ReadObject(ctx, buf, buf_len, JS_READ_OBJ_BYTECODE);
@@ -517,7 +564,11 @@ int QJMS_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
         }
         QJMS_SetModuleImportMeta(ctx, obj);
       }
-      val = JS_EvalFunction(ctx, obj);
+      if (is_async) {
+        val = JS_EvalFunctionAsync(ctx, obj);
+      } else {
+        val = JS_EvalFunction(ctx, obj);
+      }
       if (JS_IsException(val)) {
 exception:
         QJU_PrintException(ctx, stderr);
@@ -527,6 +578,18 @@ exception:
     }
 
     return 0;
+}
+
+int QJMS_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
+                    int load_only)
+{
+    return qjms_eval_binary_impl(ctx, buf, buf_len, load_only, /*is_async=*/FALSE);
+}
+
+int QJMS_EvalBinaryAsync(JSContext *ctx, const uint8_t *buf, size_t buf_len,
+                         int load_only)
+{
+    return qjms_eval_binary_impl(ctx, buf, buf_len, load_only, /*is_async=*/TRUE);
 }
 
 /*

@@ -477,7 +477,10 @@ int main(int argc, char **argv)
             } else {
                 eval_flags |= JS_EVAL_TYPE_GLOBAL;
             }
-            if (QJMS_EvalBuf(ctx, expr, strlen(expr), "<cmdline>", eval_flags))
+            /* Async evaluation: qjs has its own event loop running after
+               this call (js_eventloop_run below), so top-level await in
+               the entry module is supported. */
+            if (QJMS_EvalBufAsync(ctx, expr, strlen(expr), "<cmdline>", eval_flags))
                 goto fail;
         } else
         if (optind >= argc) {
@@ -486,7 +489,8 @@ int main(int argc, char **argv)
         } else {
             const char *filename;
             filename = argv[optind];
-            if (QJMS_EvalFile(ctx, filename, module))
+            /* Async: see comment above. */
+            if (QJMS_EvalFileAsync(ctx, filename, module))
                 goto fail;
         }
         if (interactive) {

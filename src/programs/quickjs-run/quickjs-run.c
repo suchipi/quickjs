@@ -90,7 +90,8 @@ int main(int argc, char **argv)
     goto cleanup;
   }
 
-  if (QJMS_EvalFile(ctx, filename, -1)) {
+  /* Async evaluation — TLA support via the event loop below. */
+  if (QJMS_EvalFileAsync(ctx, filename, -1)) {
     QJU_PrintException(ctx, stderr);
     exit_status = 1;
     goto cleanup;

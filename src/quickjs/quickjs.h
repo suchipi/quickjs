@@ -959,7 +959,15 @@ typedef struct {
 void JS_SetSharedArrayBufferFunctions(JSRuntime *rt,
                                       const JSSharedArrayBufferFunctions *sf);
 
+typedef enum JSPromiseStateEnum {
+    JS_PROMISE_PENDING,
+    JS_PROMISE_FULFILLED,
+    JS_PROMISE_REJECTED,
+} JSPromiseStateEnum;
+
 JSValue JS_NewPromiseCapability(JSContext *ctx, JSValue *resolving_funcs);
+JSPromiseStateEnum JS_PromiseState(JSContext *ctx, JSValue promise);
+JSValue JS_PromiseResult(JSContext *ctx, JSValue promise);
 
 /* is_handled = TRUE means that the rejection is handled */
 typedef void JSHostPromiseRejectionTracker(JSContext *ctx, JSValueConst promise,
@@ -1032,15 +1040,32 @@ uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValueConst obj,
 JSValue JS_ReadObject(JSContext *ctx, const uint8_t *buf, size_t buf_len,
                       int flags);
 /* instantiate and evaluate a bytecode function. Only used when
-   reading a script or module with JS_ReadObject() */
+   reading a script or module with JS_ReadObject().
+   For module values, this is the *synchronous* variant: modules that use
+   top-level await (or whose transitive imports do) throw TypeError. */
 JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj);
+/* Async variant of JS_EvalFunction. For module values, returns a promise
+   that resolves once the module and its async dependencies complete.
+   Supports top-level await. For non-module values, behaves identically
+   to JS_EvalFunction. */
+JSValue JS_EvalFunctionAsync(JSContext *ctx, JSValue fun_obj);
 /* load the dependencies of the module 'obj'. Useful when JS_ReadObject()
    returns a module. returns 0 on success, -1 on error. */
 int JS_ResolveModule(JSContext *ctx, JSValueConst obj);
 
 JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels);
+/* Synchronously load + evaluate a module. Returns the module def on success,
+   or NULL with a pending exception on failure (including when the target
+   module or any of its transitive imports uses top-level await — the fork
+   keeps this API synchronous-only for Zalgo safety). */
 JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
                           const char *filename);
+
+/* Asynchronously load + evaluate a module, returning a Promise that resolves
+   to the module namespace on success or rejects with the thrown error.
+   Supports top-level await. Used by dynamic import() and os.Worker(). */
+JSValue JS_LoadModule(JSContext *ctx, const char *basename,
+                      const char *filename);
 
 /* Synthetic stack frames for debugging. Push a frame that will appear in
    JS backtraces with the given function name, filename, and line number.

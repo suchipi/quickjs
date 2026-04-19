@@ -36,6 +36,10 @@ JS_BOOL QJMS_IsMainModule(JSContext *ctx, const char *module_name);
 int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val);
 
 /*
+  Synchronously evaluate buf as script/module. For module input, throws
+  TypeError if the module (or any of its transitive imports) uses
+  top-level await — synchronous load is Zalgo-unsafe for TLA modules.
+
   returns 0 on success, nonzero on error.
   in case of error, prints error to stderr before returning.
 */
@@ -43,18 +47,46 @@ int QJMS_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
                  const char *filename, int eval_flags);
 
 /*
+  Async variant: for module input, kicks off evaluation and returns 0
+  immediately. The underlying module-evaluation promise is dropped — the
+  caller is expected to pump the event loop (e.g. js_eventloop_run) to
+  drive it to completion. Supports top-level await.
+
+  returns 0 on success (including when the module has not yet finished
+  executing), nonzero on synchronous error.
+*/
+int QJMS_EvalBufAsync(JSContext *ctx, const void *buf, int buf_len,
+                      const char *filename, int eval_flags);
+
+/*
   module can be -1 for autodetect.
+  Synchronously evaluates the file; see QJMS_EvalBuf for the TLA
+  constraint.
   returns 0 on success, nonzero on error.
   in case of error, prints error to stderr before returning.
 */
 int QJMS_EvalFile(JSContext *ctx, const char *filename, int module);
 
 /*
+  module can be -1 for autodetect.
+  Async variant; see QJMS_EvalBufAsync.
+*/
+int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module);
+
+/*
+  Synchronously evaluates bytecode. Throws TypeError if the bytecode is
+  a module that uses top-level await.
   returns 0 on success, nonzero on error.
   in case of error, prints error to stderr before returning.
 */
 int QJMS_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
                     int load_only);
+
+/*
+  Async variant of QJMS_EvalBinary. See QJMS_EvalBufAsync for semantics.
+*/
+int QJMS_EvalBinaryAsync(JSContext *ctx, const uint8_t *buf, size_t buf_len,
+                         int load_only);
 
 /* the internal behavior of the 'require' function, exposed as a C API */
 JSValue QJMS_Require(JSContext *ctx, JSValueConst specifier);
