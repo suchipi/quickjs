@@ -1,6 +1,8 @@
-import { test, expect } from "vitest";
+import { test, beforeEach, expect } from "vitest";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { spawn } from "first-base";
-import { binDir, fixturesDir } from "./_utils";
+import { binDir, fixturesDir, rootDir } from "./_utils";
 
 // All fixtures live in tests/fixtures/tla/. Each test spawns build/bin/qjs
 // with the fixture as the entry module. The fork's async-aware main entry
@@ -238,6 +240,171 @@ test("ModuleDelegate.resolve called synchronously during async module linking", 
       ./delegate-tla-with-dep.mjs from ./delegate-resolve-count.mjs
       ./delegate-resolve-count-dep.mjs from ./delegate-tla-with-dep.mjs
     ",
+    }
+  `);
+});
+
+// ============================================================================
+// Cross-binary coverage: the TLA feature and the rejection-propagation
+// behavior must match across every binary that runs user code as the entry
+// module — qjs, quickjs-run, qjsbootstrap (source), qjsbootstrap-bytecode.
+// The "same behavior" contract is: TLA succeeds exit 0 with stdout; TLA
+// rejection prints to stderr and exits 1.
+// ============================================================================
+
+test("TLA works with quickjs-run", async () => {
+  const run = spawn(binDir("quickjs-run"), [fixturesDir("tla", "tla-basic.mjs")]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "tla-basic: 42
+    ",
+    }
+  `);
+});
+
+test("uncaught TLA rejection with quickjs-run prints and exits nonzero", async () => {
+  const run = spawn(binDir("quickjs-run"), [
+    fixturesDir("tla", "tla-reject-uncaught.mjs"),
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": null,
+      "stderr": "Error: oops from tla-reject-uncaught
+        at somewhere
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+// qjsbootstrap (source): cp the bootstrap binary, append JS module source,
+// run. The source is treated as a module, so top-level await works.
+const bootstrapWorkDir = rootDir("build/tests/qjsbootstrap-tla");
+
+function makeBootstrapProg(sourceFile: string, progName: string) {
+  const progPath = path.join(bootstrapWorkDir, progName);
+  fs.rmSync(progPath, { force: true });
+  const source = fs.readFileSync(sourceFile);
+  fs.copyFileSync(binDir("qjsbootstrap"), progPath);
+  fs.appendFileSync(progPath, source);
+  fs.chmodSync(progPath, 0o755);
+  return progPath;
+}
+
+beforeEach(() => {
+  fs.rmSync(bootstrapWorkDir, { recursive: true, force: true });
+  fs.mkdirSync(bootstrapWorkDir, { recursive: true });
+});
+
+test("TLA works with qjsbootstrap (appended source)", async () => {
+  const prog = makeBootstrapProg(
+    fixturesDir("tla", "tla-basic.mjs"),
+    "tla-ok"
+  );
+  const run = spawn(prog);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "tla-basic: 42
+    ",
+    }
+  `);
+});
+
+test("uncaught TLA rejection with qjsbootstrap prints and exits nonzero", async () => {
+  const prog = makeBootstrapProg(
+    fixturesDir("tla", "tla-reject-uncaught.mjs"),
+    "tla-reject"
+  );
+  const run = spawn(prog);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": null,
+      "stderr": "Error: oops from tla-reject-uncaught
+        at somewhere
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+// qjsbootstrap-bytecode: compile a TLA fixture to bytecode via the
+// file-to-bytecode.js helper, then cp qjsbootstrap-bytecode and append.
+async function compileToBytecode(sourceFile: string, outFile: string) {
+  const run = spawn(
+    binDir("quickjs-run"),
+    [binDir("file-to-bytecode.js"), sourceFile, outFile, path.basename(sourceFile)],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  if (run.result.code !== 0) {
+    throw new Error(
+      `file-to-bytecode failed: ${JSON.stringify(run.result, null, 2)}`
+    );
+  }
+}
+
+async function makeBytecodeBootstrapProg(
+  sourceFile: string,
+  progName: string
+) {
+  const bytecodePath = path.join(bootstrapWorkDir, progName + ".bin");
+  await compileToBytecode(sourceFile, bytecodePath);
+  const bytecode = fs.readFileSync(bytecodePath);
+  const progPath = path.join(bootstrapWorkDir, progName);
+  fs.copyFileSync(binDir("qjsbootstrap-bytecode"), progPath);
+  fs.appendFileSync(progPath, bytecode);
+  fs.chmodSync(progPath, 0o755);
+  return progPath;
+}
+
+test("TLA works with qjsbootstrap-bytecode (appended bytecode)", async () => {
+  const prog = await makeBytecodeBootstrapProg(
+    fixturesDir("tla", "tla-basic.mjs"),
+    "tla-ok"
+  );
+  const run = spawn(prog);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "tla-basic: 42
+    ",
+    }
+  `);
+});
+
+test("uncaught TLA rejection with qjsbootstrap-bytecode prints and exits nonzero", async () => {
+  const prog = await makeBytecodeBootstrapProg(
+    fixturesDir("tla", "tla-reject-uncaught.mjs"),
+    "tla-reject"
+  );
+  const run = spawn(prog);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": null,
+      "stderr": "Error: oops from tla-reject-uncaught
+        at somewhere
+
+    ",
+      "stdout": "",
     }
   `);
 });

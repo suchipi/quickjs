@@ -198,15 +198,27 @@ int main(int argc, char **argv)
   }
 
 #ifdef CONFIG_BYTECODE
-  QJMS_EvalBinary(ctx, appended_code, appended_code_len, 0);
+  /* Async so top-level await in the embedded bytecode module works.
+     A top-level rejection is printed by the handler installed in
+     QJMS_EvalBinaryAsync and surfaces as exit_status 1 below. */
+  if (QJMS_EvalBinaryAsync(ctx, appended_code, appended_code_len, 0)) {
+    free(self_binary_path);
+    return 1;
+  }
 #else
-    if (QJMS_EvalBuf(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
+    /* Async so the appended module can use top-level await. */
+    if (QJMS_EvalBufAsync(ctx, appended_code, appended_code_len, self_binary_path, JS_EVAL_TYPE_MODULE)) {
       free(self_binary_path);
       return 1;
     }
 #endif
 
   exit_status = js_eventloop_run(ctx);
+  /* A top-level-await rejection in the appended module should propagate
+     to the exit status; the handler already printed the reason. */
+  if (exit_status == 0 && QJMS_EntryModuleRejected(rt)) {
+    exit_status = 1;
+  }
 
   QJMS_FreeState(rt);
   JS_FreeContext(ctx);

@@ -109,4 +109,18 @@ JSValue QJMS_GetModuleLoaderInternals(JSContext *ctx);
 */
 int QJMS_EntryModuleRejected(JSRuntime *rt);
 
+/*
+  Attach the entry-module rejection handler to `promise` and consume it.
+  If the promise rejects, the reason is printed to stderr and the
+  entry-module-rejected flag is set (observable via
+  QJMS_EntryModuleRejected).
+
+  QJMS_Eval*Async apply this handler automatically. Use this directly for
+  embedders that obtain an entry-module promise through another path — e.g.
+  the Worker runner, which loads its entry module via JS_LoadModule.
+
+  Ownership: consumes `promise` (frees it on success or failure).
+*/
+void QJMS_AttachEntryRejectionHandler(JSContext *ctx, JSValue promise);
+
 #endif /* ifndef QUICKJS_MODULESYS_H */

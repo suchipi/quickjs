@@ -3268,13 +3268,14 @@ static void *worker_func(void *opaque)
     } else {
         /* Workers support top-level await: load the module via the async
            path and let the worker's own event loop drive the promise to
-           completion. Rejections surface as unhandled promise rejections
-           through the standard mechanism. */
+           completion. A top-level rejection is printed to stderr and sets
+           the worker-runtime-local entry_module_rejected flag (same shape
+           as the main-thread path in qjs/quickjs-run). */
         JSValue module_promise = JS_LoadModule(ctx, args->basename, args->filename);
         if (JS_IsException(module_promise)) {
             QJU_PrintException(ctx, stderr);
         } else {
-            JS_FreeValue(ctx, module_promise);
+            QJMS_AttachEntryRejectionHandler(ctx, module_promise);
         }
     }
 

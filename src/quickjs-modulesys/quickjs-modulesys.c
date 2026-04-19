@@ -490,7 +490,7 @@ static JSValue qjms_entry_module_rejection_handler(JSContext *ctx,
    promise.then(undefined, handler). Frees `promise`. On any internal
    failure, prints the current exception and sets entry_module_rejected so
    the driver still exits nonzero. */
-static void qjms_attach_entry_rejection_handler(JSContext *ctx, JSValue promise)
+void QJMS_AttachEntryRejectionHandler(JSContext *ctx, JSValue promise)
 {
   JSValue then_fn, handler, args[2], chained;
   QJMS_State *state;
@@ -580,7 +580,7 @@ static int qjms_eval_buf_impl(JSContext *ctx, const void *buf, int buf_len,
       ret = 0;
       if (attach_handler) {
         /* Consumes val. */
-        qjms_attach_entry_rejection_handler(ctx, val);
+        QJMS_AttachEntryRejectionHandler(ctx, val);
       } else {
         JS_FreeValue(ctx, val);
       }
@@ -652,7 +652,7 @@ int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module)
    is TRUE and the bytecode is a module, the returned promise carries a
    rejection handler so a top-level-await rejection reaches the driver's
    exit path rather than being silently swallowed as an unhandled rejection.
-   See qjms_attach_entry_rejection_handler. */
+   See QJMS_AttachEntryRejectionHandler. */
 static int qjms_eval_binary_impl(JSContext *ctx, const uint8_t *buf, size_t buf_len,
                                  int load_only, BOOL is_async)
 {
@@ -687,7 +687,7 @@ exception:
         return -1;
       }
       if (attach_handler) {
-        qjms_attach_entry_rejection_handler(ctx, val); /* consumes val */
+        QJMS_AttachEntryRejectionHandler(ctx, val); /* consumes val */
       } else {
         JS_FreeValue(ctx, val);
       }
