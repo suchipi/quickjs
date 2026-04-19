@@ -54069,7 +54069,7 @@ static JSValue js_TA_get_float64(JSContext *ctx, const void *a) {
 
 struct TA_sort_context {
     JSContext *ctx;
-    int exception;
+    int exception; /* 1 = exception, 2 = detached typed array */
     JSValueConst arr;
     JSValueConst cmp;
     JSValue (*getfun)(JSContext *ctx, const void *a);
@@ -54087,6 +54087,8 @@ static int js_TA_cmp_generic(const void *a, const void *b, void *opaque) {
 
     cmp = 0;
     if (!psc->exception) {
+        /* Note: the typed array can be detached without causing an
+           error */
         a_idx = *(uint32_t *)a;
         b_idx = *(uint32_t *)b;
         argv[0] = psc->getfun(ctx, psc->array_ptr +
@@ -54114,8 +54116,9 @@ static int js_TA_cmp_generic(const void *a, const void *b, void *opaque) {
             /* make sort stable: compare array offsets */
             cmp = (a_idx > b_idx) - (a_idx < b_idx);
         }
-        if (validate_typed_array(ctx, psc->arr) < 0) {
-            psc->exception = 1;
+        if (unlikely(typed_array_is_detached(ctx,
+                                             JS_VALUE_GET_PTR(psc->arr)))) {
+            psc->exception = 2;
         }
     done:
         JS_FreeValue(ctx, (JSValue)argv[0]);
@@ -54139,12 +54142,15 @@ static JSValue js_typed_array_sort(JSContext *ctx, JSValueConst this_val,
     tsc.arr = this_val;
     tsc.cmp = argv[0];
 
-    len = js_typed_array_get_length_internal(ctx, this_val);
-    if (len < 0)
-        return JS_EXCEPTION;
+    /* Per spec, validate the compare function argument before even
+       touching the TypedArray (upstream moved this check ahead of
+       get_length_internal to match the spec order). */
     if (!JS_IsUndefined(tsc.cmp) && check_function(ctx, tsc.cmp)) {
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "An argument was passed to %%TypedArray%%.prototype.sort, which should be a function used to order the values. However, the argument wasn't a function.");
     }
+    len = js_typed_array_get_length_internal(ctx, this_val);
+    if (len < 0)
+        return JS_EXCEPTION;
 
     if (len > 1) {
         p = JS_VALUE_GET_OBJ(this_val);
@@ -54210,44 +54216,48 @@ static JSValue js_typed_array_sort(JSContext *ctx, JSValueConst this_val,
             tsc.elt_size = elt_size;
             rqsort(array_idx, len, sizeof(array_idx[0]),
                    js_TA_cmp_generic, &tsc);
-            if (tsc.exception)
-                goto fail;
-            array_tmp = js_malloc(ctx, len * elt_size);
-            if (!array_tmp) {
-            fail:
-                js_free(ctx, array_idx);
-                return JS_EXCEPTION;
+            if (tsc.exception) {
+                if (tsc.exception == 1)
+                    goto fail;
+                /* detached typed array during the sort: no error */
+            } else {
+                array_tmp = js_malloc(ctx, len * elt_size);
+                if (!array_tmp) {
+                fail:
+                    js_free(ctx, array_idx);
+                    return JS_EXCEPTION;
+                }
+                memcpy(array_tmp, array_ptr, len * elt_size);
+                switch(elt_size) {
+                case 1:
+                    for(i = 0; i < len; i++) {
+                        j = array_idx[i];
+                        ((uint8_t *)array_ptr)[i] = ((uint8_t *)array_tmp)[j];
+                    }
+                    break;
+                case 2:
+                    for(i = 0; i < len; i++) {
+                        j = array_idx[i];
+                        ((uint16_t *)array_ptr)[i] = ((uint16_t *)array_tmp)[j];
+                    }
+                    break;
+                case 4:
+                    for(i = 0; i < len; i++) {
+                        j = array_idx[i];
+                        ((uint32_t *)array_ptr)[i] = ((uint32_t *)array_tmp)[j];
+                    }
+                    break;
+                case 8:
+                    for(i = 0; i < len; i++) {
+                        j = array_idx[i];
+                        ((uint64_t *)array_ptr)[i] = ((uint64_t *)array_tmp)[j];
+                    }
+                    break;
+                default:
+                    abort();
+                }
+                js_free(ctx, array_tmp);
             }
-            memcpy(array_tmp, array_ptr, len * elt_size);
-            switch(elt_size) {
-            case 1:
-                for(i = 0; i < len; i++) {
-                    j = array_idx[i];
-                    ((uint8_t *)array_ptr)[i] = ((uint8_t *)array_tmp)[j];
-                }
-                break;
-            case 2:
-                for(i = 0; i < len; i++) {
-                    j = array_idx[i];
-                    ((uint16_t *)array_ptr)[i] = ((uint16_t *)array_tmp)[j];
-                }
-                break;
-            case 4:
-                for(i = 0; i < len; i++) {
-                    j = array_idx[i];
-                    ((uint32_t *)array_ptr)[i] = ((uint32_t *)array_tmp)[j];
-                }
-                break;
-            case 8:
-                for(i = 0; i < len; i++) {
-                    j = array_idx[i];
-                    ((uint64_t *)array_ptr)[i] = ((uint64_t *)array_tmp)[j];
-                }
-                break;
-            default:
-                abort();
-            }
-            js_free(ctx, array_tmp);
             js_free(ctx, array_idx);
         } else {
             rqsort(array_ptr, len, elt_size, cmpfun, &tsc);

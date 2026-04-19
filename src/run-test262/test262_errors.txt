@@ -1,7 +1,6 @@
 test262/test/built-ins/Date/UTC/fp-evaluation-order.js:19: Test262Error: precision in MakeDate Expected SameValue(«34448384», «34447360») to be true
 test262/test/built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js:20: Test262Error: Expected a ReferenceError but got a different error constructor with the same name
 test262/test/built-ins/RegExp/unicode_restricted_identity_escape.js:13: Test262Error: Invalid IdentityEscape in AtomEscape: '\-' Expected a SyntaxError to be thrown but no exception was thrown at all
-test262/test/built-ins/TypedArray/prototype/sort/sort-tonumber.js:30: TypeError: ArrayBuffer is detached (Testing with Float64Array.)
 test262/test/language/expressions/assignment/target-member-computed-reference-null.js:32: Test262Error: Expected a DummyError but got a TypeError
 test262/test/language/expressions/assignment/target-member-computed-reference-undefined.js:32: Test262Error: Expected a DummyError but got a TypeError
 test262/test/language/expressions/dynamic-import/usage-from-eval.js:26: TypeError: $DONE() not called
