@@ -82,6 +82,12 @@
       "WebFetch(domain:justine.lol)",
       "Bash(src/run-test262/run.sh)",
       "Bash(src/run-test262/run.sh -u)",
+      "Bash(src/run-test262/run.sh:*)",
+      "Bash(../../build/extras/run-test262:*)",
+      "Bash(meta/clean.sh:*)",
+      "Bash(build/unknown-unknown-cosmo/bin/qjs.com:*)",
+      "Bash(git rev-list:*)",
+      "Bash(gh search:*)",
       "Bash(echo \"exit=$?\")"
     ],
     "additionalDirectories": [
