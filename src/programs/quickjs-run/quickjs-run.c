@@ -98,6 +98,11 @@ int main(int argc, char **argv)
   }
 
   exit_status = js_eventloop_run(ctx);
+  /* Propagate a top-level-await rejection to the exit status; the handler
+     installed by QJMS_EvalFileAsync has already printed the reason. */
+  if (exit_status == 0 && QJMS_EntryModuleRejected(rt)) {
+    exit_status = 1;
+  }
 cleanup:
   QJMS_FreeState(rt);
   js_eventloop_free(rt);

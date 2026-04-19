@@ -497,6 +497,13 @@ int main(int argc, char **argv)
             QJMS_EvalBinary(ctx, qjsc_repl, qjsc_repl_size, 0);
         }
         exit_status = js_eventloop_run(ctx);
+        /* A top-level-await rejection in the entry module should behave
+           like a sync throw: printed (already done by the handler) and
+           nonzero exit. Only override when the event loop itself didn't
+           already signal a specific exit status. */
+        if (exit_status == 0 && QJMS_EntryModuleRejected(rt)) {
+            exit_status = 1;
+        }
     }
 
     if (dump_memory) {

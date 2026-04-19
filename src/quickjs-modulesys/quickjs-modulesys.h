@@ -99,4 +99,14 @@ JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val, JSAtom 
 /* returns an object like { require: Function, ModuleDelegate: Object } */
 JSValue QJMS_GetModuleLoaderInternals(JSContext *ctx);
 
+/*
+  Returns nonzero if the entry module (i.e. the module evaluated via
+  QJMS_Eval*Async) rejected. Drivers (qjs, quickjs-run) call this after
+  their event loop returns so a top-level-await rejection can propagate to
+  the process exit status — matching the behavior of a sync `throw` from a
+  non-TLA module. The rejection reason was already printed to stderr by
+  the internal handler when it fired.
+*/
+int QJMS_EntryModuleRejected(JSRuntime *rt);
+
 #endif /* ifndef QUICKJS_MODULESYS_H */

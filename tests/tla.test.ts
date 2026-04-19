@@ -115,6 +115,28 @@ test("TLA rejection is catchable via try/catch", async () => {
   `);
 });
 
+// An uncaught top-level rejection should be indistinguishable, from the
+// module author's perspective, from a sync `throw` in a non-TLA module:
+// printed to stderr and nonzero exit. Not silently swallowed as an
+// "unhandled rejection."
+test("uncaught TLA rejection prints and exits nonzero (not silent)", async () => {
+  const run = spawn(binDir("qjs"), [
+    fixturesDir("tla", "tla-reject-uncaught.mjs"),
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": null,
+      "stderr": "Error: oops from tla-reject-uncaught
+        at somewhere
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
 test("module cycle containing TLA resolves correctly", async () => {
   const run = spawn(binDir("qjs"), [fixturesDir("tla", "cycle-entry.mjs")]);
   await run.completion;

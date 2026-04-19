@@ -20,6 +20,12 @@ extern const uint32_t qjsc_module_impl_size;
 
 typedef struct QJMS_State {
   char *main_module;
+  /* Set to TRUE when the entry module (the one driven by QJMS_Eval*Async)
+     rejects. qjs and quickjs-run check this after their event loops return
+     to decide exit status: a top-level TLA rejection should behave like a
+     sync throw — printed to stderr, exit 1 — not like a silent unhandled
+     rejection. See qjms_entry_module_rejection_handler. */
+  BOOL entry_module_rejected;
 } QJMS_State;
 
 static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
@@ -40,6 +46,7 @@ void QJMS_InitState(JSRuntime *rt)
   main_module = js_malloc_rt(rt, MAIN_MODULE_NAME_SIZE);
   state = js_malloc_rt(rt, sizeof(state));
   state->main_module = main_module;
+  state->entry_module_rejected = FALSE;
 
   JS_SetModuleNormalizeFunc(rt, (JSModuleNormalizeFunc *) QJMS_NormalizeModuleName);
   JS_SetModuleLoaderFunc(rt, (JSModuleLoaderFunc *) QJMS_ModuleLoader);
@@ -59,6 +66,17 @@ void QJMS_FreeState(JSRuntime *rt)
     js_free_rt(rt, state->main_module);
   }
   js_free_rt(rt, state);
+}
+
+int QJMS_EntryModuleRejected(JSRuntime *rt)
+{
+  QJMS_State *state;
+
+  state = (QJMS_State *) JS_GetModuleLoaderOpaque(rt);
+  if (state == NULL) {
+    return 0;
+  }
+  return state->entry_module_rejected ? 1 : 0;
 }
 
 JSValue QJMS_GetModuleLoaderInternals(JSContext *ctx)
@@ -443,12 +461,87 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
   return m;
 }
 
+/* Rejection handler attached to the entry module's eval promise (async
+   path). When a top-level-await module rejects — which from the module
+   author's perspective is indistinguishable from a sync `throw` — we want
+   qjs to print the error and exit nonzero, not silently swallow it as an
+   unhandled rejection. Sets state->entry_module_rejected so the driver
+   (qjs main / quickjs-run / etc.) can propagate the failure after its
+   event loop returns. */
+static JSValue qjms_entry_module_rejection_handler(JSContext *ctx,
+                                                   JSValueConst this_val,
+                                                   int argc,
+                                                   JSValueConst *argv)
+{
+  QJMS_State *state;
+  JSValueConst reason;
+
+  state = (QJMS_State *) JS_GetModuleLoaderOpaque(JS_GetRuntime(ctx));
+  reason = argc > 0 ? argv[0] : JS_UNDEFINED;
+
+  QJU_PrintError(ctx, stderr, reason);
+  if (state != NULL) {
+    state->entry_module_rejected = TRUE;
+  }
+  return JS_UNDEFINED;
+}
+
+/* Attach qjms_entry_module_rejection_handler to `promise` via
+   promise.then(undefined, handler). Frees `promise`. On any internal
+   failure, prints the current exception and sets entry_module_rejected so
+   the driver still exits nonzero. */
+static void qjms_attach_entry_rejection_handler(JSContext *ctx, JSValue promise)
+{
+  JSValue then_fn, handler, args[2], chained;
+  QJMS_State *state;
+
+  then_fn = JS_GetPropertyStr(ctx, promise, "then");
+  if (JS_IsException(then_fn)) {
+    goto fail;
+  }
+
+  handler = JS_NewCFunction(ctx, qjms_entry_module_rejection_handler,
+                            "qjms_entry_module_rejection_handler", 1);
+  if (JS_IsException(handler)) {
+    JS_FreeValue(ctx, then_fn);
+    goto fail;
+  }
+
+  args[0] = JS_UNDEFINED;
+  args[1] = handler;
+  chained = JS_Call(ctx, then_fn, promise, 2, (JSValueConst *) args);
+  JS_FreeValue(ctx, then_fn);
+  JS_FreeValue(ctx, handler);
+  JS_FreeValue(ctx, promise);
+
+  if (JS_IsException(chained)) {
+    goto fail;
+  }
+  JS_FreeValue(ctx, chained);
+  return;
+
+fail:
+  QJU_PrintException(ctx, stderr);
+  state = (QJMS_State *) JS_GetModuleLoaderOpaque(JS_GetRuntime(ctx));
+  if (state != NULL) {
+    state->entry_module_rejected = TRUE;
+  }
+  JS_FreeValue(ctx, promise);
+}
+
 /* Common helper: compile + set import.meta + evaluate. If is_async is TRUE,
    module-type input is evaluated with JS_EvalFunctionAsync — the caller
    receives back a promise that the engine will resolve once TLA and all
    dependencies settle, driven by the caller's own event loop. If FALSE,
    module-type input is evaluated synchronously via JS_EvalFunction, which
    refuses top-level-await modules (Zalgo-safe) with a TypeError.
+
+   For the async module path we attach a rejection handler to the returned
+   promise so a top-level TLA rejection is reported (printed + the
+   entry_module_rejected flag set) rather than swallowed as an unhandled
+   rejection. The driver (qjs / quickjs-run) inspects the flag after its
+   event loop returns and propagates it to the process exit status.
+
    Returns 0 on success, -1 on exception (already printed). */
 static int qjms_eval_buf_impl(JSContext *ctx, const void *buf, int buf_len,
                               const char *filename, int eval_flags,
@@ -456,6 +549,7 @@ static int qjms_eval_buf_impl(JSContext *ctx, const void *buf, int buf_len,
 {
     JSValue val;
     int ret;
+    BOOL attach_handler = FALSE;
 
     if ((eval_flags & JS_EVAL_TYPE_MASK) == JS_EVAL_TYPE_MODULE) {
       /* for the modules, we compile then run to be able to set import.meta */
@@ -466,6 +560,11 @@ static int qjms_eval_buf_impl(JSContext *ctx, const void *buf, int buf_len,
         QJMS_SetModuleImportMeta(ctx, val);
         if (is_async) {
           val = JS_EvalFunctionAsync(ctx, val);
+          /* JS_EvalFunctionAsync always returns a promise for module
+             input (either a real one from the async evaluator or a
+             synchronously-resolved/rejected one from the sync fast path).
+             We take ownership of that promise below via the handler. */
+          attach_handler = !JS_IsException(val);
         } else {
           val = JS_EvalFunction(ctx, val);
         }
@@ -476,10 +575,16 @@ static int qjms_eval_buf_impl(JSContext *ctx, const void *buf, int buf_len,
     if (JS_IsException(val)) {
       QJU_PrintException(ctx, stderr);
       ret = -1;
+      JS_FreeValue(ctx, val);
     } else {
       ret = 0;
+      if (attach_handler) {
+        /* Consumes val. */
+        qjms_attach_entry_rejection_handler(ctx, val);
+      } else {
+        JS_FreeValue(ctx, val);
+      }
     }
-    JS_FreeValue(ctx, val);
     return ret;
 }
 
@@ -543,11 +648,16 @@ int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module)
     return qjms_eval_file_impl(ctx, filename, module, /*is_async=*/TRUE);
 }
 
-/* Common helper for QJMS_EvalBinary / QJMS_EvalBinaryAsync. */
+/* Common helper for QJMS_EvalBinary / QJMS_EvalBinaryAsync. When is_async
+   is TRUE and the bytecode is a module, the returned promise carries a
+   rejection handler so a top-level-await rejection reaches the driver's
+   exit path rather than being silently swallowed as an unhandled rejection.
+   See qjms_attach_entry_rejection_handler. */
 static int qjms_eval_binary_impl(JSContext *ctx, const uint8_t *buf, size_t buf_len,
                                  int load_only, BOOL is_async)
 {
     JSValue obj, val;
+    BOOL attach_handler = FALSE;
     obj = JS_ReadObject(ctx, buf, buf_len, JS_READ_OBJ_BYTECODE);
     if (JS_IsException(obj)) {
       goto exception;
@@ -557,7 +667,8 @@ static int qjms_eval_binary_impl(JSContext *ctx, const uint8_t *buf, size_t buf_
         QJMS_SetModuleImportMeta(ctx, obj);
       }
     } else {
-      if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
+      BOOL is_module = JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE;
+      if (is_module) {
         if (JS_ResolveModule(ctx, obj) < 0) {
           JS_FreeValue(ctx, obj);
           goto exception;
@@ -566,6 +677,7 @@ static int qjms_eval_binary_impl(JSContext *ctx, const uint8_t *buf, size_t buf_
       }
       if (is_async) {
         val = JS_EvalFunctionAsync(ctx, obj);
+        attach_handler = is_module && !JS_IsException(val);
       } else {
         val = JS_EvalFunction(ctx, obj);
       }
@@ -574,7 +686,11 @@ exception:
         QJU_PrintException(ctx, stderr);
         return -1;
       }
-      JS_FreeValue(ctx, val);
+      if (attach_handler) {
+        qjms_attach_entry_rejection_handler(ctx, val); /* consumes val */
+      } else {
+        JS_FreeValue(ctx, val);
+      }
     }
 
     return 0;
