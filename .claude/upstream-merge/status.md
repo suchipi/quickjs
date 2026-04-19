@@ -36,7 +36,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | c359951 | PORT | added container_of macro | Added generic container_of(ptr, type, member) macro in src/lib/cutils/cutils.h; reused it from src/lib/list/list.h's list_entry and from JS_FreeCString in quickjs.c. |
 | 3ba181e | PORT | fixed define own property with writable=false on module namespace | In JS_DefineProperty's VARREF path: (1) only update the VARREF target when the descriptor isn't the "same value" short-circuit, (2) when flipping a varref to writable=false, throw on JS_CLASS_MODULE_NS since module namespace exports must stay writable (spec). 1 test262 error resolved (define-own-property.js). |
 | 4342023 | PORT | removed incorrect await in async yield* | Dropped an extra OP_await that was being emitted before OP_async_yield_star in js_parse_assign_expr2's yield* path; OP_async_yield_star internally performs the await, so the double-await was unwrapping the yielded promise prematurely. 2 test262 errors resolved. |
-| 7cefa7b | PENDING | 'for of' expression cannot start with 'async' |  |
+| 7cefa7b | PORT | 'for of' expression cannot start with 'async' | Reject `for (async of …)` at parse time in js_parse_for_in_of — the spec forbids the unparenthesised `async` token as LHS to `for of` to avoid ambiguity with `for await (… of …)`. 1 test262 error resolved (head-lhs-async-invalid.js). |
 | 07ff474 | PENDING | use Unicode normalization in String.prototype.localeCompare |  |
 | e68993b | PENDING | removed unused JSContext field |  |
 | e929040 | PENDING | reduced JS_MAX_LOCAL_VARS (github issue #123) |  |
