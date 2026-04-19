@@ -33,7 +33,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 9e1ec09 | PORT | test 128 bit integer support (github issue #125) | In src/lib/libbf/libbf.h, the LIMB_LOG2_BITS=6 path requires __int128; also gate on __SIZEOF_INT128__ so compilers without it (e.g. MSVC) fall back to LIMB_LOG2_BITS=5. |
 | a96f440 | PORT | fixed js_strtod with large integers (github issue #206) | Fall back to system strtod for base-10 integers that overflow the uint64_t accumulator instead of using pow(10, int_exp), which loses precision. Also added the regression test ((19686109595169230000).toString() === "19686109595169230000") to tests/oldtests/test_language.js (fork-equivalent of upstream's tests/test_language.js). |
 | 1692f2a | PORT | safer typed array finalizer | GC can call the ArrayBuffer finalizer before finalizers of typed arrays pointing at it. js_array_buffer_finalizer now walks the abuf->array_list and zeroes each typed array's data pointer + count (non-DataView), plus severs the list link so js_typed_array_finalizer knows not to list_del again. Replaced JS_IsLiveObject(rt, ta->buffer) with the cheaper ta->link.next NULL check. |
-| c359951 | PENDING | added container_of macro |  |
+| c359951 | PORT | added container_of macro | Added generic container_of(ptr, type, member) macro in src/lib/cutils/cutils.h; reused it from src/lib/list/list.h's list_entry and from JS_FreeCString in quickjs.c. |
 | 3ba181e | PENDING | fixed define own property with writable=false on module namespace |  |
 | 4342023 | PENDING | removed incorrect await in async yield* |  |
 | 7cefa7b | PENDING | 'for of' expression cannot start with 'async' |  |
