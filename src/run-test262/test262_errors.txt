@@ -1,5 +1,3 @@
-test262/test/built-ins/AsyncGeneratorPrototype/return/return-state-completed-broken-promise.js:53: TypeError: $DONE() not called
-test262/test/built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise.js:34: TypeError: $DONE() not called
 test262/test/built-ins/AsyncGeneratorPrototype/return/return-suspendedYield-broken-promise-try-catch.js:39: TypeError: $DONE() not called
 test262/test/built-ins/Date/UTC/fp-evaluation-order.js:19: Test262Error: precision in MakeDate Expected SameValue(«34448384», «34447360») to be true
 test262/test/built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js:20: Test262Error: Expected a ReferenceError but got a different error constructor with the same name
