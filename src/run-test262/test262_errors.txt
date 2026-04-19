@@ -1,3 +1,37 @@
+test262/test/built-ins/Array/prototype/Symbol.unscopables/array-grouping.js:28: Test262Error: `group` property value Expected SameValue(«undefined», «true») to be true
+test262/test/built-ins/Array/prototype/group/array-like.js:32: TypeError: cannot read property 'call' of undefined
+test262/test/built-ins/Array/prototype/group/callback-arg.js:33: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/group/callback-throws.js:19: Test262Error: Expected a Test262Error but got a TypeError
+test262/test/built-ins/Array/prototype/group/emptyList.js:25: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/group/evenOdd.js:26: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/group/get-throws.js:20: Test262Error: Expected a Test262Error but got a TypeError
+test262/test/built-ins/Array/prototype/group/groupLength.js:24: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/group/invalid-property-key.js:19: Test262Error: Expected a Test262Error but got a TypeError
+test262/test/built-ins/Array/prototype/group/length-throw.js:18: Test262Error: Expected a Test262Error but got a TypeError
+test262/test/built-ins/Array/prototype/group/length.js:26: TypeError: cannot convert to object
+test262/test/built-ins/Array/prototype/group/name.js:25: TypeError: cannot convert to object
+test262/test/built-ins/Array/prototype/group/null-prototype.js:24: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/group/sparse-array.js:29: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/group/this-arg-strict.js:26: strict mode: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/group/this-arg.js:26: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/group/toPropertyKey.js:34: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/array-like.js:35: TypeError: cannot read property 'call' of undefined
+test262/test/built-ins/Array/prototype/groupToMap/callback-arg.js:31: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/callback-throws.js:19: Test262Error: Expected a Test262Error but got a TypeError
+test262/test/built-ins/Array/prototype/groupToMap/emptyList.js:25: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/evenOdd.js:26: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/get-throws.js:20: Test262Error: Expected a Test262Error but got a TypeError
+test262/test/built-ins/Array/prototype/groupToMap/groupLength.js:24: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/invalid-property-key.js:28: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/length-throw.js:18: Test262Error: Expected a Test262Error but got a TypeError
+test262/test/built-ins/Array/prototype/groupToMap/length.js:26: TypeError: cannot convert to object
+test262/test/built-ins/Array/prototype/groupToMap/map-instance.js:24: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/name.js:25: TypeError: cannot convert to object
+test262/test/built-ins/Array/prototype/groupToMap/negativeZero.js:22: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/sparse-array.js:29: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/this-arg-strict.js:26: strict mode: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/this-arg.js:26: TypeError: attempting to call a non-function value
+test262/test/built-ins/Array/prototype/groupToMap/toPropertyKey.js:34: TypeError: attempting to call a non-function value
 test262/test/built-ins/Date/UTC/fp-evaluation-order.js:19: Test262Error: precision in MakeDate Expected SameValue(«34448384», «34447360») to be true
 test262/test/built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js:20: Test262Error: Expected a ReferenceError but got a different error constructor with the same name
 test262/test/built-ins/RegExp/unicode_restricted_identity_escape.js:13: Test262Error: Invalid IdentityEscape in AtomEscape: '\-' Expected a SyntaxError to be thrown but no exception was thrown at all
