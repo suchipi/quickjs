@@ -110,7 +110,9 @@ typedef void (*sighandler_t)(int);
 typedef struct {
     JSWorkerMessagePipe *recv_pipe;
     JSWorkerMessagePipe *send_pipe;
+    JSWorkerMessagePipe *error_recv_pipe; /* parent's read end of the one-way error pipe from the worker */
     JSWorkerMessageHandler *msg_handler;
+    JSWorkerErrorHandler *err_handler;    /* eagerly created at ctor; on_error_func = JS_NULL until `.onerror = fn` is assigned */
 } JSWorkerData;
 
 /* Arguments passed to worker thread */
@@ -118,6 +120,7 @@ typedef struct {
     char *filename; /* module filename */
     char *basename; /* module base name */
     JSWorkerMessagePipe *recv_pipe, *send_pipe;
+    JSWorkerMessagePipe *error_send_pipe; /* worker's write end of the error pipe */
     int worker_done_write_fd; /* fd to signal worker completion to main thread */
 } WorkerFuncArgs;
 #endif
@@ -3215,21 +3218,320 @@ static void js_free_port(JSRuntime *rt, JSWorkerMessageHandler *port)
     }
 }
 
+static void js_free_error_port(JSRuntime *rt, JSWorkerErrorHandler *eh)
+{
+    if (eh) {
+        js_free_message_pipe_local(eh->recv_pipe);
+        if (!JS_IsNull(eh->on_error_func)) {
+            JS_FreeValueRT(rt, eh->on_error_func);
+        }
+        if (eh->link.next) {
+            list_del(&eh->link);
+        }
+        js_free_rt(rt, eh);
+    }
+}
+
 static void js_worker_finalizer(JSRuntime *rt, JSValue val)
 {
     JSWorkerData *worker = JS_GetOpaque(val, js_worker_class_id);
     if (worker) {
         js_free_message_pipe_local(worker->recv_pipe);
         js_free_message_pipe_local(worker->send_pipe);
+        js_free_message_pipe_local(worker->error_recv_pipe);
         js_free_port(rt, worker->msg_handler);
+        js_free_error_port(rt, worker->err_handler);
         js_free_rt(rt, worker);
+    }
+}
+
+/* Mark JSValues stored on the Worker's opaque data so the GC can trace
+   through them. Without this, user callbacks (onmessage, onerror) that
+   capture the Worker object via closure would form an unreachable cycle
+   — Worker → opaque → handler → callback → (closure) → Worker — and
+   leak forever. */
+static void js_worker_gc_mark(JSRuntime *rt, JSValueConst val,
+                              JS_MarkFunc *mark_func)
+{
+    JSWorkerData *worker = JS_GetOpaque(val, js_worker_class_id);
+    if (worker) {
+        if (worker->msg_handler) {
+            JS_MarkValue(rt, worker->msg_handler->on_message_func, mark_func);
+        }
+        if (worker->err_handler) {
+            JS_MarkValue(rt, worker->err_handler->on_error_func, mark_func);
+        }
     }
 }
 
 static JSClassDef js_worker_class = {
     "Worker",
     .finalizer = js_worker_finalizer,
+    .gc_mark = js_worker_gc_mark,
 };
+
+static void *worker_func(void *opaque);
+
+/* Ship a worker-side uncaught exception to the parent over the error
+   pipe. The payload is the 4-field ErrorEvent-shaped plain object
+   `{message, filename, lineno, error}`. `error` is the raw reason — the
+   engine's JS_WRITE_OBJ_SERIALIZE_ERRORS flag encodes it as a
+   BC_TAG_ERROR_OBJECT; the parent decodes it back to a real Error
+   instance.
+
+   If the primary write fails (e.g. an unserializable own-prop on the
+   reason, or OOM), retry once with a synthesized meta-error describing
+   the failure. If that also fails, fall back to QJU_PrintError(stderr)
+   as a last resort — better a local stderr write than a silent drop.
+
+   Returns 0 on pipe-enqueue, -1 on all-paths-fail.
+
+   Does NOT consume `reason` (caller still owns its refcount). */
+static int worker_send_error(JSContext *ctx, JSValueConst reason)
+{
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSWorkerMessagePipe *ps;
+    JSValue evt = JS_UNDEFINED;
+    JSValue filename_val = JS_UNDEFINED;
+    JSValue lineno_val = JS_UNDEFINED;
+    JSValue message_val = JS_UNDEFINED;
+    JSValue error_dup = JS_UNDEFINED;
+    uint8_t *data = NULL;
+    uint8_t **sab_tab = NULL;
+    size_t data_len = 0, sab_tab_len = 0;
+    JSWorkerMessage *msg = NULL;
+    BOOL wrote_meta_error = FALSE;
+    size_t i;
+
+    if (!ts || !ts->error_send_pipe) {
+        /* no pipe configured (e.g. unit test outside a worker) — best we
+           can do is print. */
+        QJU_PrintError(ctx, stderr, reason);
+        return -1;
+    }
+
+  build_event:
+    /* Derive `message`. */
+    if (JS_IsError(ctx, reason)) {
+        JSValue m = JS_GetPropertyStr(ctx, reason, "message");
+        if (!JS_IsUndefined(m) && !JS_IsNull(m)) {
+            message_val = JS_ToString(ctx, m);
+        } else {
+            message_val = JS_NewString(ctx, "");
+        }
+        JS_FreeValue(ctx, m);
+    } else if (JS_IsString(reason)) {
+        message_val = JS_DupValue(ctx, reason);
+    } else {
+        message_val = JS_ToString(ctx, reason);
+    }
+    if (JS_IsException(message_val)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        message_val = JS_NewString(ctx, "");
+    }
+
+    /* Derive `filename` — prefer reason.fileName if it's a string,
+       otherwise use the worker's entry filename. */
+    if (JS_IsError(ctx, reason)) {
+        JSValue fn = JS_GetPropertyStr(ctx, reason, "fileName");
+        if (JS_IsString(fn)) {
+            filename_val = fn;
+        } else {
+            JS_FreeValue(ctx, fn);
+            filename_val = JS_NewString(ctx, ts->entry_filename ? ts->entry_filename : "");
+        }
+    } else {
+        filename_val = JS_NewString(ctx, ts->entry_filename ? ts->entry_filename : "");
+    }
+    if (JS_IsException(filename_val)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        filename_val = JS_NewString(ctx, "");
+    }
+
+    /* Derive `lineno`. */
+    {
+        int32_t line_no = 0;
+        if (JS_IsError(ctx, reason)) {
+            JSValue ln = JS_GetPropertyStr(ctx, reason, "lineNumber");
+            if (JS_IsNumber(ln)) {
+                if (JS_ToInt32(ctx, &line_no, ln) < 0) {
+                    JS_FreeValue(ctx, JS_GetException(ctx));
+                    line_no = 0;
+                }
+            }
+            JS_FreeValue(ctx, ln);
+        }
+        lineno_val = JS_NewInt32(ctx, line_no);
+    }
+
+    /* `error` field. */
+    if (JS_IsError(ctx, reason)) {
+        error_dup = JS_DupValue(ctx, reason);
+    } else {
+        error_dup = JS_NULL;
+    }
+
+    evt = JS_NewObject(ctx);
+    if (JS_IsException(evt)) goto primary_fail;
+    if (JS_DefinePropertyValueStr(ctx, evt, "message", message_val, JS_PROP_C_W_E) < 0) {
+        message_val = JS_UNDEFINED; /* ownership transferred */
+        goto primary_fail;
+    }
+    message_val = JS_UNDEFINED;
+    if (JS_DefinePropertyValueStr(ctx, evt, "filename", filename_val, JS_PROP_C_W_E) < 0) {
+        filename_val = JS_UNDEFINED;
+        goto primary_fail;
+    }
+    filename_val = JS_UNDEFINED;
+    if (JS_DefinePropertyValueStr(ctx, evt, "lineno", lineno_val, JS_PROP_C_W_E) < 0) {
+        lineno_val = JS_UNDEFINED;
+        goto primary_fail;
+    }
+    lineno_val = JS_UNDEFINED;
+    if (JS_DefinePropertyValueStr(ctx, evt, "error", error_dup, JS_PROP_C_W_E) < 0) {
+        error_dup = JS_UNDEFINED;
+        goto primary_fail;
+    }
+    error_dup = JS_UNDEFINED;
+
+    data = JS_WriteObject2(ctx, &data_len, evt,
+                           JS_WRITE_OBJ_SAB | JS_WRITE_OBJ_REFERENCE |
+                           JS_WRITE_OBJ_SERIALIZE_ERRORS,
+                           &sab_tab, &sab_tab_len);
+    if (!data) goto primary_fail;
+
+    JS_FreeValue(ctx, evt);
+    evt = JS_UNDEFINED;
+
+    msg = malloc(sizeof(*msg));
+    if (!msg) goto alloc_fail;
+    msg->data = NULL;
+    msg->sab_tab = NULL;
+    msg->data = malloc(data_len);
+    if (!msg->data) goto alloc_fail;
+    memcpy(msg->data, data, data_len);
+    msg->data_len = data_len;
+    msg->sab_tab = malloc(sizeof(msg->sab_tab[0]) * sab_tab_len);
+    if (!msg->sab_tab) goto alloc_fail;
+    memcpy(msg->sab_tab, sab_tab, sizeof(msg->sab_tab[0]) * sab_tab_len);
+    msg->sab_tab_len = sab_tab_len;
+
+    js_free(ctx, data); data = NULL;
+    js_free(ctx, sab_tab); sab_tab = NULL;
+
+    /* Bump SAB refcounts. (Error event payloads typically don't contain
+       SABs, but be correct.) */
+    for (i = 0; i < msg->sab_tab_len; i++) {
+        typedef struct { int ref_count; uint64_t buf[0]; } JSSABHeader;
+        JSSABHeader *sab = (JSSABHeader *)((uint8_t *)msg->sab_tab[i] - sizeof(JSSABHeader));
+        atomic_add_int(&sab->ref_count, 1);
+    }
+
+    ps = ts->error_send_pipe;
+    pthread_mutex_lock(&ps->mutex);
+    if (list_empty(&ps->msg_queue)) {
+        uint8_t ch = '\0';
+        int ret;
+        for (;;) {
+            ret = write(ps->write_fd, &ch, 1);
+            if (ret == 1) break;
+            if (ret < 0 && (errno != EAGAIN && errno != EINTR)) break;
+        }
+    }
+    list_add_tail(&msg->link, &ps->msg_queue);
+    pthread_mutex_unlock(&ps->mutex);
+
+    /* If we went through the retry path, `reason` was rebound to a
+       meta-error we allocated above — free it before returning. */
+    if (wrote_meta_error) {
+        JS_FreeValue(ctx, (JSValue)reason);
+    }
+    return 0;
+
+  primary_fail:
+  alloc_fail:
+    /* Clean up partial state. */
+    JS_FreeValue(ctx, evt); evt = JS_UNDEFINED;
+    JS_FreeValue(ctx, message_val); message_val = JS_UNDEFINED;
+    JS_FreeValue(ctx, filename_val); filename_val = JS_UNDEFINED;
+    JS_FreeValue(ctx, lineno_val); lineno_val = JS_UNDEFINED;
+    JS_FreeValue(ctx, error_dup); error_dup = JS_UNDEFINED;
+    if (data) { js_free(ctx, data); data = NULL; }
+    if (sab_tab) { js_free(ctx, sab_tab); sab_tab = NULL; }
+    if (msg) {
+        free(msg->data);
+        free(msg->sab_tab);
+        free(msg);
+        msg = NULL;
+    }
+    /* Clear pending exception from the failed attempt. */
+    JS_FreeValue(ctx, JS_GetException(ctx));
+
+    if (!wrote_meta_error) {
+        /* Build a minimal meta-error with only primitive own-props (so
+           it's guaranteed serializable) and retry once. If THAT fails,
+           we fall through to the stderr last-resort below. */
+        JSValue meta = JS_NewError(ctx);
+        if (!JS_IsException(meta)) {
+            JSValue orig_str;
+            JS_DefinePropertyValueStr(ctx, meta, "message",
+                JS_NewString(ctx, "failed to serialize worker error"),
+                JS_PROP_C_W_E);
+            orig_str = JS_ToString(ctx, reason);
+            if (JS_IsException(orig_str)) {
+                JS_FreeValue(ctx, JS_GetException(ctx));
+                orig_str = JS_NewString(ctx, "(unstringifiable)");
+            }
+            JS_DefinePropertyValueStr(ctx, meta, "originalReasonString",
+                orig_str, JS_PROP_C_W_E);
+            reason = meta;      /* rebind the local */
+            wrote_meta_error = TRUE;
+            goto build_event;
+        }
+        JS_FreeValue(ctx, JS_GetException(ctx));
+    }
+
+    /* Last resort. */
+    QJU_PrintError(ctx, stderr, reason);
+    if (wrote_meta_error) {
+        /* We allocated a meta-error above that didn't ship — free it. */
+        JS_FreeValue(ctx, (JSValue)reason);
+    }
+    return -1;
+}
+
+/* QJMS_SetTopLevelRejectionCallback target for worker runtimes: route
+   the rejection reason through QJU_ReportException so it ends up on the
+   error pipe (pipe check in the hook confirms we're in a worker). */
+static void worker_tla_rejection_cb(JSContext *ctx, JSValueConst reason)
+{
+    QJU_ReportException(ctx, reason);
+}
+
+/* Promise-rejection tracker installed on worker runtimes. Fires twice
+   per rejection in the QuickJS contract: once with is_handled=FALSE
+   when the rejection is raised, and once with is_handled=TRUE if a
+   late .catch attaches later. We only report on the first call —
+   a late .catch does NOT retroactively suppress the onerror callback,
+   matching web `unhandledrejection` semantics.
+
+   Dedup: evaluating a module with a top-level throw generates a chain
+   of internal rejections — up to three separate promises in QuickJS,
+   all sharing the identical thrown reason JSValue. The reason-pointer
+   dedup inside qju_report_exception_hook_impl collapses that chain
+   into a single report. That same dedup also suppresses the duplicate
+   between this tracker and QJMS_AttachEntryRejectionHandler's
+   callback, which both see the same reason for a top-level throw. */
+static void worker_promise_rejection_tracker(JSContext *ctx,
+                                             JSValueConst promise,
+                                             JSValueConst reason,
+                                             BOOL is_handled,
+                                             void *opaque)
+{
+    if (is_handled) return;
+    QJU_ReportException(ctx, reason);
+}
 
 static void *worker_func(void *opaque)
 {
@@ -3248,10 +3550,14 @@ static void *worker_func(void *opaque)
 
     QJMS_InitState(rt);
 
-    /* set the pipe to communicate with the parent */
+    /* set the pipes to communicate with the parent */
     ts = JS_GetRuntimeOpaque(rt);
     ts->recv_pipe = args->recv_pipe;
     ts->send_pipe = args->send_pipe;
+    ts->error_send_pipe = args->error_send_pipe;
+    /* Stash the entry module filename for use as a fallback in
+       worker_send_error when a thrown reason lacks a fileName own-prop. */
+    ts->entry_filename = strdup(args->filename);
 
     ctx = js_worker_new_context_func(rt);
     if (ctx == NULL) {
@@ -3264,16 +3570,36 @@ static void *worker_func(void *opaque)
     js_timers_add_globals(ctx);
 
     if (QJMS_InitContext(ctx, TRUE)) {
-        QJU_PrintException(ctx, stderr);
+        JSValue reason = JS_GetException(ctx);
+        QJU_ReportException(ctx, reason);
+        JS_FreeValue(ctx, reason);
     } else {
+        /* Route top-level-await rejections of the entry module through
+           the error pipe to the parent, instead of the default stderr
+           print. */
+        QJMS_SetTopLevelRejectionCallback(rt, worker_tla_rejection_cb);
+
+        /* Install the unhandled-promise-rejection tracker so rejections
+           in non-entry-module code (timer callbacks, microtasks created
+           inside user code, bare `Promise.reject(...)` at any level)
+           reach the parent's onerror. The entry module's OWN rejection
+           is deduplicated inside QJMS_AttachEntryRejectionHandler —
+           when it sees an already-rejected promise AND knows a tracker
+           is installed (via the entry_module_rejection_callback flag
+           set above), it skips the .then-attach so the tracker's report
+           is the single source of truth. */
+        JS_SetHostPromiseRejectionTracker(rt, worker_promise_rejection_tracker, NULL);
+
         /* Workers support top-level await: load the module via the async
            path and let the worker's own event loop drive the promise to
-           completion. A top-level rejection is printed to stderr and sets
-           the worker-runtime-local entry_module_rejected flag (same shape
-           as the main-thread path in qjs/quickjs-run). */
+           completion. Sync throws (parse error, missing import, etc.)
+           from JS_LoadModule go directly to the error pipe. Async
+           rejections go through the callback above. */
         JSValue module_promise = JS_LoadModule(ctx, args->basename, args->filename);
         if (JS_IsException(module_promise)) {
-            QJU_PrintException(ctx, stderr);
+            JSValue reason = JS_GetException(ctx);
+            QJU_ReportException(ctx, reason);
+            JS_FreeValue(ctx, reason);
         } else {
             QJMS_AttachEntryRejectionHandler(ctx, module_promise);
         }
@@ -3284,6 +3610,18 @@ static void *worker_func(void *opaque)
     free(args);
 
     js_eventloop_run(ctx);
+
+    /* Close the write end of the error pipe so the parent sees EOF and
+       can unregister the error port. The pipe struct itself is freed by
+       js_eventloop_free via ts->error_send_pipe. */
+    if (ts->error_send_pipe) {
+        pthread_mutex_lock(&ts->error_send_pipe->mutex);
+        if (ts->error_send_pipe->write_fd >= 0) {
+            close(ts->error_send_pipe->write_fd);
+            ts->error_send_pipe->write_fd = -1;
+        }
+        pthread_mutex_unlock(&ts->error_send_pipe->mutex);
+    }
 
     QJMS_FreeState(rt);
     JS_FreeContext(ctx);
@@ -3296,12 +3634,21 @@ static void *worker_func(void *opaque)
     return NULL;
 }
 
+/* `error_recv_pipe` is the parent's read-end of the one-way error pipe;
+   when non-NULL, an eager JSWorkerErrorHandler is registered on the
+   thread-state's error_port_list so the poll starts watching the fd
+   immediately, even before `.onerror = fn` is assigned. Pass NULL for the
+   child's `Worker.parent` object (the child has no error pipe back to
+   itself). */
 static JSValue js_worker_ctor_internal(JSContext *ctx, JSValueConst new_target,
                                        JSWorkerMessagePipe *recv_pipe,
-                                       JSWorkerMessagePipe *send_pipe)
+                                       JSWorkerMessagePipe *send_pipe,
+                                       JSWorkerMessagePipe *error_recv_pipe)
 {
     JSValue obj = JS_UNDEFINED, proto;
     JSWorkerData *s;
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
 
     /* create the object */
     if (JS_IsUndefined(new_target)) {
@@ -3321,6 +3668,25 @@ static JSValue js_worker_ctor_internal(JSContext *ctx, JSValueConst new_target,
     s->recv_pipe = js_dup_message_pipe(recv_pipe);
     s->send_pipe = js_dup_message_pipe(send_pipe);
 
+    if (error_recv_pipe) {
+        JSWorkerErrorHandler *eh;
+        s->error_recv_pipe = js_dup_message_pipe(error_recv_pipe);
+        eh = js_mallocz(ctx, sizeof(*eh));
+        if (!eh) {
+            /* free everything we set up on `s` so far */
+            js_free_message_pipe_local(s->recv_pipe);
+            js_free_message_pipe_local(s->send_pipe);
+            js_free_message_pipe_local(s->error_recv_pipe);
+            js_free_rt(rt, s);
+            JS_FreeValue(ctx, obj);
+            return JS_EXCEPTION;
+        }
+        eh->recv_pipe = js_dup_message_pipe(error_recv_pipe);
+        eh->on_error_func = JS_NULL;
+        list_add_tail(&eh->link, &ts->error_port_list);
+        s->err_handler = eh;
+    }
+
     JS_SetOpaque(obj, s);
     return obj;
  fail:
@@ -3333,10 +3699,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
     WorkerFuncArgs *args = NULL;
-    pthread_t tid;
-    pthread_attr_t attr;
     JSValue obj = JS_UNDEFINED;
-    int ret;
     const char *filename = NULL, *basename;
     JSAtom basename_atom;
 
@@ -3374,9 +3737,17 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     args->send_pipe = js_new_message_pipe();
     if (!args->send_pipe)
         goto oom_fail;
+    /* One-way pipe for errors (worker writes, parent reads). The worker
+       side gets the write end via args->error_send_pipe; the parent side
+       gets the read end via js_worker_ctor_internal registering it on
+       the Worker object. Both are refcount views of the same pipe pair. */
+    args->error_send_pipe = js_new_message_pipe();
+    if (!args->error_send_pipe)
+        goto oom_fail;
 
     obj = js_worker_ctor_internal(ctx, new_target,
-                                  args->send_pipe, args->recv_pipe);
+                                  args->send_pipe, args->recv_pipe,
+                                  args->error_send_pipe);
     if (JS_IsException(obj))
         goto fail;
 
@@ -3390,15 +3761,28 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
         args->worker_done_write_fd = write_fd;
     }
 
-    pthread_attr_init(&attr);
-    /* no join at the end */
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    ret = pthread_create(&tid, &attr, worker_func, args);
-    pthread_attr_destroy(&attr);
-    if (ret != 0) {
-        JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "could not create worker");
-        goto fail;
+    /* Spawn the worker thread. No need to defer: `.onerror = fn` runs
+       in the same synchronous tick as `new Worker(...)`, and the parent
+       poll that would dispatch an error to onerror can only run between
+       ticks — so same-tick `.onerror` assignments always land before
+       any error could be observed. */
+    {
+        pthread_t tid;
+        pthread_attr_t attr;
+        int ret;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        ret = pthread_create(&tid, &attr, worker_func, args);
+        pthread_attr_destroy(&attr);
+        if (ret != 0) {
+            JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "could not create worker");
+            goto fail;
+        }
     }
+    /* From here, the worker thread owns args — we must NOT free it on
+       the fail path below. Clear the local pointer. */
+    args = NULL;
+
     JS_FreeCString(ctx, basename);
     JS_FreeCString(ctx, filename);
     return obj;
@@ -3412,6 +3796,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
         free(args->basename);
         js_free_message_pipe_local(args->recv_pipe);
         js_free_message_pipe_local(args->send_pipe);
+        js_free_message_pipe_local(args->error_send_pipe);
         free(args);
     }
     JS_FreeValue(ctx, obj);
@@ -3566,10 +3951,50 @@ static JSValue js_worker_terminate(JSContext *ctx, JSValueConst this_val,
     return js_worker_set_onmessage(ctx, this_val, JS_NULL);
 }
 
+static JSValue js_worker_set_onerror(JSContext *ctx, JSValueConst this_val,
+                                     JSValueConst func)
+{
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    JSWorkerData *worker = JS_GetOpaque2(ctx, this_val, js_worker_class_id);
+    JSWorkerErrorHandler *eh;
+
+    if (!worker)
+        return JS_EXCEPTION;
+    eh = worker->err_handler;
+    if (!eh) {
+        /* Worker.parent (child-side view) has no error pipe — silently
+           ignore the assignment. The child can't report errors to itself
+           via onerror. */
+        return JS_UNDEFINED;
+    }
+    if (JS_IsNull(func) || JS_IsUndefined(func)) {
+        JS_FreeValueRT(rt, eh->on_error_func);
+        eh->on_error_func = JS_NULL;
+    } else if (JS_IsFunction(ctx, func)) {
+        JS_FreeValueRT(rt, eh->on_error_func);
+        eh->on_error_func = JS_DupValue(ctx, func);
+    } else {
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
+            "attempting to set worker.onerror to a non-null, non-function value.");
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue js_worker_get_onerror(JSContext *ctx, JSValueConst this_val)
+{
+    JSWorkerData *worker = JS_GetOpaque2(ctx, this_val, js_worker_class_id);
+    if (!worker)
+        return JS_EXCEPTION;
+    if (!worker->err_handler)
+        return JS_NULL;
+    return JS_DupValue(ctx, worker->err_handler->on_error_func);
+}
+
 static const JSCFunctionListEntry js_worker_proto_funcs[] = {
     JS_CFUNC_DEF("postMessage", 1, js_worker_postMessage ),
     JS_CFUNC_DEF("terminate", 0, js_worker_terminate ),
     JS_CGETSET_DEF("onmessage", js_worker_get_onmessage, js_worker_set_onmessage ),
+    JS_CGETSET_DEF("onerror", js_worker_get_onerror, js_worker_set_onerror ),
 };
 
 #else /* SKIP_WORKER */
@@ -3601,6 +4026,162 @@ void js_os_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt))
 #ifndef SKIP_WORKER
 /* Handle a posted message from a worker.
    Return 1 if a message was handled, 0 if no message, -1 if EOF detected. */
+/* Print an ErrorEvent-shaped plain object to stderr using the same
+   formatting as QJU_PrintError so the "no onerror set" fallback
+   produces byte-identical output to the pre-onerror behavior for users
+   who never set `.onerror`. */
+static void print_event_to_stderr(JSContext *ctx, JSValueConst evt)
+{
+    JSValue error_val;
+    JSValue message_val;
+
+    error_val = JS_GetPropertyStr(ctx, evt, "error");
+    if (JS_IsException(error_val)) {
+        JS_FreeValue(ctx, JS_GetException(ctx));
+        error_val = JS_NULL;
+    }
+    if (!JS_IsNull(error_val) && !JS_IsUndefined(error_val)) {
+        /* Real Error instance (reified by JS_READ_OBJ_SERIALIZE_ERRORS).
+           Delegate to QJU_PrintError for the standard name/message/stack
+           format. */
+        QJU_PrintError(ctx, stderr, error_val);
+    } else {
+        /* Non-Error reason. Delegate to QJU_PrintError too so the
+           "thrown non-Error value: ..." output matches the unchanged
+           format byte-for-byte (including JSON-quoting for string
+           reasons). We pass message_val, which is already a string on
+           the wire — QJU_PrintError's !JS_IsError branch will either
+           JSON-stringify it (for JS_IsString-true) or toString-print
+           it, exactly mirroring what it would have done with the
+           original raw reason. */
+        message_val = JS_GetPropertyStr(ctx, evt, "message");
+        if (JS_IsException(message_val)) {
+            JS_FreeValue(ctx, JS_GetException(ctx));
+            message_val = JS_NewString(ctx, "");
+        }
+        QJU_PrintError(ctx, stderr, message_val);
+        JS_FreeValue(ctx, message_val);
+    }
+    JS_FreeValue(ctx, error_val);
+}
+
+static int handle_posted_error(JSRuntime *rt, JSContext *ctx,
+                               JSWorkerErrorHandler *port)
+{
+    JSWorkerMessagePipe *ps = port->recv_pipe;
+    int ret;
+    JSWorkerMessage *msg;
+    JSValue evt, func, retval;
+
+    pthread_mutex_lock(&ps->mutex);
+    if (!list_empty(&ps->msg_queue)) {
+        msg = list_entry(ps->msg_queue.next, JSWorkerMessage, link);
+        list_del(&msg->link);
+
+        if (list_empty(&ps->msg_queue)) {
+            uint8_t buf[16];
+            int r;
+            for (;;) {
+                r = read(ps->read_fd, buf, sizeof(buf));
+                if (r >= 0)
+                    break;
+                if (errno != EAGAIN && errno != EINTR)
+                    break;
+            }
+        }
+
+        pthread_mutex_unlock(&ps->mutex);
+
+        /* Decode with SERIALIZE_ERRORS so BC_TAG_ERROR_OBJECT tags get
+           reified to real Error instances. */
+        evt = JS_ReadObject(ctx, msg->data, msg->data_len,
+                            JS_READ_OBJ_SAB | JS_READ_OBJ_REFERENCE |
+                            JS_READ_OBJ_SERIALIZE_ERRORS);
+        js_free_message(msg);
+
+        if (JS_IsException(evt)) {
+            /* Deserialization failure — synthesize a meta-event locally
+               so the parent's onerror still fires, rather than silently
+               dropping the error frame. */
+            JSValue read_exc = JS_GetException(ctx);
+            JSValue meta_err, meta_evt, orig_str;
+            char msgbuf[512];
+            const char *read_exc_str;
+
+            read_exc_str = JS_IsNull(read_exc) || JS_IsUndefined(read_exc)
+                ? NULL
+                : JS_ToCString(ctx, read_exc);
+            snprintf(msgbuf, sizeof(msgbuf),
+                     "failed to deserialize worker error frame: %s",
+                     read_exc_str ? read_exc_str : "(unknown)");
+            if (read_exc_str) {
+                JS_FreeCString(ctx, read_exc_str);
+            } else if (!JS_IsNull(read_exc) && !JS_IsUndefined(read_exc)) {
+                /* JS_ToCString failed — it left a new pending exception
+                   behind. Clear it so JS_NewError below starts clean. */
+                JS_FreeValue(ctx, JS_GetException(ctx));
+            }
+            JS_FreeValue(ctx, read_exc);
+
+            meta_err = JS_NewError(ctx);
+            if (JS_IsException(meta_err)) {
+                JS_FreeValue(ctx, JS_GetException(ctx));
+                ret = 1;
+                goto done;
+            }
+            JS_DefinePropertyValueStr(ctx, meta_err, "message",
+                JS_NewString(ctx, msgbuf), JS_PROP_C_W_E);
+
+            meta_evt = JS_NewObject(ctx);
+            if (JS_IsException(meta_evt)) {
+                JS_FreeValue(ctx, JS_GetException(ctx));
+                JS_FreeValue(ctx, meta_err);
+                ret = 1;
+                goto done;
+            }
+            orig_str = JS_NewString(ctx, msgbuf);
+            JS_DefinePropertyValueStr(ctx, meta_evt, "message",
+                orig_str, JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, meta_evt, "filename",
+                JS_NewString(ctx, ""), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, meta_evt, "lineno",
+                JS_NewInt32(ctx, 0), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, meta_evt, "error",
+                meta_err, JS_PROP_C_W_E); /* consumes meta_err */
+            evt = meta_evt;
+        }
+
+        /* Dispatch. */
+        if (JS_IsNull(port->on_error_func)) {
+            print_event_to_stderr(ctx, evt);
+        } else {
+            func = JS_DupValue(ctx, port->on_error_func);
+            retval = JS_Call(ctx, func, JS_UNDEFINED, 1, (JSValueConst *)&evt);
+            JS_FreeValue(ctx, func);
+            if (JS_IsException(retval)) {
+                QJU_PrintException(ctx, stderr);
+            } else {
+                JS_FreeValue(ctx, retval);
+            }
+        }
+        JS_FreeValue(ctx, evt);
+        ret = 1;
+    done:
+        ;
+    } else {
+        uint8_t buf[1];
+        int r = read(ps->read_fd, buf, sizeof(buf));
+        pthread_mutex_unlock(&ps->mutex);
+
+        if (r == 0) {
+            /* EOF — worker's error_send_pipe->write_fd was closed. */
+            return -1;
+        }
+        ret = 0;
+    }
+    return ret;
+}
+
 static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
                                  JSWorkerMessageHandler *port)
 {
@@ -3653,7 +4234,17 @@ static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
         JS_FreeValue(ctx, func);
         if (JS_IsException(retval)) {
         fail:
-            QJU_PrintException(ctx, stderr);
+            {
+                /* Route via QJU_ReportException: when this runtime is a
+                   worker (onmessage registered in the worker's global),
+                   the hook ships the error back to the parent. On the
+                   main thread (worker.onmessage registered on a Worker
+                   object), the pipe check in the hook falls through to
+                   stderr. */
+                JSValue exc = JS_GetException(ctx);
+                QJU_ReportException(ctx, exc);
+                JS_FreeValue(ctx, exc);
+            }
         } else {
             JS_FreeValue(ctx, retval);
         }
@@ -3751,6 +4342,16 @@ static int js_os_poll(JSContext *ctx)
         }
     }
 
+    /* Add worker error pipe handles (watched regardless of whether
+       `.onerror` is set — handle_posted_error handles the fallback). */
+    int error_port_handle_start = handle_count;
+    list_for_each(el, &ts->error_port_list) {
+        JSWorkerErrorHandler *eh = list_entry(el, JSWorkerErrorHandler, link);
+        if (handle_count < MAXIMUM_WAIT_OBJECTS) {
+            handles[handle_count++] = (HANDLE)_get_osfhandle(eh->recv_pipe->read_fd);
+        }
+    }
+
     /* Add worker done notification handle */
     int worker_done_handle_idx = -1;
     if (ts->active_worker_count > 0 && ts->worker_done_read_fd >= 0 &&
@@ -3776,9 +4377,8 @@ static int js_os_poll(JSContext *ctx)
                 }
             }
 #ifndef SKIP_WORKER
-            else if (idx >= port_handle_start &&
-                     (worker_done_handle_idx < 0 || idx < worker_done_handle_idx)) {
-                /* Find the matching port and handle its message */
+            else if (idx >= port_handle_start && idx < error_port_handle_start) {
+                /* Message port signaled. */
                 int port_idx = port_handle_start;
                 list_for_each_safe(el, el1, &ts->port_list) {
                     JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
@@ -3794,6 +4394,23 @@ static int js_os_poll(JSContext *ctx)
                         }
                         port_idx++;
                     }
+                }
+            } else if (idx >= error_port_handle_start &&
+                     (worker_done_handle_idx < 0 || idx < worker_done_handle_idx)) {
+                /* Error port signaled. */
+                int err_port_idx = error_port_handle_start;
+                list_for_each_safe(el, el1, &ts->error_port_list) {
+                    JSWorkerErrorHandler *eh = list_entry(el, JSWorkerErrorHandler, link);
+                    if (err_port_idx == idx) {
+                        int result = handle_posted_error(rt, ctx, eh);
+                        if (result < 0) {
+                            list_del(&eh->link);
+                            eh->link.next = NULL;
+                            eh->link.prev = NULL;
+                        }
+                        break;
+                    }
+                    err_port_idx++;
                 }
             } else if (idx == worker_done_handle_idx) {
                 uint8_t buf[16];
@@ -3901,6 +4518,16 @@ static int js_os_poll(JSContext *ctx)
         }
     }
 
+    /* error ports: registered eagerly at Worker ctor time, watched
+       regardless of whether `.onerror` is set — if it's not,
+       handle_posted_error falls back to printing to stderr. */
+    list_for_each(el, &ts->error_port_list) {
+        JSWorkerErrorHandler *eh = list_entry(el, JSWorkerErrorHandler, link);
+        JSWorkerMessagePipe *ps = eh->recv_pipe;
+        fd_max = max_int(fd_max, ps->read_fd);
+        FD_SET(ps->read_fd, &rfds);
+    }
+
     /* watch the worker notification pipe so we wake up when workers finish */
     if (ts->active_worker_count > 0 && ts->worker_done_read_fd >= 0) {
         fd_max = max_int(fd_max, ts->worker_done_read_fd);
@@ -3945,6 +4572,24 @@ static int js_os_poll(JSContext *ctx)
                     } else if (result > 0) {
                         return 0;
                     }
+                }
+            }
+        }
+
+        /* Handle worker errors */
+        list_for_each_safe(el, el1, &ts->error_port_list) {
+            JSWorkerErrorHandler *eh = list_entry(el, JSWorkerErrorHandler, link);
+            JSWorkerMessagePipe *ps = eh->recv_pipe;
+            if (FD_ISSET(ps->read_fd, &rfds)) {
+                int result = handle_posted_error(rt, ctx, eh);
+                if (result < 0) {
+                    /* EOF detected — unlink so the loop can exit; leave
+                       on_error_func alone (Worker finalizer frees it). */
+                    list_del(&eh->link);
+                    eh->link.next = NULL;
+                    eh->link.prev = NULL;
+                } else if (result > 0) {
+                    return 0;
                 }
             }
         }
@@ -4135,12 +4780,57 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     OS_FLAG(F_OK),
 };
 
+/* Hook that QJU_ReportException calls (via the function-pointer hook
+   declared in quickjs-utils) when a worker runtime has an error pipe
+   installed. On the main thread (no pipe), falls through to stderr —
+   byte-identical to the pre-onerror QJU_PrintException behavior.
+
+   Dedup by reason pointer: evaluating a module with a top-level throw
+   produces a chain of internal rejections (up to three distinct
+   promises in QuickJS's module machinery), all sharing the identical
+   thrown reason JSValue. The promise-rejection tracker fires once per
+   promise and QJMS_AttachEntryRejectionHandler fires once more —
+   without dedup the user would see 4 onerror calls for a single throw.
+   Comparing JS_VALUE_GET_PTR of the reason collapses them to one.
+   Dedup covers both object-tagged and string-tagged values — the
+   rejection chain propagates the same JSValue, so the backing pointer
+   is identical across fires for both kinds. Number/bool/null/undefined
+   tagged values use inline storage with no meaningful pointer, so they
+   skip dedup (repeated primitive throws are rare enough that duplicate
+   reports don't matter). The pointer is cleared at each event-loop
+   tick boundary in js_eventloop_run to prevent stale-address aliasing
+   across ticks. */
+static void qju_report_exception_hook_impl(JSContext *ctx, JSValueConst reason)
+{
+#ifndef SKIP_WORKER
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    if (ts != NULL && ts->error_send_pipe != NULL) {
+        /* Inside a worker — ship to parent, with reason-pointer dedup. */
+        int tag = JS_VALUE_GET_TAG(reason);
+        if (tag == JS_TAG_OBJECT || tag == JS_TAG_STRING) {
+            void *p = JS_VALUE_GET_PTR(reason);
+            if (p == ts->last_reported_reason_ptr) return;
+            ts->last_reported_reason_ptr = p;
+        }
+        worker_send_error(ctx, reason);
+        return;
+    }
+#endif
+    QJU_PrintError(ctx, stderr, reason);
+}
+
 static int js_os_init(JSContext *ctx, JSModuleDef *m)
 {
 #ifndef SKIP_WORKER
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
 #endif
+
+    /* Install the universal-exception-report hook. Idempotent: running
+       init multiple times (e.g. across contexts in one runtime) just
+       re-assigns the same value. */
+    qju_report_exception_hook = qju_report_exception_hook_impl;
 
     /* Win32Handle class */
     JS_NewClassID(&js_win32_handle_class_id);
@@ -4172,7 +4862,7 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
         /* Set 'Worker.parent' if necessary (only in worker threads) */
         if (ts->recv_pipe && ts->send_pipe) {
             JS_DefinePropertyValueStr(ctx, obj, "parent",
-                                      js_worker_ctor_internal(ctx, JS_UNDEFINED, ts->recv_pipe, ts->send_pipe),
+                                      js_worker_ctor_internal(ctx, JS_UNDEFINED, ts->recv_pipe, ts->send_pipe, NULL),
                                       JS_PROP_C_W_E);
         }
 #endif

@@ -85,6 +85,19 @@ typedef struct JSWorkerMessageHandler {
     JSWorkerMessagePipe *recv_pipe;
     JSValue on_message_func;
 } JSWorkerMessageHandler;
+
+/* Worker error handler — parent-side counterpart to an onerror listener
+   on a Worker object. The error pipe is one-way (worker → parent) and is
+   eagerly created at Worker ctor time (before `.onerror` is assigned),
+   so errors can queue even before the user registers a handler. When
+   `on_error_func` is JS_NULL at dispatch time, handle_posted_error falls
+   back to printing the error to stderr (matching today's pre-onerror
+   behavior byte-for-byte). */
+typedef struct JSWorkerErrorHandler {
+    struct list_head link;
+    JSWorkerMessagePipe *recv_pipe;
+    JSValue on_error_func;
+} JSWorkerErrorHandler;
 #endif /* !SKIP_WORKER */
 
 /* Thread state - central event loop state attached to runtime */
@@ -96,7 +109,11 @@ typedef struct JSThreadState {
     int exit_code;                     /* only used in the main thread */
 #ifndef SKIP_WORKER
     struct list_head port_list;        /* list of JSWorkerMessageHandler.link */
+    struct list_head error_port_list;  /* list of JSWorkerErrorHandler.link (main thread's side of per-worker error pipes) */
     JSWorkerMessagePipe *recv_pipe, *send_pipe; /* not used in the main thread */
+    JSWorkerMessagePipe *error_send_pipe; /* worker-side only: write-end of the one-way error pipe back to the parent */
+    char *entry_filename;              /* worker-side only: duped filename of the entry module; used as a fallback in worker_send_error when a thrown reason lacks a fileName own-prop */
+    void *last_reported_reason_ptr;    /* worker-side only: pointer identity of the last reason value routed to the error pipe. Used by qju_report_exception_hook_impl to dedupe the chain of tracker fires produced by module-evaluation machinery when a module has a top-level throw — the chain shares a single reason value, so comparing pointer identity collapses the N reports into one. Non-JS_TAG_OBJECT values (strings, numbers) are never deduped because they don't have stable pointer identity in QuickJS's tagged-value representation. */
     int active_worker_count;           /* number of active worker threads (main thread only) */
     int worker_done_read_fd;           /* pipe read end for worker completion notifications (main thread only) */
     int worker_done_write_fd;          /* pipe write end for worker completion notifications (shared with workers) */

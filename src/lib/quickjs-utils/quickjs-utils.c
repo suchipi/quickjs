@@ -221,6 +221,33 @@ void QJU_PrintException(JSContext *ctx, FILE *f)
   JS_FreeValue(ctx, exception_val);
 }
 
+/* Defined here, set by quickjs-os at module init. NULL means no worker
+   runtime is active on this thread — all reports fall through to stderr. */
+void (*qju_report_exception_hook)(JSContext *ctx, JSValueConst reason) = NULL;
+
+void QJU_ReportException(JSContext *ctx, JSValueConst exception_val)
+{
+  /* The hook itself is responsible for checking whether THIS particular
+     runtime has a worker-side error pipe — quickjs-utils has no
+     visibility into the thread state. If the hook routes the exception,
+     it returns normally and we're done. If it doesn't (e.g. main thread
+     with no pipe), it must fall through to stderr itself.
+
+     But since the hook lives in quickjs-os and only makes sense for
+     worker runtimes, we keep a simpler contract here: if the hook is
+     set, call it; otherwise print to stderr. quickjs-os is responsible
+     for installing the hook such that it only ships errors on worker
+     runtimes, not on the main thread. (In practice, quickjs-os's hook
+     impl checks `ts->error_send_pipe` and falls back to
+     QJU_PrintError(stderr) when it's NULL, so the end-to-end behavior
+     is what you'd expect either way.) */
+  if (qju_report_exception_hook != NULL) {
+    qju_report_exception_hook(ctx, exception_val);
+  } else {
+    QJU_PrintError(ctx, stderr, exception_val);
+  }
+}
+
 void QJU_PrintPromiseRejection(JSContext *ctx, JSValueConst promise,
                                JSValueConst reason, BOOL is_handled,
                                void *opaque)

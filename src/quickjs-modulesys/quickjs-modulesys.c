@@ -26,6 +26,13 @@ typedef struct QJMS_State {
      sync throw — printed to stderr, exit 1 — not like a silent unhandled
      rejection. See qjms_entry_module_rejection_handler. */
   BOOL entry_module_rejected;
+  /* If non-NULL, called instead of the default `QJU_PrintError` behavior
+     when the entry module's promise rejects. Used by workers to route
+     rejection reasons back to the parent via the new error pipe. The
+     `entry_module_rejected` flag is still set regardless, so the existing
+     qjs/quickjs-run exit-code propagation stays intact for callers that
+     never register a custom callback. */
+  void (*entry_module_rejection_callback)(JSContext *ctx, JSValueConst reason);
 } QJMS_State;
 
 static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
@@ -44,9 +51,10 @@ void QJMS_InitState(JSRuntime *rt)
   assert(opaque == NULL);
 
   main_module = js_malloc_rt(rt, MAIN_MODULE_NAME_SIZE);
-  state = js_malloc_rt(rt, sizeof(state));
+  state = js_malloc_rt(rt, sizeof(*state));
   state->main_module = main_module;
   state->entry_module_rejected = FALSE;
+  state->entry_module_rejection_callback = NULL;
 
   JS_SetModuleNormalizeFunc(rt, (JSModuleNormalizeFunc *) QJMS_NormalizeModuleName);
   JS_SetModuleLoaderFunc(rt, (JSModuleLoaderFunc *) QJMS_ModuleLoader);
@@ -77,6 +85,19 @@ int QJMS_EntryModuleRejected(JSRuntime *rt)
     return 0;
   }
   return state->entry_module_rejected ? 1 : 0;
+}
+
+void QJMS_SetTopLevelRejectionCallback(
+  JSRuntime *rt,
+  void (*cb)(JSContext *ctx, JSValueConst reason))
+{
+  QJMS_State *state;
+
+  state = (QJMS_State *) JS_GetModuleLoaderOpaque(rt);
+  if (state == NULL) {
+    return;
+  }
+  state->entry_module_rejection_callback = cb;
 }
 
 JSValue QJMS_GetModuleLoaderInternals(JSContext *ctx)
@@ -479,7 +500,11 @@ static JSValue qjms_entry_module_rejection_handler(JSContext *ctx,
   state = (QJMS_State *) JS_GetModuleLoaderOpaque(JS_GetRuntime(ctx));
   reason = argc > 0 ? argv[0] : JS_UNDEFINED;
 
-  QJU_PrintError(ctx, stderr, reason);
+  if (state != NULL && state->entry_module_rejection_callback != NULL) {
+    state->entry_module_rejection_callback(ctx, reason);
+  } else {
+    QJU_PrintError(ctx, stderr, reason);
+  }
   if (state != NULL) {
     state->entry_module_rejected = TRUE;
   }
@@ -521,7 +546,11 @@ void QJMS_AttachEntryRejectionHandler(JSContext *ctx, JSValue promise)
   return;
 
 fail:
-  QJU_PrintException(ctx, stderr);
+  {
+    JSValue exc = JS_GetException(ctx);
+    QJU_ReportException(ctx, exc);
+    JS_FreeValue(ctx, exc);
+  }
   state = (QJMS_State *) JS_GetModuleLoaderOpaque(JS_GetRuntime(ctx));
   if (state != NULL) {
     state->entry_module_rejected = TRUE;
@@ -573,7 +602,9 @@ static int qjms_eval_buf_impl(JSContext *ctx, const void *buf, int buf_len,
       val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
     }
     if (JS_IsException(val)) {
-      QJU_PrintException(ctx, stderr);
+      JSValue exc = JS_GetException(ctx);
+      QJU_ReportException(ctx, exc);
+      JS_FreeValue(ctx, exc);
       ret = -1;
       JS_FreeValue(ctx, val);
     } else {
@@ -683,7 +714,11 @@ static int qjms_eval_binary_impl(JSContext *ctx, const uint8_t *buf, size_t buf_
       }
       if (JS_IsException(val)) {
 exception:
-        QJU_PrintException(ctx, stderr);
+        {
+          JSValue exc = JS_GetException(ctx);
+          QJU_ReportException(ctx, exc);
+          JS_FreeValue(ctx, exc);
+        }
         return -1;
       }
       if (attach_handler) {

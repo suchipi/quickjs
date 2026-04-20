@@ -176,6 +176,14 @@ declare module "quickjs:os" {
     postMessage(msg: StructuredClonable): void;
     terminate(): void;
     onmessage: null | ((event: { data: StructuredClonable }) => void);
+    onerror:
+      | null
+      | ((event: {
+          message: string;
+          filename: string;
+          lineno: number;
+          error: Error | null;
+        }) => void);
   }
   export class Win32Handle {
     private constructor();
@@ -1030,6 +1038,14 @@ class Worker {
   postMessage(msg: StructuredClonable): void;
   terminate(): void;
   onmessage: null | ((event: { data: StructuredClonable }) => void);
+  onerror:
+    | null
+    | ((event: {
+        message: string;
+        filename: string;
+        lineno: number;
+        error: Error | null;
+      }) => void);
 }
 ```
 
@@ -1064,6 +1080,53 @@ terminate(): void;
 ```ts
 onmessage: null | ((event: {
   data: StructuredClonable;
+}) => void);
+```
+
+### Worker.prototype.onerror (property)
+
+Fires on the parent side whenever an uncaught exception escapes
+anywhere in the worker: top-level errors at startup, the worker's
+global `onmessage` throwing, timer / I/O / signal callbacks
+throwing, microtask rejections, and unhandled promise rejections.
+
+The event is a plain object shaped like a WHATWG `ErrorEvent`
+(minus `colno`, which QuickJS stack traces don't produce):
+
+- `message` — the error's message, or `String(reason)` for a
+  non-Error throw.
+- `filename` — from the error's `fileName` own-prop when present,
+  otherwise the worker's entry-module filename.
+- `lineno` — from the error's `lineNumber` own-prop, otherwise `0`.
+- `error` — a real `Error` instance when the worker threw an
+  Error (one of the nine recognized classes: `Error`, `TypeError`,
+  `RangeError`, `SyntaxError`, `ReferenceError`, `URIError`,
+  `EvalError`, `AggregateError`, `InternalError`, with user
+  subclasses reified to base `Error` with `.name` preserved).
+  `null` when the thrown value was not an Error.
+
+Cycles and shared references in the error graph (e.g.
+`err.cause === err`, or shared nodes inside
+`AggregateError.errors[]`) are preserved, matching the HTML
+structured-clone algorithm.
+
+A handler assigned same-tick as `new Worker(...)` is guaranteed
+to be in place before any error dispatch: the parent's event
+loop cannot drain and dispatch error-pipe messages until the
+current synchronous tick finishes, and the error-port
+registration (on which dispatch is gated) happens synchronously
+in the Worker ctor. Cross-tick late assignment (`setTimeout(() =>
+w.onerror = fn, 100)`) is still racy with any error that fires
+before the timeout — such errors fall through to the stderr
+fallback. When `onerror` is unset, errors print to stderr in the
+same format as an uncaught exception would.
+
+```ts
+onerror: null | ((event: {
+  message: string;
+  filename: string;
+  lineno: number;
+  error: Error | null;
 }) => void);
 ```
 

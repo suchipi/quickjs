@@ -1028,6 +1028,13 @@ int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx);
 #define JS_WRITE_OBJ_REFERENCE (1 << 3) /* allow object references to
                                            encode arbitrary object
                                            graph */
+#define JS_WRITE_OBJ_SERIALIZE_ERRORS (1 << 4) /* allow Error instances by
+                                                  encoding them as a
+                                                  BC_TAG_ERROR_OBJECT tag
+                                                  with class name + own
+                                                  properties (cycles and
+                                                  shared refs preserved
+                                                  via JS_WRITE_OBJ_REFERENCE) */
 uint8_t *JS_WriteObject(JSContext *ctx, size_t *psize, JSValueConst obj,
                         int flags);
 uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValueConst obj,
@@ -1037,6 +1044,10 @@ uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValueConst obj,
 #define JS_READ_OBJ_ROM_DATA  (1 << 1) /* avoid duplicating 'buf' data */
 #define JS_READ_OBJ_SAB       (1 << 2) /* allow SharedArrayBuffer */
 #define JS_READ_OBJ_REFERENCE (1 << 3) /* allow object references */
+#define JS_READ_OBJ_SERIALIZE_ERRORS (1 << 4) /* recognize BC_TAG_ERROR_OBJECT
+                                                 and reify as real Error
+                                                 instances of the matching
+                                                 builtin class */
 JSValue JS_ReadObject(JSContext *ctx, const uint8_t *buf, size_t buf_len,
                       int flags);
 /* instantiate and evaluate a bytecode function. Only used when

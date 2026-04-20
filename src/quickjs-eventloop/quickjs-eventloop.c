@@ -179,14 +179,19 @@ void js_eventloop_interrupt_handler_finish(JSContext *ctx, JSValue ret)
 
 void js_eventloop_call_handler(JSContext *ctx, JSValueConst func)
 {
-    JSValue ret, func1;
+    JSValue ret, func1, exc;
     /* 'func' might be destroyed when calling itself (if it frees the
        handler), so must take extra care */
     func1 = JS_DupValue(ctx, func);
     ret = JS_Call(ctx, func1, JS_UNDEFINED, 0, NULL);
     JS_FreeValue(ctx, func1);
-    if (JS_IsException(ret))
-        QJU_PrintException(ctx, stderr);
+    if (JS_IsException(ret)) {
+        /* Route to the worker error pipe if we're in a worker; fall
+           through to stderr on the main thread. */
+        exc = JS_GetException(ctx);
+        QJU_ReportException(ctx, exc);
+        JS_FreeValue(ctx, exc);
+    }
     JS_FreeValue(ctx, ret);
 }
 
@@ -272,6 +277,10 @@ void js_eventloop_init(JSRuntime *rt)
     init_list_head(&ts->timers);
 #ifndef SKIP_WORKER
     init_list_head(&ts->port_list);
+    init_list_head(&ts->error_port_list);
+    ts->error_send_pipe = NULL;
+    ts->entry_filename = NULL;
+    ts->last_reported_reason_ptr = NULL;
     ts->worker_done_read_fd = -1;
     ts->worker_done_write_fd = -1;
 #endif
@@ -314,9 +323,41 @@ void js_eventloop_free(JSRuntime *rt)
     }
 
 #ifndef SKIP_WORKER
-    /* Note: port_list cleanup is handled by the OS module */
+    /* Note: port_list and error_port_list cleanup (freeing the handler
+       structs themselves) is handled by the OS module's Worker
+       finalizer — each Worker object owns its own handler. But here in
+       js_eventloop_free we null out the per-handler list linkage, since
+       the list head we live in is about to be freed. The Worker
+       finalizer will run later (during JS_FreeContext/JS_FreeRuntime)
+       and sees `link.next == NULL` → skips the list_del (see
+       js_free_port / js_free_error_port in quickjs-os.c). Applied to
+       both lists symmetrically — without this, a Worker that outlives
+       js_eventloop_free would list_del into a freed head. */
+    while (!list_empty(&ts->port_list)) {
+        struct list_head *lh = ts->port_list.next;
+        list_del(lh);
+        lh->next = NULL;
+        lh->prev = NULL;
+    }
+    while (!list_empty(&ts->error_port_list)) {
+        struct list_head *lh = ts->error_port_list.next;
+        list_del(lh);
+        lh->next = NULL;
+        lh->prev = NULL;
+    }
     js_worker_message_pipe_free(ts->recv_pipe);
     js_worker_message_pipe_free(ts->send_pipe);
+
+    /* worker-side only: free the error send pipe and the duped entry
+       filename, if they were set up. */
+    if (ts->error_send_pipe) {
+        js_worker_message_pipe_free(ts->error_send_pipe);
+        ts->error_send_pipe = NULL;
+    }
+    if (ts->entry_filename) {
+        free(ts->entry_filename);
+        ts->entry_filename = NULL;
+    }
 
     if (ts->worker_done_read_fd >= 0)
         close(ts->worker_done_read_fd);
@@ -383,11 +424,27 @@ int js_eventloop_run(JSContext *ctx)
             err = JS_ExecutePendingJob(rt, &ctx1);
             if (err <= 0) {
                 if (err < 0) {
-                    QJU_PrintException(ctx1, stderr);
+                    JSValue exc = JS_GetException(ctx1);
+                    QJU_ReportException(ctx1, exc);
+                    JS_FreeValue(ctx1, exc);
                 }
                 break;
             }
         }
+
+#ifndef SKIP_WORKER
+        /* Clear the reason-pointer dedup cache between ticks. The
+           module-eval rejection chain and its associated reports all
+           happen within a single synchronous microtask drain, so by the
+           time the drain finishes the dedup window is closed. Leaving
+           the pointer set indefinitely would risk a false-positive
+           skip if a later throw's reason happened to land at the same
+           freed-and-reused heap address. */
+        {
+            JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+            if (ts) ts->last_reported_reason_ptr = NULL;
+        }
+#endif
 
         if (!js_poll_func || js_poll_func(ctx))
             break;

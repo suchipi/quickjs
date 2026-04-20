@@ -110,6 +110,22 @@ JSValue QJMS_GetModuleLoaderInternals(JSContext *ctx);
 int QJMS_EntryModuleRejected(JSRuntime *rt);
 
 /*
+  Install a callback that overrides the default "print to stderr" behavior
+  of the entry-module rejection handler. When set, the callback is invoked
+  with the rejection reason instead of `QJU_PrintError` being called. The
+  `entry_module_rejected` flag is still set regardless, so
+  `QJMS_EntryModuleRejected`-based exit-code propagation in
+  qjs/quickjs-run is unaffected. Pass NULL to restore the default.
+
+  Intended for embedders that route top-level rejections elsewhere — e.g.
+  the Worker runner, which forwards them to the parent via the dedicated
+  error pipe so the parent's `worker.onerror` can fire.
+*/
+void QJMS_SetTopLevelRejectionCallback(
+  JSRuntime *rt,
+  void (*cb)(JSContext *ctx, JSValueConst reason));
+
+/*
   Attach the entry-module rejection handler to `promise` and consume it.
   If the promise rejects, the reason is printed to stderr and the
   entry-module-rejected flag is set (observable via

@@ -24,7 +24,9 @@ static JSValue js_call_bytecode_func(JSContext *ctx, JSValueConst this_val,
 }
 
 static JSValue js_obj_to_bytecode_arraybuf(JSContext *ctx, JSValueConst obj,
-                                           BOOL byte_swap)
+                                           BOOL byte_swap,
+                                           BOOL preserve_references,
+                                           BOOL serialize_errors)
 {
     uint8_t *out_buf;
     size_t out_buf_len;
@@ -33,6 +35,12 @@ static JSValue js_obj_to_bytecode_arraybuf(JSContext *ctx, JSValueConst obj,
     flags = JS_WRITE_OBJ_BYTECODE;
     if (byte_swap) {
         flags |= JS_WRITE_OBJ_BSWAP;
+    }
+    if (preserve_references) {
+        flags |= JS_WRITE_OBJ_REFERENCE;
+    }
+    if (serialize_errors) {
+        flags |= JS_WRITE_OBJ_SERIALIZE_ERRORS;
     }
     out_buf = JS_WriteObject(ctx, &out_buf_len, obj, flags);
     if (!out_buf) {
@@ -47,17 +55,20 @@ static JSValue js_bytecode_fromValue(JSContext *ctx, JSValueConst this_val,
 {
     JSValue obj;
     BOOL byte_swap = FALSE;
+    BOOL preserve_references = TRUE;
+    BOOL serialize_errors = FALSE;
 
     if (argc < 1) {
         return JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__, "fromValue requires at least 1 argument");
     }
     obj = argv[0];
 
-    if (argc == 2 && !JS_IsUndefined(argv[1]) && !JS_IsNull(argv[1])) {
-        JSValue opts_obj;
+    if (argc >= 2 && !JS_IsUndefined(argv[1]) && !JS_IsNull(argv[1])) {
+        JSValueConst opts_obj = argv[1];
         JSValue byte_swap_val;
+        JSValue preserve_references_val;
+        JSValue serialize_errors_val;
 
-        opts_obj = argv[1];
         byte_swap_val = JS_GetPropertyStr(ctx, opts_obj, "byteSwap");
         if (JS_IsException(byte_swap_val)) {
             return byte_swap_val;
@@ -73,10 +84,42 @@ static JSValue js_bytecode_fromValue(JSContext *ctx, JSValueConst this_val,
         // Could be -1 due to error from JS_ToBool
         if (byte_swap == -1) {
             return JS_EXCEPTION;
-        };
+        }
+
+        preserve_references_val = JS_GetPropertyStr(ctx, opts_obj, "preserveReferences");
+        if (JS_IsException(preserve_references_val)) {
+            return preserve_references_val;
+        }
+
+        if (JS_IsUndefined(preserve_references_val)) {
+            preserve_references = TRUE;
+        } else {
+            preserve_references = JS_ToBool(ctx, preserve_references_val);
+        }
+        JS_FreeValue(ctx, preserve_references_val);
+
+        if (preserve_references == -1) {
+            return JS_EXCEPTION;
+        }
+
+        serialize_errors_val = JS_GetPropertyStr(ctx, opts_obj, "serializeErrors");
+        if (JS_IsException(serialize_errors_val)) {
+            return serialize_errors_val;
+        }
+
+        if (JS_IsUndefined(serialize_errors_val)) {
+            serialize_errors = FALSE;
+        } else {
+            serialize_errors = JS_ToBool(ctx, serialize_errors_val);
+        }
+        JS_FreeValue(ctx, serialize_errors_val);
+
+        if (serialize_errors == -1) {
+            return JS_EXCEPTION;
+        }
     }
 
-    return js_obj_to_bytecode_arraybuf(ctx, obj, byte_swap);
+    return js_obj_to_bytecode_arraybuf(ctx, obj, byte_swap, preserve_references, serialize_errors);
 }
 
 static JSValue js_bytecode_toValue(JSContext *ctx, JSValueConst this_val,
@@ -86,6 +129,8 @@ static JSValue js_bytecode_toValue(JSContext *ctx, JSValueConst this_val,
     size_t buf_len;
     int flags, tag;
     JSValue obj;
+    BOOL preserve_references = TRUE;
+    BOOL serialize_errors = FALSE;
 
     if (argc < 1) {
         return JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__, "toValue requires at least 1 argument");
@@ -96,7 +141,51 @@ static JSValue js_bytecode_toValue(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
 
-    flags = JS_READ_OBJ_BYTECODE | JS_READ_OBJ_REFERENCE | JS_READ_OBJ_SAB;
+    if (argc >= 2 && !JS_IsUndefined(argv[1]) && !JS_IsNull(argv[1])) {
+        JSValueConst opts_obj = argv[1];
+        JSValue preserve_references_val;
+        JSValue serialize_errors_val;
+
+        preserve_references_val = JS_GetPropertyStr(ctx, opts_obj, "preserveReferences");
+        if (JS_IsException(preserve_references_val)) {
+            return preserve_references_val;
+        }
+
+        if (JS_IsUndefined(preserve_references_val)) {
+            preserve_references = TRUE;
+        } else {
+            preserve_references = JS_ToBool(ctx, preserve_references_val);
+        }
+        JS_FreeValue(ctx, preserve_references_val);
+
+        if (preserve_references == -1) {
+            return JS_EXCEPTION;
+        }
+
+        serialize_errors_val = JS_GetPropertyStr(ctx, opts_obj, "serializeErrors");
+        if (JS_IsException(serialize_errors_val)) {
+            return serialize_errors_val;
+        }
+
+        if (JS_IsUndefined(serialize_errors_val)) {
+            serialize_errors = FALSE;
+        } else {
+            serialize_errors = JS_ToBool(ctx, serialize_errors_val);
+        }
+        JS_FreeValue(ctx, serialize_errors_val);
+
+        if (serialize_errors == -1) {
+            return JS_EXCEPTION;
+        }
+    }
+
+    flags = JS_READ_OBJ_BYTECODE | JS_READ_OBJ_SAB;
+    if (preserve_references) {
+        flags |= JS_READ_OBJ_REFERENCE;
+    }
+    if (serialize_errors) {
+        flags |= JS_READ_OBJ_SERIALIZE_ERRORS;
+    }
     obj = JS_ReadObject(ctx, buf, buf_len, flags);
     if (JS_IsException(obj)) {
         return JS_EXCEPTION;
@@ -295,7 +384,9 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
 
-    ret = js_obj_to_bytecode_arraybuf(ctx, obj, byte_swap);
+    ret = js_obj_to_bytecode_arraybuf(ctx, obj, byte_swap,
+                                      /*preserve_references=*/FALSE,
+                                      /*serialize_errors=*/FALSE);
     JS_FreeValue(ctx, obj);
     return ret;
 }

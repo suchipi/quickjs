@@ -6511,6 +6511,15 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
     const char *str1;
     JSObject *p;
     BOOL backtrace_barrier;
+    /* Capture the first visible stack-frame's file/line so we can set
+       them as own-props on the error even when the caller didn't pass an
+       explicit `filename` — e.g. runtime `throw new Error(...)`. The
+       pre-existing explicit-filename path (parser errors, etc.) sets them
+       early and skips this capture. */
+    JSAtom first_frame_filename_atom = JS_ATOM_NULL;
+    const char *first_frame_filename_cstr = NULL; /* non-NULL only for the "filename" arg path */
+    int first_frame_line_num = -1;
+    BOOL have_first_frame_info = FALSE;
 
     js_dbuf_init(ctx, &dbuf);
     if (filename) {
@@ -6518,11 +6527,9 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
         if (line_num != -1)
             dbuf_printf(&dbuf, ":%d", line_num);
         dbuf_putc(&dbuf, '\n');
-        str = JS_NewString(ctx, filename);
-        JS_DefinePropertyValue(ctx, error_obj, JS_ATOM_fileName, str,
-                               JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-        JS_DefinePropertyValue(ctx, error_obj, JS_ATOM_lineNumber, JS_NewInt32(ctx, line_num),
-                               JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        first_frame_filename_cstr = filename;
+        first_frame_line_num = line_num;
+        have_first_frame_info = TRUE;
         if (backtrace_flags & JS_BACKTRACE_FLAG_SINGLE_LEVEL)
             goto done;
     }
@@ -6546,6 +6553,11 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
                 dbuf_printf(&dbuf, ":%d", ssf->line_num);
             dbuf_putc(&dbuf, ')');
             dbuf_putc(&dbuf, '\n');
+            if (!have_first_frame_info) {
+                first_frame_filename_atom = JS_DupAtom(ctx, ssf->filename);
+                first_frame_line_num = ssf->line_num;
+                have_first_frame_info = TRUE;
+            }
             continue;
         }
 
@@ -6576,6 +6588,11 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
                 if (line_num1 != -1)
                     dbuf_printf(&dbuf, ":%d", line_num1);
                 dbuf_putc(&dbuf, ')');
+                if (!have_first_frame_info) {
+                    first_frame_filename_atom = JS_DupAtom(ctx, b->debug.filename);
+                    first_frame_line_num = line_num1;
+                    have_first_frame_info = TRUE;
+                }
             }
         } else {
             dbuf_printf(&dbuf, " (native)");
@@ -6586,6 +6603,31 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
             break;
     }
  done:
+    /* Populate fileName / lineNumber own-props if we captured them from
+       any frame. This runs for both the explicit-filename path (parser
+       errors) and the runtime-throw path, so Error instances reliably
+       carry structured origin info. */
+    if (have_first_frame_info) {
+        JSValue fn_val;
+        if (first_frame_filename_cstr) {
+            fn_val = JS_NewString(ctx, first_frame_filename_cstr);
+        } else if (first_frame_filename_atom != JS_ATOM_NULL) {
+            fn_val = JS_AtomToString(ctx, first_frame_filename_atom);
+        } else {
+            fn_val = JS_UNDEFINED;
+        }
+        if (!JS_IsUndefined(fn_val)) {
+            JS_DefinePropertyValue(ctx, error_obj, JS_ATOM_fileName, fn_val,
+                                   JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        }
+        JS_DefinePropertyValue(ctx, error_obj, JS_ATOM_lineNumber,
+                               JS_NewInt32(ctx, first_frame_line_num),
+                               JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+    }
+    if (first_frame_filename_atom != JS_ATOM_NULL) {
+        JS_FreeAtom(ctx, first_frame_filename_atom);
+    }
+
     dbuf_putc(&dbuf, '\0');
     if (dbuf_error(&dbuf))
         str = JS_NULL;
@@ -34807,12 +34849,13 @@ typedef enum BCTagEnum {
     BC_TAG_DATE,
     BC_TAG_OBJECT_VALUE,
     BC_TAG_OBJECT_REFERENCE,
+    BC_TAG_ERROR_OBJECT,
 } BCTagEnum;
 
 #ifdef CONFIG_BIGNUM
-#define BC_BASE_VERSION 2
+#define BC_BASE_VERSION 3
 #else
-#define BC_BASE_VERSION 1
+#define BC_BASE_VERSION 2
 #endif
 #define BC_BE_VERSION 0x40
 #ifdef WORDS_BIGENDIAN
@@ -34828,6 +34871,7 @@ typedef struct BCWriterState {
     BOOL allow_bytecode : 8;
     BOOL allow_sab : 8;
     BOOL allow_reference : 8;
+    BOOL serialize_errors : 8;
     uint32_t first_atom;
     uint32_t *atom_to_idx;
     int atom_to_idx_size;
@@ -34865,6 +34909,7 @@ static const char * const bc_tag_str[] = {
     "Date",
     "ObjectValue",
     "ObjectReference",
+    "ErrorObject",
 };
 #endif
 
@@ -35438,6 +35483,95 @@ static int JS_WriteObjectTag(BCWriterState *s, JSValueConst obj)
     return -1;
 }
 
+/* Determine which builtin Error class a JS_CLASS_ERROR object belongs to
+   by walking its [[Prototype]] chain and matching against the well-known
+   error prototypes. Returns the appropriate name string atom. Falls back
+   to "Error" if no specific native-error prototype matches — this covers
+   both a bare `new Error()` and any user-defined subclass of Error (the
+   reader will construct a base Error in that case, preserving the
+   `name`/other own-props the user set). */
+static const char *detect_native_error_name(JSContext *ctx, JSObject *p)
+{
+    /* Index order MUST match the JSErrorEnum definition at the top of
+       this file (JS_EVAL_ERROR = 0, JS_RANGE_ERROR = 1, ...). The global
+       `native_error_name` table is defined much later in this file;
+       rather than forward-declaring it, we inline the name strings here
+       — they're a stable part of the language spec. */
+    static const char * const error_class_names[JS_NATIVE_ERROR_COUNT] = {
+        "EvalError", "RangeError", "ReferenceError",
+        "SyntaxError", "TypeError", "URIError",
+        "InternalError", "AggregateError",
+    };
+    JSObject *proto;
+    int i;
+    for (proto = p->shape->proto; proto != NULL; proto = proto->shape->proto) {
+        for (i = 0; i < JS_NATIVE_ERROR_COUNT; i++) {
+            JSValueConst np = ctx->native_error_proto[i];
+            if (JS_VALUE_GET_TAG(np) == JS_TAG_OBJECT
+                && JS_VALUE_GET_OBJ(np) == proto) {
+                return error_class_names[i];
+            }
+        }
+    }
+    return "Error";
+}
+
+/* Emit BC_TAG_ERROR_OBJECT + class name atom + standard own-property
+   stream. Cycles and shared references in property values are preserved
+   by the shared object_list bookkeeping (we call BC_add_object_ref via
+   JS_WriteObjectRec's normal path — our caller already did that for us). */
+static int JS_WriteErrorObject(BCWriterState *s, JSValueConst obj)
+{
+    JSObject *p = JS_VALUE_GET_OBJ(obj);
+    uint32_t i, prop_count;
+    JSShape *sh;
+    JSShapeProperty *pr;
+    int pass;
+    JSAtom atom;
+    const char *name_str;
+    JSAtom name_atom;
+
+    bc_put_u8(s, BC_TAG_ERROR_OBJECT);
+
+    name_str = detect_native_error_name(s->ctx, p);
+    name_atom = JS_NewAtom(s->ctx, name_str);
+    if (name_atom == JS_ATOM_NULL)
+        goto fail;
+    bc_put_atom(s, name_atom);
+    JS_FreeAtom(s->ctx, name_atom);
+
+    prop_count = 0;
+    sh = p->shape;
+    for (pass = 0; pass < 2; pass++) {
+        if (pass == 1)
+            bc_put_leb128(s, prop_count);
+        for (i = 0, pr = get_shape_prop(sh); i < sh->prop_count; i++, pr++) {
+            atom = pr->atom;
+            /* Emit ALL string-keyed own-properties regardless of
+               enumerability — stack/fileName/lineNumber are defined as
+               non-enumerable but must round-trip. Symbols are skipped
+               (JS_WriteObject doesn't serialize symbol keys). */
+            if (atom != JS_ATOM_NULL &&
+                JS_AtomIsString(s->ctx, atom)) {
+                if (pr->flags & JS_PROP_TMASK) {
+                    JS_ThrowTypeError(s->ctx, "quickjs.c", __LINE__, "only value properties are supported");
+                    goto fail;
+                }
+                if (pass == 0) {
+                    prop_count++;
+                } else {
+                    bc_put_atom(s, atom);
+                    if (JS_WriteObjectRec(s, p->prop[i].u.value))
+                        goto fail;
+                }
+            }
+        }
+    }
+    return 0;
+ fail:
+    return -1;
+}
+
 static int JS_WriteTypedArray(BCWriterState *s, JSValueConst obj)
 {
     JSObject *p = JS_VALUE_GET_OBJ(obj);
@@ -35589,6 +35723,8 @@ static int JS_WriteObjectRec(BCWriterState *s, JSValueConst obj)
                 if (p->class_id >= JS_CLASS_UINT8C_ARRAY &&
                     p->class_id <= JS_CLASS_FLOAT64_ARRAY) {
                     ret = JS_WriteTypedArray(s, obj);
+                } else if (p->class_id == JS_CLASS_ERROR && s->serialize_errors) {
+                    ret = JS_WriteErrorObject(s, obj);
                 } else {
                     JS_ThrowTypeError(s->ctx, "quickjs.c", __LINE__, "unsupported object class");
                     ret = -1;
@@ -35671,6 +35807,7 @@ uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValueConst obj,
     s->allow_bytecode = ((flags & JS_WRITE_OBJ_BYTECODE) != 0);
     s->allow_sab = ((flags & JS_WRITE_OBJ_SAB) != 0);
     s->allow_reference = ((flags & JS_WRITE_OBJ_REFERENCE) != 0);
+    s->serialize_errors = ((flags & JS_WRITE_OBJ_SERIALIZE_ERRORS) != 0);
     /* XXX: could use a different version when bytecode is included */
     if (s->allow_bytecode)
         s->first_atom = JS_ATOM_END;
@@ -35722,6 +35859,7 @@ typedef struct BCReaderState {
     BOOL allow_bytecode : 8;
     BOOL is_rom_data : 8;
     BOOL allow_reference : 8;
+    BOOL serialize_errors : 8;
     /* object references */
     JSObject **objects;
     int objects_count;
@@ -36483,6 +36621,104 @@ static JSValue JS_ReadObjectTag(BCReaderState *s)
     return JS_EXCEPTION;
 }
 
+/* Decode a BC_TAG_ERROR_OBJECT payload. Header is the class-name atom
+   ("Error" / "TypeError" / ... / "AggregateError" / "InternalError"); body
+   is the standard property stream (same format as BC_TAG_OBJECT). The
+   Error instance is created BEFORE reading properties and registered in
+   the object_list immediately, so any back-reference a property value
+   makes to this node (e.g. err.cause === err) resolves to the Error
+   instance, not a placeholder. */
+static JSValue JS_ReadErrorObject(BCReaderState *s)
+{
+    JSContext *ctx = s->ctx;
+    JSValue obj = JS_UNDEFINED;
+    JSValue proto_val;
+    JSValueConst proto;
+    uint32_t prop_count, i;
+    JSAtom class_atom = JS_ATOM_NULL;
+    JSAtom atom = JS_ATOM_NULL;
+    JSValue val;
+    const char *class_name = NULL;
+    int native_idx, j, ret;
+    static const char * const error_class_names[JS_NATIVE_ERROR_COUNT] = {
+        "EvalError", "RangeError", "ReferenceError",
+        "SyntaxError", "TypeError", "URIError",
+        "InternalError", "AggregateError",
+    };
+
+    if (bc_get_atom(s, &class_atom))
+        goto fail;
+
+    class_name = JS_AtomToCString(ctx, class_atom);
+    if (!class_name)
+        goto fail;
+
+    /* Pick the appropriate prototype. Unrecognized names fall back to the
+       base Error prototype — this covers user subclasses like MyError,
+       whose `name` own-prop will be restored by the property stream. */
+    native_idx = -1;
+    for (j = 0; j < JS_NATIVE_ERROR_COUNT; j++) {
+        if (!strcmp(class_name, error_class_names[j])) {
+            native_idx = j;
+            break;
+        }
+    }
+    if (native_idx >= 0) {
+        proto = ctx->native_error_proto[native_idx];
+    } else {
+        proto = ctx->class_proto[JS_CLASS_ERROR];
+    }
+
+    proto_val = JS_DupValue(ctx, proto);
+    obj = JS_NewObjectProtoClass(ctx, proto_val, JS_CLASS_ERROR);
+    JS_FreeValue(ctx, proto_val);
+    if (JS_IsException(obj))
+        goto fail;
+
+    /* Register BEFORE reading properties so cycle back-refs resolve. */
+    if (BC_add_object_ref(s, obj))
+        goto fail;
+
+    if (bc_get_leb128(s, &prop_count))
+        goto fail;
+    for (i = 0; i < prop_count; i++) {
+        if (bc_get_atom(s, &atom))
+            goto fail;
+#ifdef DUMP_READ_OBJECT
+        bc_read_trace(s, "propname: "); print_atom(s->ctx, atom); printf("\n");
+#endif
+        val = JS_ReadObjectRec(s);
+        if (JS_IsException(val)) {
+            JS_FreeAtom(ctx, atom);
+            atom = JS_ATOM_NULL;
+            goto fail;
+        }
+        /* Use JS_PROP_C_W_E here — simpler than trying to recover the
+           exact per-property attribute flags (e.g. Error.prototype defines
+           `message` as W|C, and `stack`/`fileName`/`lineNumber` are added
+           as W|C by build_backtrace). Writable/configurable/enumerable on
+           the reified clone is a reasonable default. */
+        ret = JS_DefinePropertyValue(ctx, obj, atom, val, JS_PROP_C_W_E);
+        JS_FreeAtom(ctx, atom);
+        atom = JS_ATOM_NULL;
+        if (ret < 0)
+            goto fail;
+    }
+
+    JS_FreeCString(ctx, class_name);
+    JS_FreeAtom(ctx, class_atom);
+    return obj;
+ fail:
+    if (class_name)
+        JS_FreeCString(ctx, class_name);
+    if (class_atom != JS_ATOM_NULL)
+        JS_FreeAtom(ctx, class_atom);
+    if (atom != JS_ATOM_NULL)
+        JS_FreeAtom(ctx, atom);
+    JS_FreeValue(ctx, obj);
+    return JS_EXCEPTION;
+}
+
 static JSValue JS_ReadArray(BCReaderState *s, int tag)
 {
     JSContext *ctx = s->ctx;
@@ -36739,6 +36975,11 @@ static JSValue JS_ReadObjectRec(BCReaderState *s)
     case BC_TAG_OBJECT:
         obj = JS_ReadObjectTag(s);
         break;
+    case BC_TAG_ERROR_OBJECT:
+        if (!s->serialize_errors)
+            goto invalid_tag;
+        obj = JS_ReadErrorObject(s);
+        break;
     case BC_TAG_ARRAY:
     case BC_TAG_TEMPLATE_OBJECT:
         obj = JS_ReadArray(s, tag);
@@ -36862,6 +37103,7 @@ JSValue JS_ReadObject(JSContext *ctx, const uint8_t *buf, size_t buf_len,
     s->is_rom_data = ((flags & JS_READ_OBJ_ROM_DATA) != 0);
     s->allow_sab = ((flags & JS_READ_OBJ_SAB) != 0);
     s->allow_reference = ((flags & JS_READ_OBJ_REFERENCE) != 0);
+    s->serialize_errors = ((flags & JS_READ_OBJ_SERIALIZE_ERRORS) != 0);
     if (s->allow_bytecode)
         s->first_atom = JS_ATOM_END;
     else
