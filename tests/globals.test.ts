@@ -95,7 +95,6 @@ test("globals", async () => {
     Infinity: number readonly ()
     NaN: number readonly ()
     undefined: undefined readonly ()
-    __date_clock: function (CW)
     Number: function (CW)
     Boolean: function (CW)
     String: function (CW)

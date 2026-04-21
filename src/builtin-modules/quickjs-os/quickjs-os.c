@@ -4610,6 +4610,12 @@ static int js_os_poll(JSContext *ctx)
 }
 #endif /* !_WIN32 */
 
+static JSValue js_os_now(JSContext *ctx, JSValueConst this_val,
+                         int argc, JSValueConst *argv)
+{
+    return JS_NewFloat64(ctx, (double)gettime_ns() / 1e6);
+}
+
 /**********************************************************/
 /* Module function list and initialization */
 
@@ -4692,6 +4698,7 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     OS_FLAG(SIGTTOU),
 #endif
     /* NOTE: Timer functions removed - now in quickjs-timers module */
+    JS_CFUNC_DEF("now", 0, js_os_now ),
     JS_PROP_STRING_DEF("platform", OS_PLATFORM, 0 ),
     JS_CFUNC_DEF("getcwd", 0, js_os_getcwd ),
     JS_CFUNC_DEF("chdir", 0, js_os_chdir ),

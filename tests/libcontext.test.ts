@@ -51,7 +51,6 @@ test("quickjs:context - example", async () => {
     	Infinity: Infinity
     	NaN: NaN
     	undefined: undefined
-    	__date_clock: Function "__date_clock" {…}
     	Number: Function "Number" {…}
     	Boolean: Function "Boolean" {…}
     	String: Function "String" {…}

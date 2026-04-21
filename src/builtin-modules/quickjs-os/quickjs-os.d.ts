@@ -160,6 +160,13 @@ declare module "quickjs:os" {
   export function pipe(): [number, number];
   export function sleep(delay_ms: number): void;
 
+  /**
+   * Return a timestamp in milliseconds with more precision than
+   * `Date.now()`. The time origin is unspecified and is normally not
+   * impacted by system clock adjustments.
+   */
+  export function now(): number;
+
   // keep in sync with quickjs-os.c
   export var platform:
     | "win32"

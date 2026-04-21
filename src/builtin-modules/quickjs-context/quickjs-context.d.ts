@@ -35,7 +35,6 @@ declare module "quickjs:context" {
      * - Infinity
      * - NaN
      * - undefined
-     * - __date_clock
      * - Number
      * - Boolean
      * - String
