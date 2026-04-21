@@ -1,3 +1,4 @@
+#! (shebang test)
 import * as std from "quickjs:std";
 import * as os from "quickjs:os";
 

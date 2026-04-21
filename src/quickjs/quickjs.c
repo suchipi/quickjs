@@ -21512,6 +21512,7 @@ BOOL JS_DetectModule(const char *input, size_t input_len)
     off_t shebangs_offset = shebangs_end_index((char *)input, input_len);
     const uint8_t *p = (const uint8_t *)input + shebangs_offset;
     int tok;
+
     switch(simple_next_token(&p, FALSE)) {
     case TOK_IMPORT:
         tok = simple_next_token(&p, FALSE);
