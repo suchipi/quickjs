@@ -177,6 +177,9 @@ DEF(bigdecimal, "bigdecimal")
 DEF(roundingMode, "roundingMode")
 DEF(maximumSignificantDigits, "maximumSignificantDigits")
 DEF(maximumFractionDigits, "maximumFractionDigits")
+/* the following 3 atoms are only used with SKIP_WORKER undefined, but
+   the fork keeps all atoms defined unconditionally so the bytecode
+   format stays compatible across differently-configured builds */
 DEF(not_equal, "not-equal")
 DEF(timed_out, "timed-out")
 DEF(ok, "ok")
