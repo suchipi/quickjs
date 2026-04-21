@@ -31,7 +31,7 @@ The work is expected to span many sessions. The protocol must be resumable and s
 
 - **Work branch:** directly on `main`.
 - **Ancestry markers:** one `git merge -s ours <sha>` per processed upstream commit (≈428 merge commits total).
-- **Tracking:** committed tracking file at [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md) — one row per upstream sha with status + notes. Merge commit messages also carry the status for redundancy, but the tracking file is the canonical source.
+- **Tracking:** committed tracking file at [upstream-merge-status.md](../../upstream-merge-status.md) — one row per upstream sha with status + notes. Merge commit messages also carry the status for redundancy, but the tracking file is the canonical source.
 
 ## Protocol
 
@@ -49,7 +49,7 @@ Copy this approved plan file into the repo so future sessions can read it withou
 cp ~/.claude/plans/on-github-it-says-rustling-cake.md .claude/upstream-merge/plan.md
 ```
 
-Create [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md), seeded with every upstream commit oldest-first:
+Create [upstream-merge-status.md](../../upstream-merge-status.md), seeded with every upstream commit oldest-first:
 
 ```
 git log --reverse --pretty='| %h | PENDING | %s |  |' 2788d71..upstream/master
@@ -67,11 +67,11 @@ Rows ordered oldest → newest. Status is one of: PENDING, PORT, SKIP-NA, SKIP-D
 | <seeded rows> |
 ```
 
-Commit both [.claude/upstream-merge/plan.md](.claude/upstream-merge/plan.md) and [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md) together as the initial setup commit. If upstream advances during the project, append new rows at the bottom of `status.md` as needed.
+Commit both [.claude/upstream-merge/plan.md](.claude/upstream-merge/plan.md) and [upstream-merge-status.md](../../upstream-merge-status.md) together as the initial setup commit. If upstream advances during the project, append new rows at the bottom of `upstream-merge-status.md` as needed.
 
 ### 1. Pick the next commit
 
-"Next" = the first row in [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md) still marked `PENDING`. Cross-check against git ancestry — these should agree:
+"Next" = the first row in [upstream-merge-status.md](../../upstream-merge-status.md) still marked `PENDING`. Cross-check against git ancestry — these should agree:
 
 ```
 git rev-list --reverse main..upstream/master | head -1
@@ -125,9 +125,9 @@ If a commit is *only* whitespace (e.g. upstream normalizing indentation), classi
 
 Special case — **`quickjs-libc.c`**: decide per-hunk which of `quickjs-os` / `quickjs-std` / `quickjs-eventloop` it belongs in based on what symbol/area the hunk touches.
 
-Update the row in [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md) for this sha: change Status from `PENDING` to `PORT` and fill in the Notes column with a short human-readable description of what was ported (not a sha — the tracking change lives in the same commit as the port, so "the port commit" self-references). Then commit port work + tracking update together:
+Update the row in [upstream-merge-status.md](../../upstream-merge-status.md) for this sha: change Status from `PENDING` to `PORT` and fill in the Notes column with a short human-readable description of what was ported (not a sha — the tracking change lives in the same commit as the port, so "the port commit" self-references). Then commit port work + tracking update together:
 ```
-git add <paths> .claude/upstream-merge/status.md
+git add <paths> upstream-merge-status.md
 git commit -m "port upstream <short-sha>: <upstream subject line>
 
 upstream: <full-sha>
@@ -155,10 +155,10 @@ No code changes. Go straight to step 4.
 
 For PORT rows, the tracking update is bundled into the port commit in step 3a — nothing extra to do here.
 
-For SKIP-* rows, update the row in [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md): Status → `SKIP-NA` / `SKIP-DONE` / `SKIP-BAD`, Notes → one-line reason. Commit it as a tracking-file-only commit:
+For SKIP-* rows, update the row in [upstream-merge-status.md](../../upstream-merge-status.md): Status → `SKIP-NA` / `SKIP-DONE` / `SKIP-BAD`, Notes → one-line reason. Commit it as a tracking-file-only commit:
 
 ```
-git add .claude/upstream-merge/status.md
+git add upstream-merge-status.md
 git commit -m "mark upstream <short-sha>: <SKIP-*> — <reason>"
 ```
 
@@ -192,8 +192,8 @@ Go to step 1 until `git rev-list main..upstream/master` is empty. The final mark
 
 A new session can reconstruct everything from the tracking file, with git as the source of truth if they disagree:
 
-- **What's next?** → first `PENDING` row in [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md). Confirm with `git rev-list --reverse main..upstream/master | head -1`.
-- **What's been done, and how?** → read [.claude/upstream-merge/status.md](.claude/upstream-merge/status.md); or `git log --merges --grep='^upstream ' main` for the git-log view.
+- **What's next?** → first `PENDING` row in [upstream-merge-status.md](../../upstream-merge-status.md). Confirm with `git rev-list --reverse main..upstream/master | head -1`.
+- **What's been done, and how?** → read [upstream-merge-status.md](../../upstream-merge-status.md); or `git log --merges --grep='^upstream ' main` for the git-log view.
 - **Why was commit X skipped?** → the Notes column in the tracking file, or `git log --merges --grep='upstream <short-sha>' -1 main`.
 
 If the tracking file shows a commit as done but `git rev-list` still lists it as behind (or vice versa), the git ancestry is authoritative — re-do whichever side is out of sync.

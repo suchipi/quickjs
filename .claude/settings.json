@@ -48,6 +48,8 @@
       "Write(/.claude/research/**)",
       "Write(/.claude/upstream-merge/**)",
       "Edit(/.claude/upstream-merge/**)",
+      "Write(/upstream-merge-status.md)",
+      "Edit(/upstream-merge-status.md)",
       "Bash(git log:*)",
       "Bash(git blame:*)",
       "Bash(git diff:*)",
