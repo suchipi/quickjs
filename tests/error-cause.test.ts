@@ -22,12 +22,6 @@ test("error cause", async () => {
     	Error: hi
     		at somewhere
     	
-    	
-    	cause: Error {
-    		Error: yeah
-    			at somewhere
-    		
-    	}
     }
     {
     	value: Error {
@@ -36,7 +30,7 @@ test("error cause", async () => {
     		
     	}
     	writable: true
-    	enumerable: true
+    	enumerable: false
     	configurable: true
     }
     ",

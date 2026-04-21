@@ -39247,6 +39247,12 @@ static JSValue js_error_constructor(JSContext *ctx, JSValueConst new_target,
             int define_property_result = 0;
 
             key = tab[i].atom;
+            /* `cause` is handled separately below with spec-correct
+               non-enumerable flags; skip it here to avoid triggering
+               the getter twice on proxy/accessor options objects. */
+            if (key == JS_ATOM_cause) {
+                continue;
+            }
             val = JS_GetProperty(ctx, options, key);
             if (JS_IsException(val)) {
                 goto exception;
@@ -39258,6 +39264,21 @@ static JSValue js_error_constructor(JSContext *ctx, JSValueConst new_target,
             if (define_property_result == -1) {
                 goto exception;
             }
+        }
+    }
+
+    /* Per-spec ES2022 Error cause: configurable + writable but NOT enumerable.
+       Surfaces proxy throws on HasProperty via the -1 return. */
+    if (JS_IsObject(options)) {
+        int present = JS_HasProperty(ctx, options, JS_ATOM_cause);
+        if (present < 0)
+            goto exception;
+        if (present) {
+            JSValue cause = JS_GetProperty(ctx, options, JS_ATOM_cause);
+            if (JS_IsException(cause))
+                goto exception;
+            JS_DefinePropertyValue(ctx, obj, JS_ATOM_cause, cause,
+                                   JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
         }
     }
 
