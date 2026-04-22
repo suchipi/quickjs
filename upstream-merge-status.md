@@ -105,7 +105,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 6dbf01b | PORT | Remove unsafe sprintf() and strcat() calls | Clean apply. Replaces deprecated macOS-unsafe sprintf/strcat with snprintf/strncat variants. |
 | e140122 | PORT | Fix sloppy mode arguments uninitialized value use | Clean apply. Adds MSan cleanup path for JS_CLASS_MAPPED_ARGUMENTS in the fast-path indexed-property code. |
 | 693449e | SKIP-NA | add gitignore for build objects (#84) | .gitignore only; fork has its own. |
-| ae6fa8d | PENDING | Fix shell injection bug in std.urlGet (#61) |  |
+| ae6fa8d | SKIP-DONE | Fix shell injection bug in std.urlGet (#61) | Upstream's fix escapes shell metacharacters before `popen("curl ...")`. Fork has already replaced the popen approach entirely with a direct libcurl integration (`qjs_libcurl.easy_init()` etc.) — no shell invocation, so no shell-injection possible. Removed the now-orphaned `URL_GET_PROGRAM`/`URL_GET_BUF_SIZE` macros the 3way apply left behind. Classified SKIP-DONE because fork's approach strictly supersedes upstream's escape-based mitigation. |
 | 636c946 | PENDING | FreeBSD QuickJS Patch (#203) |  |
 | 92e339d | PENDING | Simplify and clarify URL quoting js_std_urlGet |  |
 | ef4e7b2 | PENDING | Fix compiler warnings |  |
