@@ -112,7 +112,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 1fe0414 | PORT | Fix test262 error | Clean apply. Forces evaluation order in set_date_fields so the Date/UTC/fp-evaluation-order.js test passes. 1 test262 error resolved. |
 | 95e0aa0 | PORT | Reverse e140122202cc24728b394f8f90fa2f4a2d7c397e | Clean apply. Reverts e140122 because c363586 removed the need (the per-case bounds check replaced the need for array.count zeroing). |
 | 8e21b96 | SKIP-NA | pass node-js command line arguments to microbench | Adds node-compat for the scriptArgs fallback in upstream's `main(argc, argv, g)`. Fork's microbench uses `main(options)` with an options object (not argv parsing), so there's no scriptArgs path to bridge to Node. |
-| c06af87 | PENDING | Improve string concatenation hack |  |
+| c06af87 | PORT | Improve string concatenation hack | Adds `JS_ConcatStringInPlace` — appends to a refcount-1 string in its own allocation slack when possible (big win on `r += "x"` microbench loops). Conflict was just context alignment in the preamble (upstream inserted the helper before JS_ConcatString). Makefile/VERSION changes skipped — not vendored. |
 | 3bb2ca3 | PENDING | Remove unnecessary ssize_t posix-ism |  |
 | 8df4327 | PENDING | Fix UB left shift of negative number |  |
 | 85fb2ca | PENDING | Fix UB signed integer overflow in js_math_imul |  |
