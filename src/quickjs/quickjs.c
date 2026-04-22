@@ -34556,6 +34556,8 @@ static __exception int js_parse_function_decl2(JSParseState *s,
                     goto fail;
                 }
                 if (fd->has_parameter_expressions) {
+                    if (js_parse_check_duplicate_parameter(s, name))
+                        goto fail;
                     if (define_var(s, fd, name, JS_VAR_DEF_LET) < 0)
                         goto fail;
                 }
@@ -39426,7 +39428,9 @@ static JSValue *build_arg_list(JSContext *ctx, uint32_t *plen,
     if (js_get_length32(ctx, &len, array_arg))
         return NULL;
     if (len > JS_MAX_LOCAL_VARS) {
-        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "too many arguments");
+        // XXX: check for stack overflow?
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "too many arguments in function call (only %d allowed)",
+                           JS_MAX_LOCAL_VARS);
         return NULL;
     }
     /* avoid allocating 0 bytes */
@@ -40261,7 +40265,7 @@ static JSValue js_array_with(JSContext *ctx, JSValueConst this_val,
         idx = len + idx;
 
     if (idx < 0 || idx >= len) {
-        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "out of bound");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid array index: %" PRId64, idx);
         goto exception;
     }
 
@@ -42960,7 +42964,7 @@ static JSValue js_string_includes(JSContext *ctx, JSValueConst this_val,
     ret = js_is_regexp(ctx, argv[0]);
     if (ret) {
         if (ret > 0)
-            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "regex not supported");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "regexp not supported");
         goto fail;
     }
     v = JS_ToString(ctx, argv[0]);
@@ -43522,7 +43526,7 @@ static JSValue js_string_pad(JSContext *ctx, JSValueConst this_val,
         }
     }
     if (n > JS_STRING_LEN_MAX) {
-        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "string too long");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid string length");
         goto fail2;
     }
     if (string_buffer_init(ctx, b, n))
@@ -43584,8 +43588,9 @@ static JSValue js_string_repeat(JSContext *ctx, JSValueConst this_val,
     len = p->len;
     if (len == 0 || n == 1)
         return str;
+    // XXX: potential arithmetic overflow
     if (val * len > JS_STRING_LEN_MAX) {
-        JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "string too long");
+        JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid string length");
         goto fail;
     }
     if (string_buffer_init2(ctx, b, n * len, p->is_wide_char))
@@ -53883,11 +53888,13 @@ void JS_AddIntrinsicBaseObjects(JSContext *ctx)
     JS_NewGlobalCConstructor2(ctx, obj1,
                               "Error", ctx->class_proto[JS_CLASS_ERROR]);
 
+    /* Used to squelch a -Wcast-function-type warning. */
+    JSCFunctionType ft = { .generic_magic = js_error_constructor };
     for(i = 0; i < JS_NATIVE_ERROR_COUNT; i++) {
         JSValue func_obj;
         int n_args;
         n_args = 1 + (i == JS_AGGREGATE_ERROR);
-        func_obj = JS_NewCFunction3(ctx, (JSCFunction *)js_error_constructor,
+        func_obj = JS_NewCFunction3(ctx, ft.generic,
                                     native_error_name[i], n_args,
                                     JS_CFUNC_constructor_or_func_magic, i, obj1);
         JS_NewGlobalCConstructor2(ctx, func_obj, native_error_name[i],
@@ -54674,7 +54681,7 @@ static JSValue js_typed_array_with(JSContext *ctx, JSValueConst this_val,
     if (idx < 0)
         idx = len + idx;
     if (idx < 0 || idx >= len)
-        return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "out of bound");
+        return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid array index");
 
     val = JS_ToPrimitive(ctx, argv[1], HINT_NUMBER);
     if (JS_IsException(val))
@@ -57018,6 +57025,8 @@ void JS_AddIntrinsicTypedArrays(JSContext *ctx)
                                countof(js_typed_array_base_funcs));
     JS_SetConstructor(ctx, typed_array_base_func, typed_array_base_proto);
 
+    /* Used to squelch a -Wcast-function-type warning. */
+    JSCFunctionType ft = { .generic_magic = js_typed_array_constructor };
     for(i = JS_CLASS_UINT8C_ARRAY; i < JS_CLASS_UINT8C_ARRAY + JS_TYPED_ARRAY_COUNT; i++) {
         JSValue func_obj;
         char buf[ATOM_GET_STR_BUF_SIZE];
@@ -57030,7 +57039,7 @@ void JS_AddIntrinsicTypedArrays(JSContext *ctx)
                                   0);
         name = JS_AtomGetStr(ctx, buf, sizeof(buf),
                              JS_ATOM_Uint8ClampedArray + i - JS_CLASS_UINT8C_ARRAY);
-        func_obj = JS_NewCFunction3(ctx, (JSCFunction *)js_typed_array_constructor,
+        func_obj = JS_NewCFunction3(ctx, ft.generic,
                                     name, 3, JS_CFUNC_constructor_magic, i,
                                     typed_array_base_func);
         JS_NewGlobalCConstructor2(ctx, func_obj, name, ctx->class_proto[i]);
