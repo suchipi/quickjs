@@ -127,7 +127,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | b91a2ae | PORT | Add C API function JS_GetClassID() | Clean apply. Adds `JS_GetClassID(val)` accessor + `JS_INVALID_CLASS_ID` constant. |
 | b70e764 | PORT | Rewrite `set_date_fields` to match the ECMA specification | quickjs.c clean apply (double arithmetic, `volatile` to prevent FMA, reject border cases, avoid double→int64 UB). tests/test_builtin.js hand-ported to fork's `tests/oldtests/test_builtin.js` (keep fork's prettier formatting, dedup conflict with prior port's `assert` definition, adopt upstream's new `get_full_type`/NaN/signed-zero-aware `assert` + `throw_error` infrastructure, add new parseFloat tests and Win32/Cygwin skip-guard, add Date.UTC boundary tests). Makefile changes skipped. |
 | 27928ce | PORT | Fix Map hash bug | Clean apply to quickjs.c — `map_hash_key` now generates the same hash for JS_INT and JS_FLOAT64 with the same value. Added Map hash-collision tests (int/float equivalence + BigInt) to fork's `tests/oldtests/test_builtin.js`. |
-| 6428ce0 | PENDING | show readable representation of Date objects in repl |  |
+| 6428ce0 | SKIP-DONE | show readable representation of Date objects in repl | Fork's repl uses `inspect(a, ...)` (fork-added rich inspector) instead of upstream's inline type switch. `inspect` already renders Date objects readably — the upstream special-case is subsumed. |
 | 78db49c | PENDING | Improve Date.parse |  |
 | 8180d3d | PENDING | Improve microbench.js |  |
 | a78d2cb | PENDING | Improve repl regexp handling |  |
