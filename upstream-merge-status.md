@@ -118,7 +118,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 85fb2ca | PORT | Fix UB signed integer overflow in js_math_imul | Clean apply to quickjs.c — uses uint32_t arithmetic + standard-conformant conversion. Added 4 new imul test cases to fork's tests/oldtests/test_builtin.js. Makefile changes skipped. |
 | 74bdb49 | PORT | Improve tests | Ported the substantive test tweaks: `Math.hypot(...) == N` → `assert(Math.hypot(...), N)` (proper assert form), expanded `test_date` tolerances to accept both QuickJS and Node rounding for `.1235Z` and `.9999Z` cases, and gated `test_argument_scope`'s `eval("var arguments")` SyntaxError check inside a `"use strict"` IIFE (non-strict mode doesn't throw in Node). Skipped the test_bignum.js → test_bigfloat.js split — fork runs bignum tests via vitest (`oldtests.test.ts`) and the split would require also updating the vitest runner, which is reorganization for reorganization's sake. Makefile changes skipped. |
 | 0a361b7 | SKIP-NA | handle missing test262 gracefully | Makefile only. |
-| 530ba6a | PENDING | handle missing test262 gracefully |  |
+| 530ba6a | SKIP-NA | handle missing test262 gracefully | .gitignore only. |
 | bbf36d5 | PENDING | Fix big endian serialization |  |
 | c24a865 | PENDING | Improve run-test262 |  |
 | 97ae6f3 | PENDING | Add benchmarks target |  |
