@@ -137,13 +137,12 @@ upstream: <full-sha>
 **You MUST build and run the full test suite after every PORT commit.** Do not skip this step or defer it.
 
 ```
-meta/clean.sh
 env QUICKJS_EXTRAS=1 meta/build.sh test-platforms
 npm test
 src/run-test262/run.sh -u
 ```
 
-**Always run `meta/clean.sh` before the build.** Ninja's incremental build can miss ABI changes in `quickjs.h` (e.g. when a port adds/removes/reorders parameters on a function whose inline wrapper is in the header), leaving some `.o` files linked against the old signature and others against the new one. The resulting binary link-silently-succeeds but corrupts arguments at runtime, producing bizarre crashes that look like logic bugs in the port. A full clean + rebuild avoids hours of false-trail debugging.
+**Incremental build by default; clean only on failure.** Start with an incremental `meta/build.sh test-platforms`. If the build or tests fail, re-run with `meta/clean.sh` first and try again before digging into the port — Ninja's incremental build can miss ABI changes in `quickjs.h` (e.g. when a port adds/removes/reorders parameters on a function whose inline wrapper is in the header), leaving some `.o` files linked against the old signature and others against the new one. The resulting binary link-silently-succeeds but corrupts arguments at runtime, producing bizarre crashes that look like logic bugs in the port. If a clean rebuild makes the failure go away, that was the cause; if the failure persists, it's a real issue in the port.
 
 All three must be green before proceeding. For test262, `-u` updates the error file; if `git diff src/run-test262/test262_errors.txt` shows changes, either the port fixed tests (good — include the updated error file in the commit) or broke tests (bad — fix before proceeding). If either fails, fix it before the port commit is finalized (amending or adding follow-up commits is fine, as long as everything is green before step 5's merge marker lands). Then mark merged (step 5).
 
@@ -217,7 +216,7 @@ git log --merges --grep='^upstream ' --pretty='%H %s' main
 
 ## Verification
 
-- After every PORT: clean, full build (covering Windows / WASM targets), full test suite, and test262 must pass — `meta/clean.sh`, then `env QUICKJS_EXTRAS=1 meta/build.sh test-platforms`, then `npm test`, then `src/run-test262/run.sh -u`. The clean step is non-optional: incremental builds can miss header-level ABI changes and produce runtime-corrupted binaries. No commit lands with red tests. This step is mandatory; never skip it.
+- After every PORT: full build (covering Windows / WASM targets), full test suite, and test262 must pass — `env QUICKJS_EXTRAS=1 meta/build.sh test-platforms`, then `npm test`, then `src/run-test262/run.sh -u`. Run incremental by default; only run `meta/clean.sh` first if the build or tests fail (incremental builds can miss header-level ABI changes — a clean rebuild is the fast diagnostic). No commit lands with red tests. This step is mandatory; never skip it.
 - When done, GitHub's compare page should report `suchipi/quickjs@main` as 0 behind `bellard/quickjs@master`. Locally: `git rev-list --count main..upstream/master` returns `0`.
 
 ## When in doubt, ask
