@@ -166,7 +166,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 3489493 | PORT | Use malloc_usable_size() on any OS based on GNU libc | Added `defined(__GLIBC__)` to the platform guards that select `<malloc.h>` + `malloc_usable_size()` in both src/quickjs/quickjs.c and src/programs/qjs/qjs.c. Merged with fork's existing `__wasi__` addition; kept fork's cast-free call shape. |
 | 8624b5c | PORT | Use ftello() & fseeko() on any OS based on GNU libc | Added `defined(__GLIBC__)` to the two `#if defined(__linux__)` guards around `ftello`/`fseeko` in fork's quickjs-std.c (the fork-equivalent of upstream's quickjs-libc.c for std file I/O). |
 | 012451d | PORT | Define a fallback PATH_MAX if not available | Added `#if !defined(PATH_MAX) #define PATH_MAX 4096 #endif` to the two fork files that use PATH_MAX: src/builtin-modules/quickjs-os/quickjs-os.c (upstream's site — fork-equivalent of quickjs-libc.c) and src/lib/execpath/execpath.c (fork-added, uses PATH_MAX too and needed the same Hurd-build fallback). |
-| 6e2e68f | PENDING | Fix termination in Worker test |  |
+| 6e2e68f | PORT | Fix termination in Worker test | Typo fix in tests/oldtests/test_worker_module.js: `parent.onMessage = null` → `parent.onmessage = null` (the property name is lowercase; the wrong case silently fails to terminate the worker). |
 | 030333c | PENDING | fixed date parsing in case there is more than nine initial digits (initial patch by nickva) |  |
 | 6474793 | PENDING | JS_SetPropertyInternal(): avoid recursing thru the prototypes if the property is found in a prototype |  |
 | c739deb | PENDING | microbench: use toFixed() |  |
