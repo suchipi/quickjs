@@ -762,6 +762,10 @@ static inline JSValue JS_DupValueRT(JSRuntime *rt, JSValueConst v)
     return (JSValue)v;
 }
 
+JS_BOOL JS_StrictEq(JSContext *ctx, JSValueConst op1, JSValueConst op2);
+JS_BOOL JS_SameValue(JSContext *ctx, JSValueConst op1, JSValueConst op2);
+JS_BOOL JS_SameValueZero(JSContext *ctx, JSValueConst op1, JSValueConst op2);
+
 /* returns -1 when exception has been thrown, 0 or 1 when ok */
 int JS_ToBool(JSContext *ctx, JSValueConst val);
 /* returns -1 when exception has been thrown, 0 when ok */
