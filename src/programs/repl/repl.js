@@ -1229,7 +1229,7 @@ import * as os from "quickjs:os";
         /* result is a promise */
         result.then(print_eval_result, print_eval_error);
       } else {
-        print_eval_result(result);
+        print_eval_result({ value: result });
       }
     } catch (error) {
       print_eval_error(error);
@@ -1237,6 +1237,7 @@ import * as os from "quickjs:os";
   }
 
   function print_eval_result(result) {
+    result = result.value;
     eval_time = os.now() - eval_start_time;
     std.puts(colors[styles.result]);
     print(result);
