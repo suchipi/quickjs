@@ -151,7 +151,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | d9c699f | PORT | fix class method with name get (#258) | Clean apply to quickjs.c (also accept `=` as a non-reserved-ident-follower in js_parse_property_name). Added the 2 new test cases to fork's tests/oldtests/test_language.js. |
 | 0c8feca | PORT | Improve class parser (#289) | Clean apply to quickjs.c — `static` as class-member name (field or method). Added the new test cases to fork's tests/oldtests/test_language.js. |
 | 01454ca | SKIP-NA | OSS-Fuzz targets improvements (#267) | fuzz/ is not vendored in fork. Makefile changes skipped. |
-| 6c43013 | PENDING | Add `JS_NewTypedArray()` (#272) |  |
+| 6c43013 | PORT | Add `JS_NewTypedArray()` (#272) | Clean patch apply. Added fork's file/line args to the one new `JS_ThrowRangeError` call (upstream used the 2-arg form). |
 | db9dbd0 | PENDING | Add `JS_HasException()` (#265) |  |
 | d53aafe | PENDING | Add the missing fuzz_common.c (#292) |  |
 | 6f9d05f | PENDING | Expose `JS_SetUncatchableError()` (#262) |  |
