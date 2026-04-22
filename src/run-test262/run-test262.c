@@ -1524,7 +1524,7 @@ void update_stats(JSRuntime *rt, const char *filename) {
 #undef update
 }
 
-int run_test_buf(const char *filename, char *harness, namelist_t *ip,
+int run_test_buf(const char *filename, const char *harness, namelist_t *ip,
                  char *buf, size_t buf_len, const char* error_type,
                  int eval_flags, BOOL is_negative, BOOL is_async,
                  BOOL can_block)
@@ -1610,6 +1610,8 @@ int run_test(const char *filename, int index)
             if (p) {
                 snprintf(harnessbuf, sizeof(harnessbuf), "%.*s%s",
                          (int)(p - filename), filename, "harness");
+            } else {
+                pstrcpy(harnessbuf, sizeof(harnessbuf), "");
             }
             harness = harnessbuf;
         }
@@ -1697,6 +1699,8 @@ int run_test(const char *filename, int index)
             if (p) {
                 snprintf(harnessbuf, sizeof(harnessbuf), "%.*s%s",
                          (int)(p - filename), filename, "test/harness");
+            } else {
+                pstrcpy(harnessbuf, sizeof(harnessbuf), "");
             }
             harness = harnessbuf;
         }

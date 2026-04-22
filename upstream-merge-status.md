@@ -77,7 +77,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 195c42b | PORT | added os.getpid() | Added `js_os_getpid` to fork's `src/builtin-modules/quickjs-os/quickjs-os.c`, using `GetCurrentProcessId()` on Windows and POSIX `getpid()` elsewhere (wraps the #ifdef inline so all three platform branches share one function, matching the fork's convention for platform-agnostic calls). Registered `getpid` in js_os_funcs and added the typed export to quickjs-os.d.ts. Doc file (doc/quickjs.texi) skipped — not vendored. |
 | e66ce48 | PORT | more portable and Windows version for getTimezoneOffset() (github issue #122) | Clean apply. `getTimezoneOffset` now uses `gmtime_r/localtime_r` to compute the offset portably, with a `_WIN32`-specific `_mkgmtime`/`mktime` fallback. |
 | c950966 | SKIP-NA | update test results | TODO file only; fork doesn't vendor. |
-| e80917b | PENDING | fixed uninitialized harnessbuf |  |
+| e80917b | PORT | fixed uninitialized harnessbuf | Clean apply to run-test262.c — `harnessbuf` is now explicitly NULL-initialized so the harness-loading code doesn't read uninitialized memory when a harness isn't requested. |
 | 9a4379d | PENDING | native cosmopolitan build |  |
 | efdb722 | PENDING | fixed JS_GetScriptOrModuleName() in direct or indirect eval code |  |
 | 6e651e8 | PENDING | allow override of PREFIX, CROSS_PREFIX, CFLAGS and LDFLAGS in Makefile (humenda) |  |
