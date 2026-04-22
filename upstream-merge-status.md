@@ -154,7 +154,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 6c43013 | PORT | Add `JS_NewTypedArray()` (#272) | Clean patch apply. Added fork's file/line args to the one new `JS_ThrowRangeError` call (upstream used the 2-arg form). |
 | db9dbd0 | PORT | Add `JS_HasException()` (#265) | Clean apply to quickjs.h. quickjs.c conflict was the fork-added `JS_AddPropertyToException` being adjacent to where upstream's `JS_HasException` inserts — kept both functions side-by-side. |
 | d53aafe | SKIP-NA | Add the missing fuzz_common.c (#292) | fuzz/ not vendored. |
-| 6f9d05f | PENDING | Expose `JS_SetUncatchableError()` (#262) |  |
+| 6f9d05f | PORT | Expose `JS_SetUncatchableError()` (#262) | Clean apply. Makes `JS_SetUncatchableError()` a public API (moved from quickjs.c to quickjs.h). |
 | f3f2f42 | PENDING | Add `JS_StrictEq()`, `JS_SameValue()`, and `JS_SameValueZero()` (#264) |  |
 | 97be5a3 | PENDING | Add `js_resolve_proxy` (#293) |  |
 | d378a9f | PENDING | Improve `js_os_exec` (#295) |  |
