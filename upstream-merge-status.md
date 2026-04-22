@@ -76,7 +76,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 10fc744 | PORT | regexp: fixed the zero advance logic in quantifiers (github issue #158) | Replaces `REOP_bne_char_pos` opcode with simpler `REOP_check_advance` in libregexp. Simplifies `re_check_advance` → `re_need_check_advance` (drops the back_reference capture-bitmap tracking — upstream found it unnecessary). 3 conflicts in libregexp.c (fork pre-change had the old 3-state `ret` logic; took upstream's simpler TRUE/FALSE version). Added zero-length-match smoke tests to fork's tests/oldtests/test_builtin.js. test262 lookahead-quantifier-match-groups entries that upstream removed weren't in the fork's list to begin with. |
 | 195c42b | PORT | added os.getpid() | Added `js_os_getpid` to fork's `src/builtin-modules/quickjs-os/quickjs-os.c`, using `GetCurrentProcessId()` on Windows and POSIX `getpid()` elsewhere (wraps the #ifdef inline so all three platform branches share one function, matching the fork's convention for platform-agnostic calls). Registered `getpid` in js_os_funcs and added the typed export to quickjs-os.d.ts. Doc file (doc/quickjs.texi) skipped — not vendored. |
 | e66ce48 | PORT | more portable and Windows version for getTimezoneOffset() (github issue #122) | Clean apply. `getTimezoneOffset` now uses `gmtime_r/localtime_r` to compute the offset portably, with a `_WIN32`-specific `_mkgmtime`/`mktime` fallback. |
-| c950966 | PENDING | update test results |  |
+| c950966 | SKIP-NA | update test results | TODO file only; fork doesn't vendor. |
 | e80917b | PENDING | fixed uninitialized harnessbuf |  |
 | 9a4379d | PENDING | native cosmopolitan build |  |
 | efdb722 | PENDING | fixed JS_GetScriptOrModuleName() in direct or indirect eval code |  |
