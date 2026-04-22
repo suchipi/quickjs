@@ -176,6 +176,35 @@ function date_now(n) {
   return n;
 }
 
+function date_parse(n) {
+  var x0 = 0,
+    dx = 0;
+  var j;
+  for (j = 0; j < n; j++) {
+    var x1 = x0 - (x0 % 1000);
+    var x2 = -x0;
+    var x3 = -x1;
+    var d0 = new Date(x0);
+    var d1 = new Date(x1);
+    var d2 = new Date(x2);
+    var d3 = new Date(x3);
+    if (
+      Date.parse(d0.toISOString()) != x0 ||
+      Date.parse(d1.toGMTString()) != x1 ||
+      Date.parse(d1.toString()) != x1 ||
+      Date.parse(d2.toISOString()) != x2 ||
+      Date.parse(d3.toGMTString()) != x3 ||
+      Date.parse(d3.toString()) != x3
+    ) {
+      console.log("Date.parse error for " + x0);
+      return -1;
+    }
+    dx = ((dx * 1.1 + 1) >> 0);
+    x0 = (x0 + dx) % 8.64e15;
+  }
+  return n * 6;
+}
+
 function prop_read(n) {
   var obj, sum, j;
   obj = { a: 1, b: 2, c: 3, d: 4 };
@@ -202,6 +231,18 @@ function prop_write(n) {
   return n * 4;
 }
 
+function prop_update(n) {
+  var obj, j;
+  obj = { a: 1, b: 2, c: 3, d: 4 };
+  for (j = 0; j < n; j++) {
+    obj.a += j;
+    obj.b += j;
+    obj.c += j;
+    obj.d += j;
+  }
+  return n * 4;
+}
+
 function prop_create(n) {
   var obj, j;
   for (j = 0; j < n; j++) {
@@ -212,6 +253,18 @@ function prop_create(n) {
     obj.d = 4;
   }
   return n * 4;
+}
+
+function prop_clone(n) {
+  var ref, obj, j, k;
+  ref = { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9, j: 10 };
+  for (k = 0; k < 10; k++) {
+    ref[k] = k;
+  }
+  for (j = 0; j < n; j++) {
+    global_res = { ...ref };
+  }
+  return n * 20;
 }
 
 function prop_delete(n) {
@@ -274,6 +327,20 @@ function array_prop_create(n) {
   for (j = 0; j < n; j++) {
     tab = [];
     for (i = 0; i < len; i++) tab[i] = i;
+  }
+  return len * n;
+}
+
+function array_slice(n) {
+  var ref, a, i, j, len;
+  len = 1000;
+  ref = [];
+  for (i = 0; i < len; i++) ref[i] = i;
+  for (j = 0; j < n; j++) {
+    ref[0] = j;
+    a = ref.slice();
+    a[0] = 0;
+    global_res = a;
   }
   return len * n;
 }
@@ -445,6 +512,23 @@ function global_destruct_strict(n) {
     ({ a: global_a, b: global_b, c: global_c, d: global_d } = o);
   }
   return n * 8;
+}
+
+function g_bench(a) {
+  return 1;
+}
+
+function global_func_call(n) {
+  var j, sum;
+  sum = 0;
+  for (j = 0; j < n; j++) {
+    sum += g_bench(j);
+    sum += g_bench(j);
+    sum += g_bench(j);
+    sum += g_bench(j);
+  }
+  global_res = sum;
+  return n * 4;
 }
 
 function func_call(n) {
@@ -923,13 +1007,17 @@ function main(options) {
     empty_down_loop2,
     empty_do_loop,
     date_now,
+    date_parse,
     prop_read,
     prop_write,
+    prop_update,
     prop_create,
+    prop_clone,
     prop_delete,
     array_read,
     array_write,
     array_prop_create,
+    array_slice,
     array_length_decr,
     array_hole_length_decr,
     array_push,
@@ -942,6 +1030,7 @@ function main(options) {
     local_destruct,
     global_destruct,
     global_destruct_strict,
+    global_func_call,
     func_call,
     closure_var,
     int_arith,
