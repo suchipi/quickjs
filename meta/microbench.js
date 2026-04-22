@@ -150,6 +150,24 @@ function empty_loop(n) {
   return n;
 }
 
+function empty_down_loop(n) {
+  var j;
+  for (j = n; j > 0; j--) {}
+  return n;
+}
+
+function empty_down_loop2(n) {
+  var j;
+  for (j = n; j-- > 0; ) {}
+  return n;
+}
+
+function empty_do_loop(n) {
+  var j = n;
+  do {} while (--j > 0);
+  return n;
+}
+
 function date_now(n) {
   var j;
   for (j = 0; j < n; j++) {
@@ -619,6 +637,28 @@ function string_build1(n) {
   return n * 100;
 }
 
+/* incremental string contruction using + */
+function string_build1x(n) {
+  var i, j, r;
+  r = "";
+  for (j = 0; j < n; j++) {
+    for (i = 0; i < 100; i++) r = r + "x";
+    global_res = r;
+  }
+  return n * 100;
+}
+
+/* incremental string contruction using +2c */
+function string_build2c(n) {
+  var i, j;
+  var r = "";
+  for (j = 0; j < n; j++) {
+    for (i = 0; i < 100; i++) r += "xy";
+    global_res = r;
+  }
+  return n * 100;
+}
+
 /* incremental string contruction as arg */
 function string_build2(n, r) {
   var i, j;
@@ -631,8 +671,8 @@ function string_build2(n, r) {
 }
 
 /* incremental string contruction by prepending */
-function string_build3(n, r) {
-  var i, j;
+function string_build3(n) {
+  var i, j, r;
   r = "";
   for (j = 0; j < n; j++) {
     for (i = 0; i < 100; i++) r = "x" + r;
@@ -782,11 +822,11 @@ function sort_bench(text) {
           arr[i]
       );
     }
-    if (sort_bench.verbose) log_one("sort_" + f.name, n, ti, n * 100);
+    if (sort_bench.verbose) log_one("sort_" + f.name, 1, ti / 100);
   }
   total_score = save_total_score;
   total_scale = save_total_scale;
-  return total / n / 1000;
+  return total / n / 100;
 }
 sort_bench.bench = true;
 sort_bench.verbose = false;
@@ -859,6 +899,9 @@ function save_result(filename, obj) {
 function main(options) {
   var allTests = {
     empty_loop,
+    empty_down_loop,
+    empty_down_loop2,
+    empty_do_loop,
     date_now,
     prop_read,
     prop_write,
@@ -889,6 +932,8 @@ function main(options) {
     array_for_of,
     math_min,
     string_build1,
+    string_build1x,
+    string_build2c,
     string_build2,
     string_build3,
     string_build4,
