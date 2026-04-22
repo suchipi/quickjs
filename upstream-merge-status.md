@@ -109,7 +109,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 636c946 | PORT | FreeBSD QuickJS Patch (#203) | qjs.c `#include <malloc_np.h>` on FreeBSD — clean apply. Fork's `quickjs-os.c` already has richer FreeBSD support (`extern char **environ`, custom `sighandler_t` typedef + `signal()` prototype) so no changes there. Makefile changes skipped — fork uses Ninja/meta. |
 | 92e339d | SKIP-DONE | Simplify and clarify URL quoting js_std_urlGet | Follow-up to ae6fa8d which was SKIP-DONE because the fork uses direct libcurl (no shell invocation). Fork's urlGet has no quoting code to simplify. |
 | ef4e7b2 | PORT | Fix compiler warnings | Guards the unused-for-non-dump `cw_count`/`cw_len_count`/`cw_start` declarations in unicode_gen.c's build_general_category_table / build_script_table / build_script_ext_table with `#ifdef DUMP_TABLE_SIZE`. Conflicts were that the fork used `__maybe_unused` instead; took upstream's ifdef (consistent with how the *uses* of those variables are already gated). Conflict 4 (build_cc_table) combined upstream's new `block_end_pos` outer decl with the removal of fork's outer `__maybe_unused int cc_table_len` (cc_table_len moved entirely inside the DUMP_TABLE_SIZE ifdef where all its uses already live). |
-| 1fe0414 | PENDING | Fix test262 error |  |
+| 1fe0414 | PORT | Fix test262 error | Clean apply. Forces evaluation order in set_date_fields so the Date/UTC/fp-evaluation-order.js test passes. 1 test262 error resolved. |
 | 95e0aa0 | PENDING | Reverse e140122202cc24728b394f8f90fa2f4a2d7c397e |  |
 | 8e21b96 | PENDING | pass node-js command line arguments to microbench |  |
 | c06af87 | PENDING | Improve string concatenation hack |  |
