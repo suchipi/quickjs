@@ -83,7 +83,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 6e651e8 | SKIP-NA | allow override of PREFIX, CROSS_PREFIX, CFLAGS and LDFLAGS in Makefile (humenda) | Makefile-only; fork uses Ninja/meta. |
 | 3f81070 | SKIP-NA | new release | Changelog/VERSION/doc updates; fork doesn't vendor any of those. |
 | d6c7d16 | SKIP-NA | update Changelog | Changelog only. |
-| 8405876 | PENDING | added js_std_await() and use it to wait for the evaluation of a module (github issue #219) |  |
+| 8405876 | SKIP-DONE | added js_std_await() and use it to wait for the evaluation of a module (github issue #219) | Fork already has an equivalent idiomatic API: `QJMS_EvalBufAsync`/`QJMS_EvalFileAsync` (async-aware module evaluators) combined with `js_eventloop_run` that drives the event loop until completion. Worker loader uses the same pattern via `JS_LoadModule` + `QJMS_AttachEntryRejectionHandler` + `js_eventloop_run`. Top-level-await in the entry module is already supported end-to-end, which is the behavior upstream's `js_std_await` introduces. |
 | 9e561d5 | PENDING | fixed and simplified setTimeout() by using an integer timer handle (github issue #218) |  |
 | 67723c9 | PENDING | fixed js_std_await() in case 'obj' is not a promise (github issue #222) |  |
 | 090685a | PENDING | update test results |  |
