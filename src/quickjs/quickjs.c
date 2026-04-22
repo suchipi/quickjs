@@ -37970,12 +37970,10 @@ static JSValue js_global_isNaN(JSContext *ctx, JSValueConst this_val,
 static JSValue js_global_isFinite(JSContext *ctx, JSValueConst this_val,
                                   int argc, JSValueConst *argv)
 {
-    BOOL res;
     double d;
     if (unlikely(JS_ToFloat64(ctx, &d, argv[0])))
         return JS_EXCEPTION;
-    res = isfinite(d);
-    return JS_NewBool(ctx, res);
+    return JS_NewBool(ctx, isfinite(d));
 }
 
 /* Object class */
@@ -38373,13 +38371,13 @@ static JSValue js_object_getOwnPropertyDescriptor(JSContext *ctx, JSValueConst t
             } else {
                 if (JS_DefinePropertyValue(ctx, ret, JS_ATOM_value, JS_DupValue(ctx, desc.value), flags) < 0
                 ||  JS_DefinePropertyValue(ctx, ret, JS_ATOM_writable,
-                                           JS_NewBool(ctx, (desc.flags & JS_PROP_WRITABLE) != 0), flags) < 0)
+                                           JS_NewBool(ctx, desc.flags & JS_PROP_WRITABLE), flags) < 0)
                     goto exception1;
             }
             if (JS_DefinePropertyValue(ctx, ret, JS_ATOM_enumerable,
-                                       JS_NewBool(ctx, (desc.flags & JS_PROP_ENUMERABLE) != 0), flags) < 0
+                                       JS_NewBool(ctx, desc.flags & JS_PROP_ENUMERABLE), flags) < 0
             ||  JS_DefinePropertyValue(ctx, ret, JS_ATOM_configurable,
-                                       JS_NewBool(ctx, (desc.flags & JS_PROP_CONFIGURABLE) != 0), flags) < 0)
+                                       JS_NewBool(ctx, desc.flags & JS_PROP_CONFIGURABLE), flags) < 0)
                 goto exception1;
             js_free_desc(ctx, &desc);
         }
@@ -39191,7 +39189,7 @@ static JSValue js_object_propertyIsEnumerable(JSContext *ctx, JSValueConst this_
     if (has_prop < 0)
         goto exception;
     if (has_prop) {
-        res = JS_NewBool(ctx, (desc.flags & JS_PROP_ENUMERABLE) != 0);
+        res = JS_NewBool(ctx, desc.flags & JS_PROP_ENUMERABLE);
         js_free_desc(ctx, &desc);
     } else {
         res = JS_FALSE;
@@ -40676,9 +40674,10 @@ static JSValue js_array_includes(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
     JSValue obj, val;
-    int64_t len, n, res;
+    int64_t len, n;
     JSValue *arrp;
     uint32_t count;
+    int res;
 
     obj = JS_ToObject(ctx, this_val);
     if (js_get_length64(ctx, &len, obj))
@@ -44898,7 +44897,7 @@ static JSValue js_regexp_get_flag(JSContext *ctx, JSValueConst this_val, int mas
     }
 
     flags = lre_get_flags(re->bytecode->u.str8);
-    return JS_NewBool(ctx, (flags & mask) != 0);
+    return JS_NewBool(ctx, flags & mask);
 }
 
 static JSValue js_regexp_get_flags(JSContext *ctx, JSValueConst this_val)
@@ -46192,7 +46191,7 @@ static JSValue json_parse_value(JSParseState *s)
     case TOK_IDENT:
         if (s->token.u.ident.atom == JS_ATOM_false ||
             s->token.u.ident.atom == JS_ATOM_true) {
-            val = JS_NewBool(ctx, (s->token.u.ident.atom == JS_ATOM_true));
+            val = JS_NewBool(ctx, s->token.u.ident.atom == JS_ATOM_true);
         } else if (s->token.u.ident.atom == JS_ATOM_null) {
             val = JS_NULL;
         } else {
@@ -47308,17 +47307,17 @@ static JSValue js_create_desc(JSContext *ctx, JSValueConst val,
     }
     if (flags & JS_PROP_HAS_WRITABLE) {
         JS_DefinePropertyValue(ctx, ret, JS_ATOM_writable,
-                               JS_NewBool(ctx, (flags & JS_PROP_WRITABLE) != 0),
+                               JS_NewBool(ctx, flags & JS_PROP_WRITABLE),
                                JS_PROP_C_W_E);
     }
     if (flags & JS_PROP_HAS_ENUMERABLE) {
         JS_DefinePropertyValue(ctx, ret, JS_ATOM_enumerable,
-                               JS_NewBool(ctx, (flags & JS_PROP_ENUMERABLE) != 0),
+                               JS_NewBool(ctx, flags & JS_PROP_ENUMERABLE),
                                JS_PROP_C_W_E);
     }
     if (flags & JS_PROP_HAS_CONFIGURABLE) {
         JS_DefinePropertyValue(ctx, ret, JS_ATOM_configurable,
-                               JS_NewBool(ctx, (flags & JS_PROP_CONFIGURABLE) != 0),
+                               JS_NewBool(ctx, flags & JS_PROP_CONFIGURABLE),
                                JS_PROP_C_W_E);
     }
     return ret;
@@ -48412,7 +48411,7 @@ static JSValue js_map_has(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     key = map_normalize_key(ctx, argv[0]);
     mr = map_find_record(ctx, s, key);
-    return JS_NewBool(ctx, (mr != NULL));
+    return JS_NewBool(ctx, mr != NULL);
 }
 
 static JSValue js_map_delete(JSContext *ctx, JSValueConst this_val,
@@ -52087,7 +52086,7 @@ static JSValue JS_ToBigIntCtorFree(JSContext *ctx, JSValue val)
     case JS_TAG_UNDEFINED:
     default:
         JS_FreeValue(ctx, val);
-        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to bigint");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "cannot convert to BigInt");
     }
     return val;
 }
@@ -52113,7 +52112,7 @@ static JSValue js_thisBigIntValue(JSContext *ctx, JSValueConst this_val)
                 return JS_DupValue(ctx, p->u.object_data);
         }
     }
-    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a bigint");
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a BigInt");
 }
 
 static JSValue js_bigint_toString(JSContext *ctx, JSValueConst this_val,
@@ -53154,9 +53153,9 @@ static JSValue js_float_env_proto_get_status(JSContext *ctx, JSValueConst this_v
     case FE_RNDMODE:
         return JS_NewInt32(ctx, fe->flags & BF_RND_MASK);
     case FE_SUBNORMAL:
-        return JS_NewBool(ctx, (fe->flags & BF_FLAG_SUBNORMAL) != 0);
+        return JS_NewBool(ctx, fe->flags & BF_FLAG_SUBNORMAL);
     default:
-        return JS_NewBool(ctx, (fe->status & magic) != 0);
+        return JS_NewBool(ctx, fe->status & magic);
     }
 }
 
