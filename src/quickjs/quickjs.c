@@ -6421,6 +6421,11 @@ void JS_AddPropertyToException(JSContext *ctx, const char *prop_name, JSValue va
     JS_DefinePropertyValueStr(ctx, exception, prop_name, value, JS_PROP_C_W_E);
 }
 
+JS_BOOL JS_HasException(JSContext *ctx)
+{
+    return !JS_IsNull(ctx->rt->current_exception);
+}
+
 static void dbuf_put_leb128(DynBuf *s, uint32_t v)
 {
     uint32_t a;
