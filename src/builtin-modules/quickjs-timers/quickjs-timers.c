@@ -133,6 +133,39 @@ static JSValue js_timers_clearTimeout(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+/* Asynchronous sleep: returns a Promise that resolves after delay_ms. */
+static JSValue js_timers_sleepAsync(JSContext *ctx, JSValueConst this_val,
+                                    int argc, JSValueConst *argv)
+{
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    int64_t delay;
+    JSTimer *th;
+    JSValue promise, resolving_funcs[2];
+
+    if (JS_ToInt64(ctx, &delay, argv[0]))
+        return JS_EXCEPTION;
+    promise = JS_NewPromiseCapability(ctx, resolving_funcs);
+    if (JS_IsException(promise))
+        return JS_EXCEPTION;
+
+    th = js_mallocz(ctx, sizeof(*th));
+    if (!th) {
+        JS_FreeValue(ctx, promise);
+        JS_FreeValue(ctx, resolving_funcs[0]);
+        JS_FreeValue(ctx, resolving_funcs[1]);
+        return JS_EXCEPTION;
+    }
+    th->has_object = FALSE;
+    th->timeout = gettime_ms() + delay;
+    th->interval = 0;
+    th->func = JS_DupValue(ctx, resolving_funcs[0]);
+    list_add_tail(&th->link, &ts->timers);
+    JS_FreeValue(ctx, resolving_funcs[0]);
+    JS_FreeValue(ctx, resolving_funcs[1]);
+    return promise;
+}
+
 /* clearInterval is the same as clearTimeout */
 static JSValue js_timers_clearInterval(JSContext *ctx, JSValueConst this_val,
                                        int argc, JSValueConst *argv)
@@ -155,6 +188,7 @@ static const JSCFunctionListEntry js_timers_funcs[] = {
     JS_CFUNC_DEF("clearTimeout", 1, js_timers_clearTimeout),
     JS_CFUNC_DEF("setInterval", 2, js_timers_setInterval),
     JS_CFUNC_DEF("clearInterval", 1, js_timers_clearInterval),
+    JS_CFUNC_DEF("sleepAsync", 1, js_timers_sleepAsync),
 };
 
 /* Initialize Timer class. Safe to call multiple times. */

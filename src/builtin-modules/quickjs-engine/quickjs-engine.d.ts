@@ -25,11 +25,12 @@ declare module "quickjs:engine" {
    * @param options - An optional object containing the following optional properties:
    * @property backtraceBarrier - Boolean (default = false). If true, error backtraces do not list the stack frames below the evalScript.
    * @property filename - String (default = "<evalScript>"). The filename to associate with the code being executed.
-   * @returns The result of the evaluation.
+   * @property async - Boolean (default = false). If true, `await` is accepted at the top level of `code` and a Promise is returned.
+   * @returns The result of the evaluation. If `async` is true, a Promise.
    */
   export function evalScript(
     code: string,
-    options?: { backtraceBarrier?: boolean; filename?: string }
+    options?: { backtraceBarrier?: boolean; filename?: string; async?: boolean }
   ): any;
 
   /**

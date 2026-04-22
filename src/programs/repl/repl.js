@@ -123,6 +123,7 @@ import * as os from "quickjs:os";
   var utf8 = true;
   var show_time = false;
   var show_colors = true;
+  var eval_start_time;
   var eval_time = 0;
 
   var mexpr = "";
@@ -815,11 +816,8 @@ import * as os from "quickjs:os";
       prompt += ps2;
     } else {
       if (show_time) {
-        var t = Math.round(eval_time) + " ";
-        eval_time = 0;
-        t = dupstr("0", 5 - t.length) + t;
-        prompt +=
-          t.substring(0, t.length - 4) + "." + t.substring(t.length - 4);
+        var t = eval_time / 1000;
+        prompt += t.toFixed(6) + " ";
       }
       plen = prompt.length;
       prompt += ps1;
@@ -1143,43 +1141,6 @@ import * as os from "quickjs:os";
     }
   }
 
-  function eval_and_print(expr) {
-    var result;
-
-    try {
-      if (eval_mode === "math") expr = '"use math"; void 0;' + expr;
-      var now = new Date().getTime();
-      /* eval as a script */
-      result = engine.evalScript(expr, { backtraceBarrier: true });
-      eval_time = new Date().getTime() - now;
-      std.puts(colors[styles.result]);
-      print(result);
-      std.puts("\n");
-      std.puts(colors.none);
-      /* set the last result */
-      g._ = result;
-    } catch (error) {
-      g._error = error;
-
-      std.puts(colors[styles.error_msg]);
-      if (error instanceof Error) {
-        console.log(error);
-        if (error.stack) {
-          std.puts(error.stack);
-        }
-        const { name, stack, message, ...others } = error;
-        if (Object.keys(others).length > 0) {
-          print(others);
-          std.puts("\n");
-        }
-      } else {
-        std.puts("Throw: ");
-        console.log(error);
-      }
-      std.puts(colors.none);
-    }
-  }
-
   function cmd_start() {
     if (!config_numcalc) {
       if (has_jscalc) std.puts('QJSCalc - Type "\\h" for help\n');
@@ -1204,27 +1165,31 @@ import * as os from "quickjs:os";
   }
 
   function readline_handle_cmd(expr) {
-    handle_cmd(expr);
-    cmd_readline_start();
+    if (!handle_cmd(expr)) {
+      cmd_readline_start();
+    }
   }
 
+  /* return true if async termination */
   function handle_cmd(expr) {
     var colorstate, cmd;
 
     if (expr === null) {
       expr = "";
-      return;
+      return false;
     }
     if (expr === "?") {
       help();
-      return;
+      return false;
     }
     cmd = extract_directive(expr);
     if (cmd.length > 0) {
-      if (!handle_directive(cmd, expr)) return;
+      if (!handle_directive(cmd, expr)) {
+        return false;
+      }
       expr = expr.substring(cmd.length + 1);
     }
-    if (expr === "") return;
+    if (expr === "") return false;
 
     if (mexpr) expr = mexpr + "\n" + expr;
     colorstate = colorize_js(expr);
@@ -1232,19 +1197,87 @@ import * as os from "quickjs:os";
     level = colorstate[1];
     if (pstate) {
       mexpr = expr;
-      return;
+      return false;
     }
     mexpr = "";
 
     if (has_bignum) {
-      BigFloatEnv.setPrec(eval_and_print.bind(null, expr), prec, expBits);
+      /* XXX: async is not supported in this case */
+      BigFloatEnv.setPrec(
+        eval_and_print_start.bind(null, expr, false),
+        prec,
+        expBits
+      );
     } else {
-      eval_and_print(expr);
+      eval_and_print_start(expr, true);
     }
+    return true;
+  }
+
+  function eval_and_print_start(expr, is_async) {
+    var result;
+
+    try {
+      if (eval_mode === "math") expr = '"use math"; void 0;' + expr;
+      eval_start_time = os.now();
+      /* eval as a script */
+      result = engine.evalScript(expr, {
+        backtraceBarrier: true,
+        async: is_async,
+      });
+      if (is_async) {
+        /* result is a promise */
+        result.then(print_eval_result, print_eval_error);
+      } else {
+        print_eval_result(result);
+      }
+    } catch (error) {
+      print_eval_error(error);
+    }
+  }
+
+  function print_eval_result(result) {
+    eval_time = os.now() - eval_start_time;
+    std.puts(colors[styles.result]);
+    print(result);
+    std.puts("\n");
+    std.puts(colors.none);
+    /* set the last result */
+    g._ = result;
+
+    handle_cmd_end();
+  }
+
+  function print_eval_error(error) {
+    g._error = error;
+
+    std.puts(colors[styles.error_msg]);
+    if (error instanceof Error) {
+      console.log(error);
+      if (error.stack) {
+        std.puts(error.stack);
+      }
+      const { name, stack, message, ...others } = error;
+      if (Object.keys(others).length > 0) {
+        print(others);
+        std.puts("\n");
+      }
+    } else {
+      std.puts("Throw: ");
+      console.log(error);
+    }
+    std.puts(colors.none);
+
+    handle_cmd_end();
+  }
+
+  function handle_cmd_end() {
     level = 0;
 
     /* run the garbage collector after each command */
     engine.gc();
+
+    cmd_readline_start();
   }
 
   function colorize_js(str) {

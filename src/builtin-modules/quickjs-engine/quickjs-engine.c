@@ -139,8 +139,9 @@ static JSValue js_engine_evalScript(JSContext *ctx, JSValueConst this_val,
   BOOL filename_needs_to_be_freed = FALSE;
   size_t len;
   JSValue ret;
-  JSValueConst options_obj, filename_val, backtrace_barrier_val;
+  JSValueConst options_obj, filename_val, backtrace_barrier_val, async_val;
   BOOL backtrace_barrier = FALSE;
+  BOOL is_async = FALSE;
   int flags;
 
   if (argc >= 2) {
@@ -155,6 +156,15 @@ static JSValue js_engine_evalScript(JSContext *ctx, JSValueConst this_val,
     }
     backtrace_barrier = JS_ToBool(ctx, backtrace_barrier_val);
     if (backtrace_barrier == -1) {
+      return JS_EXCEPTION;
+    }
+
+    async_val = JS_GetPropertyStr(ctx, options_obj, "async");
+    if (!JS_IsBool(async_val) && !JS_IsUndefined(async_val)) {
+      return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "'async' option must be a boolean");
+    }
+    is_async = JS_ToBool(ctx, async_val);
+    if (is_async == -1) {
       return JS_EXCEPTION;
     }
 
@@ -185,6 +195,9 @@ static JSValue js_engine_evalScript(JSContext *ctx, JSValueConst this_val,
   flags = JS_EVAL_TYPE_GLOBAL;
   if (backtrace_barrier) {
     flags |= JS_EVAL_FLAG_BACKTRACE_BARRIER;
+  }
+  if (is_async) {
+    flags |= JS_EVAL_FLAG_ASYNC;
   }
 
   ret = JS_Eval(ctx, code, len, filename, flags);

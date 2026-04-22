@@ -20,6 +20,12 @@ declare module "quickjs:timers" {
 
   /** Cancel an interval timer. */
   export function clearInterval(handle: Timer): void;
+
+  /**
+   * Asynchronous sleep. Returns a Promise that resolves after `delay_ms`
+   * milliseconds. Intended for use with `await`.
+   */
+  export function sleepAsync(delay_ms: number): Promise<void>;
 }
 
 /** An opaque timer handle returned by setTimeout/setInterval */
