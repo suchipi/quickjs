@@ -159,7 +159,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 97be5a3 | PORT | Add `js_resolve_proxy` (#293) | Clean apply. Refactor of JS_IsArray to walk the proxy chain via a new js_resolve_proxy helper (depth-1000 cap), replacing the old js_proxy_isArray recursion. No test262 regression. |
 | d378a9f | PORT | Improve `js_os_exec` (#295) | In fork's quickjs-os.c Unix vfork path: tightened fd_max cap from 65536 to 1024 (per upstream, to avoid costly loop on Alpine's sysconf=1048576), and added `#if defined(HAVE_CLOSEFROM)` branch that calls `closefrom(3)` when available. The macOS `/dev/fd` path is left alone (already efficient; HAVE_CLOSEFROM isn't defined on macOS anyway). Makefile feature-detection part SKIP-NA — fork uses Ninja; HAVE_CLOSEFROM scaffolding in place but no detection wired up yet (the branch is inert). `compat/test-closefrom.c` also SKIP-NA since it's a Makefile probe. |
 | adec734 | SKIP-NA | fixed test of test262 directory | Makefile-only: fixes a `wildcard` probe in upstream's Makefile targets (test262o → test262). Fork uses Ninja and doesn't vendor the Makefile. |
-| d86aaf0 | PENDING | updated test262.patch |  |
+| d86aaf0 | PORT | updated test262.patch | Fork's src/run-test262/test262.patch was stale relative to fork's test262 checkout (same staleness upstream was fixing). Replaced with upstream's post-commit content verbatim — applies cleanly to fork's checkout. No test262 regression. |
 | 36911f0 | PENDING | regexp: fix non greedy quantizers with zero length matches |  |
 | b3715f7 | PENDING | Fix GC leak in `js_proxy_get()` (#302) |  |
 | 5417ab0 | PENDING | Fix `JS_HasException()` when `null` is thrown (#313) |  |
