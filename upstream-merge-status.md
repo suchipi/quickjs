@@ -145,7 +145,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | ce6b6dc | PORT | Use more explicit magic values for array methods | Clean apply. Replaces magic-number constants in js_array_funcs/proto_funcs with named special_indexOf/special_find etc. enums. |
 | 203fe2d | PORT | Improve `JSON.stringify` | Adopts upstream's spec-compliant boxed-BigInt handling (delegate to primitive via toJSON-aware code path rather than early-throw) and new error message "Do not know how to serialize a BigInt". Two conflicts at the old fork-added BigInt-forbidden early throws — resolved by taking upstream's restructure while keeping fork's JS_ThrowTypeError file/line signature. |
 | 653b227 | PORT | Improve error handling | Adopts upstream's error-type/message upgrades (InternalError → RangeError for too-many-arguments, out-of-bound → invalid array index, regex → regexp, string-too-long → invalid string length). Five conflicts all resolved by combining fork's `(ctx, file, line, fmt, ...)` signature with upstream's new error type + message. |
-| 3b45d15 | PENDING | Fix endianness handling in `js_dataview_getValue` / `js_dataview_setValue` |  |
+| 3b45d15 | PORT | Fix endianness handling in `js_dataview_getValue` / `js_dataview_setValue` | Clean apply. Honors the optional littleEndian argument correctly for get/set DataView operations. |
 | 1402478 | PENDING | Improve unicode table handling (#286) |  |
 | 7a2c6f4 | PENDING | Improve libunicode and libregexp headers (#288) |  |
 | d9c699f | PENDING | fix class method with name get (#258) |  |
