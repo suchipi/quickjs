@@ -100,7 +100,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 626e0d4 | SKIP-NA | Unbroke tests/test_test_bjson.js | Reverts the bjson_test_regexp added in 2e10134. Fork doesn't vendor test_bjson.js at all and skipped the addition in the prior commit, so nothing to revert. |
 | 325ca19 | SKIP-NA | Add MemorySanitizer support | Makefile only. |
 | fd6e039 | SKIP-NA | Add UndefinedBehaviorSanitizer support | Makefile only. |
-| e53d622 | PENDING | Fix UB in js_dtoa1 |  |
+| e53d622 | PORT | Fix UB in js_dtoa1 | Clean apply to quickjs.c. Guards against infinite-digit-count UB in the dtoa code path. |
 | 6535064 | PENDING | Fix undefined behavior (UBSAN) |  |
 | 6dbf01b | PENDING | Remove unsafe sprintf() and strcat() calls |  |
 | e140122 | PENDING | Fix sloppy mode arguments uninitialized value use |  |
