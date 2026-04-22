@@ -33,7 +33,6 @@ test262/test/built-ins/Array/prototype/groupToMap/this-arg-strict.js:26: strict 
 test262/test/built-ins/Array/prototype/groupToMap/this-arg.js:26: TypeError: attempting to call a non-function value
 test262/test/built-ins/Array/prototype/groupToMap/toPropertyKey.js:34: TypeError: attempting to call a non-function value
 test262/test/built-ins/Date/UTC/fp-evaluation-order.js:19: Test262Error: precision in MakeDate Expected SameValue(«34448384», «34447360») to be true
-test262/test/built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js:20: Test262Error: Expected a ReferenceError but got a different error constructor with the same name
 test262/test/built-ins/RegExp/unicode_restricted_identity_escape.js:13: Test262Error: Invalid IdentityEscape in AtomEscape: '\-' Expected a SyntaxError to be thrown but no exception was thrown at all
 test262/test/language/expressions/assignment/target-member-computed-reference-null.js:32: Test262Error: Expected a DummyError but got a TypeError
 test262/test/language/expressions/assignment/target-member-computed-reference-undefined.js:32: Test262Error: Expected a DummyError but got a TypeError
