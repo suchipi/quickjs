@@ -10921,15 +10921,14 @@ static int JS_ToInt64SatFree(JSContext *ctx, int64_t *pres, JSValue val)
             if (isnan(d)) {
                 *pres = 0;
             } else {
-                suppress_warning("-Wimplicit-int-float-conversion")
                 if (d < INT64_MIN) {
                     *pres = INT64_MIN;
-                } else if (d > INT64_MAX) {
+                } else if (d >= 0x1p63) {
+                    /* must use INT64_MAX + 1 because INT64_MAX cannot be exactly represented as a double */
                     *pres = INT64_MAX;
                 } else {
                     *pres = (int64_t)d;
                 }
-                unsuppress_warning
             }
         }
         return 0;
@@ -56502,10 +56501,9 @@ static JSValue js_atomics_wait(JSContext *ctx,
     }
     if (JS_ToFloat64(ctx, &d, argv[3]))
         return JS_EXCEPTION;
-    suppress_warning("-Wimplicit-int-float-conversion")
-    if (isnan(d) || d > INT64_MAX) {
+    /* must use INT64_MAX + 1 because INT64_MAX cannot be exactly represented as a double */
+    if (isnan(d) || d >= 0x1p63) {
         timeout = INT64_MAX;
-        unsuppress_warning
     } else if (d < 0) {
         timeout = 0;
     } else {
