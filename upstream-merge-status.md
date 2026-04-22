@@ -115,7 +115,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | c06af87 | PORT | Improve string concatenation hack | Adds `JS_ConcatStringInPlace` — appends to a refcount-1 string in its own allocation slack when possible (big win on `r += "x"` microbench loops). Conflict was just context alignment in the preamble (upstream inserted the helper before JS_ConcatString). Makefile/VERSION changes skipped — not vendored. |
 | 3bb2ca3 | PORT | Remove unnecessary ssize_t posix-ism | Clean apply. Removes an unnecessary `(ssize_t)` cast in JS_ComputeMemoryUsage. |
 | 8df4327 | PORT | Fix UB left shift of negative number | Clean apply — masks negative-number left-shift in bf pow-of-10 path. |
-| 85fb2ca | PENDING | Fix UB signed integer overflow in js_math_imul |  |
+| 85fb2ca | PORT | Fix UB signed integer overflow in js_math_imul | Clean apply to quickjs.c — uses uint32_t arithmetic + standard-conformant conversion. Added 4 new imul test cases to fork's tests/oldtests/test_builtin.js. Makefile changes skipped. |
 | 74bdb49 | PENDING | Improve tests |  |
 | 0a361b7 | PENDING | handle missing test262 gracefully |  |
 | 530ba6a | PENDING | handle missing test262 gracefully |  |
