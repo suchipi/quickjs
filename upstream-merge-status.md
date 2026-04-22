@@ -114,7 +114,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 8e21b96 | SKIP-NA | pass node-js command line arguments to microbench | Adds node-compat for the scriptArgs fallback in upstream's `main(argc, argv, g)`. Fork's microbench uses `main(options)` with an options object (not argv parsing), so there's no scriptArgs path to bridge to Node. |
 | c06af87 | PORT | Improve string concatenation hack | Adds `JS_ConcatStringInPlace` — appends to a refcount-1 string in its own allocation slack when possible (big win on `r += "x"` microbench loops). Conflict was just context alignment in the preamble (upstream inserted the helper before JS_ConcatString). Makefile/VERSION changes skipped — not vendored. |
 | 3bb2ca3 | PORT | Remove unnecessary ssize_t posix-ism | Clean apply. Removes an unnecessary `(ssize_t)` cast in JS_ComputeMemoryUsage. |
-| 8df4327 | PENDING | Fix UB left shift of negative number |  |
+| 8df4327 | PORT | Fix UB left shift of negative number | Clean apply — masks negative-number left-shift in bf pow-of-10 path. |
 | 85fb2ca | PENDING | Fix UB signed integer overflow in js_math_imul |  |
 | 74bdb49 | PENDING | Improve tests |  |
 | 0a361b7 | PENDING | handle missing test262 gracefully |  |
