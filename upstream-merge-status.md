@@ -153,7 +153,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 01454ca | SKIP-NA | OSS-Fuzz targets improvements (#267) | fuzz/ is not vendored in fork. Makefile changes skipped. |
 | 6c43013 | PORT | Add `JS_NewTypedArray()` (#272) | Clean patch apply. Added fork's file/line args to the one new `JS_ThrowRangeError` call (upstream used the 2-arg form). |
 | db9dbd0 | PORT | Add `JS_HasException()` (#265) | Clean apply to quickjs.h. quickjs.c conflict was the fork-added `JS_AddPropertyToException` being adjacent to where upstream's `JS_HasException` inserts — kept both functions side-by-side. |
-| d53aafe | PENDING | Add the missing fuzz_common.c (#292) |  |
+| d53aafe | SKIP-NA | Add the missing fuzz_common.c (#292) | fuzz/ not vendored. |
 | 6f9d05f | PENDING | Expose `JS_SetUncatchableError()` (#262) |  |
 | f3f2f42 | PENDING | Add `JS_StrictEq()`, `JS_SameValue()`, and `JS_SameValueZero()` (#264) |  |
 | 97be5a3 | PENDING | Add `js_resolve_proxy` (#293) |  |
