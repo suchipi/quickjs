@@ -91,7 +91,7 @@ static inline unsigned long long js_trace_malloc_ptr_offset(uint8_t *ptr,
 }
 
 /* default memory allocation functions with memory limitation */
-static inline size_t js_trace_malloc_usable_size(void *ptr)
+static size_t js_trace_malloc_usable_size(const void *ptr)
 {
 #if defined(__APPLE__)
     return malloc_size(ptr);
@@ -103,7 +103,7 @@ static inline size_t js_trace_malloc_usable_size(void *ptr)
     return malloc_usable_size(ptr);
 #else
     /* change this to `return 0;` if compilation fails */
-    return malloc_usable_size(ptr);
+    return malloc_usable_size((void *)ptr);
 #endif
 }
 
@@ -215,18 +215,7 @@ static const JSMallocFunctions trace_mf = {
     js_trace_malloc,
     js_trace_free,
     js_trace_realloc,
-#if defined(__APPLE__)
-    malloc_size,
-#elif defined(_WIN32)
-    (size_t (*)(const void *))_msize,
-#elif defined(__EMSCRIPTEN__) || defined(__COSMO__)
-    NULL,
-#elif defined(__linux__) || defined(__wasi__)
-    (size_t (*)(const void *))malloc_usable_size,
-#else
-    /* change this to `NULL,` if compilation fails */
-    malloc_usable_size,
-#endif
+    js_trace_malloc_usable_size,
 };
 
 #define PROG_NAME "qjs"

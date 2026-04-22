@@ -78,7 +78,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | e66ce48 | PORT | more portable and Windows version for getTimezoneOffset() (github issue #122) | Clean apply. `getTimezoneOffset` now uses `gmtime_r/localtime_r` to compute the offset portably, with a `_WIN32`-specific `_mkgmtime`/`mktime` fallback. |
 | c950966 | SKIP-NA | update test results | TODO file only; fork doesn't vendor. |
 | e80917b | PORT | fixed uninitialized harnessbuf | Clean apply to run-test262.c — `harnessbuf` is now explicitly NULL-initialized so the harness-loading code doesn't read uninitialized memory when a harness isn't requested. |
-| 9a4379d | PENDING | native cosmopolitan build |  |
+| 9a4379d | PORT | native cosmopolitan build | Upstream refactored the `js_*_malloc_usable_size` helpers to `const void *` and plugged them into `JSMallocFunctions` by name (instead of inlining the platform dispatch into the struct). Fork was already `const void *` and already had richer platform coverage (__COSMO__, __wasi__), just still had the old inline-dispatch in the struct literal. Took upstream's struct-literal simplification in both quickjs.c and qjs.c; kept the fork's richer helper body (superset of platforms). Makefile changes skipped — fork uses Ninja/meta, not Makefile. |
 | efdb722 | PENDING | fixed JS_GetScriptOrModuleName() in direct or indirect eval code |  |
 | 6e651e8 | PENDING | allow override of PREFIX, CROSS_PREFIX, CFLAGS and LDFLAGS in Makefile (humenda) |  |
 | 3f81070 | PENDING | new release |  |

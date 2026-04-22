@@ -1674,7 +1674,7 @@ JSValue JS_GetRuntimeOpaqueValue(JSRuntime *rt)
 }
 
 /* default memory allocation functions with memory limitation */
-static inline size_t js_def_malloc_usable_size(void *ptr)
+static size_t js_def_malloc_usable_size(const void *ptr)
 {
 #if defined(__APPLE__)
     return malloc_size(ptr);
@@ -1686,7 +1686,7 @@ static inline size_t js_def_malloc_usable_size(void *ptr)
     return malloc_usable_size(ptr);
 #else
     /* change this to `return 0;` if compilation fails */
-    return malloc_usable_size(ptr);
+    return malloc_usable_size((void *)ptr);
 #endif
 }
 
@@ -1750,18 +1750,7 @@ static const JSMallocFunctions def_malloc_funcs = {
     js_def_malloc,
     js_def_free,
     js_def_realloc,
-#if defined(__APPLE__)
-    malloc_size,
-#elif defined(_WIN32)
-    (size_t (*)(const void *))_msize,
-#elif defined(__EMSCRIPTEN__) || defined(__COSMO__)
-    NULL,
-#elif defined(__linux__) || defined(__wasi__)
-    (size_t (*)(const void *))malloc_usable_size,
-#else
-    /* change this to `NULL,` if compilation fails */
-    malloc_usable_size,
-#endif
+    js_def_malloc_usable_size,
 };
 
 JSRuntime *JS_NewRuntime(void)
