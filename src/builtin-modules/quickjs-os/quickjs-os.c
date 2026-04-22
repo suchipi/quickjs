@@ -993,6 +993,7 @@ JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
 static JSValue js_os_symlink(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 static JSValue js_os_readlink(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+static JSValue js_os_getpid(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
@@ -3084,6 +3085,17 @@ static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
 
 #endif /* !_WIN32 */
 
+/* getpid() -> pid */
+static JSValue js_os_getpid(JSContext *ctx, JSValueConst this_val,
+                            int argc, JSValueConst *argv)
+{
+#if defined(_WIN32)
+    return JS_NewInt32(ctx, GetCurrentProcessId());
+#else
+    return JS_NewInt32(ctx, getpid());
+#endif
+}
+
 /**********************************************************/
 /* Win32Handle class */
 
@@ -4758,6 +4770,7 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_PROP_INT32_DEF("WAIT_FAILED", (int)0xFFFFFFFF, JS_PROP_CONFIGURABLE ),
 #endif
     JS_CFUNC_DEF("exec", 1, js_os_exec ),
+    JS_CFUNC_DEF("getpid", 0, js_os_getpid ),
     JS_CFUNC_DEF("waitpid", 2, js_os_waitpid ),
 #if defined(_WIN32) || defined(__wasi__)
     JS_PROP_INT32_DEF("WNOHANG", 1, JS_PROP_CONFIGURABLE ),

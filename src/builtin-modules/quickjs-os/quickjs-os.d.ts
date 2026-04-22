@@ -142,6 +142,10 @@ declare module "quickjs:os" {
   };
 
   export function exec(args: Array<string>, options?: ExecOptions): number;
+
+  /** Return the current process ID. */
+  export function getpid(): number;
+
   export function waitpid(pid: number, options?: number): [number, number];
 
   export var WNOHANG: number;
