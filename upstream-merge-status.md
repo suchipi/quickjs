@@ -99,7 +99,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 2e10134 | PORT | Add more tests | Added `regexp_ascii` + `regexp_utf16` microbench tests to fork's `meta/microbench.js` + registered them in `allTests`. Skipped the `bjson_test_regexp` addition because the fork doesn't vendor `test_bjson.js` or `bjson.c` — it uses its own `quickjs:bytecode` module. |
 | 626e0d4 | SKIP-NA | Unbroke tests/test_test_bjson.js | Reverts the bjson_test_regexp added in 2e10134. Fork doesn't vendor test_bjson.js at all and skipped the addition in the prior commit, so nothing to revert. |
 | 325ca19 | SKIP-NA | Add MemorySanitizer support | Makefile only. |
-| fd6e039 | PENDING | Add UndefinedBehaviorSanitizer support |  |
+| fd6e039 | SKIP-NA | Add UndefinedBehaviorSanitizer support | Makefile only. |
 | e53d622 | PENDING | Fix UB in js_dtoa1 |  |
 | 6535064 | PENDING | Fix undefined behavior (UBSAN) |  |
 | 6dbf01b | PENDING | Remove unsafe sprintf() and strcat() calls |  |
