@@ -59,6 +59,7 @@ test("quickjs:context - example", async () => {
     	Symbol: Function "Symbol" {…}
     	eval: Function "eval" {…}
     	globalThis: -> {root}
+    	@@toStringTag: "global"
     }
     true
     ",
