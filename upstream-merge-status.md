@@ -93,7 +93,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 1ed38ee | SKIP-NA | fixed MingW64 install on Windows (absop) (github issue #230) | Makefile only; fork uses Ninja/meta. |
 | 6f480ab | PORT | avoid using INT64_MAX in double comparisons because it cannot be exactly represented as a double (bnoordhuis) | Replaces `d > INT64_MAX` with `d >= 0x1p63` at two sites (JS_ToInt64SatFree and js_atomics_wait). `INT64_MAX` can't be represented exactly as a double (it's 2^63 - 1; the nearest double is 2^63); `0x1p63` is exactly 2^63 and is what's actually wanted as the upper bound. This also sidesteps the `-Wimplicit-int-float-conversion` clang warning, so the fork's surrounding `suppress_warning`/`unsuppress_warning` scaffolding became vestigial and was removed (verified across `meta/build.sh all` — no warning fires on INT64_MIN either, since it's exactly -2^63 and representable). |
 | 37bd4ae | SKIP-DONE | Strip trailing spaces | Pure whitespace-normalization commit. Fork's `.editorconfig` sets `trim_trailing_whitespace = true`; all previously ported commits strip trailing whitespace from added lines, so the fork's tree is already in the post-commit state. |
-| 2c793e5 | PENDING | Fix test262o error |  |
+| 2c793e5 | PORT | Fix test262o error | Clean apply to fork's `src/run-test262/test262o.conf`: excludes `test262o/test/suite/ch15/15.5/15.5.4/15.5.4.9/15.5.4.9_CE.js` (locale-comparison test requiring canonical-form equivalence between `ö` and `o+combining-diaeresis`). |
 | c9e6c56 | PENDING | Improve microbench |  |
 | 48deab1 | PENDING | Fix runtime bugs |  |
 | 2e10134 | PENDING | Add more tests |  |
