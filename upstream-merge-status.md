@@ -138,7 +138,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | e17cb9f | SKIP-DONE | Add github CI tests | `.github/workflows/ci.yml` — fork has its own CI via vitest. The test_std.js isatty change is already handled in the fork: fork's tests/oldtests/test_std.js asserts `!os.isatty(0)` (vitest spawns via first-base, so stdin is never a tty). |
 | 1a5333b | PORT | prevent 0 length allocation in `js_worker_postMessage` | Applied the `sab_tab_len > 0` guard to fork's `src/builtin-modules/quickjs-os/quickjs-os.c`, which has **two** js_worker_postMessage-adjacent allocation sites (the fork-added error-pipe worker_send_error + the regular js_worker_postMessage). Both updated. 06c100c already patched upstream's single site in quickjs.c, but the fork's OS-module sites are distinct. |
 | ebe7496 | PORT | Fix build: use LRE_BOOL in libunicode.h (#244) | Clean apply. Replaces `bool` with `LRE_BOOL` in two function signatures so libunicode.h doesn't require stdbool.h for consumers. |
-| 6a89d7c | PENDING | Add CI targets, fix test_std.js (#247) |  |
+| 6a89d7c | PORT | Add CI targets, fix test_std.js (#247) | Ported the SIGQUIT → SIGTERM change in `tests/oldtests/test_std.js` (SIGQUIT doesn't work reliably under QEMU), including the added nonzero-status assertion. Skipped the isatty change — fork's test already uses `!os.isatty(0)` which works unconditionally in the fork's vitest-spawned environment. CI yml skipped (fork has its own CI). |
 | 65ecb0b | PENDING | Improve Date.parse, small fixes |  |
 | 0665131 | PENDING | Fix compilation with -DCONFIG_BIGNUM |  |
 | c0e67c4 | PENDING | Simplify redundant initializers for `JS_NewBool()` |  |
