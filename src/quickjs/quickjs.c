@@ -40809,10 +40809,10 @@ static JSValue js_array_lastIndexOf(JSContext *ctx, JSValueConst this_val,
 }
 
 enum {
-    special_find,
-    special_findIndex,
-    special_findLast,
-    special_findLastIndex,
+    ArrayFind,
+    ArrayFindIndex,
+    ArrayFindLast,
+    ArrayFindLastIndex,
 };
 
 static JSValue js_array_find(JSContext *ctx, JSValueConst this_val,
@@ -40840,14 +40840,13 @@ static JSValue js_array_find(JSContext *ctx, JSValueConst this_val,
     if (argc > 1)
         this_arg = argv[1];
 
-    if (mode == special_findLast || mode == special_findLastIndex) {
+    k = 0;
+    dir = 1;
+    end = len;
+    if (mode == ArrayFindLast || mode == ArrayFindLastIndex) {
         k = len - 1;
         dir = -1;
         end = -1;
-    } else {
-        k = 0;
-        dir = 1;
-        end = len;
     }
 
     // TODO(bnoordhuis) add fast path for fast arrays
@@ -40865,7 +40864,7 @@ static JSValue js_array_find(JSContext *ctx, JSValueConst this_val,
         if (JS_IsException(res))
             goto exception;
         if (JS_ToBoolFree(ctx, res)) {
-            if (mode == special_findIndex || mode == special_findLastIndex) {
+            if (mode == ArrayFindIndex || mode == ArrayFindLastIndex) {
                 JS_FreeValue(ctx, val);
                 JS_FreeValue(ctx, obj);
                 return index_val;
@@ -40879,7 +40878,7 @@ static JSValue js_array_find(JSContext *ctx, JSValueConst this_val,
         JS_FreeValue(ctx, index_val);
     }
     JS_FreeValue(ctx, obj);
-    if (mode == special_findIndex || mode == special_findLastIndex)
+    if (mode == ArrayFindIndex || mode == ArrayFindLastIndex)
         return JS_NewInt32(ctx, -1);
     else
         return JS_UNDEFINED;
@@ -41910,10 +41909,10 @@ static const JSCFunctionListEntry js_array_proto_funcs[] = {
     JS_CFUNC_MAGIC_DEF("reduce", 1, js_array_reduce, special_reduce ),
     JS_CFUNC_MAGIC_DEF("reduceRight", 1, js_array_reduce, special_reduceRight ),
     JS_CFUNC_DEF("fill", 1, js_array_fill ),
-    JS_CFUNC_MAGIC_DEF("find", 1, js_array_find, special_find ),
-    JS_CFUNC_MAGIC_DEF("findIndex", 1, js_array_find, special_findIndex ),
-    JS_CFUNC_MAGIC_DEF("findLast", 1, js_array_find, special_findLast ),
-    JS_CFUNC_MAGIC_DEF("findLastIndex", 1, js_array_find, special_findLastIndex ),
+    JS_CFUNC_MAGIC_DEF("find", 1, js_array_find, ArrayFind ),
+    JS_CFUNC_MAGIC_DEF("findIndex", 1, js_array_find, ArrayFindIndex ),
+    JS_CFUNC_MAGIC_DEF("findLast", 1, js_array_find, ArrayFindLast ),
+    JS_CFUNC_MAGIC_DEF("findLastIndex", 1, js_array_find, ArrayFindLastIndex ),
     JS_CFUNC_DEF("indexOf", 1, js_array_indexOf ),
     JS_CFUNC_DEF("lastIndexOf", 1, js_array_lastIndexOf ),
     JS_CFUNC_DEF("includes", 1, js_array_includes ),
@@ -55069,14 +55068,13 @@ static JSValue js_typed_array_find(JSContext *ctx, JSValueConst this_val,
     if (argc > 1)
         this_arg = argv[1];
 
-    if (mode == special_findLast || mode == special_findLastIndex) {
+    k = 0;
+    dir = 1;
+    end = len;
+    if (mode == ArrayFindLast || mode == ArrayFindLastIndex) {
         k = len - 1;
         dir = -1;
         end = -1;
-    } else {
-        k = 0;
-        dir = 1;
-        end = len;
     }
 
     for(; k != end; k += dir) {
@@ -55091,7 +55089,7 @@ static JSValue js_typed_array_find(JSContext *ctx, JSValueConst this_val,
         if (JS_IsException(res))
             goto exception;
         if (JS_ToBoolFree(ctx, res)) {
-            if (mode == special_findIndex || mode == special_findLastIndex) {
+            if (mode == ArrayFindIndex || mode == ArrayFindLastIndex) {
                 JS_FreeValue(ctx, val);
                 return index_val;
             } else {
@@ -55100,7 +55098,7 @@ static JSValue js_typed_array_find(JSContext *ctx, JSValueConst this_val,
         }
         JS_FreeValue(ctx, val);
     }
-    if (mode == special_findIndex || mode == special_findLastIndex)
+    if (mode == ArrayFindIndex || mode == ArrayFindLastIndex)
         return JS_NewInt32(ctx, -1);
     else
         return JS_UNDEFINED;
@@ -55948,10 +55946,10 @@ static const JSCFunctionListEntry js_typed_array_base_proto_funcs[] = {
     JS_CFUNC_MAGIC_DEF("reduce", 1, js_array_reduce, special_reduce | special_TA ),
     JS_CFUNC_MAGIC_DEF("reduceRight", 1, js_array_reduce, special_reduceRight | special_TA ),
     JS_CFUNC_DEF("fill", 1, js_typed_array_fill ),
-    JS_CFUNC_MAGIC_DEF("find", 1, js_typed_array_find, special_find ),
-    JS_CFUNC_MAGIC_DEF("findIndex", 1, js_typed_array_find, special_findIndex ),
-    JS_CFUNC_MAGIC_DEF("findLast", 1, js_typed_array_find, special_findLast ),
-    JS_CFUNC_MAGIC_DEF("findLastIndex", 1, js_typed_array_find, special_findLastIndex ),
+    JS_CFUNC_MAGIC_DEF("find", 1, js_typed_array_find, ArrayFind ),
+    JS_CFUNC_MAGIC_DEF("findIndex", 1, js_typed_array_find, ArrayFindIndex ),
+    JS_CFUNC_MAGIC_DEF("findLast", 1, js_typed_array_find, ArrayFindLast ),
+    JS_CFUNC_MAGIC_DEF("findLastIndex", 1, js_typed_array_find, ArrayFindLastIndex ),
     JS_CFUNC_DEF("reverse", 0, js_typed_array_reverse ),
     JS_CFUNC_DEF("toReversed", 0, js_typed_array_toReversed ),
     JS_CFUNC_DEF("slice", 2, js_typed_array_slice ),
