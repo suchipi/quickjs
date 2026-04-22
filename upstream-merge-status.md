@@ -101,7 +101,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 325ca19 | SKIP-NA | Add MemorySanitizer support | Makefile only. |
 | fd6e039 | SKIP-NA | Add UndefinedBehaviorSanitizer support | Makefile only. |
 | e53d622 | PORT | Fix UB in js_dtoa1 | Clean apply to quickjs.c. Guards against infinite-digit-count UB in the dtoa code path. |
-| 6535064 | PENDING | Fix undefined behavior (UBSAN) |  |
+| 6535064 | PORT | Fix undefined behavior (UBSAN) | Moves `sf = &s->func_state->frame` assignment in `js_generator_next` from the top of the function into each switch case that actually uses sf — avoids dereferencing `func_state` (which is NULL in JS_GENERATOR_STATE_COMPLETED / AWAITING_RETURN) before the state check. Kept fork's `(ctx, file, line, msg)` JS_ThrowTypeError signature. .gitignore skipped. |
 | 6dbf01b | PENDING | Remove unsafe sprintf() and strcat() calls |  |
 | e140122 | PENDING | Fix sloppy mode arguments uninitialized value use |  |
 | 693449e | PENDING | add gitignore for build objects (#84) |  |
