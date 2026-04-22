@@ -627,6 +627,9 @@ import * as os from "quickjs:os";
               !isNaN(+base)
             )
               return eval(base);
+            // Check if `base` is a set of regexp flags
+            if (pos - base.length >= 3 && line[pos - base.length - 1] === "/")
+              return new RegExp("", base);
             obj = get_context_object(line, pos - base.length);
             if (obj === null || obj === void 0) return obj;
             if (obj === g && obj[base] === void 0) return eval(base);
