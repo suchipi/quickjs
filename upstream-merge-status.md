@@ -82,7 +82,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | efdb722 | PORT | fixed JS_GetScriptOrModuleName() in direct or indirect eval code | Adds `is_direct_or_indirect_eval` flag to JSFunctionBytecode and makes JS_GetScriptOrModuleName walk past eval frames to find the enclosing script/module filename. Conflict was that the fork had fork-added synthetic-stack-frame handling ahead of the name lookup; combined: wrap the synthetic-frame check inside upstream's new `for(;;)` loop. 1 test262 error resolved. |
 | 6e651e8 | SKIP-NA | allow override of PREFIX, CROSS_PREFIX, CFLAGS and LDFLAGS in Makefile (humenda) | Makefile-only; fork uses Ninja/meta. |
 | 3f81070 | SKIP-NA | new release | Changelog/VERSION/doc updates; fork doesn't vendor any of those. |
-| d6c7d16 | PENDING | update Changelog |  |
+| d6c7d16 | SKIP-NA | update Changelog | Changelog only. |
 | 8405876 | PENDING | added js_std_await() and use it to wait for the evaluation of a module (github issue #219) |  |
 | 9e561d5 | PENDING | fixed and simplified setTimeout() by using an integer timer handle (github issue #218) |  |
 | 67723c9 | PENDING | fixed js_std_await() in case 'obj' is not a promise (github issue #222) |  |
