@@ -161,7 +161,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | adec734 | SKIP-NA | fixed test of test262 directory | Makefile-only: fixes a `wildcard` probe in upstream's Makefile targets (test262o → test262). Fork uses Ninja and doesn't vendor the Makefile. |
 | d86aaf0 | PORT | updated test262.patch | Fork's src/run-test262/test262.patch was stale relative to fork's test262 checkout (same staleness upstream was fixing). Replaced with upstream's post-commit content verbatim — applies cleanly to fork's checkout. No test262 regression. |
 | 36911f0 | PORT | regexp: fix non greedy quantizers with zero length matches | Clean apply of libregexp.c hunk (moved zero-advance-check emission out of the `if (greedy)` branch so non-greedy quantifiers get the same check). Added regression test `/()*?a/.exec(",")` → null to tests/oldtests/test_builtin.js. No test262 regression. |
-| b3715f7 | PENDING | Fix GC leak in `js_proxy_get()` (#302) |  |
+| b3715f7 | PORT | Fix GC leak in `js_proxy_get()` (#302) | Clean apply. Frees `ret` on the error path after JS_GetOwnPropertyInternal returns < 0. |
 | 5417ab0 | PENDING | Fix `JS_HasException()` when `null` is thrown (#313) |  |
 | 3489493 | PENDING | Use malloc_usable_size() on any OS based on GNU libc |  |
 | 8624b5c | PENDING | Use ftello() & fseeko() on any OS based on GNU libc |  |
