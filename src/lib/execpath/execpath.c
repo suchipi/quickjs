@@ -13,6 +13,10 @@
 #include <libgen.h>
 #endif
 
+#if !defined(PATH_MAX)
+#define PATH_MAX 4096
+#endif
+
 // NOTE: return value of execpath *must* be null-terminated!
 // also, it is expected that the user will free() it
 

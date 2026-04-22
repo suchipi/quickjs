@@ -105,6 +105,10 @@ typedef void (*sighandler_t)(int);
 #include "quickjs-timers.h"
 #include "quickjs-cmdline.h"
 
+#if !defined(PATH_MAX)
+#define PATH_MAX 4096
+#endif
+
 #ifndef SKIP_WORKER
 /* Worker data attached to Worker objects */
 typedef struct {
