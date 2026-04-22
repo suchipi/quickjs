@@ -2911,10 +2911,12 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             }
 
             /* Pre-compute fd_max before vfork (sysconf is not
-               async-signal-safe) */
+               async-signal-safe). Limit to 1024 to avoid costly loop
+               on linux Alpine where sysconf(_SC_OPEN_MAX) returns a
+               huge value 1048576. */
             fd_max = (int)sysconf(_SC_OPEN_MAX);
-            if (fd_max < 0 || fd_max > 65536)
-                fd_max = 65536;
+            if (fd_max < 0 || fd_max > 1024)
+                fd_max = 1024;
 
             suppress_warning("-Wdeprecated-declarations")
             pid = vfork();
@@ -2932,8 +2934,16 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                             _exit(127);
                     }
                 }
+#if defined(HAVE_CLOSEFROM)
+                /* closefrom() is available on many recent unix systems:
+                   Linux with glibc 2.34+, Solaris 9+, FreeBSD 7.3+,
+                   NetBSD 3.0+, OpenBSD 3.5+.
+                   Linux with the musl libc and macOS don't have it. */
+                closefrom(3);
+#else
                 for (i = 3; i < (uint32_t)fd_max; i++)
                     close(i);
+#endif
                 if (cwd) {
                     if (chdir(cwd) < 0)
                         _exit(127);

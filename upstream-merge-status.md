@@ -157,7 +157,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 6f9d05f | PORT | Expose `JS_SetUncatchableError()` (#262) | Clean apply. Makes `JS_SetUncatchableError()` a public API (moved from quickjs.c to quickjs.h). |
 | f3f2f42 | PORT | Add `JS_StrictEq()`, `JS_SameValue()`, and `JS_SameValueZero()` (#264) | Clean apply to quickjs.c; one conflict in quickjs.h resolved by keeping both upstream's three new JS_BOOL declarations and the fork's existing JS_ToBool comment/decl. No test changes; test262 unchanged at 38/40125. |
 | 97be5a3 | PORT | Add `js_resolve_proxy` (#293) | Clean apply. Refactor of JS_IsArray to walk the proxy chain via a new js_resolve_proxy helper (depth-1000 cap), replacing the old js_proxy_isArray recursion. No test262 regression. |
-| d378a9f | PENDING | Improve `js_os_exec` (#295) |  |
+| d378a9f | PORT | Improve `js_os_exec` (#295) | In fork's quickjs-os.c Unix vfork path: tightened fd_max cap from 65536 to 1024 (per upstream, to avoid costly loop on Alpine's sysconf=1048576), and added `#if defined(HAVE_CLOSEFROM)` branch that calls `closefrom(3)` when available. The macOS `/dev/fd` path is left alone (already efficient; HAVE_CLOSEFROM isn't defined on macOS anyway). Makefile feature-detection part SKIP-NA — fork uses Ninja; HAVE_CLOSEFROM scaffolding in place but no detection wired up yet (the branch is inert). `compat/test-closefrom.c` also SKIP-NA since it's a Makefile probe. |
 | adec734 | PENDING | fixed test of test262 directory |  |
 | d86aaf0 | PENDING | updated test262.patch |  |
 | 36911f0 | PENDING | regexp: fix non greedy quantizers with zero length matches |  |
