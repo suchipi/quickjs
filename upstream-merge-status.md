@@ -143,7 +143,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 0665131 | PORT | Fix compilation with -DCONFIG_BIGNUM | Clean apply to libbf.c. quickjs.c: disable BigDecimal conversion in JS_ReadBigNum + misc error message fixes. Two minor conflicts in JS_ThrowRangeError sites where fork uses file/line args and upstream lowered case — kept fork's signature + upstream's BigInt capitalization. |
 | c0e67c4 | PORT | Simplify redundant initializers for `JS_NewBool()` | Clean-ish apply. Drops unnecessary `BOOL res;` initialization patterns in quickjs.c and the `(isatty(fd) != 0)` redundancy in os.isatty. Two JS_ThrowTypeError conflicts in BigInt code (fork's file/line sig + upstream's capitalization fixes). |
 | ce6b6dc | PORT | Use more explicit magic values for array methods | Clean apply. Replaces magic-number constants in js_array_funcs/proto_funcs with named special_indexOf/special_find etc. enums. |
-| 203fe2d | PENDING | Improve `JSON.stringify` |  |
+| 203fe2d | PORT | Improve `JSON.stringify` | Adopts upstream's spec-compliant boxed-BigInt handling (delegate to primitive via toJSON-aware code path rather than early-throw) and new error message "Do not know how to serialize a BigInt". Two conflicts at the old fork-added BigInt-forbidden early throws — resolved by taking upstream's restructure while keeping fork's JS_ThrowTypeError file/line signature. |
 | 653b227 | PENDING | Improve error handling |  |
 | 3b45d15 | PENDING | Fix endianness handling in `js_dataview_getValue` / `js_dataview_setValue` |  |
 | 1402478 | PENDING | Improve unicode table handling (#286) |  |
