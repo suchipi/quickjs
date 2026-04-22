@@ -137,7 +137,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 06c100c | PORT | Prevent UB on memcpy and floating point conversions | Clean apply across cutils.h/cutils.c (new `memcpy_no_ub` that tolerates null pointers for 0 count), libbf.c (one use), and quickjs.c/quickjs.h (safer int-range tests in JS_NewFloat64 / JS_ToArrayLengthFree / js_typed_array_indexOf; prevent 0-length alloc in js_worker_postMessage). |
 | e17cb9f | SKIP-DONE | Add github CI tests | `.github/workflows/ci.yml` — fork has its own CI via vitest. The test_std.js isatty change is already handled in the fork: fork's tests/oldtests/test_std.js asserts `!os.isatty(0)` (vitest spawns via first-base, so stdin is never a tty). |
 | 1a5333b | PORT | prevent 0 length allocation in `js_worker_postMessage` | Applied the `sab_tab_len > 0` guard to fork's `src/builtin-modules/quickjs-os/quickjs-os.c`, which has **two** js_worker_postMessage-adjacent allocation sites (the fork-added error-pipe worker_send_error + the regular js_worker_postMessage). Both updated. 06c100c already patched upstream's single site in quickjs.c, but the fork's OS-module sites are distinct. |
-| ebe7496 | PENDING | Fix build: use LRE_BOOL in libunicode.h (#244) |  |
+| ebe7496 | PORT | Fix build: use LRE_BOOL in libunicode.h (#244) | Clean apply. Replaces `bool` with `LRE_BOOL` in two function signatures so libunicode.h doesn't require stdbool.h for consumers. |
 | 6a89d7c | PENDING | Add CI targets, fix test_std.js (#247) |  |
 | 65ecb0b | PENDING | Improve Date.parse, small fixes |  |
 | 0665131 | PENDING | Fix compilation with -DCONFIG_BIGNUM |  |
