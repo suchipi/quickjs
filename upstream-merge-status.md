@@ -107,7 +107,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 693449e | SKIP-NA | add gitignore for build objects (#84) | .gitignore only; fork has its own. |
 | ae6fa8d | SKIP-DONE | Fix shell injection bug in std.urlGet (#61) | Upstream's fix escapes shell metacharacters before `popen("curl ...")`. Fork has already replaced the popen approach entirely with a direct libcurl integration (`qjs_libcurl.easy_init()` etc.) — no shell invocation, so no shell-injection possible. Removed the now-orphaned `URL_GET_PROGRAM`/`URL_GET_BUF_SIZE` macros the 3way apply left behind. Classified SKIP-DONE because fork's approach strictly supersedes upstream's escape-based mitigation. |
 | 636c946 | PORT | FreeBSD QuickJS Patch (#203) | qjs.c `#include <malloc_np.h>` on FreeBSD — clean apply. Fork's `quickjs-os.c` already has richer FreeBSD support (`extern char **environ`, custom `sighandler_t` typedef + `signal()` prototype) so no changes there. Makefile changes skipped — fork uses Ninja/meta. |
-| 92e339d | PENDING | Simplify and clarify URL quoting js_std_urlGet |  |
+| 92e339d | SKIP-DONE | Simplify and clarify URL quoting js_std_urlGet | Follow-up to ae6fa8d which was SKIP-DONE because the fork uses direct libcurl (no shell invocation). Fork's urlGet has no quoting code to simplify. |
 | ef4e7b2 | PENDING | Fix compiler warnings |  |
 | 1fe0414 | PENDING | Fix test262 error |  |
 | 95e0aa0 | PENDING | Reverse e140122202cc24728b394f8f90fa2f4a2d7c397e |  |
