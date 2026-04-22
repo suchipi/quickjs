@@ -164,7 +164,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | b3715f7 | PORT | Fix GC leak in `js_proxy_get()` (#302) | Clean apply. Frees `ret` on the error path after JS_GetOwnPropertyInternal returns < 0. |
 | 5417ab0 | PORT | Fix `JS_HasException()` when `null` is thrown (#313) | Replaced JS_NULL with JS_UNINITIALIZED as the "no exception pending" sentinel at 4 clearing sites and in JS_HasException so `throw null` is distinguishable from no-exception. Conflict in JS_NewRuntime2 resolved by keeping fork's `user_opaque_val = JS_NULL` init line next to the upstream-updated current_exception init. |
 | 3489493 | PORT | Use malloc_usable_size() on any OS based on GNU libc | Added `defined(__GLIBC__)` to the platform guards that select `<malloc.h>` + `malloc_usable_size()` in both src/quickjs/quickjs.c and src/programs/qjs/qjs.c. Merged with fork's existing `__wasi__` addition; kept fork's cast-free call shape. |
-| 8624b5c | PENDING | Use ftello() & fseeko() on any OS based on GNU libc |  |
+| 8624b5c | PORT | Use ftello() & fseeko() on any OS based on GNU libc | Added `defined(__GLIBC__)` to the two `#if defined(__linux__)` guards around `ftello`/`fseeko` in fork's quickjs-std.c (the fork-equivalent of upstream's quickjs-libc.c for std file I/O). |
 | 012451d | PENDING | Define a fallback PATH_MAX if not available |  |
 | 6e2e68f | PENDING | Fix termination in Worker test |  |
 | 030333c | PENDING | fixed date parsing in case there is more than nine initial digits (initial patch by nickva) |  |
