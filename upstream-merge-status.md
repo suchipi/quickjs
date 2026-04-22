@@ -81,7 +81,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 9a4379d | PORT | native cosmopolitan build | Upstream refactored the `js_*_malloc_usable_size` helpers to `const void *` and plugged them into `JSMallocFunctions` by name (instead of inlining the platform dispatch into the struct). Fork was already `const void *` and already had richer platform coverage (__COSMO__, __wasi__), just still had the old inline-dispatch in the struct literal. Took upstream's struct-literal simplification in both quickjs.c and qjs.c; kept the fork's richer helper body (superset of platforms). Makefile changes skipped — fork uses Ninja/meta, not Makefile. |
 | efdb722 | PORT | fixed JS_GetScriptOrModuleName() in direct or indirect eval code | Adds `is_direct_or_indirect_eval` flag to JSFunctionBytecode and makes JS_GetScriptOrModuleName walk past eval frames to find the enclosing script/module filename. Conflict was that the fork had fork-added synthetic-stack-frame handling ahead of the name lookup; combined: wrap the synthetic-frame check inside upstream's new `for(;;)` loop. 1 test262 error resolved. |
 | 6e651e8 | SKIP-NA | allow override of PREFIX, CROSS_PREFIX, CFLAGS and LDFLAGS in Makefile (humenda) | Makefile-only; fork uses Ninja/meta. |
-| 3f81070 | PENDING | new release |  |
+| 3f81070 | SKIP-NA | new release | Changelog/VERSION/doc updates; fork doesn't vendor any of those. |
 | d6c7d16 | PENDING | update Changelog |  |
 | 8405876 | PENDING | added js_std_await() and use it to wait for the evaluation of a module (github issue #219) |  |
 | 9e561d5 | PENDING | fixed and simplified setTimeout() by using an integer timer handle (github issue #218) |  |
