@@ -342,8 +342,12 @@ function test_class() {
 
   class P {
     get = () => "123";
+    static() {
+      return 42;
+    }
   }
   assert(new P().get() === "123");
+  assert(new P().static() === 42);
 }
 
 function test_template() {
