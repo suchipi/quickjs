@@ -88,7 +88,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 67723c9 | SKIP-DONE | fixed js_std_await() in case 'obj' is not a promise (github issue #222) | Follow-up to 8405876 which was already SKIP-DONE in the fork; fork doesn't have js_std_await. The fork's `js_eventloop_run` equivalent already exits correctly when the awaited value isn't a promise. |
 | 090685a | SKIP-NA | update test results | TODO only. |
 | cd666a8 | PORT | simplified and fixed arrow function parsing (github issue #226) | Removes the `PF_ARROW_FUNC` parse_flags bit (arrow functions are now parsed unconditionally in the postfix expression path; the flag had been used to suppress arrow parsing in `??`-coalesce RHS and was the root cause of the test_parse_arrow_function edge cases). Two conflicts in quickjs.c (the flag definition reordering and the call-site where `& ~PF_ARROW_FUNC` was stripped) both resolved by taking upstream's version. Added test_parse_arrow_function to fork's tests/oldtests/test_language.js. |
-| c6cc6a9 | PENDING | export JS_GetModuleNamespace (github issue #34) |  |
+| c6cc6a9 | PORT | export JS_GetModuleNamespace (github issue #34) | Clean apply of the rename. One additional fork-specific call site (inside the JS_RunModule wrapper that returns the namespace) used the old `js_get_module_ns` internal name and had to be updated to the new public `JS_GetModuleNamespace`. |
 | 00967aa | PENDING | fixed Promise return in the REPL by using a wrapper object in async std.evalScript() (github issue #231) |  |
 | 1ed38ee | PENDING | fixed MingW64 install on Windows (absop) (github issue #230) |  |
 | 6f480ab | PENDING | avoid using INT64_MAX in double comparisons because it cannot be exactly represented as a double (bnoordhuis) |  |

@@ -1015,6 +1015,7 @@ void *JS_GetModuleLoaderOpaque(JSRuntime *rt);
 /* return the import.meta object of a module. you'll have to free it when done */
 JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);
 JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m);
+JSValue JS_GetModuleNamespace(JSContext *ctx, JSModuleDef *m);
 
 /* JS Job support */
 
