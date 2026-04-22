@@ -549,6 +549,7 @@ typedef struct JSFunctionBytecode {
     uint8_t has_debug : 1;
     uint8_t backtrace_barrier : 1; /* stop backtrace on this function */
     uint8_t read_only_bytecode : 1;
+    uint8_t is_direct_or_indirect_eval : 1; /* used by JS_GetScriptOrModuleName() */
     /* XXX: 4 bits available */
     uint8_t *byte_code_buf; /* (self pointer) */
     int byte_code_len;
@@ -28586,8 +28587,8 @@ JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels)
     JSFunctionBytecode *b;
     JSObject *p;
     /* XXX: currently we just use the filename of the englobing
-       function. It does not work for eval(). Need to add a
-       ScriptOrModule info in JSFunctionBytecode */
+       function from the debug info. May need to add a ScriptOrModule
+       info in JSFunctionBytecode. */
     sf = ctx->rt->current_stack_frame;
     if (!sf)
         return JS_ATOM_NULL;
@@ -28596,20 +28597,28 @@ JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels)
         if (!sf)
             return JS_ATOM_NULL;
     }
-    /* Handle synthetic stack frames */
-    if (JS_VALUE_GET_TAG(sf->cur_func) == JS_TAG_NULL) {
-        JSSyntheticStackFrame *ssf = (JSSyntheticStackFrame *)sf;
-        return JS_DupAtom(ctx, ssf->filename);
+    for(;;) {
+        /* Handle synthetic stack frames */
+        if (JS_VALUE_GET_TAG(sf->cur_func) == JS_TAG_NULL) {
+            JSSyntheticStackFrame *ssf = (JSSyntheticStackFrame *)sf;
+            return JS_DupAtom(ctx, ssf->filename);
+        }
+        if (JS_VALUE_GET_TAG(sf->cur_func) != JS_TAG_OBJECT)
+            return JS_ATOM_NULL;
+        p = JS_VALUE_GET_OBJ(sf->cur_func);
+        if (!js_class_has_bytecode(p->class_id))
+            return JS_ATOM_NULL;
+        b = p->u.func.function_bytecode;
+        if (!b->is_direct_or_indirect_eval) {
+            if (!b->has_debug)
+                return JS_ATOM_NULL;
+            return JS_DupAtom(ctx, b->debug.filename);
+        } else {
+            sf = sf->prev_frame;
+            if (!sf)
+                return JS_ATOM_NULL;
+        }
     }
-    if (JS_VALUE_GET_TAG(sf->cur_func) != JS_TAG_OBJECT)
-        return JS_ATOM_NULL;
-    p = JS_VALUE_GET_OBJ(sf->cur_func);
-    if (!js_class_has_bytecode(p->class_id))
-        return JS_ATOM_NULL;
-    b = p->u.func.function_bytecode;
-    if (!b->has_debug)
-        return JS_ATOM_NULL;
-    return JS_DupAtom(ctx, b->debug.filename);
 }
 
 JSSyntheticStackFrame *JS_PushSyntheticStackFrame(JSContext *ctx,
@@ -33926,6 +33935,8 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
     b->super_allowed = fd->super_allowed;
     b->arguments_allowed = fd->arguments_allowed;
     b->backtrace_barrier = fd->backtrace_barrier;
+    b->is_direct_or_indirect_eval = (fd->eval_type == JS_EVAL_TYPE_DIRECT ||
+                                     fd->eval_type == JS_EVAL_TYPE_INDIRECT);
     b->realm = JS_DupContext(ctx);
 
     add_gc_object(ctx->rt, &b->header, JS_GC_OBJ_TYPE_FUNCTION_BYTECODE);
@@ -35664,6 +35675,7 @@ static int JS_WriteFunctionTag(BCWriterState *s, JSValueConst obj)
     bc_set_flags(&flags, &idx, b->arguments_allowed, 1);
     bc_set_flags(&flags, &idx, b->has_debug, 1);
     bc_set_flags(&flags, &idx, b->backtrace_barrier, 1);
+    bc_set_flags(&flags, &idx, b->is_direct_or_indirect_eval, 1);
     assert(idx <= 16);
     bc_put_u16(s, flags);
     bc_put_u8(s, b->js_mode);
@@ -36697,6 +36709,7 @@ static JSValue JS_ReadFunctionTag(BCReaderState *s)
     bc.arguments_allowed = bc_get_flags(v16, &idx, 1);
     bc.has_debug = bc_get_flags(v16, &idx, 1);
     bc.backtrace_barrier = bc_get_flags(v16, &idx, 1);
+    bc.is_direct_or_indirect_eval = bc_get_flags(v16, &idx, 1);
     bc.read_only_bytecode = s->is_rom_data;
     if (bc_get_u8(s, &v8))
         goto fail;
