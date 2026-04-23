@@ -11,3 +11,5 @@ os.Worker.parent.onmessage = (event) => {
     os.Worker.parent.onmessage = null;
   }
 };
+
+os.Worker.parent.postMessage("ready");

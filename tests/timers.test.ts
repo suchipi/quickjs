@@ -3,8 +3,11 @@ import { spawn } from "first-base";
 import { binDir } from "./_utils";
 
 // GitHub actions CPU is slow enough that these aren't deterministic unless we
-// make all the timings longer
-const WAIT_TIME_MULTIPLIER = process.env.CI ? 15 : 1;
+// make all the timings longer. Even locally, the 40/150ms cadence used by the
+// setInterval tests below has only ~30ms of headroom before the third fire
+// slips past the exit timer, which is tight enough that GC or scheduling
+// jitter makes it flake.
+const WAIT_TIME_MULTIPLIER = process.env.CI ? 15 : 3;
 
 test("setInterval and clearInterval are present", async () => {
   const run = spawn(
