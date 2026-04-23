@@ -168,7 +168,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 012451d | PORT | Define a fallback PATH_MAX if not available | Added `#if !defined(PATH_MAX) #define PATH_MAX 4096 #endif` to the two fork files that use PATH_MAX: src/builtin-modules/quickjs-os/quickjs-os.c (upstream's site — fork-equivalent of quickjs-libc.c) and src/lib/execpath/execpath.c (fork-added, uses PATH_MAX too and needed the same Hurd-build fallback). |
 | 6e2e68f | PORT | Fix termination in Worker test | Typo fix in tests/oldtests/test_worker_module.js: `parent.onMessage = null` → `parent.onmessage = null` (the property name is lowercase; the wrong case silently fails to terminate the worker). |
 | 030333c | PORT | fixed date parsing in case there is more than nine initial digits (initial patch by nickva) | Clean apply. Added overflow guard in string_get_digits (returns FALSE when v ≥ 1e8 before the next multiply) and switched the two string_get_tzoffset / js_date_parse_otherstring call sites from max_digits=9 to max_digits=0 (unbounded, bounded by the new overflow check). |
-| 6474793 | PENDING | JS_SetPropertyInternal(): avoid recursing thru the prototypes if the property is found in a prototype |  |
+| 6474793 | PORT | JS_SetPropertyInternal(): avoid recursing thru the prototypes if the property is found in a prototype | Clean apply. Adds `break` in the prototype-walk loop when a writable property is found — stops the recursion once we know the shadowing write is permitted. |
 | c739deb | PENDING | microbench: use toFixed() |  |
 | 027f3cb | PENDING | fix crash when add_property()  fails on build arguments (penneryu) |  |
 | 25aaa77 | PENDING | allow regexp interruption (e.g. with Ctrl-C in the REPL) |  |
