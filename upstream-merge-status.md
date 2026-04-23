@@ -173,7 +173,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 027f3cb | PORT | fix crash when add_property() fails on build arguments (penneryu) | Clean apply. Guards the two `add_property(..., JS_ATOM_length, ...)` calls in js_build_arguments / js_build_mapped_arguments against OOM returning NULL (previously dereferenced `pr->u.value` unconditionally). Refactored js_build_arguments's early-malloc failure to use a shared `fail:` cleanup. |
 | 25aaa77 | PORT | allow regexp interruption (e.g. with Ctrl-C in the REPL) | libregexp.c + libregexp.h clean apply (adds LRE_RET_MEMORY_ERROR/LRE_RET_TIMEOUT, lre_poll_timeout counter, and lre_check_timeout callback). quickjs.c conflicts resolved to take upstream's JS_ThrowInterrupted helper + LRE_RET_TIMEOUT branching while keeping fork's JS_ThrowInternalError file/line convention. Fixed trailing whitespace on one line of the new lre_check_timeout body. |
 | dfd9c93 | PORT | added missing stack overflow check in JSON.stringify() | Clean apply. Adds js_check_stack_overflow + JS_ThrowStackOverflow at the top of js_json_to_str so deeply-nested values throw cleanly instead of C-stack overflowing. |
-| 9bd10d8 | PENDING | simplified the handling of closures |  |
+| 9bd10d8 | PORT | simplified the handling of closures | Clean apply. Dropped `is_arg` / `var_idx` fields from JSVarRef (now derived from `pvalue` directly); close_lexical_var's signature loses the `is_arg` parameter. get_var_ref's list walk now keys on pvalue identity. |
 | 1be68b3 | PENDING | fixed CONFIG_ALL_UNICODE compilation |  |
 | 837a697 | PENDING | regexp: allow [\-] in unicode mode (#373) |  |
 | 61e8b94 | PENDING | removed bignum support and qjscalc - added optimized BigInt implementation |  |
