@@ -6953,15 +6953,19 @@ static JSValue JS_ThrowTypeErrorInvalidClass(JSContext *ctx, int class_id)
     return JS_ThrowTypeErrorAtom(ctx, "%s object expected", name);
 }
 
+static void JS_ThrowInterrupted(JSContext *ctx)
+{
+    JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "interrupted");
+    JS_SetUncatchableError(ctx, ctx->rt->current_exception, TRUE);
+}
+
 static no_inline __exception int __js_poll_interrupts(JSContext *ctx)
 {
     JSRuntime *rt = ctx->rt;
     ctx->interrupt_counter = JS_INTERRUPT_COUNTER_INIT;
     if (rt->interrupt_handler) {
         if (rt->interrupt_handler(rt, rt->interrupt_opaque)) {
-            /* XXX: should set a specific flag to avoid catching */
-            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "interrupted");
-            JS_SetUncatchableError(ctx, ctx->rt->current_exception, TRUE);
+            JS_ThrowInterrupted(ctx);
             return -1;
         }
     }
@@ -45035,10 +45039,18 @@ fail:
     return JS_EXCEPTION;
 }
 
-BOOL lre_check_stack_overflow(void *opaque, size_t alloca_size)
+int lre_check_stack_overflow(void *opaque, size_t alloca_size)
 {
     JSContext *ctx = opaque;
     return js_check_stack_overflow(ctx->rt, alloca_size);
+}
+
+int lre_check_timeout(void *opaque)
+{
+    JSContext *ctx = opaque;
+    JSRuntime *rt = ctx->rt;
+    return (rt->interrupt_handler &&
+            rt->interrupt_handler(rt, rt->interrupt_opaque));
 }
 
 void *lre_realloc(void *opaque, void *ptr, size_t size)
@@ -45108,7 +45120,11 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
                     goto fail;
             }
         } else {
-            JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "out of memory in regexp execution");
+            if (rc == LRE_RET_TIMEOUT) {
+                JS_ThrowInterrupted(ctx);
+            } else {
+                JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "out of memory in regexp execution");
+            }
             goto fail;
         }
     } else {
@@ -45304,7 +45320,11 @@ static JSValue JS_RegExpDelete(JSContext *ctx, JSValueConst this_val, JSValueCon
                         goto fail;
                 }
             } else {
-                JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "out of memory in regexp execution");
+                if (ret == LRE_RET_TIMEOUT) {
+                    JS_ThrowInterrupted(ctx);
+                } else {
+                    JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "out of memory in regexp execution");
+                }
                 goto fail;
             }
             break;

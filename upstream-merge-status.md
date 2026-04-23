@@ -171,7 +171,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 6474793 | PORT | JS_SetPropertyInternal(): avoid recursing thru the prototypes if the property is found in a prototype | Clean apply. Adds `break` in the prototype-walk loop when a writable property is found — stops the recursion once we know the shadowing write is permitted. |
 | c739deb | PORT | microbench: use toFixed() | Removed the hand-rolled toPrec() helper from meta/microbench.js and replaced its one call site with `a.toFixed(precs[i])`. |
 | 027f3cb | PORT | fix crash when add_property() fails on build arguments (penneryu) | Clean apply. Guards the two `add_property(..., JS_ATOM_length, ...)` calls in js_build_arguments / js_build_mapped_arguments against OOM returning NULL (previously dereferenced `pr->u.value` unconditionally). Refactored js_build_arguments's early-malloc failure to use a shared `fail:` cleanup. |
-| 25aaa77 | PENDING | allow regexp interruption (e.g. with Ctrl-C in the REPL) |  |
+| 25aaa77 | PORT | allow regexp interruption (e.g. with Ctrl-C in the REPL) | libregexp.c + libregexp.h clean apply (adds LRE_RET_MEMORY_ERROR/LRE_RET_TIMEOUT, lre_poll_timeout counter, and lre_check_timeout callback). quickjs.c conflicts resolved to take upstream's JS_ThrowInterrupted helper + LRE_RET_TIMEOUT branching while keeping fork's JS_ThrowInternalError file/line convention. Fixed trailing whitespace on one line of the new lre_check_timeout body. |
 | dfd9c93 | PENDING | added missing stack overflow check in JSON.stringify() |  |
 | 9bd10d8 | PENDING | simplified the handling of closures |  |
 | 1be68b3 | PENDING | fixed CONFIG_ALL_UNICODE compilation |  |
