@@ -175,7 +175,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | dfd9c93 | PORT | added missing stack overflow check in JSON.stringify() | Clean apply. Adds js_check_stack_overflow + JS_ThrowStackOverflow at the top of js_json_to_str so deeply-nested values throw cleanly instead of C-stack overflowing. |
 | 9bd10d8 | PORT | simplified the handling of closures | Clean apply. Dropped `is_arg` / `var_idx` fields from JSVarRef (now derived from `pvalue` directly); close_lexical_var's signature loses the `is_arg` parameter. get_var_ref's list walk now keys on pvalue identity. |
 | 1be68b3 | PORT | fixed CONFIG_ALL_UNICODE compilation | Clean apply. Moved unicode_case1, CASE_U/L/F macros, point_cmp, cr_sort_and_remove_overlap, and cr_regexp_canonicalize from inside `#ifdef CONFIG_ALL_UNICODE` to before it, so regexp case-folding compiles with CONFIG_ALL_UNICODE disabled. |
-| 837a697 | PENDING | regexp: allow [\-] in unicode mode (#373) |  |
+| 837a697 | PORT | regexp: allow [\-] in unicode mode (#373) | Clean apply. In get_class_atom's escape switch, added an explicit case for '-' that throws invalid_escape when `!inclass && s->is_unicode` — accepts `[\-]` inside a class, rejects bare `\-` in unicode mode. 1 test262 error resolved (unicode_restricted_identity_escape.js). |
 | 61e8b94 | PENDING | removed bignum support and qjscalc - added optimized BigInt implementation |  |
 | 543897a | PENDING | added missing variable |  |
 | ee4cd4d | PENDING | compilation fix |  |
