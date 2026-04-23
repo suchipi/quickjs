@@ -174,7 +174,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 25aaa77 | PORT | allow regexp interruption (e.g. with Ctrl-C in the REPL) | libregexp.c + libregexp.h clean apply (adds LRE_RET_MEMORY_ERROR/LRE_RET_TIMEOUT, lre_poll_timeout counter, and lre_check_timeout callback). quickjs.c conflicts resolved to take upstream's JS_ThrowInterrupted helper + LRE_RET_TIMEOUT branching while keeping fork's JS_ThrowInternalError file/line convention. Fixed trailing whitespace on one line of the new lre_check_timeout body. |
 | dfd9c93 | PORT | added missing stack overflow check in JSON.stringify() | Clean apply. Adds js_check_stack_overflow + JS_ThrowStackOverflow at the top of js_json_to_str so deeply-nested values throw cleanly instead of C-stack overflowing. |
 | 9bd10d8 | PORT | simplified the handling of closures | Clean apply. Dropped `is_arg` / `var_idx` fields from JSVarRef (now derived from `pvalue` directly); close_lexical_var's signature loses the `is_arg` parameter. get_var_ref's list walk now keys on pvalue identity. |
-| 1be68b3 | PENDING | fixed CONFIG_ALL_UNICODE compilation |  |
+| 1be68b3 | PORT | fixed CONFIG_ALL_UNICODE compilation | Clean apply. Moved unicode_case1, CASE_U/L/F macros, point_cmp, cr_sort_and_remove_overlap, and cr_regexp_canonicalize from inside `#ifdef CONFIG_ALL_UNICODE` to before it, so regexp case-folding compiles with CONFIG_ALL_UNICODE disabled. |
 | 837a697 | PENDING | regexp: allow [\-] in unicode mode (#373) |  |
 | 61e8b94 | PENDING | removed bignum support and qjscalc - added optimized BigInt implementation |  |
 | 543897a | PENDING | added missing variable |  |
