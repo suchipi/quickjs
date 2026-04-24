@@ -53,9 +53,6 @@ for (const suffix of ["HOST", "TARGET"]) {
   // Uncomment to print debug info
   // declareOrAppend(`DEFINES_${suffix}`, "-DDEBUG");
 
-  // enable 'use math' and BigFloat
-  declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_BIGNUM");
-
   if (getVar(`LTO_${suffix}`) === "y") {
     declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_LTO");
     declareOrAppend(`LDFLAGS_${suffix}`, "-flto");

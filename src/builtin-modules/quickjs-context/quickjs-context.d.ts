@@ -107,26 +107,6 @@ declare module "quickjs:context" {
       /** Enables `BigInt`. Defaults to `true`. */
       bigint?: boolean;
 
-      /** Enables `BigFloat`. Defaults to `true`. */
-      bigfloat?: boolean;
-
-      /** Enables `BigDecimal`. Defaults to `true`. */
-      bigdecimal?: boolean;
-
-      /**
-       * Enables:
-       *
-       * - Operators
-       * - OperatorSet creation
-       * - operator overloading
-       *
-       * Defaults to `true`.
-       */
-      operators?: boolean;
-
-      /** Enables `"use math"`. Defaults to `true`. */
-      useMath?: boolean;
-
       /** Enables `inspect`. Defaults to `true`. */
       inspect?: boolean;
       /** Enables `console`. Defaults to `true`. */

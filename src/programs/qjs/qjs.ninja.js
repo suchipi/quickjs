@@ -9,7 +9,6 @@ build({
   rule: "link_target",
   inputs: [
     qjs_target_o,
-    builddir("intermediate/qjscalc.target.o"),
     builddir("intermediate/repl.target.o"),
     builddir("intermediate/quickjs-full.target.a"),
   ],

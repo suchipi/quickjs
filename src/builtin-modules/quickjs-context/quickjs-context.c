@@ -69,7 +69,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     JSValue ret, options, global;
     JSContext *target_ctx;
     BOOL date, eval, stringNormalize, regExp, json, proxy, mapSet, typedArrays,
-        promise, bigint, bigfloat, bigdecimal, operators, useMath, inspect,
+        promise, bigint, inspect,
         console, print, moduleGlobals, timers;
     BOOL module_bytecode, module_cmdline, module_context, module_encoding,
         module_engine, module_os, module_std, module_timers;
@@ -103,18 +103,6 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "bigint", &bigint, TRUE)) {
-        return JS_EXCEPTION;
-    }
-    if (get_option_bool(ctx, options, "bigfloat", &bigfloat, TRUE)) {
-        return JS_EXCEPTION;
-    }
-    if (get_option_bool(ctx, options, "bigdecimal", &bigdecimal, TRUE)) {
-        return JS_EXCEPTION;
-    }
-    if (get_option_bool(ctx, options, "operators", &operators, TRUE)) {
-        return JS_EXCEPTION;
-    }
-    if (get_option_bool(ctx, options, "useMath", &useMath, TRUE)) {
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "inspect", &inspect, TRUE)) {
@@ -227,23 +215,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     if (promise) {
         JS_AddIntrinsicPromise(target_ctx);
     }
-#ifdef CONFIG_BIGNUM
     if (bigint) {
         JS_AddIntrinsicBigInt(target_ctx);
     }
-    if (bigfloat) {
-        JS_AddIntrinsicBigFloat(target_ctx);
-    }
-    if (bigdecimal) {
-        JS_AddIntrinsicBigDecimal(target_ctx);
-    }
-    if (operators) {
-        JS_AddIntrinsicOperators(target_ctx);
-    }
-    if (useMath) {
-        JS_EnableBignumExt(target_ctx, TRUE);
-    }
-#endif
     if (module_std) {
         js_init_module_std(target_ctx, "quickjs:std");
     }
