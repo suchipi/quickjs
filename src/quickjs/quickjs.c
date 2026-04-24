@@ -16526,6 +16526,10 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             *sp++ = JS_NewInt32(ctx, get_u32(pc));
             pc += 4;
             BREAK;
+        CASE(OP_push_bigint_i32):
+            *sp++ = __JS_NewShortBigInt(ctx, (int)get_u32(pc));
+            pc += 4;
+            BREAK;
         CASE(OP_push_const):
             *sp++ = JS_DupValue(ctx, b->cpool[get_u32(pc)]);
             pc += 4;
@@ -35435,17 +35439,9 @@ typedef enum BCTagEnum {
     BC_TAG_OBJECT_VALUE,
     BC_TAG_OBJECT_REFERENCE,
     BC_TAG_ERROR_OBJECT,
-#ifdef CONFIG_BIGNUM
-    BC_TAG_BIG_FLOAT,
-    BC_TAG_BIG_DECIMAL,
-#endif
 } BCTagEnum;
 
-#ifdef CONFIG_BIGNUM
-#define BC_BASE_VERSION 3
-#else
-#define BC_BASE_VERSION 2
-#endif
+#define BC_BASE_VERSION 4
 #define BC_BE_VERSION 0x40
 #ifdef WORDS_BIGENDIAN
 #define BC_VERSION (BC_BASE_VERSION | BC_BE_VERSION)

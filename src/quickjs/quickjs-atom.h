@@ -172,11 +172,6 @@ DEF(status, "status")
 DEF(reason, "reason")
 DEF(globalThis, "globalThis")
 DEF(bigint, "bigint")
-DEF(bigfloat, "bigfloat")
-DEF(bigdecimal, "bigdecimal")
-DEF(roundingMode, "roundingMode")
-DEF(maximumSignificantDigits, "maximumSignificantDigits")
-DEF(maximumFractionDigits, "maximumFractionDigits")
 /* the following 3 atoms are only used with SKIP_WORKER undefined, but
    the fork keeps all atoms defined unconditionally so the bytecode
    format stays compatible across differently-configured builds */
@@ -216,11 +211,6 @@ DEF(Float32Array, "Float32Array")
 DEF(Float64Array, "Float64Array")
 DEF(DataView, "DataView")
 DEF(BigInt, "BigInt")
-DEF(BigFloat, "BigFloat")
-DEF(BigFloatEnv, "BigFloatEnv")
-DEF(BigDecimal, "BigDecimal")
-DEF(OperatorSet, "OperatorSet")
-DEF(Operators, "Operators")
 DEF(Map, "Map")
 DEF(Set, "Set") /* Map + 1 */
 DEF(WeakMap, "WeakMap") /* Map + 2 */
@@ -264,7 +254,6 @@ DEF(Symbol_species, "Symbol.species")
 DEF(Symbol_unscopables, "Symbol.unscopables")
 DEF(Symbol_asyncIterator, "Symbol.asyncIterator")
 DEF(Symbol_typeofValue, "Symbol.typeofValue")
-DEF(Symbol_operatorSet, "Symbol.operatorSet")
 
 #else
 #error DEF was not defined when quickjs-atom.h was run.
