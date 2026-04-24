@@ -586,27 +586,6 @@ function float_arith(n) {
   return n * 1000;
 }
 
-function bigfloat_arith(n) {
-  var i, j, sum, a, incr, a0;
-  global_res = 0;
-  a0 = BigFloat("0.1");
-  incr = BigFloat("1.1");
-  for (j = 0; j < n; j++) {
-    sum = 0;
-    a = a0;
-    for (i = 0; i < 1000; i++) {
-      sum += a * a;
-      a += incr;
-    }
-    global_res += sum;
-  }
-  return n * 1000;
-}
-
-function float256_arith(n) {
-  return BigFloatEnv.setPrec(bigfloat_arith.bind(null, n), 237, 19);
-}
-
 function bigint_arith(n, bits) {
   var i, j, sum, a, incr, a0, sum0;
   sum0 = global_res = BigInt(0);
@@ -622,6 +601,10 @@ function bigint_arith(n, bits) {
     global_res += sum;
   }
   return n * 1000;
+}
+
+function bigint32_arith(n) {
+  return bigint_arith(n, 32);
 }
 
 function bigint64_arith(n) {
@@ -1049,12 +1032,9 @@ function main(options) {
 
   if (typeof BigInt == "function") {
     /* BigInt test */
+    allTests.bigint32_arith = bigint32_arith;
     allTests.bigint64_arith = bigint64_arith;
     allTests.bigint256_arith = bigint256_arith;
-  }
-  if (typeof BigFloat == "function") {
-    /* BigFloat test */
-    allTests.float256_arith = float256_arith;
   }
 
   if (options.sortBench?.verbose) {

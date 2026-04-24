@@ -15,8 +15,8 @@ async function qjs(args: Array<string>, debug?: boolean) {
 }
 
 describe("oldtests", () => {
-  test("test_bignum.js", async () => {
-    expect(await qjs(["--bignum", "./test_bignum.js"])).toMatchInlineSnapshot(`
+  test("test_bigint.js", async () => {
+    expect(await qjs(["./test_bigint.js"])).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -61,30 +61,6 @@ describe("oldtests", () => {
 
   test("test_loop.js", async () => {
     expect(await qjs(["./test_loop.js"])).toMatchInlineSnapshot(`
-      {
-        "code": 0,
-        "error": null,
-        "stderr": "",
-        "stdout": "",
-      }
-    `);
-  });
-
-  test("test_op_overloading.js", async () => {
-    expect(await qjs(["--bignum", "./test_op_overloading.js"]))
-      .toMatchInlineSnapshot(`
-      {
-        "code": 0,
-        "error": null,
-        "stderr": "",
-        "stdout": "",
-      }
-    `);
-  });
-
-  test("test_qjscalc.js", async () => {
-    expect(await qjs(["--qjscalc", "./test_qjscalc.js"]))
-      .toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,

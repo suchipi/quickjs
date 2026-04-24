@@ -14925,11 +14925,7 @@ static __exception int js_operator_typeof(JSContext *ctx, JSValueConst op1)
                     case JS_ATOM_object:
                     case JS_ATOM_boolean:
                     case JS_ATOM_number:
-#ifdef CONFIG_BIGNUM
                     case JS_ATOM_bigint:
-                    case JS_ATOM_bigfloat:
-                    case JS_ATOM_bigdecimal:
-#endif
                     case JS_ATOM_string:
                     case JS_ATOM_symbol:
                     case JS_ATOM_function:

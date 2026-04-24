@@ -160,7 +160,7 @@ test("Symbol.typeofValue - returning weird value 3", async () => {
   `);
 });
 
-test("Symbol.typeofValue - allowed return values (non-bignum)", async () => {
+test("Symbol.typeofValue - allowed return values", async () => {
   const run = spawn(
     binDir("qjs"),
     [
@@ -173,42 +173,8 @@ test("Symbol.typeofValue - allowed return values (non-bignum)", async () => {
           "number",
           "string",
           "symbol",
-          "function"
-        ]) {
-          const obj = { [Symbol.typeofValue]() { return value; } };
-          if (typeof obj !== value) {
-            throw new Error("Failed: " + value);
-          }
-        }
-
-        console.log("All good!");
-      `,
-    ],
-    { cwd: __dirname }
-  );
-  await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
-    {
-      "code": 0,
-      "error": null,
-      "stderr": "",
-      "stdout": "All good!
-    ",
-    }
-  `);
-});
-
-// if you are not compiling with CONFIG_BIGNUM, this test is expected to fail.
-test("Symbol.typeofValue - allowed return values (bignum-specific)", async () => {
-  const run = spawn(
-    binDir("qjs"),
-    [
-      "-e",
-      `
-        for (const value of [
+          "function",
           "bigint",
-          "bigfloat",
-          "bigdecimal",
         ]) {
           const obj = { [Symbol.typeofValue]() { return value; } };
           if (typeof obj !== value) {
