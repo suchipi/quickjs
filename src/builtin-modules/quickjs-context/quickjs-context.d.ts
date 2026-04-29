@@ -104,9 +104,6 @@ declare module "quickjs:context" {
        */
       promise?: boolean;
 
-      /** Enables `BigInt`. Defaults to `true`. */
-      bigint?: boolean;
-
       /** Enables `inspect`. Defaults to `true`. */
       inspect?: boolean;
       /** Enables `console`. Defaults to `true`. */

@@ -59,6 +59,7 @@ test("quickjs:context - example", async () => {
     	Symbol: Function "Symbol" {…}
     	eval: Function "eval" {…}
     	globalThis: -> {root}
+    	BigInt: Function "BigInt" {…}
     	@@toStringTag: "global"
     }
     true
@@ -857,27 +858,6 @@ test("quickjs:context - promise: false disables Promise", async () => {
       import { Context } from "quickjs:context";
       const ctx = new Context({ promise: false });
       console.log(ctx.eval("typeof Promise"));
-    `,
-  ]);
-  await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
-    {
-      "code": 0,
-      "error": null,
-      "stderr": "",
-      "stdout": "undefined
-    ",
-    }
-  `);
-});
-
-test("quickjs:context - bigint: false disables BigInt", async () => {
-  const run = spawn(binDir("qjs"), [
-    "-e",
-    `
-      import { Context } from "quickjs:context";
-      const ctx = new Context({ bigint: false });
-      console.log(ctx.eval("typeof BigInt"));
     `,
   ]);
   await run.completion;

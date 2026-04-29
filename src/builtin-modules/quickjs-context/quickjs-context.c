@@ -69,7 +69,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     JSValue ret, options, global;
     JSContext *target_ctx;
     BOOL date, eval, stringNormalize, regExp, json, proxy, mapSet, typedArrays,
-        promise, bigint, inspect,
+        promise, inspect,
         console, print, moduleGlobals, timers;
     BOOL module_bytecode, module_cmdline, module_context, module_encoding,
         module_engine, module_os, module_std, module_timers;
@@ -100,9 +100,6 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "promise", &promise, TRUE)) {
-        return JS_EXCEPTION;
-    }
-    if (get_option_bool(ctx, options, "bigint", &bigint, TRUE)) {
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "inspect", &inspect, TRUE)) {
@@ -214,9 +211,6 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
     if (promise) {
         JS_AddIntrinsicPromise(target_ctx);
-    }
-    if (bigint) {
-        JS_AddIntrinsicBigInt(target_ctx);
     }
     if (module_std) {
         js_init_module_std(target_ctx, "quickjs:std");

@@ -29,7 +29,6 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
   JS_AddIntrinsicMapSet(ctx);
   JS_AddIntrinsicTypedArrays(ctx);
   JS_AddIntrinsicPromise(ctx);
-  JS_AddIntrinsicBigInt(ctx);
   js_print_add_print_global(ctx);
   js_print_add_console_global(ctx);
   js_init_module_os(ctx, "quickjs:os");
