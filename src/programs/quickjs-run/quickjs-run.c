@@ -77,6 +77,7 @@ int main(int argc, char **argv)
   JS_SetMaxStackSize(rt, 8000000);
   QJMS_InitState(rt);
   JS_SetCanBlock(rt, TRUE);
+  JS_SetHostPromiseRejectionTracker(rt, QJU_PrintPromiseRejection, NULL);
   ctx = JS_NewCustomContext(rt);
   js_cmdline_add_scriptArgs(ctx, argc, argv);
   if (QJMS_InitContext(ctx, TRUE)) {

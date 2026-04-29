@@ -255,5 +255,6 @@ void QJU_PrintPromiseRejection(JSContext *ctx, JSValueConst promise,
   if (!is_handled) {
     fprintf(stderr, "Possibly unhandled promise rejection: ");
     QJU_PrintError(ctx, stderr, reason);
+    exit(1);
   }
 }

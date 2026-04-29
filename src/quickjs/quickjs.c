@@ -1072,6 +1072,7 @@ static void js_generator_finalizer(JSRuntime *rt, JSValue obj);
 static void js_generator_mark(JSRuntime *rt, JSValueConst val,
                                 JS_MarkFunc *mark_func);
 static void js_promise_finalizer(JSRuntime *rt, JSValue val);
+static void js_promise_set_handled(JSValueConst promise);
 static void js_promise_mark(JSRuntime *rt, JSValueConst val,
                                 JS_MarkFunc *mark_func);
 static void js_promise_resolve_function_finalizer(JSRuntime *rt, JSValue val);
@@ -19304,9 +19305,16 @@ static JSValue js_async_function_resolve_call(JSContext *ctx,
     return JS_UNDEFINED;
 }
 
-static JSValue js_async_function_call(JSContext *ctx, JSValueConst func_obj,
-                                      JSValueConst this_obj,
-                                      int argc, JSValueConst *argv, int flags)
+/* If `mark_handled` is TRUE, the resulting promise is marked as
+   already-handled before js_async_function_resume runs — used by
+   internal callers (sync module evaluator) that fully consume the
+   promise's result and rethrow rejections via JS_Throw, so the host's
+   unhandled-rejection tracker should not fire for those. */
+static JSValue js_async_function_call_internal(JSContext *ctx,
+                                               JSValueConst func_obj,
+                                               JSValueConst this_obj,
+                                               int argc, JSValueConst *argv,
+                                               BOOL mark_handled)
 {
     JSValue promise;
     JSAsyncFunctionState *s;
@@ -19321,11 +19329,22 @@ static JSValue js_async_function_call(JSContext *ctx, JSValueConst func_obj,
         return JS_EXCEPTION;
     }
 
+    if (mark_handled)
+        js_promise_set_handled(promise);
+
     js_async_function_resume(ctx, s);
 
     async_func_free(ctx->rt, s);
 
     return promise;
+}
+
+static JSValue js_async_function_call(JSContext *ctx, JSValueConst func_obj,
+                                      JSValueConst this_obj,
+                                      int argc, JSValueConst *argv, int flags)
+{
+    return js_async_function_call_internal(ctx, func_obj, this_obj,
+                                           argc, argv, FALSE);
 }
 
 /* AsyncGenerator */
@@ -28997,7 +29016,11 @@ static int js_execute_sync_module(JSContext *ctx, JSModuleDef *m,
         JSValue promise;
         JSPromiseStateEnum state;
 
-        promise = js_async_function_call(ctx, m->func_obj, JS_UNDEFINED, 0, NULL, 0);
+        /* mark_handled=TRUE: this promise is fully consumed below (we
+           extract its rejection value and propagate it via *pvalue). The
+           host's unhandled-rejection tracker should not fire for it. */
+        promise = js_async_function_call_internal(ctx, m->func_obj,
+                                                  JS_UNDEFINED, 0, NULL, TRUE);
         if (JS_IsException(promise))
             goto fail;
         state = JS_PromiseState(ctx, promise);
@@ -29135,9 +29158,14 @@ static int js_inner_module_evaluation(JSContext *ctx, JSModuleDef *m,
 }
 
 /* Run the <eval> function of the module and of all its requested
-   modules. Return a promise or an exception. */
+   modules. Return a promise or an exception. If mark_handled is TRUE,
+   the module's promise is marked as already-handled at creation time so
+   that a synchronous rejection during evaluation doesn't fire the host's
+   unhandled-rejection tracker — used by the sync wrapper which extracts
+   the rejection value and rethrows it via JS_Throw. */
 /* forward declaration */
-static JSValue js_evaluate_module_async(JSContext *ctx, JSModuleDef *m);
+static JSValue js_evaluate_module_async(JSContext *ctx, JSModuleDef *m,
+                                        BOOL mark_handled);
 
 /* Phase 1 of the synchronous evaluator: walk the module graph without
    running any code; if any reachable module uses top-level await, throw
@@ -29244,8 +29272,12 @@ static int js_evaluate_module_sync(JSContext *ctx, JSModuleDef *m)
         return -1;
 
     /* Phase 2: run the async evaluator. For a TLA-free graph it settles
-       immediately. */
-    promise = js_evaluate_module_async(ctx, m);
+       immediately. Pass mark_handled=TRUE so that if the module body
+       throws, the resulting rejection on m->promise doesn't fire the
+       host's unhandled-rejection tracker — we extract the rejection
+       value below and rethrow it via JS_Throw, which the caller's
+       try/catch will handle. */
+    promise = js_evaluate_module_async(ctx, m, TRUE);
     if (JS_IsException(promise))
         return -1;
     state = JS_PromiseState(ctx, promise);
@@ -29294,7 +29326,8 @@ JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
 /* Async module evaluator (spec-compliant Tarjan-DFS). Returns a promise
    that resolves once the module and all its async dependencies complete.
    Supports top-level await. */
-static JSValue js_evaluate_module_async(JSContext *ctx, JSModuleDef *m)
+static JSValue js_evaluate_module_async(JSContext *ctx, JSModuleDef *m,
+                                        BOOL mark_handled)
 {
     JSModuleDef *m1, *stack_top;
     JSValue ret_val, result;
@@ -29312,6 +29345,13 @@ static JSValue js_evaluate_module_async(JSContext *ctx, JSModuleDef *m)
     m->promise = JS_NewPromiseCapability(ctx, m->resolving_funcs);
     if (JS_IsException(m->promise))
         return JS_EXCEPTION;
+    if (mark_handled) {
+        /* Mark the promise as already-handled before any rejection can
+           fire. Used by the sync wrapper, which will extract the
+           rejection and rethrow it via JS_Throw — the host's
+           unhandled-rejection tracker should not fire for that. */
+        js_promise_set_handled(m->promise);
+    }
 
     stack_top = NULL;
     if (js_inner_module_evaluation(ctx, m, 0, &stack_top, &result) < 0) {
@@ -34690,7 +34730,7 @@ static JSValue JS_EvalFunctionInternal(JSContext *ctx, JSValue fun_obj,
             needs_async = FALSE;
         }
         if (needs_async) {
-            ret_val = js_evaluate_module_async(ctx, m);
+            ret_val = js_evaluate_module_async(ctx, m, FALSE);
             if (JS_IsException(ret_val)) {
             fail:
                 return JS_EXCEPTION;
@@ -48543,6 +48583,18 @@ typedef struct JSPromiseData {
     JSValue promise_result;
 } JSPromiseData;
 
+/* Mark a promise as already-handled. Used by internal sync paths that
+   will consume a rejected promise (e.g. by extracting the rejection
+   value and rethrowing it via JS_Throw) so that the host's
+   unhandled-rejection tracker doesn't fire for that rejection. No-op
+   if the value isn't a Promise. */
+static void js_promise_set_handled(JSValueConst promise)
+{
+    JSPromiseData *s = JS_GetOpaque(promise, JS_CLASS_PROMISE);
+    if (s)
+        s->is_handled = TRUE;
+}
+
 typedef struct JSPromiseFunctionDataResolved {
     int ref_count;
     BOOL already_resolved;
@@ -48637,6 +48689,25 @@ void JS_SetHostPromiseRejectionTracker(JSRuntime *rt,
     rt->host_promise_rejection_tracker_opaque = opaque;
 }
 
+/* Job: re-check is_handled after the current synchronous run unwinds,
+   then notify the host's rejection tracker if the promise is still
+   unhandled. Spec-aligned: HostPromiseRejectionTracker(reject) is
+   "deferred enough" that a same-tick .then/await/catch attached after
+   the rejection has time to flip is_handled to TRUE before we fire. */
+static JSValue js_promise_rejection_tracker_job(JSContext *ctx,
+                                                int argc, JSValueConst *argv)
+{
+    JSValueConst promise = argv[0];
+    JSValueConst reason = argv[1];
+    JSPromiseData *s = JS_GetOpaque(promise, JS_CLASS_PROMISE);
+    JSRuntime *rt = ctx->rt;
+    if (s && !s->is_handled && rt->host_promise_rejection_tracker) {
+        rt->host_promise_rejection_tracker(ctx, promise, reason, FALSE,
+                                           rt->host_promise_rejection_tracker_opaque);
+    }
+    return JS_UNDEFINED;
+}
+
 static void fulfill_or_reject_promise(JSContext *ctx, JSValueConst promise,
                                       JSValueConst value, BOOL is_reject)
 {
@@ -48655,8 +48726,13 @@ static void fulfill_or_reject_promise(JSContext *ctx, JSValueConst promise,
     if (s->promise_state == JS_PROMISE_REJECTED && !s->is_handled) {
         JSRuntime *rt = ctx->rt;
         if (rt->host_promise_rejection_tracker) {
-            rt->host_promise_rejection_tracker(ctx, promise, value, FALSE,
-                                               rt->host_promise_rejection_tracker_opaque);
+            /* Defer the tracker call to a microtask, so a same-tick
+               .then / await / catch has a chance to attach (and flip
+               s->is_handled to TRUE) before we report the rejection. */
+            JSValueConst job_args[2];
+            job_args[0] = promise;
+            job_args[1] = value;
+            JS_EnqueueJob(ctx, js_promise_rejection_tracker_job, 2, job_args);
         }
     }
 

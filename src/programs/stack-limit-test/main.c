@@ -51,6 +51,7 @@ int main(int argc, char **argv)
   rt = JS_NewRuntime();
   js_os_set_worker_new_context_func(JS_NewCustomContext);
   js_eventloop_init(rt);
+  JS_SetHostPromiseRejectionTracker(rt, QJU_PrintPromiseRejection, NULL);
 
   if (!strcmp(argv[1], "NONE")) {
     printf("skipping JS_SetMaxStackSize call\n");

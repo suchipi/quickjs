@@ -1,6 +1,7 @@
 #! (shebang test)
 import * as std from "quickjs:std";
 import * as os from "quickjs:os";
+import * as engine from "quickjs:engine";
 
 function assert(actual, expected, message) {
     if (arguments.length == 1)
@@ -280,7 +281,7 @@ function test_async_gc()
 
         let done = () => {
             obj
-            std.gc();
+            engine.gc();
         }
 
         Promise.resolve().then(done)
