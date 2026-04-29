@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -794,8 +795,10 @@ int JS_ToInt64Ext(JSContext *ctx, int64_t *pres, JSValueConst val);
 
 /* creates a string from a UTF-8 buffer. the buffer is copied. */
 JSValue JS_NewStringLen(JSContext *ctx, const char *str1, size_t len1);
-/* creates a string from a UTF-8 buffer. the buffer is copied. */
-JSValue JS_NewString(JSContext *ctx, const char *str);
+static inline JSValue JS_NewString(JSContext *ctx, const char *str)
+{
+    return JS_NewStringLen(ctx, str, strlen(str));
+}
 JSValue JS_NewAtomString(JSContext *ctx, const char *str);
 JSValue JS_ToString(JSContext *ctx, JSValueConst val);
 JSValue JS_ToPropertyKey(JSContext *ctx, JSValueConst val);
