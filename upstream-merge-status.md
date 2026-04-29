@@ -180,7 +180,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 543897a | PORT | added missing variable | Added `tab` to the `var` declaration in test_for_in2 in tests/oldtests/test_loop.js (was leaking to global). Trivial 1-line port of upstream's tests/test_loop.js fix. |
 | ee4cd4d | PORT | compilation fix | JSBigIntBuf's first field changed from `JSBigInt big_int` to `js_limb_t big_int_buf[sizeof(JSBigInt) / sizeof(js_limb_t)]`; the two callers (js_bigint_set_si, js_bigint_from_float64) updated to cast `(JSBigInt *)buf.big_int_buf`. Avoids embedding a flexible-array-member-bearing struct as a non-final field (UB / -Wgnu-flexible-array-union-member on some compilers). |
 | e9c69f7 | SKIP-NA | Fix multiarch CI builds | Touches upstream's `.github/workflows/ci.yml`, which the fork doesn't vendor (fork uses its own `ci_tests.yml`). |
-| 22dbf49 | PENDING | Merge pull request #391 from nickva/try-to-fix-multiplatform-builds |  |
+| 22dbf49 | SKIP-NA | Merge pull request #391 from nickva/try-to-fix-multiplatform-builds | Upstream's PR-merge of e9c69f7 (already SKIP-NA above); no additional content. |
 | 96e7965 | PENDING | removed the ability to do simultaneous 64 and 32 bit x86 builds in order to simplify the Makefile |  |
 | 6de8885 | PENDING | more bignum cleanup |  |
 | 5a16c0c | PENDING | fixed JS_DumpValue() for BigInt |  |
