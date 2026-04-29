@@ -11,3 +11,4 @@ cmake-build-debug
 .tmp
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+compile_commands.json

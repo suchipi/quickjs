@@ -55,4 +55,8 @@ else
 
   meta/ninja/generate.js src/**/*.ninja.js
   ninja
+  # Emit a compile_commands.json for clangd / IDE tooling. The fork's source
+  # tree splits headers across many src/lib/ subdirs, so without this clangd
+  # can't resolve includes like #include "cutils.h" in src/quickjs/quickjs.c.
+  ninja -t compdb cc_host cc_target > compile_commands.json
 fi
