@@ -7,3 +7,4 @@
 - [ ] get test262 stuff working and passing again
 - [x] TextEncoder and TextDecoder
 - [x] exec on windows
+- [ ] make automatic module-vs-script mode detection better
