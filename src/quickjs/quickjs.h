@@ -74,10 +74,8 @@ typedef uint32_t JSAtom;
 
 enum {
     /* all tags with a reference count are negative */
-    JS_TAG_FIRST       = -11, /* first negative tag */
-    JS_TAG_BIG_DECIMAL = -11,
-    JS_TAG_BIG_INT     = -10,
-    JS_TAG_BIG_FLOAT   = -9,
+    JS_TAG_FIRST       = -9, /* first negative tag */
+    JS_TAG_BIG_INT     = -9,
     JS_TAG_SYMBOL      = -8,
     JS_TAG_STRING      = -7,
     JS_TAG_MODULE      = -3, /* used internally */
@@ -477,12 +475,6 @@ void JS_AddIntrinsicMapSet(JSContext *ctx);
 void JS_AddIntrinsicTypedArrays(JSContext *ctx);
 void JS_AddIntrinsicPromise(JSContext *ctx);
 void JS_AddIntrinsicBigInt(JSContext *ctx);
-void JS_AddIntrinsicBigFloat(JSContext *ctx);
-void JS_AddIntrinsicBigDecimal(JSContext *ctx);
-/* enable operator overloading */
-void JS_AddIntrinsicOperators(JSContext *ctx);
-/* enable "use math" */
-void JS_EnableBignumExt(JSContext *ctx, JS_BOOL enable);
 
 JSValue js_string_codePointRange(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv);

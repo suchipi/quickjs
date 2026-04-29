@@ -230,8 +230,7 @@ struct JSClass {
 
 #define JS_MODE_STRICT (1 << 0)
 #define JS_MODE_STRIP  (1 << 1)
-#define JS_MODE_MATH   (1 << 2)
-#define JS_MODE_ASYNC  (1 << 3) /* async function */
+#define JS_MODE_ASYNC  (1 << 2) /* async function */
 
 typedef struct JSStackFrame {
     struct JSStackFrame *prev_frame; /* NULL if first stack frame */
@@ -242,7 +241,7 @@ typedef struct JSStackFrame {
     const uint8_t *cur_pc; /* only used in bytecode functions : PC of the
                         instruction after the call */
     int arg_count;
-    int js_mode; /* for C functions, only JS_MODE_MATH may be set */
+    int js_mode; /* not supported for C functions */
     /* only used in generators. Current stack pointer value. NULL if
        the function is running. */
     JSValue *cur_sp;
@@ -17959,8 +17958,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
                     int v1, v2;
-                    if (unlikely(sf->js_mode & JS_MODE_MATH))
-                        goto binary_arith_slow;
                     v1 = JS_VALUE_GET_INT(op1);
                     v2 = JS_VALUE_GET_INT(op2);
                     sp[-2] = JS_NewFloat64(ctx, (double)v1 / (double)v2);
@@ -37369,7 +37366,6 @@ static JSValue js_global_isNaN(JSContext *ctx, JSValueConst this_val,
 {
     double d;
 
-    /* XXX: does this work for bigfloat? */
     if (unlikely(JS_ToFloat64(ctx, &d, argv[0])))
         return JS_EXCEPTION;
     return JS_NewBool(ctx, isnan(d));
@@ -45783,7 +45779,6 @@ static JSValue js_json_check(JSContext *ctx, JSONStringifyContext *jsc,
 
     /* check for object.toJSON method */
     /* ECMA specifies this is done only for Object and BigInt */
-    /* we do it for BigFloat and BigDecimal as an extension */
     if (JS_IsObject(val) || JS_IsBigInt(ctx, val)
         ) {
         JSValue f = JS_GetProperty(ctx, val, JS_ATOM_toJSON);
@@ -51329,27 +51324,6 @@ void JS_AddIntrinsicBigInt(JSContext *ctx)
                                     ctx->class_proto[JS_CLASS_BIG_INT]);
     JS_SetPropertyFunctionList(ctx, obj1, js_bigint_funcs,
                                countof(js_bigint_funcs));
-}
-
-/* no-op stubs kept for ABI compatibility — the bignum extensions
-   (BigFloat / BigDecimal / operator overloading / "use math" mode)
-   were removed by upstream 61e8b94. The declarations stay in quickjs.h
-   so existing code that links against this library still builds; the
-   definitions here are intentionally empty. */
-void JS_AddIntrinsicBigFloat(JSContext *ctx)
-{
-}
-
-void JS_AddIntrinsicBigDecimal(JSContext *ctx)
-{
-}
-
-void JS_AddIntrinsicOperators(JSContext *ctx)
-{
-}
-
-void JS_EnableBignumExt(JSContext *ctx, JS_BOOL enable)
-{
 }
 
 static const char * const native_error_name[JS_NATIVE_ERROR_COUNT] = {
