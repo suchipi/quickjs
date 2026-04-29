@@ -232,6 +232,7 @@ struct JSClass {
 #define JS_MODE_STRICT (1 << 0)
 #define JS_MODE_STRIP  (1 << 1)
 #define JS_MODE_ASYNC  (1 << 2) /* async function */
+#define JS_MODE_BACKTRACE_BARRIER (1 << 3) /* stop backtrace before this frame */
 
 typedef struct JSStackFrame {
     struct JSStackFrame *prev_frame; /* NULL if first stack frame */
@@ -532,10 +533,9 @@ typedef struct JSFunctionBytecode {
     uint8_t super_allowed : 1;
     uint8_t arguments_allowed : 1;
     uint8_t has_debug : 1;
-    uint8_t backtrace_barrier : 1; /* stop backtrace on this function */
     uint8_t read_only_bytecode : 1;
     uint8_t is_direct_or_indirect_eval : 1; /* used by JS_GetScriptOrModuleName() */
-    /* XXX: 4 bits available */
+    /* XXX: 5 bits available */
     uint8_t *byte_code_buf; /* (self pointer) */
     int byte_code_len;
     JSAtom func_name;
@@ -6357,8 +6357,6 @@ static const char *get_func_name(JSContext *ctx, JSValueConst func)
 }
 
 #define JS_BACKTRACE_FLAG_SKIP_FIRST_LEVEL (1 << 0)
-/* only taken into account if filename is provided */
-#define JS_BACKTRACE_FLAG_SINGLE_LEVEL     (1 << 1)
 
 /* if filename != NULL, an additional level is added with the filename
    and line number information (used for parse error). */
@@ -6372,7 +6370,6 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
     const char *func_name_str;
     const char *str1;
     JSObject *p;
-    BOOL backtrace_barrier;
     /* Capture the first visible stack-frame's file/line so we can set
        them as own-props on the error even when the caller didn't pass an
        explicit `filename` — e.g. runtime `throw new Error(...)`. The
@@ -6392,10 +6389,10 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
         first_frame_filename_cstr = filename;
         first_frame_line_num = line_num;
         have_first_frame_info = TRUE;
-        if (backtrace_flags & JS_BACKTRACE_FLAG_SINGLE_LEVEL)
-            goto done;
     }
     for(sf = ctx->rt->current_stack_frame; sf != NULL; sf = sf->prev_frame) {
+        if (sf->js_mode & JS_MODE_BACKTRACE_BARRIER)
+            break;
         if (backtrace_flags & JS_BACKTRACE_FLAG_SKIP_FIRST_LEVEL) {
             backtrace_flags &= ~JS_BACKTRACE_FLAG_SKIP_FIRST_LEVEL;
             continue;
@@ -6432,14 +6429,12 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
         JS_FreeCString(ctx, func_name_str);
 
         p = JS_VALUE_GET_OBJ(sf->cur_func);
-        backtrace_barrier = FALSE;
         if (js_class_has_bytecode(p->class_id)) {
             JSFunctionBytecode *b;
             const char *atom_str;
             int line_num1;
 
             b = p->u.func.function_bytecode;
-            backtrace_barrier = b->backtrace_barrier;
             if (b->has_debug) {
                 line_num1 = find_line_num(ctx, b,
                                           sf->cur_pc - b->byte_code_buf - 1);
@@ -6460,11 +6455,7 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
             dbuf_printf(&dbuf, " (native)");
         }
         dbuf_putc(&dbuf, '\n');
-        /* stop backtrace if JS_EVAL_FLAG_BACKTRACE_BARRIER was used */
-        if (backtrace_barrier)
-            break;
     }
- done:
     /* Populate fileName / lineNumber own-props if we captured them from
        any frame. This runs for both the explicit-filename path (parser
        errors) and the runtime-throw path, so Error instances reliably
@@ -19509,7 +19500,6 @@ typedef struct JSFunctionDef {
     BOOL arguments_allowed; /* true if the 'arguments' identifier is allowed */
     BOOL is_derived_class_constructor;
     BOOL in_function_body;
-    BOOL backtrace_barrier;
     JSFunctionKindEnum func_kind : 8;
     JSParseFunctionEnum func_type : 8;
     uint8_t js_mode; /* bitmap of JS_MODE_x */
@@ -19762,16 +19752,12 @@ int __attribute__((format(printf, 2, 3))) js_parse_error(JSParseState *s, const 
 {
     JSContext *ctx = s->ctx;
     va_list ap;
-    int backtrace_flags;
 
     va_start(ap, fmt);
     JS_ThrowErrorWithEnum2(ctx, JS_SYNTAX_ERROR, fmt, ap, FALSE);
     va_end(ap);
-    backtrace_flags = 0;
-    if (s->cur_func && s->cur_func->backtrace_barrier)
-        backtrace_flags = JS_BACKTRACE_FLAG_SINGLE_LEVEL;
     build_backtrace(ctx, ctx->rt->current_exception, s->filename, s->line_num,
-                    backtrace_flags);
+                    0);
     return -1;
 }
 
@@ -24010,7 +23996,7 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
     parse_regexp:
         {
             JSValue str;
-            int ret, backtrace_flags;
+            int ret;
             if (!s->ctx->compile_regexp)
                 return js_parse_error(s, "RegExp are not supported");
             /* the previous token is '/' or '/=', so no need to free */
@@ -24021,12 +24007,8 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                                          s->token.u.regexp.flags);
             if (JS_IsException(str)) {
                 /* add the line number info */
-                backtrace_flags = 0;
-                if (s->cur_func && s->cur_func->backtrace_barrier)
-                    backtrace_flags = JS_BACKTRACE_FLAG_SINGLE_LEVEL;
                 build_backtrace(s->ctx, s->ctx->rt->current_exception,
-                                s->filename, s->token.line_num,
-                                backtrace_flags);
+                                s->filename, s->token.line_num, 0);
                 return -1;
             }
             ret = emit_push_const(s, str, 0);
@@ -33312,7 +33294,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
     b->super_call_allowed = fd->super_call_allowed;
     b->super_allowed = fd->super_allowed;
     b->arguments_allowed = fd->arguments_allowed;
-    b->backtrace_barrier = fd->backtrace_barrier;
     b->is_direct_or_indirect_eval = (fd->eval_type == JS_EVAL_TYPE_DIRECT ||
                                      fd->eval_type == JS_EVAL_TYPE_INDIRECT);
     b->realm = JS_DupContext(ctx);
@@ -34347,7 +34328,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     s->cur_func = fd;
     fd->eval_type = eval_type;
     fd->has_this_binding = (eval_type != JS_EVAL_TYPE_DIRECT);
-    fd->backtrace_barrier = ((flags & JS_EVAL_FLAG_BACKTRACE_BARRIER) != 0);
     if (eval_type == JS_EVAL_TYPE_DIRECT) {
         fd->new_target_allowed = b->new_target_allowed;
         fd->super_call_allowed = b->super_call_allowed;
@@ -34422,11 +34402,22 @@ static JSValue JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
                                const char *input, size_t input_len,
                                const char *filename, int flags, int scope_idx)
 {
+    BOOL backtrace_barrier = ((flags & JS_EVAL_FLAG_BACKTRACE_BARRIER) != 0);
+    int saved_js_mode = 0;
+    JSValue ret;
+
     if (unlikely(!ctx->eval_internal)) {
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "eval is not supported");
     }
-    return ctx->eval_internal(ctx, this_obj, input, input_len, filename,
-                              flags, scope_idx);
+    if (backtrace_barrier && ctx->rt->current_stack_frame) {
+        saved_js_mode = ctx->rt->current_stack_frame->js_mode;
+        ctx->rt->current_stack_frame->js_mode |= JS_MODE_BACKTRACE_BARRIER;
+    }
+    ret = ctx->eval_internal(ctx, this_obj, input, input_len, filename,
+                             flags, scope_idx);
+    if (backtrace_barrier && ctx->rt->current_stack_frame)
+        ctx->rt->current_stack_frame->js_mode = saved_js_mode;
+    return ret;
 }
 
 static JSValue JS_EvalObject(JSContext *ctx, JSValueConst this_obj,
@@ -34973,7 +34964,6 @@ static int JS_WriteFunctionTag(BCWriterState *s, JSValueConst obj)
     bc_set_flags(&flags, &idx, b->super_allowed, 1);
     bc_set_flags(&flags, &idx, b->arguments_allowed, 1);
     bc_set_flags(&flags, &idx, b->has_debug, 1);
-    bc_set_flags(&flags, &idx, b->backtrace_barrier, 1);
     bc_set_flags(&flags, &idx, b->is_direct_or_indirect_eval, 1);
     assert(idx <= 16);
     bc_put_u16(s, flags);
@@ -35933,7 +35923,6 @@ static JSValue JS_ReadFunctionTag(BCReaderState *s)
     bc.super_allowed = bc_get_flags(v16, &idx, 1);
     bc.arguments_allowed = bc_get_flags(v16, &idx, 1);
     bc.has_debug = bc_get_flags(v16, &idx, 1);
-    bc.backtrace_barrier = bc_get_flags(v16, &idx, 1);
     bc.is_direct_or_indirect_eval = bc_get_flags(v16, &idx, 1);
     bc.read_only_bytecode = s->is_rom_data;
     if (bc_get_u8(s, &v8))
