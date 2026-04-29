@@ -1,6 +1,5 @@
 const deps_host = [
   builddir("intermediate/cutils.host.o"),
-  builddir("intermediate/libbf.host.o"),
   builddir("intermediate/libregexp.host.o"),
   builddir("intermediate/libunicode.host.o"),
   builddir("intermediate/quickjs.host.o"),
@@ -15,7 +14,6 @@ const deps_host = [
 
 const deps_target = [
   builddir("intermediate/cutils.target.o"),
-  builddir("intermediate/libbf.target.o"),
   builddir("intermediate/libregexp.target.o"),
   builddir("intermediate/libunicode.target.o"),
   builddir("intermediate/quickjs.target.o"),

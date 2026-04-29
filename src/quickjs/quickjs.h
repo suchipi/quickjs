@@ -329,11 +329,7 @@ static inline JS_BOOL JS_VALUE_IS_NAN(JSValue v)
     return (u.u64 & 0x7fffffffffffffff) > 0x7ff0000000000000;
 }
 
-#if JS_SHORT_BIG_INT_BITS == 32
-static inline JSValue __JS_NewShortBigInt(JSContext *ctx, int32_t d)
-#else
 static inline JSValue __JS_NewShortBigInt(JSContext *ctx, int64_t d)
-#endif
 {
     JSValue v;
     v.tag = JS_TAG_SHORT_BIG_INT;
