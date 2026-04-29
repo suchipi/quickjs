@@ -22,7 +22,7 @@ index 9828b15..4a5919d 100644
 
  /**
 diff --git a/harness/regExpUtils.js b/harness/regExpUtils.js
-index b55f3c6..396bad4 100644
+index b397be0..c197ddc 100644
 --- a/harness/regExpUtils.js
 +++ b/harness/regExpUtils.js
 @@ -6,27 +6,30 @@ description: |
