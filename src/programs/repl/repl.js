@@ -984,12 +984,12 @@ import * as os from "quickjs:os";
     }
     mexpr = "";
 
-    eval_and_print_start(expr, true);
+    eval_and_print_start(expr);
 
     return true;
   }
 
-  function eval_and_print_start(expr, is_async) {
+  function eval_and_print_start(expr) {
     var result;
 
     try {
@@ -997,14 +997,10 @@ import * as os from "quickjs:os";
       /* eval as a script */
       result = engine.evalScript(expr, {
         backtraceBarrier: true,
-        async: is_async,
+        async: true,
       });
-      if (is_async) {
-        /* result is a promise */
-        result.then(print_eval_result, print_eval_error);
-      } else {
-        print_eval_result({ value: result });
-      }
+      /* result is a promise */
+      result.then(print_eval_result, print_eval_error);
     } catch (error) {
       print_eval_error(error);
     }

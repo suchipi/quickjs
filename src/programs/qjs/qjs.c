@@ -431,6 +431,7 @@ int main(int argc, char **argv)
                 goto fail;
         }
         if (interactive) {
+            JS_SetHostPromiseRejectionTracker(rt, NULL, NULL);
             QJMS_EvalBinary(ctx, qjsc_repl, qjsc_repl_size, 0, NULL);
         }
         exit_status = js_eventloop_run(ctx);
