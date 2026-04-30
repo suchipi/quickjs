@@ -128,6 +128,8 @@ test("globals", async () => {
     DataView: function (CW)
     Atomics: object (CW)
     Promise: function (CW)
+    WeakRef: function (CW)
+    FinalizationRegistry: function (CW)
     inspect: function (CWE)
     print: function (CWE)
     console: object (CWE)
