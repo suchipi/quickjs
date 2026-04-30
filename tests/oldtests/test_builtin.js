@@ -863,6 +863,30 @@ function test_weak_map() {
   /* the WeakMap should be empty here */
 }
 
+function test_weak_map_cycles() {
+  const weak1 = new WeakMap();
+  const weak2 = new WeakMap();
+  function createCyclicKey() {
+    const parent = {};
+    const child = { parent };
+    parent.child = child;
+    return child;
+  }
+  function testWeakMap() {
+    const cyclicKey = createCyclicKey();
+    const valueOfCyclicKey = {};
+    weak1.set(cyclicKey, valueOfCyclicKey);
+    weak2.set(valueOfCyclicKey, 1);
+  }
+  testWeakMap();
+  // Force to free cyclicKey.
+  require("quickjs:engine").gc();
+  // Here will cause sigsegv because [cyclicKey] and [valueOfCyclicKey] in [weak1] was free,
+  // but weak2's map record was not removed, and it's key refers [valueOfCyclicKey] which is free.
+  weak2.get({});
+  require("quickjs:engine").gc();
+}
+
 function test_weak_ref() {
   var w1, w2, o, i;
 
@@ -1002,6 +1026,7 @@ test_regexp();
 test_symbol();
 test_map();
 test_weak_map();
+test_weak_map_cycles();
 test_weak_ref();
 test_finalization_registry();
 test_generator();
