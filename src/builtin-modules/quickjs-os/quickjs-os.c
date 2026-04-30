@@ -4050,6 +4050,33 @@ void js_os_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt))
 #endif
 }
 
+static JSValue js_os_now(JSContext *ctx, JSValueConst this_val,
+                         int argc, JSValueConst *argv);
+
+/* Per upstream f05760c — exposes `performance.now()` as a global,
+   wrapping the same gettime_ns()-based implementation as `os.now()`.
+   Upstream wires this in from js_std_add_helpers; the fork wires it
+   in from quickjs_full_init_globals to keep with the per-module
+   global-injection pattern (see js_print_add_*, js_timers_add_globals,
+   etc.). */
+void js_os_add_performance_global(JSContext *ctx)
+{
+    JSValue global_obj, performance;
+    JSSyntheticStackFrame *ssf;
+
+    ssf = JS_PushSyntheticStackFrame(ctx, "js_os_add_performance_global", "quickjs-os.c", __LINE__);
+
+    global_obj = JS_GetGlobalObject(ctx);
+
+    performance = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, performance, "now",
+                      JS_NewCFunction(ctx, js_os_now, "now", 0));
+    JS_SetPropertyStr(ctx, global_obj, "performance", performance);
+
+    JS_FreeValue(ctx, global_obj);
+    JS_PopSyntheticStackFrame(ctx, ssf);
+}
+
 /**********************************************************/
 /* Poll function */
 

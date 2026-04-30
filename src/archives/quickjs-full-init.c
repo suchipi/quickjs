@@ -40,6 +40,7 @@ static int quickjs_full_init_globals(JSContext *ctx)
     js_print_add_print_global(ctx);
     js_print_add_console_global(ctx);
     js_timers_add_globals(ctx);
+    js_os_add_performance_global(ctx);
 
     return 0;
 }

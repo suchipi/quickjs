@@ -35,6 +35,12 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name);
 
 void js_os_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt));
 
+/* Adds a `performance` object to globalThis with a single `now` method
+   wrapping js_os_now. Per upstream f05760c — the fork wires this in
+   from quickjs_full_init_globals rather than upstream's
+   js_std_add_helpers. */
+void js_os_add_performance_global(JSContext *ctx);
+
 /* exported for QMJS module-impl.js */
 JSValue js_os_realpath(JSContext *ctx, JSValueConst this_val,
                        int argc, JSValueConst *argv);
