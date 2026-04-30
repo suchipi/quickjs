@@ -386,7 +386,9 @@ JSClassID JS_VALUE_GET_CLASS_ID(JSValue v);
 #define JS_PROP_NO_ADD           (1 << 16) /* internal use */
 #define JS_PROP_NO_EXOTIC        (1 << 17) /* internal use */
 
-#define JS_DEFAULT_STACK_SIZE (256 * 1024)
+#ifndef JS_DEFAULT_STACK_SIZE
+#define JS_DEFAULT_STACK_SIZE (1024 * 1024)
+#endif
 
 /* JS_Eval() flags */
 #define JS_EVAL_TYPE_GLOBAL   (0 << 0) /* global code (default) */
