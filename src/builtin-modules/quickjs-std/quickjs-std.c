@@ -1782,13 +1782,18 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
     JS_CFUNC_DEF("setvbuf", 2, js_std_file_setvbuf ),
 };
 
+/* Initialize FILE class. Safe to call multiple times.
+
+   The class id is process-global (allocated once); the class definition
+   must be registered per JSRuntime, and the prototype set per JSContext.
+   Worker threads each get their own runtime, so an early-return on
+   `js_std_file_class_id != 0` would skip registering the class in the
+   worker's runtime — leading to a SIGBUS on free_object when a FILE
+   instance from worker code reaches its finalizer with the worker's
+   class_array missing the entry. */
 static void js_std_ensure_file_class_init(JSContext *ctx)
 {
-    if (js_std_file_class_id != 0)
-        return;
-    /* the class ID is created once */
     JS_NewClassID(&js_std_file_class_id);
-    /* the class is created once per runtime */
     JS_NewClass(JS_GetRuntime(ctx), js_std_file_class_id, &js_std_file_class);
     JSValue proto = JS_NewObject(ctx);
     JS_SetPropertyFunctionList(ctx, proto, js_std_file_proto_funcs,
