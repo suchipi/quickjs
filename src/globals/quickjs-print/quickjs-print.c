@@ -27,6 +27,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val,
         JS_FreeCString(ctx, str);
     }
     putc('\n', out);
+    fflush(out);
     return JS_UNDEFINED;
 }
 

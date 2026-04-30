@@ -44,8 +44,8 @@ test("os.exec - run a command with block: false and waitpid", async () => {
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "hello async
-    got pid: true
+      "stdout": "got pid: true
+    hello async
     exited: true
     exit code: 0
     ",
