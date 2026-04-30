@@ -744,7 +744,7 @@ int main(int argc, char **argv)
         for(i = 0; i < cname_list.count; i++) {
             namelist_entry_t *e = &cname_list.array[i];
             if (e->flags) {
-                fprintf(fo, "  QJMS_EvalBinary(ctx, %s, %s_size, 1);\n",
+                fprintf(fo, "  QJMS_EvalBinary(ctx, %s, %s_size, 1, NULL);\n",
                         e->name, e->name);
             }
         }
@@ -780,7 +780,7 @@ int main(int argc, char **argv)
         for(i = 0; i < cname_list.count; i++) {
             namelist_entry_t *e = &cname_list.array[i];
             if (!e->flags) {
-                fprintf(fo, "  QJMS_EvalBinary(ctx, %s, %s_size, 0);\n",
+                fprintf(fo, "  QJMS_EvalBinary(ctx, %s, %s_size, 0, NULL);\n",
                         e->name, e->name);
             }
         }

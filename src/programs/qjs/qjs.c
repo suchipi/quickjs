@@ -431,7 +431,7 @@ int main(int argc, char **argv)
                 goto fail;
         }
         if (interactive) {
-            QJMS_EvalBinary(ctx, qjsc_repl, qjsc_repl_size, 0);
+            QJMS_EvalBinary(ctx, qjsc_repl, qjsc_repl_size, 0, NULL);
         }
         exit_status = js_eventloop_run(ctx);
         /* A top-level-await rejection in the entry module should behave

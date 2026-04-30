@@ -36,12 +36,28 @@ JS_BOOL QJMS_IsMainModule(JSContext *ctx, const char *module_name);
 int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val);
 
 /*
+  All QJMS_Eval* functions below share an error-reporting contract:
+
+  On synchronous error, the function returns -1, AND the pending exception
+  is reported (via QJU_ReportException — which prints to stderr by default,
+  or routes via the worker error-send pipe for Worker runtimes) AND consumed
+  (via JS_GetException). Callers should NOT call QJU_PrintException afterwards
+  — the exception slot is empty by the time we return, and a second print
+  produces "thrown non-Error value: [unsupported type]".
+
+  TLA-rejection behavior in the *Async variants is separate: the rejection
+  reason is reported by the entry-module rejection handler installed by
+  QJMS_AttachEntryRejectionHandler, which fires when the eventloop drives
+  the promise to settlement. QJMS_EntryModuleRejected lets the caller
+  observe whether that happened.
+*/
+
+/*
   Synchronously evaluate buf as script/module. For module input, throws
   TypeError if the module (or any of its transitive imports) uses
   top-level await — synchronous load is Zalgo-unsafe for TLA modules.
 
-  returns 0 on success, nonzero on error.
-  in case of error, prints error to stderr before returning.
+  Returns 0 on success, -1 on error. See contract above.
 */
 int QJMS_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
                  const char *filename, int eval_flags);
@@ -52,8 +68,8 @@ int QJMS_EvalBuf(JSContext *ctx, const void *buf, int buf_len,
   caller is expected to pump the event loop (e.g. js_eventloop_run) to
   drive it to completion. Supports top-level await.
 
-  returns 0 on success (including when the module has not yet finished
-  executing), nonzero on synchronous error.
+  Returns 0 on success (including when the module has not yet finished
+  executing), -1 on synchronous error. See contract above.
 */
 int QJMS_EvalBufAsync(JSContext *ctx, const void *buf, int buf_len,
                       const char *filename, int eval_flags);
@@ -62,8 +78,8 @@ int QJMS_EvalBufAsync(JSContext *ctx, const void *buf, int buf_len,
   module can be -1 for autodetect.
   Synchronously evaluates the file; see QJMS_EvalBuf for the TLA
   constraint.
-  returns 0 on success, nonzero on error.
-  in case of error, prints error to stderr before returning.
+
+  Returns 0 on success, -1 on error. See contract above.
 */
 int QJMS_EvalFile(JSContext *ctx, const char *filename, int module);
 
@@ -76,17 +92,24 @@ int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module);
 /*
   Synchronously evaluates bytecode. Throws TypeError if the bytecode is
   a module that uses top-level await.
-  returns 0 on success, nonzero on error.
-  in case of error, prints error to stderr before returning.
+
+  filename_override (may be NULL): when non-NULL and the bytecode is a
+  module, the loaded module's name is overridden to filename_override
+  before its imports are resolved. Used by qjsbootstrap-bytecode to
+  anchor relative imports at the bootstrap binary's location instead
+  of whatever filename was baked into the bytecode at compile time.
+
+  Returns 0 on success, -1 on error. See contract above.
 */
 int QJMS_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                    int load_only);
+                    int load_only, const char *filename_override);
 
 /*
-  Async variant of QJMS_EvalBinary. See QJMS_EvalBufAsync for semantics.
+  Async variant of QJMS_EvalBinary. See QJMS_EvalBufAsync for semantics
+  and QJMS_EvalBinary for the filename_override parameter.
 */
 int QJMS_EvalBinaryAsync(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                         int load_only);
+                         int load_only, const char *filename_override);
 
 /* the internal behavior of the 'require' function, exposed as a C API */
 JSValue QJMS_Require(JSContext *ctx, JSValueConst specifier);

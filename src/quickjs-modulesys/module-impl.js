@@ -109,10 +109,21 @@ globalThis.__qjms_temp_ModuleDelegate_init =
           )})`
         );
       } catch (err) {
+        // Build the cause's "Error: message" header explicitly: QuickJS's
+        // err.stack contains only stack frames, not the V8/Node-style
+        // "<name>: <message>" header. So appending err.stack after
+        // "Caused by:\n" would produce a body with no visible cause
+        // message. Also adopt the standard `cause` Error option so the
+        // cause is programmatically inspectable, not just baked into the
+        // stack string.
+        const causeHeader =
+          (err.name || "Error") + (err.message ? ": " + err.message : "");
         const newErr = new Error(
-          `Failed to resolve '${name}' from '${baseName}': ${err.message}`
+          `Failed to resolve '${name}' from '${baseName}': ${err.message}`,
+          { cause: err }
         );
-        newErr.stack = newErr.stack + "Caused by:\n" + err.stack;
+        newErr.stack =
+          newErr.stack + "Caused by: " + causeHeader + "\n" + err.stack;
         throw newErr;
       }
     };

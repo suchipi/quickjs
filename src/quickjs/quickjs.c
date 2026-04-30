@@ -28510,6 +28510,50 @@ JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m)
     return JS_DupAtom(ctx, m->module_name);
 }
 
+/* Replace the module's stored name. Used by embedders that load a
+   pre-compiled module (e.g. bytecode appended to a bootstrap binary)
+   and want its relative-import resolution anchored at a runtime path
+   rather than the name baked in at compile time.
+
+   Renames both the module's own name (used by static-import resolution
+   via js_host_resolve_imported_module's basename) AND its body
+   bytecode's debug.filename (used by JS_GetScriptOrModuleName, which
+   require()/dynamic import() consult to resolve relative paths from
+   inside the module body). Without renaming both, runtime calls would
+   still resolve against the compile-time filename. */
+int JS_SetModuleName(JSContext *ctx, JSModuleDef *m, const char *new_name)
+{
+    JSAtom new_atom;
+    new_atom = JS_NewAtom(ctx, new_name);
+    if (new_atom == JS_ATOM_NULL)
+        return -1;
+    JS_FreeAtom(ctx, m->module_name);
+    m->module_name = JS_DupAtom(ctx, new_atom);
+    /* Also update the module body's debug filename if present, so
+       require()/dynamic-import() inside the module resolve relative
+       paths against the new name. The module's func_obj is a
+       JS_TAG_FUNCTION_BYTECODE before JS_EvalFunction is called and a
+       JS_TAG_OBJECT after; handle both. */
+    {
+        int tag = JS_VALUE_GET_TAG(m->func_obj);
+        JSFunctionBytecode *b = NULL;
+        if (tag == JS_TAG_FUNCTION_BYTECODE) {
+            b = JS_VALUE_GET_PTR(m->func_obj);
+        } else if (tag == JS_TAG_OBJECT) {
+            JSObject *p = JS_VALUE_GET_OBJ(m->func_obj);
+            if (js_class_has_bytecode(p->class_id)) {
+                b = p->u.func.function_bytecode;
+            }
+        }
+        if (b && b->has_debug) {
+            JS_FreeAtom(ctx, b->debug.filename);
+            b->debug.filename = JS_DupAtom(ctx, new_atom);
+        }
+    }
+    JS_FreeAtom(ctx, new_atom);
+    return 0;
+}
+
 JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m)
 {
     JSValue obj;

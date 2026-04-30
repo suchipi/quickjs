@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     exit_status = 1;
     goto cleanup;
   }
-  QJMS_EvalBinary(ctx, qjsc_loop, qjsc_loop_size, 0);
+  QJMS_EvalBinary(ctx, qjsc_loop, qjsc_loop_size, 0, NULL);
 cleanup:
   exit_status = js_eventloop_run(ctx);
   QJMS_FreeState(rt);

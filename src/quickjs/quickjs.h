@@ -1050,6 +1050,12 @@ void *JS_GetModuleLoaderOpaque(JSRuntime *rt);
 /* return the import.meta object of a module. you'll have to free it when done */
 JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);
 JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m);
+/* Replace the module's stored name. Returns 0 on success, -1 on
+   exception (e.g. atom-allocation failure). Used by embedders that
+   load a pre-compiled module and want imports resolved against a
+   runtime-determined path rather than the name baked in at compile
+   time. */
+int JS_SetModuleName(JSContext *ctx, JSModuleDef *m, const char *new_name);
 JSValue JS_GetModuleNamespace(JSContext *ctx, JSModuleDef *m);
 
 /* JS Job support */

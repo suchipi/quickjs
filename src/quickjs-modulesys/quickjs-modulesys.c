@@ -683,15 +683,29 @@ int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module)
    is TRUE and the bytecode is a module, the returned promise carries a
    rejection handler so a top-level-await rejection reaches the driver's
    exit path rather than being silently swallowed as an unhandled rejection.
-   See QJMS_AttachEntryRejectionHandler. */
+   See QJMS_AttachEntryRejectionHandler.
+
+   filename_override (may be NULL): when non-NULL and the loaded object
+   is a module, replace the module's stored name with filename_override
+   before resolving its imports. Used by embedders (e.g. qjsbootstrap-bytecode)
+   that need relative-import resolution anchored at a runtime path
+   rather than the name baked in at compile time. */
 static int qjms_eval_binary_impl(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                                 int load_only, BOOL is_async)
+                                 int load_only, BOOL is_async,
+                                 const char *filename_override)
 {
     JSValue obj, val;
     BOOL attach_handler = FALSE;
     obj = JS_ReadObject(ctx, buf, buf_len, JS_READ_OBJ_BYTECODE);
     if (JS_IsException(obj)) {
       goto exception;
+    }
+    if (filename_override != NULL && JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
+      JSModuleDef *m = JS_VALUE_GET_PTR(obj);
+      if (JS_SetModuleName(ctx, m, filename_override) < 0) {
+        JS_FreeValue(ctx, obj);
+        goto exception;
+      }
     }
     if (load_only) {
       if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
@@ -732,15 +746,17 @@ exception:
 }
 
 int QJMS_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                    int load_only)
+                    int load_only, const char *filename_override)
 {
-    return qjms_eval_binary_impl(ctx, buf, buf_len, load_only, /*is_async=*/FALSE);
+    return qjms_eval_binary_impl(ctx, buf, buf_len, load_only,
+                                 /*is_async=*/FALSE, filename_override);
 }
 
 int QJMS_EvalBinaryAsync(JSContext *ctx, const uint8_t *buf, size_t buf_len,
-                         int load_only)
+                         int load_only, const char *filename_override)
 {
-    return qjms_eval_binary_impl(ctx, buf, buf_len, load_only, /*is_async=*/TRUE);
+    return qjms_eval_binary_impl(ctx, buf, buf_len, load_only,
+                                 /*is_async=*/TRUE, filename_override);
 }
 
 /*
@@ -945,7 +961,7 @@ static JSValue QJMS_MakeModuleDelegateObject(JSContext *ctx)
     JS_SetProperty(ctx, global_obj, temp_ModuleDelegate_atom, module_delegate);
     ssf2 = JS_PushSyntheticStackFrame(ctx, "qjsc_module_impl", "<internal>/src/quickjs-modulesys/module-impl.js", -1);
     // Defines __qjms_temp_ModuleDelegate_init
-    QJMS_EvalBinary(ctx, qjsc_module_impl, qjsc_module_impl_size, 0);
+    QJMS_EvalBinary(ctx, qjsc_module_impl, qjsc_module_impl_size, 0, NULL);
     JS_PopSyntheticStackFrame(ctx, ssf2);
 
     temp_ModuleDelegate_init = JS_GetProperty(ctx, global_obj, temp_ModuleDelegate_init_atom);

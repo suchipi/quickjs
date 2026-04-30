@@ -87,8 +87,11 @@ int main(int argc, char **argv)
   }
 
   /* Async evaluation — TLA support via the event loop below. */
+  /* QJMS_EvalFileAsync prints its own exception via QJU_ReportException
+     and consumes it before returning -1; do not call QJU_PrintException
+     here (it would re-fetch a now-empty exception slot and print
+     "thrown non-Error value: [unsupported type]"). */
   if (QJMS_EvalFileAsync(ctx, filename, -1)) {
-    QJU_PrintException(ctx, stderr);
     exit_status = 1;
     goto cleanup;
   }

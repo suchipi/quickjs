@@ -196,8 +196,17 @@ int main(int argc, char **argv)
 #ifdef CONFIG_BYTECODE
   /* Async so top-level await in the embedded bytecode module works.
      A top-level rejection is printed by the handler installed in
-     QJMS_EvalBinaryAsync and surfaces as exit_status 1 below. */
-  if (QJMS_EvalBinaryAsync(ctx, appended_code, appended_code_len, 0)) {
+     QJMS_EvalBinaryAsync and surfaces as exit_status 1 below.
+
+     filename_override = self_binary_path: anchor relative imports at
+     the bootstrap binary's location, matching the source-mode path
+     below (which passes self_binary_path directly to QJMS_EvalBufAsync).
+     Without this, imports in the bytecoded module would resolve
+     relative to whatever filename was baked in at compile time
+     (typically just the source's basename), and `./foo` / `../bar`
+     style imports would fail. */
+  if (QJMS_EvalBinaryAsync(ctx, appended_code, appended_code_len, 0,
+                           self_binary_path)) {
     free(self_binary_path);
     return 1;
   }
