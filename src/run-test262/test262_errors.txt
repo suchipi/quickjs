@@ -13,18 +13,6 @@ test262/test/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined-pois
 test262/test/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined-return-not-object.js:72: TypeError: $DONE() not called
 test262/test/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined-return-object.js:66: TypeError: $DONE() not called
 test262/test/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined.js:41: TypeError: $DONE() not called
-test262/test/built-ins/Date/prototype/setDate/date-value-read-before-tonumber-when-date-is-invalid.js:25: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setHours/date-value-read-before-tonumber-when-date-is-invalid.js:28: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setMilliseconds/date-value-read-before-tonumber-when-date-is-invalid.js:25: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setMinutes/date-value-read-before-tonumber-when-date-is-invalid.js:27: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setMonth/date-value-read-before-tonumber-when-date-is-invalid.js:26: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setSeconds/date-value-read-before-tonumber-when-date-is-invalid.js:26: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setUTCDate/date-value-read-before-tonumber-when-date-is-invalid.js:25: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setUTCHours/date-value-read-before-tonumber-when-date-is-invalid.js:28: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setUTCMilliseconds/date-value-read-before-tonumber-when-date-is-invalid.js:25: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setUTCMinutes/date-value-read-before-tonumber-when-date-is-invalid.js:27: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setUTCMonth/date-value-read-before-tonumber-when-date-is-invalid.js:26: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
-test262/test/built-ins/Date/prototype/setUTCSeconds/date-value-read-before-tonumber-when-date-is-invalid.js:26: Test262Error: time updated in valueOf Expected SameValue(«NaN», «0») to be true
 test262/test/built-ins/Function/prototype/arguments/prop-desc.js:31: Test262Error: Function.prototype.arguments property getter/setter are the same function Expected SameValue(«function () {
     [native code]
 }», «function () {

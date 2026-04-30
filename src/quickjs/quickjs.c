@@ -50532,8 +50532,16 @@ static JSValue set_date_field(JSContext *ctx, JSValueConst this_val,
             any_nonfinite = TRUE;
     }
 
-    /* Step 3: build new fields if thisTimeValue is not NaN and all values finite. */
-    if (res && !any_nonfinite && argc > 0) {
+    /* Step 3: if the stored time was NaN, return NaN without touching
+       the Date's [[DateValue]]. A coercion in step 2 may have called
+       valueOf, which itself can mutate `this`'s time slot — and the
+       spec says we must preserve that side effect rather than
+       overwriting it via SetThisTimeValue. */
+    if (!res)
+        return JS_NAN;
+
+    /* Step 4: build new fields if all values were finite. */
+    if (!any_nonfinite && argc > 0) {
         for(i = 0; i < n; i++) {
             fields[first_field + i] = trunc(values[i]);
         }
