@@ -249,6 +249,8 @@ void help(void)
            "    --memory-limit n  limit the memory usage to 'n' bytes (SI suffixes allowed)\n"
            "    --stack-size n    limit the stack size to 'n' bytes (SI suffixes allowed)\n"
            "    --no-unhandled-rejection  ignore unhandled promise rejections\n"
+           "-s                    strip all the debug info\n"
+           "    --strip-source    strip the source code\n"
            "-q  --quit         just instantiate the interpreter and quit\n");
     exit(1);
 }
@@ -271,6 +273,7 @@ int main(int argc, char **argv)
     char *include_list[32];
     int i, include_count = 0;
     size_t stack_size = 0;
+    int strip_flags = 0;
     int exit_status = 0;
 
     /* cannot use getopt because we want to pass the command line to
@@ -370,6 +373,14 @@ int main(int argc, char **argv)
                 stack_size = get_suffixed_size(argv[optind++]);
                 continue;
             }
+            if (opt == 's') {
+                strip_flags = JS_STRIP_DEBUG;
+                continue;
+            }
+            if (!strcmp(longopt, "strip-source")) {
+                strip_flags = JS_STRIP_SOURCE;
+                continue;
+            }
             if (opt) {
                 fprintf(stderr, "qjs: unknown option '-%c'\n", opt);
             } else {
@@ -393,6 +404,7 @@ int main(int argc, char **argv)
         JS_SetMemoryLimit(rt, memory_limit);
     if (stack_size != 0)
         JS_SetMaxStackSize(rt, stack_size);
+    JS_SetStripInfo(rt, strip_flags);
     js_os_set_worker_new_context_func(JS_NewCustomContext);
     js_eventloop_init(rt);
     JS_SetCanBlock(rt, TRUE);

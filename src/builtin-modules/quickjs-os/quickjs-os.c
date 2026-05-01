@@ -126,6 +126,7 @@ typedef struct {
     JSWorkerMessagePipe *recv_pipe, *send_pipe;
     JSWorkerMessagePipe *error_send_pipe; /* worker's write end of the error pipe */
     int worker_done_write_fd; /* fd to signal worker completion to main thread */
+    int strip_flags;
 } WorkerFuncArgs;
 #endif
 
@@ -3574,6 +3575,7 @@ static void *worker_func(void *opaque)
         fprintf(stderr, "JS_NewRuntime failed");
         exit(1);
     }
+    JS_SetStripInfo(rt, args->strip_flags);
     js_eventloop_init(rt);
 
     QJMS_InitState(rt);
@@ -3772,6 +3774,8 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     args->error_send_pipe = js_new_message_pipe();
     if (!args->error_send_pipe)
         goto oom_fail;
+
+    args->strip_flags = JS_GetStripInfo(rt);
 
     obj = js_worker_ctor_internal(ctx, new_target,
                                   args->send_pipe, args->recv_pipe,

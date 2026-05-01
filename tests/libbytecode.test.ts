@@ -74,7 +74,7 @@ test("bytecode - script file", async () => {
     	│0x00000020│ 67 2D 66 6F 75 72 2E 6A 73 0C 00 06 00 A2 01 00
     	│0x00000030│ 01 00 04 00 00 12 01 A4 01 00 00 00 38 DB 00 00
     	│0x00000040│ 00 42 DC 00 00 00 B9 B9 9F 24 01 00 CF 28 BA 03
-    	│0x00000050│ 01 00
+    	│0x00000050│ 01 00 00
     }
     toValue Function "bound bytecode" {
     	│1│ function bound bytecode() {
@@ -121,7 +121,7 @@ test("bytecode - module file", async () => {
     	│0x00000040│ 03 00 01 00 00 B8 03 00 00 00 0C 20 06 01 A2 01
     	│0x00000050│ 00 00 00 03 01 00 1B 00 B8 03 00 0D 08 EC 02 29
     	│0x00000060│ 38 DD 00 00 00 42 DE 00 00 00 04 DF 00 00 00 24
-    	│0x00000070│ 01 00 0E BC E3 06 2E B6 03 01 03 01 17 62
+    	│0x00000070│ 01 00 0E BC E3 06 2E B6 03 01 03 01 17 62 00
     }
     toValue Function "bound bytecode" {
     	│1│ function bound bytecode() {
