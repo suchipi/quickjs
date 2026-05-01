@@ -13,9 +13,4 @@ Wine is a mature, stable compatibility layer. If a test fails under Wine, it's u
 - The test expectations are wrong
 - There's a genuine platform difference that needs handling
 
-Always investigate test failures by:
-
-1. Reading the actual error message
-2. Examining what the test expects vs what it got
-3. Looking at the relevant code
-4. Testing the code directly (not just through the test framework)
+Investigate the failure following `.claude/rules/understand-before-fixing.md` rather than reaching for "it's Wine".
