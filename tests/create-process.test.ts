@@ -1,7 +1,12 @@
 import { test, beforeAll, afterAll, expect, vi } from "vitest";
 
-// Wine tests need longer timeout since first-base waits for stream drain
-vi.setConfig({ testTimeout: 15000 });
+// Wine tests need longer timeout since first-base waits for stream drain.
+// Each test spawns `wine qjs` which often spawns nested wine processes
+// (cmd.exe etc.); under vitest's parallel pool with the full 51-file suite
+// loaded, individual wine startup can creep past 15s on a contended host
+// even though the test itself is doing nothing slow. 60s gives enough
+// headroom for the worst observed loaded-suite run without masking real hangs.
+vi.setConfig({ testTimeout: 60000 });
 import { spawn, sanitizers } from "first-base";
 import { rootDir } from "./_utils";
 import path from "path";
