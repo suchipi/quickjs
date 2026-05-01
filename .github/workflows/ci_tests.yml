@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Build and Test (Ubuntu)
         run: meta/ci.sh
 
@@ -20,5 +22,7 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Build and Test (macOS)
         run: meta/ci.sh
