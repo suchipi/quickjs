@@ -26,3 +26,4 @@ set -x
 env QUICKJS_EXTRAS=1 meta/build.sh
 npm run typecheck
 npm test
+src/run-test262/run.sh
