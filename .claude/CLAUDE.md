@@ -11,12 +11,16 @@ The engine is written in C. Tests and build configuration are in TypeScript/Java
 ## Build Commands
 
 ```bash
-env QUICKJS_EXTRAS=1 meta/build.sh # Build for current platform
-                                   # (auto-detects HOST/TARGET OS)
-meta/build.sh x86_64-pc-windows-static # Build for windows using Docker (needed for tests that use wine)
-meta/clean.sh              # Clean build artifacts
-npm test                   # Run all tests (vitest)
-npx vitest tests/foo.test.ts  # Run a single test file
+env QUICKJS_EXTRAS=1 meta/build.sh test-platforms # Build native + cross-platform outputs
+                                                  # (REQUIRED before `npm test` — wine/wasm tests
+                                                  # need x86_64-pc-windows-static and wasm32 binaries)
+env QUICKJS_EXTRAS=1 meta/build.sh                # Native-only build (auto-detects HOST/TARGET);
+                                                  # faster, but `npm test` will fail without
+                                                  # the cross-platform outputs
+meta/build.sh x86_64-pc-windows-static            # Build only the Windows target via Docker
+meta/clean.sh                                     # Clean build artifacts
+npm test                                          # Run all tests (vitest)
+npx vitest tests/foo.test.ts                      # Run a single test file
 ```
 
 Build requires: Ninja, Node.js 18+, Bash 4+, a C compiler (gcc/clang).
@@ -24,6 +28,8 @@ Build requires: Ninja, Node.js 18+, Bash 4+, a C compiler (gcc/clang).
 `meta/build.sh` runs `npm install`, generates `build.ninja` from `src/**/*.ninja.js` files via `meta/ninja/generate.js`, then runs `ninja`. Build outputs go to `build/` (bin, lib, include, dts, intermediate).
 
 Cross-compilation: Set `HOST` and `TARGET` env vars. `meta/docker/compile-all.sh` builds for all supported platforms via Docker.
+
+**Always use `test-platforms` before `npm test`.** A plain `meta/build.sh` only produces the native platform's binaries, so cross-platform tests fail with "file not found" errors like `wine: failed to open "<rootDir>/build/x86_64-pc-windows-static/bin/qjs.exe": c0000135` — those look like real test failures but are purely the absence of the cross-platform outputs.
 
 ## Build System Architecture
 
@@ -43,7 +49,7 @@ Tests use Vitest. Most tests are integration tests that spawn compiled binaries 
 - Test files: `tests/*.test.ts`
 - Test utilities: `tests/_utils.ts` (provides `rootDir`, `binDir`, `fixturesDir`, `testsWorkDir`, `cleanString`, `cleanResult`)
 - Test fixtures: `tests/fixtures/`
-- Tests must be built first (`meta/build.sh`) since they run compiled binaries from `build/bin/`
+- Tests must be built first (`meta/build.sh test-platforms`) since they run compiled binaries from `build/bin/` and cross-compiled outputs under `build/<target>/bin/`
 - `cleanString()` replaces absolute paths with `<rootDir>` for stable snapshots
 
 ## Source Architecture

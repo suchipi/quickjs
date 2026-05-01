@@ -17,3 +17,13 @@ The `.claude/settings.local.json` permissions allowlist is deliberately narrow �
 ## How to apply
 
 Before using any Bash tool call, ask yourself: "Is there a dedicated tool that does this?" If yes, use it. Only use Bash for operations that genuinely require shell execution (git commands, compiled binaries, etc.) and that are on the approved list.
+
+## Concrete substitutions
+
+Common patterns and their approved replacements:
+
+- Reading a file → `Read` (with `offset`/`limit` for ranges; don't pipe through `sed` or `awk`)
+- Reading a range of a git patch → `git show SHA > .tmp/patch`, then `Read` with `offset`/`limit` (NOT `git show SHA | sed -n '80,200p'`)
+- Searching with a result limit → `Grep` with `head_limit` (NOT `grep ... | head`)
+- Capturing command output to a log → redirect with `>` and `Read` the log (NOT `cat FILE | tee LOG` — `tee` is unapproved)
+- Process substitution (`<(...)`) and shell loops with `sed`/`awk` are also unapproved.
