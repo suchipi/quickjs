@@ -1,5 +1,15 @@
 import { afterAll } from "vitest";
-import { allInflightRunContexts } from "first-base";
+import { allInflightRunContexts, sanitizers } from "first-base";
+
+// Strip `:LINE:COL` from stack-frame `at ...` lines so snapshots stay stable
+// when engine internals shift line/column positions. Matches both
+// `at <name> (<path>:LINE:COL)` and `at <path>:LINE:COL` (synthetic frames
+// without a name).
+sanitizers.push(function stripStackFrameLineCol(str) {
+  return str
+    .replaceAll(/^(\s*at\s[^(\n]*\([^)\n]+):\d+:\d+(\))/gm, "$1$2")
+    .replaceAll(/^(\s*at\s[^(\n]+):\d+:\d+(\s*)$/gm, "$1$2");
+});
 
 // runs once per test file (after all tests in that file complete) — not once at
 // the end of the whole run. each test file gets its own module graph in vitest,

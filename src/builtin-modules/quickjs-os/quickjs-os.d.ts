@@ -224,7 +224,7 @@ declare module "quickjs:os" {
      * throwing, microtask rejections, and unhandled promise rejections.
      *
      * The event is a plain object shaped like a WHATWG `ErrorEvent`
-     * (minus `colno`, which QuickJS stack traces don't produce):
+     * (minus `colno`, which this event does not surface):
      *
      * - `message` — the error's message, or `String(reason)` for a
      *   non-Error throw.

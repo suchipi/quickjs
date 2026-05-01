@@ -936,7 +936,7 @@ static JSValue QJMS_MakeModuleDelegateObject(JSContext *ctx)
   JSValue ret;
   JSSyntheticStackFrame *ssf;
 
-  ssf = JS_PushSyntheticStackFrame(ctx, "QJMS_MakeModuleDelegateObject", "quickjs-modulesys.c", __LINE__);
+  ssf = JS_PushSyntheticStackFrame(ctx, "QJMS_MakeModuleDelegateObject", "quickjs-modulesys.c", __LINE__, 0);
 
   global_obj = JS_GetGlobalObject(ctx);
 
@@ -959,7 +959,7 @@ static JSValue QJMS_MakeModuleDelegateObject(JSContext *ctx)
 
     // temporarily make a global so module-impl.js can access it...
     JS_SetProperty(ctx, global_obj, temp_ModuleDelegate_atom, module_delegate);
-    ssf2 = JS_PushSyntheticStackFrame(ctx, "qjsc_module_impl", "<internal>/src/quickjs-modulesys/module-impl.js", -1);
+    ssf2 = JS_PushSyntheticStackFrame(ctx, "qjsc_module_impl", "<internal>/src/quickjs-modulesys/module-impl.js", -1, 0);
     // Defines __qjms_temp_ModuleDelegate_init
     QJMS_EvalBinary(ctx, qjsc_module_impl, qjsc_module_impl_size, 0, NULL);
     JS_PopSyntheticStackFrame(ctx, ssf2);
@@ -1020,7 +1020,7 @@ int QJMS_InitContext(JSContext *ctx, BOOL set_require_global)
   JSValue global_obj, module_loader_internals, require, module_delegate;
   JSSyntheticStackFrame *ssf;
 
-  ssf = JS_PushSyntheticStackFrame(ctx, "QJMS_InitContext", "quickjs-modulesys.c", __LINE__);
+  ssf = JS_PushSyntheticStackFrame(ctx, "QJMS_InitContext", "quickjs-modulesys.c", __LINE__, 0);
 
   global_obj = JS_GetGlobalObject(ctx);
 

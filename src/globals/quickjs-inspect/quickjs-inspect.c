@@ -9,7 +9,7 @@ int js_inspect_add_inspect_global(JSContext *ctx)
   int ret;
   JSSyntheticStackFrame *ssf;
 
-  ssf = JS_PushSyntheticStackFrame(ctx, "js_inspect_add_inspect_global", "quickjs-inspect.c", __LINE__);
+  ssf = JS_PushSyntheticStackFrame(ctx, "js_inspect_add_inspect_global", "quickjs-inspect.c", __LINE__, 0);
 
   ret = QJMS_EvalBinary(ctx, qjsc_inspect, qjsc_inspect_size, 0, NULL);
   JS_PopSyntheticStackFrame(ctx, ssf);

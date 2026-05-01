@@ -1136,8 +1136,9 @@ JSValue JS_LoadModule(JSContext *ctx, const char *basename,
                       const char *filename);
 
 /* Synthetic stack frames for debugging. Push a frame that will appear in
-   JS backtraces with the given function name, filename, and line number.
-   Pass line_num == -1 to omit the line number. func_name can be NULL.
+   JS backtraces with the given function name, filename, and line/column number.
+   Pass line_num == -1 to omit the line and column numbers. col_num is
+   ignored when line_num == -1. func_name can be NULL.
    Returns a handle that must be passed to JS_PopSyntheticStackFrame()
    when the synthetic frame should be removed.
    Returns NULL on allocation failure. */
@@ -1145,7 +1146,8 @@ typedef struct JSSyntheticStackFrame JSSyntheticStackFrame;
 JSSyntheticStackFrame *JS_PushSyntheticStackFrame(JSContext *ctx,
                                                    const char *func_name,
                                                    const char *filename,
-                                                   int line_num);
+                                                   int line_num,
+                                                   int col_num);
 void JS_PopSyntheticStackFrame(JSContext *ctx, JSSyntheticStackFrame *ssf);
 
 /* Freeze a value with Object.freeze. */

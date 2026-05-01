@@ -4068,7 +4068,7 @@ void js_os_add_performance_global(JSContext *ctx)
     JSValue global_obj, performance;
     JSSyntheticStackFrame *ssf;
 
-    ssf = JS_PushSyntheticStackFrame(ctx, "js_os_add_performance_global", "quickjs-os.c", __LINE__);
+    ssf = JS_PushSyntheticStackFrame(ctx, "js_os_add_performance_global", "quickjs-os.c", __LINE__, 0);
 
     global_obj = JS_GetGlobalObject(ctx);
 

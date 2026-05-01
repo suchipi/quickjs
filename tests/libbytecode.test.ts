@@ -33,7 +33,7 @@ test("bytecode - normal values", async () => {
     }
     back toValue 7
     fromValue { a: 5 } ArrayBuffer {
-    	│0x00000000│ 04 01 02 61 08 01 B6 03 05 0A
+    	│0x00000000│ 04 01 02 61 08 01 B8 03 05 0A
     }
     back toValue {
     	a: 5
@@ -71,10 +71,10 @@ test("bytecode - script file", async () => {
       "stdout": "fromFile ArrayBuffer {
     	│0x00000000│ 04 03 0E 63 6F 6E 73 6F 6C 65 06 6C 6F 67 34 74
     	│0x00000010│ 65 73 74 73 2F 66 69 78 74 75 72 65 73 2F 6C 6F
-    	│0x00000020│ 67 2D 66 6F 75 72 2E 6A 73 0C 00 06 00 A2 01 00
-    	│0x00000030│ 01 00 04 00 00 12 01 A4 01 00 00 00 39 DB 00 00
-    	│0x00000040│ 00 43 DC 00 00 00 BA BA A0 24 01 00 D0 28 BA 03
-    	│0x00000050│ 01 00 00
+    	│0x00000020│ 67 2D 66 6F 75 72 2E 6A 73 0C 00 06 00 A4 01 00
+    	│0x00000030│ 01 00 04 00 00 12 01 A6 01 00 00 00 39 DC 00 00
+    	│0x00000040│ 00 43 DD 00 00 00 BA BA A0 24 01 00 D0 28 BC 03
+    	│0x00000050│ 08 00 00 1B 0E 25 0E 07 05 00
     }
     toValue Function "bound bytecode" {
     	│1│ function bound bytecode() {
@@ -117,11 +117,12 @@ test("bytecode - module file", async () => {
     	│0x00000000│ 04 05 3C 74 65 73 74 73 2F 66 69 78 74 75 72 65
     	│0x00000010│ 73 2F 65 78 70 6F 72 74 73 2D 66 69 76 65 2E 6A
     	│0x00000020│ 73 08 66 69 76 65 0E 63 6F 6E 73 6F 6C 65 06 6C
-    	│0x00000030│ 6F 67 16 65 78 70 6F 72 74 69 6E 67 20 35 0D B6
-    	│0x00000040│ 03 00 01 00 00 B8 03 00 00 00 0C 20 06 01 A2 01
-    	│0x00000050│ 00 00 00 03 01 00 1B 00 B8 03 00 0D 08 ED 02 29
-    	│0x00000060│ 39 DD 00 00 00 43 DE 00 00 00 04 DF 00 00 00 24
-    	│0x00000070│ 01 00 0E BD E4 06 2F B6 03 01 03 01 17 62 00
+    	│0x00000030│ 6F 67 16 65 78 70 6F 72 74 69 6E 67 20 35 0D B8
+    	│0x00000040│ 03 00 01 00 00 BA 03 00 00 00 0C 20 06 01 A4 01
+    	│0x00000050│ 00 00 00 03 01 00 1B 00 BA 03 00 0D 08 ED 02 29
+    	│0x00000060│ 39 DE 00 00 00 43 DF 00 00 00 04 E0 00 00 00 24
+    	│0x00000070│ 01 00 0E BD E4 06 2F B8 03 06 00 00 2F 0E 34 08
+    	│0x00000080│ 00
     }
     toValue Function "bound bytecode" {
     	│1│ function bound bytecode() {
@@ -573,8 +574,8 @@ test("bytecode.fromFile strip: source drops fn source bytes", async () => {
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "default bytes: 200
-    strip source bytes: 156
+      "stdout": "default bytes: 209
+    strip source bytes: 165
     source-stripped is shorter: true
     default has source: true
     stripped has source: false
@@ -612,8 +613,8 @@ test("bytecode.fromFile strip: debug drops all debug info", async () => {
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "default: 200
-    strip source: 156
+      "stdout": "default: 209
+    strip source: 165
     strip debug: 96
     debug < source: true
     42

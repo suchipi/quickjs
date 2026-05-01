@@ -36,7 +36,7 @@ void js_print_add_print_global(JSContext *ctx)
     JSValue global_obj;
     JSSyntheticStackFrame *ssf;
 
-    ssf = JS_PushSyntheticStackFrame(ctx, "js_print_add_print_global", "quickjs-print.c", __LINE__);
+    ssf = JS_PushSyntheticStackFrame(ctx, "js_print_add_print_global", "quickjs-print.c", __LINE__, 0);
 
     global_obj = JS_GetGlobalObject(ctx);
 
@@ -53,7 +53,7 @@ void js_print_add_console_global(JSContext *ctx)
     JSValue global_obj, console;
     JSSyntheticStackFrame *ssf;
 
-    ssf = JS_PushSyntheticStackFrame(ctx, "js_print_add_console_global", "quickjs-print.c", __LINE__);
+    ssf = JS_PushSyntheticStackFrame(ctx, "js_print_add_console_global", "quickjs-print.c", __LINE__, 0);
 
     global_obj = JS_GetGlobalObject(ctx);
 

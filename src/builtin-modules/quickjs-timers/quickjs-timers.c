@@ -235,7 +235,7 @@ void js_timers_add_globals(JSContext *ctx)
     JSValue global_obj, setTimeout_val, clearTimeout_val, setInterval_val, clearInterval_val;
     JSSyntheticStackFrame *ssf;
 
-    ssf = JS_PushSyntheticStackFrame(ctx, "js_timers_add_globals", "quickjs-timers.c", __LINE__);
+    ssf = JS_PushSyntheticStackFrame(ctx, "js_timers_add_globals", "quickjs-timers.c", __LINE__, 0);
 
     /* Ensure Timer class is initialized */
     js_timers_init_class(ctx);
