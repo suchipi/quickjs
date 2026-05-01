@@ -9,7 +9,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - TypeScript-format type interface files (`.d.ts` files) were added for everything.
   - There's also markdown generated from these available [here](/meta/docs)
 - Hooks have been added to the module loader that make its functionality more customizable.
-- Some ES2022 features were added, and some non-standard ECMAScript proposals and extensions were added.
+- Some non-standard ECMAScript proposals and extensions have been added (`String.cooked`, `Object.toPrimitive`/`Object.isPrimitive`, `Symbol.typeofValue`).
 - The way the project is organized and built was changed dramatically.
 - `quickjs-libc.c` was split into separate files: `quickjs-std.c`, `quickjs-os.c`, `quickjs-timers.c`, `quickjs-cmdline.c`, and `quickjs-eventloop.c`
 - Several new JS bindings for C APIs have been added, such as `strftime`, `access`, `fsync`, `setvbuf`, `getuid`...
@@ -22,9 +22,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 
 ### Changes to `quickjs`:
 
-- A TypeScript `.d.ts` file is provided for all QuickJS-specific APIs (operator overloading APIs, BigInt extensions, BigFloat, BigDecimal, etc).
-- Added support for Error constructor "cause" option (from ES2022).
-- Added support for relative indexing method `.at()` (from ES2022).
+- A TypeScript `.d.ts` file is provided for all QuickJS-specific APIs (BigInt extensions, `Object.toPrimitive`/`Object.isPrimitive`, `String.cooked`, `Symbol.typeofValue`).
 - `String.cooked` added (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
 - Added function `JS_EvalThis_Privileged`, which allows C code to run eval in Contexts that have eval disabled. With this, you can disable eval in a context for security purposes, but can still execute trusted code within it.
 - Additional functions are exposed that allow importing modules synchronously or asynchronously:
@@ -112,6 +110,10 @@ You can use this to create distributable binaries that run JS code without needi
 
 > Note: On FreeBSD, `qjsbootstrap` requires procfs. You can mount it with `mount -t procfs proc /proc`. I started some work to use libprocstat instead, but haven't completed it yet.
 
+### New binary: `qjsbootstrap-bytecode`:
+
+Like `qjsbootstrap`, but the user appends bytecode (produced by the `quickjs:bytecode` module) instead of source code. Useful when you want to ship a smaller binary, or want to avoid including the source text in the binary.
+
 ### New binary: `quickjs-run`:
 
 Barebones binary for running files, without any of the arg parsing logic from qjs. Good for testing some unusual cases, or writing programs with custom argv parsing logic.
@@ -129,13 +131,17 @@ Exports:
 
 - `fromFile(path, options?)` - Convert the module or script in the specified file into bytecode
 - `fromValue(value, options?)` - Convert the provided value into bytecode
-- `toValue(bytecode)` - Convert the provided bytecode into a value
+- `toValue(bytecode, options?)` - Convert the provided bytecode into a value
+
+The options accepted by `fromFile`/`fromValue` include a `strip` mode for dropping debug info / source text from compiled-function bytecode, and `preserveReferences` and `serializeErrors` flags for round-tripping cyclic references and `Error` instances.
 
 ### New module: "quickjs:context"
 
 A Module that allows JS code to create new JS Contexts (Realms). You can create new Contexts and run code inside them. Contexts can have certain features disabled (like eval) for security purposes. You can share values between Contexts. Contexts are destroyed when they get garbage-collected.
 
-The `Context` class constructor accepts an options object to enable/disable specific features: `date`, `eval`, `stringNormalize`, `regExp`, `json`, `proxy`, `mapSet`, `typedArrays`, `promise`, `bigint`, `bigfloat`, `bigdecimal`, `operators`, `useMath`, `inspect`, `console`, `print`, `moduleGlobals`, `timers`, and a `modules` object to enable/disable specific builtin modules (`quickjs:bytecode`, `quickjs:cmdline`, `quickjs:context`, `quickjs:encoding`, `quickjs:engine`, `quickjs:os`, `quickjs:std`, `quickjs:timers`).
+The `Context` class constructor accepts an options object to enable/disable specific features: `date`, `eval`, `stringNormalize`, `regExp`, `json`, `proxy`, `mapSet`, `typedArrays`, `promise`, `inspect`, `console`, `print`, `moduleGlobals`, `timers`, and a `modules` object to enable/disable specific builtin modules (`quickjs:bytecode`, `quickjs:cmdline`, `quickjs:context`, `quickjs:encoding`, `quickjs:engine`, `quickjs:os`, `quickjs:std`, `quickjs:timers`).
+
+Each `Context` instance has a mutable `globalThis` property (you can add to it or remove from it to change what's visible in the context) and an `eval(code)` method.
 
 ### New module: "quickjs:encoding"
 
@@ -154,6 +160,8 @@ Supported Encodings, (for both TextDecoder and TextEncoder):
 - euc-jp
 - gb18030
 
+`TextEncoder` supports `encodeInto()` (for all encodings, not only UTF-8). `TextEncoder` and `TextDecoder` both accept a non-standard `stream` option for incremental/stateful encoding/decoding.
+
 ### New library: `quickjs-utils`
 
 Helper structs, functions, and macros that make it easier to work with QuickJS in C code.
@@ -162,13 +170,18 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 - Helper function for loading a file from disk into char a buffer
 - Helper functions for printing JS errors to stderr
 
+### Globally-available extensions
+
+- `inspect` (described above) is exposed as a global.
+- The `setTimeout`/`clearTimeout`/`setInterval`/`clearInterval` exports of `quickjs:timers` are also installed as globals.
+
 ### New module: "quickjs:engine"
 
 This module contains APIs related to engine internals like script execution, module loading, code eval, filename reflection, and garbage collection. Several parts of quickjs-libc were moved here so that quickjs-libc could be focused on "C standard library" bindings.
 
 ### New module: "quickjs:timers"
 
-Timer functions extracted from quickjs-libc into their own module. Exports `setTimeout` and `clearTimeout` as well as the newly-added `setInterval` and `clearInterval`. These are also available as globals.
+Timer functions extracted from quickjs-libc into their own module. Exports `setTimeout`/`clearTimeout`/`setInterval`/`clearInterval` (also available as globals), plus `sleepAsync(ms)` which returns a Promise that resolves after the delay.
 
 ### Changes to the module loader
 
@@ -198,6 +211,22 @@ Timer functions extracted from quickjs-libc into their own module. Exports `setT
 - New `isModuleNamespace` function lets users identify module namespace objects
 - New `defineBuiltinModule` function lets users add their own builtin modules
 - When using `require` to load a module which contains an export named `__cjsExports`, the value of the `__cjsExports` property will be returned from `require` instead of the usual module namespace object. This can be leveraged by users configuring the module loader to add some CommonJS <-> ESM interop. Note, however, that dynamic import and `"quickjs:engine"`'s `importModule` always receive the usual module namespace object.
+- Multiple `#!` (shebang) lines at the top of a script are skipped before tokenization, so scripts that use chained shebangs (e.g. for Nix tooling) parse correctly.
+
+### Top-level await on synchronous load paths
+
+Top-level await (TLA) is supported, but only on entry paths that are inherently asynchronous:
+
+- The main module passed to `qjs` / `quickjs-run` / `qjsbootstrap` / `qjsbootstrap-bytecode`
+- Dynamic `import()` expressions
+
+Synchronous module-loading APIs — `require`, `import.meta.require`, `engine.importModule`, and the underlying `JS_RunModule` C API — **refuse** to load any module whose body (or whose transitive imports) uses top-level await. Attempting to do so throws a `TypeError`:
+
+```
+TypeError: cannot synchronously load module '<path>' because it uses top-level await
+```
+
+The refusal happens up front, before any module body runs — the sync evaluator walks the target module's import graph looking for any module that uses top-level await, and bails before evaluation if it finds one.
 
 ### Changes to project organization
 
