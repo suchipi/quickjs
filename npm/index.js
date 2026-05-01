@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const detectLibc = require("detect-libc");
 
 function buildArtifactsLocation() {
   return path.resolve(__dirname, "..", "build");
@@ -17,8 +18,28 @@ function identifyCurrentPlatform() {
     );
   });
 
+  let desiredAbi;
+  if (process.platform === "linux") {
+    switch (detectLibc.familySync()) {
+      case "glibc": {
+        desiredAbi = "gnu";
+        break;
+      }
+      case "musl": {
+        desiredAbi = "musl";
+        break;
+      }
+      default: {
+        desiredAbi = "static";
+        break;
+      }
+    }
+  } else {
+    desiredAbi = "static";
+  }
+
   const matchingPlatform =
-    matchingPlatforms.find((platform) => platform.abi === "static") ||
+    matchingPlatforms.find((platform) => platform.abi === desiredAbi) ||
     matchingPlatforms[0];
 
   if (matchingPlatform) {
