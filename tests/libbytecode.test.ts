@@ -531,3 +531,167 @@ test("bytecode - user Error subclass reifies to base Error with custom props pre
     }
   `);
 });
+
+// `strip: "source" | "debug" | false` on bytecode.fromFile.
+//
+// Top-level script bodies don't store source by default (upstream
+// behavior), so the strip effect is only observable when the input
+// file contains nested function declarations. The fixture
+// `tests/fixtures/named-function.js` has one such function so the
+// "source" strip path is exercisable.
+
+test("bytecode.fromFile strip: source drops fn source bytes", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+        const fixture = "tests/fixtures/named-function.js";
+        function asStr(buf) {
+          return Array.from(new Uint8Array(buf))
+            .map(b => String.fromCharCode(b))
+            .join("");
+        }
+
+        const a = bytecode.fromFile(fixture);
+        const b = bytecode.fromFile(fixture, { strip: "source" });
+
+        console.log("default bytes:", a.byteLength);
+        console.log("strip source bytes:", b.byteLength);
+        console.log("source-stripped is shorter:", b.byteLength < a.byteLength);
+        console.log("default has source:", asStr(a).includes("fancyDoubler(n)"));
+        console.log("stripped has source:", asStr(b).includes("fancyDoubler(n)"));
+        bytecode.toValue(b)();
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "default bytes: 200
+    strip source bytes: 156
+    source-stripped is shorter: true
+    default has source: true
+    stripped has source: false
+    42
+    ",
+    }
+  `);
+});
+
+test("bytecode.fromFile strip: debug drops all debug info", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+        const fixture = "tests/fixtures/named-function.js";
+
+        const a = bytecode.fromFile(fixture);
+        const b = bytecode.fromFile(fixture, { strip: "source" });
+        const c = bytecode.fromFile(fixture, { strip: "debug" });
+
+        console.log("default:", a.byteLength);
+        console.log("strip source:", b.byteLength);
+        console.log("strip debug:", c.byteLength);
+        console.log("debug < source:", c.byteLength < b.byteLength);
+        bytecode.toValue(c)();
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "default: 200
+    strip source: 156
+    strip debug: 96
+    debug < source: true
+    42
+    ",
+    }
+  `);
+});
+
+test("bytecode.fromFile strip: false matches default", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+        const fixture = "tests/fixtures/named-function.js";
+
+        const a = bytecode.fromFile(fixture);
+        const b = bytecode.fromFile(fixture, { strip: false });
+
+        const aArr = Array.from(new Uint8Array(a));
+        const bArr = Array.from(new Uint8Array(b));
+        console.log("same length:", aArr.length === bArr.length);
+        console.log("byte-identical:", aArr.every((x, i) => x === bArr[i]));
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "same length: true
+    byte-identical: true
+    ",
+    }
+  `);
+});
+
+test("bytecode.fromFile strip: rejects invalid values", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+        const fixture = "tests/fixtures/named-function.js";
+
+        function shouldThrow(opt, label) {
+          try {
+            bytecode.fromFile(fixture, { strip: opt });
+            console.log(label + ": NO THROW");
+          } catch (e) {
+            console.log(label + ": " + e.message);
+          }
+        }
+
+        shouldThrow("garbage", "bad string");
+        shouldThrow(42, "number");
+        shouldThrow(null, "null");
+        shouldThrow(true, "true");
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "bad string: invalid strip value: garbage (expected "source", "debug", or false)
+    number: 'strip' option must be a string ("source" or "debug") or false
+    null: 'strip' option must be a string ("source" or "debug") or false
+    true: 'strip' option must be a string ("source" or "debug") or false
+    ",
+    }
+  `);
+});

@@ -265,6 +265,9 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
     int eval_flags;
     int as_module;
     int byte_swap;
+    int strip_flags;
+    int saved_strip_flags;
+    JSRuntime *rt;
     const char *encoded_filename;
     JSValue obj;
     JSValue ret;
@@ -272,6 +275,7 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
 
     as_module = -1;
     byte_swap = 0;
+    strip_flags = 0;
     encoded_filename = NULL;
     should_free_encoded_filename = FALSE;
 
@@ -283,6 +287,7 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
         JSValue opts_obj;
         JSValue source_type;
         JSValue byte_swap_val;
+        JSValue strip_val;
         JSValue encoded_filename_val;
 
         opts_obj = argv[1];
@@ -318,9 +323,46 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
             return JS_EXCEPTION;
         }
         byte_swap = JS_ToBool(ctx, byte_swap_val);
+        JS_FreeValue(ctx, byte_swap_val);
         if (byte_swap == -1) {
-            JS_FreeValue(ctx, byte_swap_val);
             return JS_EXCEPTION;
+        }
+
+        /* `strip: "source"` drops the source-text storage from compiled
+           function bytecode (debug.source). `strip: "debug"` drops all
+           debug info — filename, line numbers, pc2line, and source —
+           which subsumes `"source"`. `strip: false` (the default) keeps
+           everything. */
+        strip_val = JS_GetPropertyStr(ctx, opts_obj, "strip");
+        if (JS_IsException(strip_val)) {
+            return JS_EXCEPTION;
+        }
+        if (JS_IsUndefined(strip_val) ||
+            (JS_IsBool(strip_val) && !JS_ToBool(ctx, strip_val))) {
+            JS_FreeValue(ctx, strip_val);
+        } else if (JS_IsString(strip_val)) {
+            const char *str = JS_ToCString(ctx, strip_val);
+            if (str == NULL) {
+                JS_FreeValue(ctx, strip_val);
+                return JS_EXCEPTION;
+            }
+            if (strcmp(str, "source") == 0) {
+                strip_flags |= JS_STRIP_SOURCE;
+            } else if (strcmp(str, "debug") == 0) {
+                strip_flags |= JS_STRIP_DEBUG;
+            } else {
+                JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__,
+                              "invalid strip value: %s (expected \"source\", \"debug\", or false)", str);
+                JS_FreeCString(ctx, str);
+                JS_FreeValue(ctx, strip_val);
+                return JS_EXCEPTION;
+            }
+            JS_FreeCString(ctx, str);
+            JS_FreeValue(ctx, strip_val);
+        } else {
+            JS_FreeValue(ctx, strip_val);
+            return JS_ThrowError(ctx, "<internal>/quickjs-bytecode.c", __LINE__,
+                                 "'strip' option must be a string (\"source\" or \"debug\") or false");
         }
 
         encoded_filename_val = JS_GetPropertyStr(ctx, opts_obj, "encodedFileName");
@@ -375,7 +417,20 @@ static JSValue js_bytecode_fromFile(JSContext *ctx, JSValueConst this_val,
         eval_flags |= JS_EVAL_TYPE_GLOBAL;
     }
 
+    /* Apply strip_flags to the runtime for the duration of this compile
+       only — JS_SetStripInfo is per-runtime, but the strip bits attach to
+       each newly-created JSFunctionDef inside JS_Eval, so saving and
+       restoring around the call gives this fromFile call its own
+       compile-time strip without affecting other code that may be
+       compiling on the same runtime. */
+    rt = JS_GetRuntime(ctx);
+    saved_strip_flags = JS_GetStripInfo(rt);
+    JS_SetStripInfo(rt, saved_strip_flags | strip_flags);
+
     obj = JS_Eval(ctx, (const char *)buf, buf_len, encoded_filename, eval_flags);
+
+    JS_SetStripInfo(rt, saved_strip_flags);
+
     if (should_free_encoded_filename) {
         JS_FreeCString(ctx, encoded_filename);
     }

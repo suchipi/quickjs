@@ -10,6 +10,23 @@ declare module "quickjs:bytecode" {
       byteSwap?: boolean;
       sourceType?: "module" | "script";
       encodedFileName?: string;
+      /**
+       * Strip diagnostic information from compiled function bytecode.
+       *
+       * - `false` (or omitted): keep everything — full source text,
+       *   filename, line numbers, and pc-to-line mapping.
+       * - `"source"`: drop the source-text storage from compiled
+       *   function bytecode. Stack frames still know their filename
+       *   and line numbers, but `Function.prototype.toString` on
+       *   those functions returns a synthetic `[native code]`-style
+       *   body instead of the original source.
+       * - `"debug"`: drop ALL debug info — filename, line numbers,
+       *   pc-to-line mapping, and source text. Subsumes `"source"`.
+       *   Stack traces lose file/line attribution. Use only for
+       *   size-sensitive deployments where diagnostic frames don't
+       *   matter.
+       */
+      strip?: "source" | "debug" | false;
     }
   ): ArrayBuffer;
 
