@@ -70,13 +70,13 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - `os.chmod` added (wrapper for POSIX `chmod`).
 - The following functions from `os` which previously weren't implemented on Windows now are: `exec`, `kill`, `dup`, `dup2`, `waitpid`, `readlink`, `lstat`, and `symlink`.
   - These use shims in some places to emulate POSIX functionality on Windows. if those shims aren't sufficiently accurate, you can instead use the additional windows-specific APIs which have been added to `os`:
-  - CreateProcess
-  - WaitForSingleObject
-  - GetExitCodeProcess
-  - TerminateProcess
-  - CloseHandle
-  - CreatePipe
-  - WAIT_OBJECT_0, WAIT_ABANDONED, WAIT_TIMEOUT, WAIT_FAILED (wait result constants)
+    - CreateProcess
+    - WaitForSingleObject
+    - GetExitCodeProcess
+    - TerminateProcess
+    - CloseHandle
+    - CreatePipe
+    - WAIT_OBJECT_0, WAIT_ABANDONED, WAIT_TIMEOUT, WAIT_FAILED (wait result constants)
 - Most module-loading-related code was moved into `quickjs-modulesys`.
 - `setTimeout` and `clearTimeout` are now available as globals (previously they were only available as exports).
 - `setInterval` and `clearInterval` are added, available as globals.
