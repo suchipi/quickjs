@@ -28,10 +28,6 @@ build/lib
 build/include
 build/extras
 
-# only include static linux builds in npm releases
-build/*-linux-gnu
-build/*-linux-musl
-
 # weird platforms
 build/js-unknown-emscripten
 build/unknown-unknown-cosmo
