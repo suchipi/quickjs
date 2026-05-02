@@ -244,7 +244,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | c361210 | PORT | qjsc: added missing -fno-weakref | Added `{ "weakref", "WeakRef" }` entry to qjsc's feature_list so `-fno-weakref` works. JS_AddIntrinsicWeakRef is already declared in quickjs.h. |
 | ecfef71 | PORT | String.prototype.localeCompare is added in JS_AddIntrinsicStringNormalize() as it requires unicode normalization | Moved `localeCompare` table entry out of always-on `js_string_proto_funcs` and into `js_string_proto_normalize` (added by JS_AddIntrinsicStringNormalize). The normalize list is no longer wrapped in `#ifdef CONFIG_ALL_UNICODE`; only the `normalize` entry inside it stays guarded. Both `js_string_localeCompare` definitions (CONFIG_ALL_UNICODE and fallback) kept. Fork callers of JS_AddIntrinsicStringNormalize (qjs runtime, qjsbootstrap, stack-limit-test, quickjs-run, quickjs-context) all unconditionally invoke it, so localeCompare remains available everywhere it was. |
 | f5788c7 | SKIP-NA | Define lre_check_timeout in fuzz_regexp | Touches `fuzz/fuzz_regexp.c` only; fork does not vendor `fuzz/`. |
-| bff5525 | PENDING | Merge pull request #400 from renatahodovan/fix-regexp |  |
+| bff5525 | SKIP-NA | Merge pull request #400 from renatahodovan/fix-regexp | Merge commit for f5788c7 (fuzz/ change). |
 | 8bb41b2 | PENDING | enabled os.Worker on Windows (bnoordhuis) |  |
 | 8f99de5 | PENDING | spec update: ToPropertyKey() is now done after the evaluation of the expression in assignments |  |
 | 5449fd4 | PENDING | more ToPropertyKey ordering changes |  |
