@@ -93,7 +93,6 @@
       "Bash(gh search:*)",
       "Bash(echo:*)",
       "Bash(env QUICKJS_BUILD_DOCS=1 QUICKJS_EXTRAS=1 meta/build.sh)",
-      "Bash(tee .tmp/:*)",
       "Bash(unifdef:*)",
       "Bash(diff:*)"
     ],
