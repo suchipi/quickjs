@@ -40,10 +40,12 @@ function cleanWineNoise(str: string) {
 
 beforeAll(async () => {
   sanitizers.push(cleanWineNoise);
-  // Warm up wineserver so first test doesn't pay cold-start cost
+  // Warm up wineserver so first test doesn't pay cold-start cost.
+  // Same 60s headroom as testTimeout above — Wine's first cold start under
+  // the loaded parallel pool can exceed the previous 15s budget.
   const run = spawn("wine", [qjsExe, "-e", "2 + 2"], { cwd: rootDir() });
   await run.completion;
-}, 15000);
+}, 60000);
 afterAll(() => {
   sanitizers.pop();
 });
