@@ -1,11 +1,27 @@
 import { test, expect } from "vitest";
 import { spawn } from "first-base";
-import { binDir, fixturesDir } from "./_utils";
+import {
+  binDir,
+  fixturesDir,
+  setupWineHooks,
+  shouldRunWineTests,
+  wineSpawn,
+} from "./_utils";
 
 const f = fixturesDir.concat("worker-onerror");
 
+if (shouldRunWineTests) {
+  setupWineHooks();
+}
+
 async function runFixture(name: string) {
   const run = spawn(binDir("qjs"), [f(name, "main.js")], { cwd: __dirname });
+  await run.completion;
+  return run.cleanResult();
+}
+
+async function runFixtureWine(name: string) {
+  const run = wineSpawn([f(name, "main.js")], { cwd: __dirname });
   await run.completion;
   return run.cleanResult();
 }
@@ -28,6 +44,27 @@ test("TLA rejection with onerror set — event shape + Error instance", async ()
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] TLA rejection with onerror set — event shape + Error instance",
+  async () => {
+    expect(await runFixtureWine("tla-reject-handled")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "message: tla boom
+      error instanceof Error: true
+      error.name: Error
+      error.message: tla boom
+      typeof lineno: number
+      lineno > 0: true
+      filename ends in: tla-reject-handled\\worker.mjs
+      ",
+      }
+    `);
+  }
+);
+
 test("TLA rejection with no onerror — stderr fallback", async () => {
   expect(await runFixture("tla-reject-unhandled")).toMatchInlineSnapshot(`
     {
@@ -42,6 +79,23 @@ test("TLA rejection with no onerror — stderr fallback", async () => {
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] TLA rejection with no onerror — stderr fallback",
+  async () => {
+    expect(await runFixtureWine("tla-reject-unhandled")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "Error: tla boom, no handler
+          at somewhere
+
+      ",
+        "stdout": "",
+      }
+    `);
+  }
+);
+
 test("sync throw from JS_LoadModule (syntax error) — onerror fires with SyntaxError", async () => {
   expect(await runFixture("syntax-error")).toMatchInlineSnapshot(`
     {
@@ -54,6 +108,22 @@ test("sync throw from JS_LoadModule (syntax error) — onerror fires with Syntax
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] sync throw from JS_LoadModule (syntax error) — onerror fires with SyntaxError",
+  async () => {
+    expect(await runFixtureWine("syntax-error")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error.name: SyntaxError
+      error is SyntaxError: true
+      ",
+      }
+    `);
+  }
+);
 
 test("missing import — onerror fires with resolver TypeError/Error", async () => {
   expect(await runFixture("missing-import")).toMatchInlineSnapshot(`
@@ -68,6 +138,23 @@ test("missing import — onerror fires with resolver TypeError/Error", async () 
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] missing import — onerror fires with resolver TypeError/Error",
+  async () => {
+    expect(await runFixtureWine("missing-import")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error.name: Error
+      error is Error: true
+      message contains 'does-not-exist': true
+      ",
+      }
+    `);
+  }
+);
 
 test("onerror itself throws — secondary error printed to stderr", async () => {
   expect(await runFixture("onerror-itself-throws")).toMatchInlineSnapshot(`
@@ -84,6 +171,24 @@ test("onerror itself throws — secondary error printed to stderr", async () => 
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] onerror itself throws — secondary error printed to stderr",
+  async () => {
+    expect(await runFixtureWine("onerror-itself-throws")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "Error: secondary from onerror
+          at somewhere
+
+      ",
+        "stdout": "first-onerror fires
+      ",
+      }
+    `);
+  }
+);
+
 test("same-tick onerror assignment deterministically fires", async () => {
   expect(await runFixture("same-tick-onerror")).toMatchInlineSnapshot(`
     {
@@ -95,6 +200,21 @@ test("same-tick onerror assignment deterministically fires", async () => {
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] same-tick onerror assignment deterministically fires",
+  async () => {
+    expect(await runFixtureWine("same-tick-onerror")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "same-tick onerror fired
+      ",
+      }
+    `);
+  }
+);
 
 test("custom Error properties round-trip", async () => {
   expect(await runFixture("custom-props")).toMatchInlineSnapshot(`
@@ -110,6 +230,23 @@ test("custom Error properties round-trip", async () => {
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] custom Error properties round-trip",
+  async () => {
+    expect(await runFixtureWine("custom-props")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error.code: E_FOO
+      error.detail.kind: x
+      error.message: boom with extras
+      ",
+      }
+    `);
+  }
+);
+
 test("non-Error throw — event.error === null", async () => {
   expect(await runFixture("non-error-throw")).toMatchInlineSnapshot(`
     {
@@ -123,6 +260,22 @@ test("non-Error throw — event.error === null", async () => {
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] non-Error throw — event.error === null",
+  async () => {
+    expect(await runFixtureWine("non-error-throw")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error === null: true
+      message: plain string
+      ",
+      }
+    `);
+  }
+);
+
 test("non-Error throw with no onerror — stderr matches QJU_PrintError format", async () => {
   expect(await runFixture("non-error-throw-no-handler")).toMatchInlineSnapshot(`
     {
@@ -134,6 +287,21 @@ test("non-Error throw with no onerror — stderr matches QJU_PrintError format",
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] non-Error throw with no onerror — stderr matches QJU_PrintError format",
+  async () => {
+    expect(await runFixtureWine("non-error-throw-no-handler")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "thrown non-Error value: "plain string"
+      ",
+        "stdout": "",
+      }
+    `);
+  }
+);
 
 test("cycles in error.cause are preserved", async () => {
   expect(await runFixture("cause-cycle")).toMatchInlineSnapshot(`
@@ -148,6 +316,23 @@ test("cycles in error.cause are preserved", async () => {
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] cycles in error.cause are preserved",
+  async () => {
+    expect(await runFixtureWine("cause-cycle")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error is Error: true
+      message: cycle-msg
+      cause === error (cycle preserved): true
+      ",
+      }
+    `);
+  }
+);
 
 test("AggregateError reification with nested Error classes", async () => {
   expect(await runFixture("aggregate-error")).toMatchInlineSnapshot(`
@@ -166,6 +351,27 @@ test("AggregateError reification with nested Error classes", async () => {
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] AggregateError reification with nested Error classes",
+  async () => {
+    expect(await runFixtureWine("aggregate-error")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "is AggregateError: true
+      message: agg-msg
+      errors.length: 2
+      errors[0] is TypeError: true
+      errors[0].message: t
+      errors[1] is RangeError: true
+      errors[1].message: r
+      ",
+      }
+    `);
+  }
+);
 
 test("each builtin Error class reifies to its exact class", async () => {
   expect(await runFixture("builtin-classes")).toMatchInlineSnapshot(`
@@ -188,6 +394,30 @@ test("each builtin Error class reifies to its exact class", async () => {
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] each builtin Error class reifies to its exact class",
+  async () => {
+    expect(await runFixtureWine("builtin-classes")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "Error instanceof Error: true
+      Error has nested: object
+      classes.typeError is TypeError: true
+      classes.rangeError is RangeError: true
+      classes.syntaxError is SyntaxError: true
+      classes.referenceError is ReferenceError: true
+      classes.uriError is URIError: true
+      classes.evalError is EvalError: true
+      classes.internalError is InternalError: true
+      classes.aggregateError is AggregateError: true
+      ",
+      }
+    `);
+  }
+);
+
 test("user Error subclass reifies to base Error with .name preserved", async () => {
   expect(await runFixture("user-subclass")).toMatchInlineSnapshot(`
     {
@@ -203,6 +433,24 @@ test("user Error subclass reifies to base Error with .name preserved", async () 
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] user Error subclass reifies to base Error with .name preserved",
+  async () => {
+    expect(await runFixtureWine("user-subclass")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error is Error: true
+      error.name: MyError
+      error.message: custom-msg
+      error.code: 42
+      ",
+      }
+    `);
+  }
+);
+
 test("worker onmessage throw — parent onerror receives TypeError", async () => {
   expect(await runFixture("onmessage-throws")).toMatchInlineSnapshot(`
     {
@@ -215,6 +463,22 @@ test("worker onmessage throw — parent onerror receives TypeError", async () =>
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] worker onmessage throw — parent onerror receives TypeError",
+  async () => {
+    expect(await runFixtureWine("onmessage-throws")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error is TypeError: true
+      error.message: bad msg: boom
+      ",
+      }
+    `);
+  }
+);
 
 test("setTimeout callback throw — parent onerror receives RangeError", async () => {
   expect(await runFixture("settimeout-throws")).toMatchInlineSnapshot(`
@@ -229,6 +493,22 @@ test("setTimeout callback throw — parent onerror receives RangeError", async (
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] setTimeout callback throw — parent onerror receives RangeError",
+  async () => {
+    expect(await runFixtureWine("settimeout-throws")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error is RangeError: true
+      error.message: late
+      ",
+      }
+    `);
+  }
+);
+
 test("unhandled promise rejection — parent onerror fires with error", async () => {
   expect(await runFixture("unhandled-rejection")).toMatchInlineSnapshot(`
     {
@@ -241,6 +521,22 @@ test("unhandled promise rejection — parent onerror fires with error", async ()
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] unhandled promise rejection — parent onerror fires with error",
+  async () => {
+    expect(await runFixtureWine("unhandled-rejection")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error is Error: true
+      error.message: unhandled
+      ",
+      }
+    `);
+  }
+);
 
 test("late .catch after unhandled rejection — onerror fires exactly once", async () => {
   expect(await runFixture("late-catch")).toMatchInlineSnapshot(`
@@ -255,6 +551,23 @@ test("late .catch after unhandled rejection — onerror fires exactly once", asy
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] late .catch after unhandled rejection — onerror fires exactly once",
+  async () => {
+    expect(await runFixtureWine("late-catch")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "onerror fired, count=1
+      error.message: x
+      final call count: 1
+      ",
+      }
+    `);
+  }
+);
 
 test("parent-side onmessage throw — goes to stderr, not worker.onerror", async () => {
   expect(await runFixture("parent-onmessage-throws")).toMatchInlineSnapshot(`
@@ -271,6 +584,24 @@ test("parent-side onmessage throw — goes to stderr, not worker.onerror", async
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] parent-side onmessage throw — goes to stderr, not worker.onerror",
+  async () => {
+    expect(await runFixtureWine("parent-onmessage-throws")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "Error: parent bug
+          at somewhere
+
+      ",
+        "stdout": "about to throw from parent onmessage
+      ",
+      }
+    `);
+  }
+);
+
 test("I/O read handler throw (unix) — parent onerror fires", async () => {
   expect(await runFixture("io-handler-throws")).toMatchInlineSnapshot(`
     {
@@ -282,6 +613,9 @@ test("I/O read handler throw (unix) — parent onerror fires", async () => {
     }
   `);
 });
+
+// io-handler-throws uses os.setReadHandler(fd), which is POSIX-only —
+// the Wine variant times out because the read handler never fires.
 
 /* Plan test 19 (signal handler throw in worker) is infeasible as specified —
    os.signal can only be set from the main thread in QuickJS (throws
@@ -301,6 +635,21 @@ test("main-thread-only signal API in worker — onerror fires with TypeError", a
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] main-thread-only signal API in worker — onerror fires with TypeError",
+  async () => {
+    expect(await runFixtureWine("signal-handler-throws")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error.message: signal handler can only be set in the main thread
+      ",
+      }
+    `);
+  }
+);
+
 test("serialization failure — meta-error shipped with originalReasonString", async () => {
   expect(await runFixture("serialize-failure")).toMatchInlineSnapshot(`
     {
@@ -315,3 +664,19 @@ test("serialization failure — meta-error shipped with originalReasonString", a
   `);
 });
 
+test.runIf(shouldRunWineTests)(
+  "[wine] serialization failure — meta-error shipped with originalReasonString",
+  async () => {
+    expect(await runFixtureWine("serialize-failure")).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "error is Error: true
+      message prefix: true
+      has originalReasonString: true
+      ",
+      }
+    `);
+  }
+);

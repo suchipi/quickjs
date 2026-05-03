@@ -32,6 +32,10 @@
 #include <pthread.h>
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -70,13 +74,31 @@ typedef struct JSWorkerMessage {
     size_t sab_tab_len;
 } JSWorkerMessage;
 
+/* Cross-platform wakeup primitive used by message pipes. On POSIX it's a
+   self-pipe (read_fd / write_fd); on Windows it's a manual-reset Event
+   handle that can be passed to WaitForMultipleObjects alongside other
+   waitable handles. The pipe owns the waker; callers signal/clear via
+   the js_waker_* helpers in quickjs-os.c. */
+typedef struct JSWaker {
+#ifdef _WIN32
+    HANDLE handle;
+#else
+    int read_fd;
+    int write_fd;
+#endif
+} JSWaker;
+
 /* Worker message pipe for inter-thread communication */
 typedef struct JSWorkerMessagePipe {
     int ref_count;
     pthread_mutex_t mutex;
     struct list_head msg_queue; /* list of JSWorkerMessage.link */
-    int read_fd;
-    int write_fd;
+    JSWaker waker;
+    /* The writer-side sets `closed` under `mutex` to signal EOF to the
+       reader. Windows Events have no built-in EOF, so the reader checks
+       this flag whenever it dequeues the last message. POSIX uses the
+       same flag for parity rather than relying on read()==0. */
+    int closed;
 } JSWorkerMessagePipe;
 
 /* Worker message handler */
@@ -114,11 +136,23 @@ typedef struct JSThreadState {
     JSWorkerMessagePipe *error_send_pipe; /* worker-side only: write-end of the one-way error pipe back to the parent */
     char *entry_filename;              /* worker-side only: duped filename of the entry module; used as a fallback in worker_send_error when a thrown reason lacks a fileName own-prop */
     void *last_reported_reason_ptr;    /* worker-side only: pointer identity of the last reason value routed to the error pipe. Used by qju_report_exception_hook_impl to dedupe the chain of tracker fires produced by module-evaluation machinery when a module has a top-level throw — the chain shares a single reason value, so comparing pointer identity collapses the N reports into one. Non-JS_TAG_OBJECT values (strings, numbers) are never deduped because they don't have stable pointer identity in QuickJS's tagged-value representation. */
-    int active_worker_count;           /* number of active worker threads (main thread only) */
-    int worker_done_read_fd;           /* pipe read end for worker completion notifications (main thread only) */
-    int worker_done_write_fd;          /* pipe write end for worker completion notifications (shared with workers) */
+    int active_worker_count;           /* number of active worker threads (main thread only); mirrored from worker_done_signal->active_count, refreshed under its mutex */
+    struct JSWorkerDoneSignal *worker_done_signal; /* signaling channel for worker-completion notifications (main thread only; lazily allocated on first worker) */
 #endif
 } JSThreadState;
+
+#ifndef SKIP_WORKER
+/* Cross-thread signaling channel the parent uses to wake on worker
+   completion. The parent's JSThreadState owns one of these, lazily
+   allocated by js_eventloop_register_worker; each spawned worker thread
+   gets the same pointer via WorkerFuncArgs and signals it on exit. The
+   parent reads `active_count` under `mutex` whenever the waker fires. */
+typedef struct JSWorkerDoneSignal {
+    JSWaker waker;
+    pthread_mutex_t mutex;
+    int active_count;
+} JSWorkerDoneSignal;
+#endif
 
 /* Global state */
 extern uint64_t js_pending_signals;
@@ -150,9 +184,18 @@ void js_timer_free(JSRuntime *rt, JSTimer *th);
 #ifndef SKIP_WORKER
 void js_worker_message_pipe_free(JSWorkerMessagePipe *ps);
 
-/* Worker lifecycle tracking (main thread only) */
-int js_eventloop_register_worker(JSRuntime *rt);
-void js_eventloop_signal_worker_done(int write_fd);
+/* JSWaker helpers — implemented in quickjs-os.c. */
+int js_waker_init(JSWaker *w);
+void js_waker_signal(JSWaker *w);
+void js_waker_clear(JSWaker *w);
+void js_waker_close(JSWaker *w);
+
+/* Worker lifecycle tracking (main thread only).
+   register returns the parent's JSWorkerDoneSignal, which the worker
+   thread signals on exit. The signal struct is owned by ts and freed
+   in js_eventloop_free; workers only borrow the pointer. */
+JSWorkerDoneSignal *js_eventloop_register_worker(JSRuntime *rt);
+void js_eventloop_signal_worker_done(JSWorkerDoneSignal *sig);
 #endif
 
 #ifdef __cplusplus

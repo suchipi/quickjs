@@ -34,15 +34,6 @@
 #include <unistd.h>
 #endif
 
-#if defined(_WIN32)
-#include <io.h>
-#include <fcntl.h>
-#define pipe(fds) _pipe(fds, 4096, _O_BINARY)
-#define close _close
-#define read _read
-#define write _write
-#endif
-
 #include "cutils.h"
 #include "quickjs-eventloop.h"
 
@@ -255,8 +246,7 @@ void js_worker_message_pipe_free(JSWorkerMessagePipe *ps)
             js_free_message(msg);
         }
         pthread_mutex_destroy(&ps->mutex);
-        close(ps->read_fd);
-        close(ps->write_fd);
+        js_waker_close(&ps->waker);
         free(ps);
     }
 }
@@ -281,8 +271,8 @@ void js_eventloop_init(JSRuntime *rt)
     ts->error_send_pipe = NULL;
     ts->entry_filename = NULL;
     ts->last_reported_reason_ptr = NULL;
-    ts->worker_done_read_fd = -1;
-    ts->worker_done_write_fd = -1;
+    ts->active_worker_count = 0;
+    ts->worker_done_signal = NULL;
 #endif
 
     JS_SetRuntimeOpaque(rt, ts);
@@ -359,55 +349,57 @@ void js_eventloop_free(JSRuntime *rt)
         ts->entry_filename = NULL;
     }
 
-    if (ts->worker_done_read_fd >= 0)
-        close(ts->worker_done_read_fd);
-    if (ts->worker_done_write_fd >= 0)
-        close(ts->worker_done_write_fd);
+    if (ts->worker_done_signal) {
+        js_waker_close(&ts->worker_done_signal->waker);
+        pthread_mutex_destroy(&ts->worker_done_signal->mutex);
+        free(ts->worker_done_signal);
+        ts->worker_done_signal = NULL;
+    }
 #endif
 
     free(ts);
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
 }
 
+#ifndef SKIP_WORKER
 /* Worker lifecycle tracking.
    The main thread tracks active workers so the event loop stays alive
-   while workers are running. Workers signal completion by writing a byte
-   to a shared notification pipe. */
-int js_eventloop_register_worker(JSRuntime *rt)
+   while workers are running. Workers signal completion via a shared
+   JSWorkerDoneSignal: the worker decrements active_count under mutex
+   and raises the waker; the parent's poll waits on the waker, then
+   reads active_count back under the same mutex. */
+JSWorkerDoneSignal *js_eventloop_register_worker(JSRuntime *rt)
 {
-#ifndef SKIP_WORKER
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
-    if (ts->worker_done_read_fd < 0) {
-        int fds[2];
-        if (pipe(fds) < 0)
-            return -1;
-        ts->worker_done_read_fd = fds[0];
-        ts->worker_done_write_fd = fds[1];
+    if (!ts->worker_done_signal) {
+        JSWorkerDoneSignal *sig = malloc(sizeof(*sig));
+        if (!sig)
+            return NULL;
+        if (js_waker_init(&sig->waker) < 0) {
+            free(sig);
+            return NULL;
+        }
+        pthread_mutex_init(&sig->mutex, NULL);
+        sig->active_count = 0;
+        ts->worker_done_signal = sig;
     }
+    pthread_mutex_lock(&ts->worker_done_signal->mutex);
+    ts->worker_done_signal->active_count++;
+    pthread_mutex_unlock(&ts->worker_done_signal->mutex);
     ts->active_worker_count++;
-    return ts->worker_done_write_fd;
-#else
-    return -1;
-#endif
+    return ts->worker_done_signal;
 }
 
-void js_eventloop_signal_worker_done(int write_fd)
+void js_eventloop_signal_worker_done(JSWorkerDoneSignal *sig)
 {
-    uint8_t ch = 0;
-    int ret;
-
-    if (write_fd == -1) {
+    if (!sig)
         return;
-    }
-
-    for (;;) {
-        ret = write(write_fd, &ch, 1);
-        if (ret == 1)
-            break;
-        if (ret < 0 && errno != EAGAIN && errno != EINTR)
-            break;
-    }
+    pthread_mutex_lock(&sig->mutex);
+    sig->active_count--;
+    pthread_mutex_unlock(&sig->mutex);
+    js_waker_signal(&sig->waker);
 }
+#endif /* !SKIP_WORKER */
 
 /* main loop which calls the user JS callbacks */
 int js_eventloop_run(JSContext *ctx)

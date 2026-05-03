@@ -27,7 +27,7 @@
     "vitest": "^4.1.2"
   },
   "scripts": {
-    "test": "vitest --allowOnly",
+    "test": "vitest",
     "typecheck": "npx --no-install tsc --noEmit"
   },
   "prettier": {},

@@ -1,11 +1,9 @@
-import { test, expect } from "vitest";
+import { test as baseTest, expect } from "vitest";
 import { spawn } from "first-base";
-import { rootDir } from "./_utils";
+import { rootDir, shouldRunWasmTests } from "./_utils";
 import path from "path";
 
-if (process.env.CI) {
-  test.only("skipped in CI (we don't compile wasm in CI)", () => {});
-}
+const test = baseTest.runIf(shouldRunWasmTests);
 
 const wasmBinDir = path.join(
   rootDir(),

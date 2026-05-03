@@ -1,13 +1,33 @@
 import { test, describe, expect } from "vitest";
 import { spawn } from "first-base";
 import { sleep } from "a-mimir";
-import { binDir } from "../_utils";
+import {
+  binDir,
+  setupWineHooks,
+  shouldRunWineTests,
+  wineSpawn,
+} from "../_utils";
+
+if (shouldRunWineTests) {
+  setupWineHooks();
+}
 
 async function qjs(args: Array<string>, debug?: boolean) {
   const run = spawn(binDir("qjs"), args, { cwd: __dirname, debug });
   await Promise.race([
     run.completion,
     sleep.async(4500).then(() => {
+      run.kill("SIGKILL");
+    }),
+  ]);
+  return run.result;
+}
+
+async function qjsWine(args: Array<string>) {
+  const run = wineSpawn(args, { cwd: __dirname });
+  await Promise.race([
+    run.completion,
+    sleep.async(30000).then(() => {
       run.kill("SIGKILL");
     }),
   ]);
@@ -83,6 +103,17 @@ describe("oldtests", () => {
 
   test("test_worker.js", async () => {
     expect(await qjs(["./test_worker.js"])).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "",
+      }
+    `);
+  });
+
+  test.runIf(shouldRunWineTests)("[wine] test_worker.js", async () => {
+    expect(await qjsWine(["./test_worker.js"])).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,

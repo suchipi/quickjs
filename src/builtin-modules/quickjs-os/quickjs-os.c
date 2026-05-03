@@ -125,7 +125,7 @@ typedef struct {
     char *basename; /* module base name */
     JSWorkerMessagePipe *recv_pipe, *send_pipe;
     JSWorkerMessagePipe *error_send_pipe; /* worker's write end of the error pipe */
-    int worker_done_write_fd; /* fd to signal worker completion to main thread */
+    JSWorkerDoneSignal *worker_done_signal; /* signaling channel to wake the main thread on completion */
     int strip_flags;
 } WorkerFuncArgs;
 #endif
@@ -3159,25 +3159,103 @@ static int atomic_add_int(int *ptr, int v)
     return atomic_fetch_add((_Atomic(uint32_t) *)ptr, v) + v;
 }
 
+/* Cross-platform wakeup primitive shared by message pipes and the
+   worker-done signal. POSIX uses a self-pipe (one byte ≡ "wake");
+   Windows uses a manual-reset Event. The js_waker_* functions are
+   non-static (declared in quickjs-eventloop.h) so the eventloop module
+   can call js_waker_close from js_worker_message_pipe_free. */
+#ifdef _WIN32
+
+int js_waker_init(JSWaker *w)
+{
+    w->handle = CreateEvent(NULL, TRUE, FALSE, NULL);
+    return w->handle ? 0 : -1;
+}
+
+void js_waker_signal(JSWaker *w)
+{
+    SetEvent(w->handle);
+}
+
+void js_waker_clear(JSWaker *w)
+{
+    ResetEvent(w->handle);
+}
+
+void js_waker_close(JSWaker *w)
+{
+    if (w->handle && w->handle != INVALID_HANDLE_VALUE) {
+        CloseHandle(w->handle);
+        w->handle = INVALID_HANDLE_VALUE;
+    }
+}
+
+#else /* !_WIN32 */
+
+int js_waker_init(JSWaker *w)
+{
+    int fds[2];
+    if (pipe(fds) < 0)
+        return -1;
+    w->read_fd = fds[0];
+    w->write_fd = fds[1];
+    return 0;
+}
+
+void js_waker_signal(JSWaker *w)
+{
+    int ret;
+    for (;;) {
+        ret = write(w->write_fd, "", 1);
+        if (ret == 1)
+            break;
+        if (ret < 0 && errno != EAGAIN && errno != EINTR)
+            break;
+    }
+}
+
+void js_waker_clear(JSWaker *w)
+{
+    uint8_t buf[16];
+    int ret;
+    for (;;) {
+        ret = read(w->read_fd, buf, sizeof(buf));
+        if (ret >= 0)
+            break;
+        if (errno != EAGAIN && errno != EINTR)
+            break;
+    }
+}
+
+void js_waker_close(JSWaker *w)
+{
+    if (w->read_fd >= 0) {
+        close(w->read_fd);
+        w->read_fd = -1;
+    }
+    if (w->write_fd >= 0) {
+        close(w->write_fd);
+        w->write_fd = -1;
+    }
+}
+
+#endif /* _WIN32 */
+
 static JSWorkerMessagePipe *js_new_message_pipe(void)
 {
     JSWorkerMessagePipe *ps;
-    int pipe_fds[2];
-
-    if (pipe(pipe_fds) < 0)
-        return NULL;
 
     ps = malloc(sizeof(*ps));
-    if (!ps) {
-        close(pipe_fds[0]);
-        close(pipe_fds[1]);
+    if (!ps)
+        return NULL;
+    if (js_waker_init(&ps->waker) < 0) {
+        free(ps);
         return NULL;
     }
     ps->ref_count = 1;
+    ps->closed = 0;
     init_list_head(&ps->msg_queue);
     pthread_mutex_init(&ps->mutex, NULL);
-    ps->read_fd = pipe_fds[0];
-    ps->write_fd = pipe_fds[1];
     return ps;
 }
 
@@ -3224,10 +3302,7 @@ static void js_free_message_pipe_local(JSWorkerMessagePipe *ps)
             js_free_message(msg);
         }
         pthread_mutex_destroy(&ps->mutex);
-        if (ps->read_fd >= 0)
-            close(ps->read_fd);
-        if (ps->write_fd >= 0)
-            close(ps->write_fd);
+        js_waker_close(&ps->waker);
         free(ps);
     }
 }
@@ -3459,15 +3534,8 @@ static int worker_send_error(JSContext *ctx, JSValueConst reason)
 
     ps = ts->error_send_pipe;
     pthread_mutex_lock(&ps->mutex);
-    if (list_empty(&ps->msg_queue)) {
-        uint8_t ch = '\0';
-        int ret;
-        for (;;) {
-            ret = write(ps->write_fd, &ch, 1);
-            if (ret == 1) break;
-            if (ret < 0 && (errno != EAGAIN && errno != EINTR)) break;
-        }
-    }
+    if (list_empty(&ps->msg_queue))
+        js_waker_signal(&ps->waker);
     list_add_tail(&msg->link, &ps->msg_queue);
     pthread_mutex_unlock(&ps->mutex);
 
@@ -3568,7 +3636,7 @@ static void *worker_func(void *opaque)
     JSRuntime *rt;
     JSThreadState *ts;
     JSContext *ctx;
-    int worker_done_write_fd = args->worker_done_write_fd;
+    JSWorkerDoneSignal *worker_done_signal = args->worker_done_signal;
 
     rt = JS_NewRuntime();
     if (rt == NULL) {
@@ -3641,16 +3709,15 @@ static void *worker_func(void *opaque)
 
     js_eventloop_run(ctx);
 
-    /* Close the write end of the error pipe so the parent sees EOF and
-       can unregister the error port. The pipe struct itself is freed by
-       js_eventloop_free via ts->error_send_pipe. */
+    /* Mark the error pipe closed so the parent sees EOF and can
+       unregister the error port. The pipe struct itself is freed by
+       js_eventloop_free via ts->error_send_pipe. Wake the parent so it
+       observes the flag promptly. */
     if (ts->error_send_pipe) {
         pthread_mutex_lock(&ts->error_send_pipe->mutex);
-        if (ts->error_send_pipe->write_fd >= 0) {
-            close(ts->error_send_pipe->write_fd);
-            ts->error_send_pipe->write_fd = -1;
-        }
+        ts->error_send_pipe->closed = 1;
         pthread_mutex_unlock(&ts->error_send_pipe->mutex);
+        js_waker_signal(&ts->error_send_pipe->waker);
     }
 
     QJMS_FreeState(rt);
@@ -3659,7 +3726,7 @@ static void *worker_func(void *opaque)
     JS_FreeRuntime(rt);
 
     /* notify the main thread that this worker is done */
-    js_eventloop_signal_worker_done(worker_done_write_fd);
+    js_eventloop_signal_worker_done(worker_done_signal);
 
     return NULL;
 }
@@ -3785,12 +3852,12 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
 
     /* register this worker so the main event loop stays alive */
     {
-        int write_fd = js_eventloop_register_worker(rt);
-        if (write_fd < 0) {
+        JSWorkerDoneSignal *sig = js_eventloop_register_worker(rt);
+        if (!sig) {
             JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "could not create worker notification pipe");
             goto fail;
         }
-        args->worker_done_write_fd = write_fd;
+        args->worker_done_signal = sig;
     }
 
     /* Spawn the worker thread. No need to defer: `.onerror = fn` runs
@@ -3891,17 +3958,8 @@ static JSValue js_worker_postMessage(JSContext *ctx, JSValueConst this_val,
     ps = worker->send_pipe;
     pthread_mutex_lock(&ps->mutex);
     /* indicate that data is present */
-    if (list_empty(&ps->msg_queue)) {
-        uint8_t ch = '\0';
-        int ret;
-        for(;;) {
-            ret = write(ps->write_fd, &ch, 1);
-            if (ret == 1)
-                break;
-            if (ret < 0 && (errno != EAGAIN || errno != EINTR))
-                break;
-        }
-    }
+    if (list_empty(&ps->msg_queue))
+        js_waker_signal(&ps->waker);
     list_add_tail(&msg->link, &ps->msg_queue);
     pthread_mutex_unlock(&ps->mutex);
     return JS_UNDEFINED;
@@ -3929,17 +3987,16 @@ static JSValue js_worker_set_onmessage(JSContext *ctx, JSValueConst this_val,
 
     port = worker->msg_handler;
     if (JS_IsNull(func)) {
-        /* Close the send pipe's write end to signal EOF to the worker thread.
-           Do this regardless of whether a handler was previously set, so that
-           terminate() / setting onmessage to null always signals the worker. */
+        /* Mark the send pipe closed to signal EOF to the worker thread.
+           Do this regardless of whether a handler was previously set, so
+           that terminate() / setting onmessage to null always signals the
+           worker. Wake the worker so it observes the flag promptly. */
         if (worker->send_pipe) {
             JSWorkerMessagePipe *ps = worker->send_pipe;
             pthread_mutex_lock(&ps->mutex);
-            if (ps->write_fd >= 0) {
-                close(ps->write_fd);
-                ps->write_fd = -1;
-            }
+            ps->closed = 1;
             pthread_mutex_unlock(&ps->mutex);
+            js_waker_signal(&ps->waker);
         }
         if (port) {
             js_free_port(rt, port);
@@ -4139,17 +4196,8 @@ static int handle_posted_error(JSRuntime *rt, JSContext *ctx,
         msg = list_entry(ps->msg_queue.next, JSWorkerMessage, link);
         list_del(&msg->link);
 
-        if (list_empty(&ps->msg_queue)) {
-            uint8_t buf[16];
-            int r;
-            for (;;) {
-                r = read(ps->read_fd, buf, sizeof(buf));
-                if (r >= 0)
-                    break;
-                if (errno != EAGAIN && errno != EINTR)
-                    break;
-            }
-        }
+        if (list_empty(&ps->msg_queue))
+            js_waker_clear(&ps->waker);
 
         pthread_mutex_unlock(&ps->mutex);
 
@@ -4230,12 +4278,15 @@ static int handle_posted_error(JSRuntime *rt, JSContext *ctx,
     done:
         ;
     } else {
-        uint8_t buf[1];
-        int r = read(ps->read_fd, buf, sizeof(buf));
+        /* Queue is empty but waker was signaled — either spurious wake or
+           the worker side set `closed` (worker exited). Clear the waker
+           so we don't busy-loop, then propagate EOF to the caller. */
+        int closed = ps->closed;
+        js_waker_clear(&ps->waker);
         pthread_mutex_unlock(&ps->mutex);
 
-        if (r == 0) {
-            /* EOF — worker's error_send_pipe->write_fd was closed. */
+        if (closed) {
+            /* EOF — worker's error_send_pipe was closed. */
             return -1;
         }
         ret = 0;
@@ -4258,18 +4309,8 @@ static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
         /* remove the message from the queue */
         list_del(&msg->link);
 
-        if (list_empty(&ps->msg_queue)) {
-            /* read the notification byte when queue becomes empty */
-            uint8_t buf[16];
-            int r;
-            for(;;) {
-                r = read(ps->read_fd, buf, sizeof(buf));
-                if (r >= 0)
-                    break;
-                if (errno != EAGAIN && errno != EINTR)
-                    break;
-            }
-        }
+        if (list_empty(&ps->msg_queue))
+            js_waker_clear(&ps->waker);
 
         pthread_mutex_unlock(&ps->mutex);
 
@@ -4311,13 +4352,16 @@ static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
         }
         ret = 1;
     } else {
-        /* Queue is empty but fd was marked ready - check for EOF */
-        uint8_t buf[1];
-        int r = read(ps->read_fd, buf, sizeof(buf));
+        /* Queue is empty but waker was signaled — either spurious wake or
+           the writer set `closed` to signal EOF. Clear the waker so we
+           don't busy-loop, then propagate EOF to the caller. */
+        int closed = ps->closed;
+        js_waker_clear(&ps->waker);
         pthread_mutex_unlock(&ps->mutex);
 
-        if (r == 0) {
-            /* EOF detected - write end was closed */
+        if (closed) {
+            /* EOF detected — write end was closed by terminate() / unset
+               onmessage. */
             return -1;
         }
         ret = 0;
@@ -4345,6 +4389,43 @@ static int js_os_poll(JSContext *ctx)
 #endif
         )
         return -1;
+
+#ifndef SKIP_WORKER
+    /* See POSIX path: reap drained-and-closed ports so WaitForMultipleObjects
+       doesn't block on Events that will never fire again. */
+    {
+        struct list_head *_el, *_el1;
+        list_for_each_safe(_el, _el1, &ts->port_list) {
+            JSWorkerMessageHandler *port = list_entry(_el, JSWorkerMessageHandler, link);
+            JSWorkerMessagePipe *ps = port->recv_pipe;
+            int dead;
+            pthread_mutex_lock(&ps->mutex);
+            dead = ps->closed && list_empty(&ps->msg_queue);
+            pthread_mutex_unlock(&ps->mutex);
+            if (dead) {
+                list_del(&port->link);
+                JS_FreeValueRT(rt, port->on_message_func);
+                port->on_message_func = JS_NULL;
+            }
+        }
+        list_for_each_safe(_el, _el1, &ts->error_port_list) {
+            JSWorkerErrorHandler *eh = list_entry(_el, JSWorkerErrorHandler, link);
+            JSWorkerMessagePipe *ps = eh->recv_pipe;
+            int dead;
+            pthread_mutex_lock(&ps->mutex);
+            dead = ps->closed && list_empty(&ps->msg_queue);
+            pthread_mutex_unlock(&ps->mutex);
+            if (dead) {
+                list_del(&eh->link);
+                eh->link.next = NULL;
+                eh->link.prev = NULL;
+            }
+        }
+        if (list_empty(&ts->rw_handlers) && list_empty(&ts->timers)
+            && list_empty(&ts->port_list) && ts->active_worker_count <= 0)
+            return -1;
+    }
+#endif
 
     if (!list_empty(&ts->timers)) {
         cur_time = gettime_ms();
@@ -4399,7 +4480,7 @@ static int js_os_poll(JSContext *ctx)
     list_for_each(el, &ts->port_list) {
         JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
         if (!JS_IsNull(port->on_message_func) && handle_count < MAXIMUM_WAIT_OBJECTS) {
-            handles[handle_count++] = (HANDLE)_get_osfhandle(port->recv_pipe->read_fd);
+            handles[handle_count++] = port->recv_pipe->waker.handle;
         }
     }
 
@@ -4409,16 +4490,16 @@ static int js_os_poll(JSContext *ctx)
     list_for_each(el, &ts->error_port_list) {
         JSWorkerErrorHandler *eh = list_entry(el, JSWorkerErrorHandler, link);
         if (handle_count < MAXIMUM_WAIT_OBJECTS) {
-            handles[handle_count++] = (HANDLE)_get_osfhandle(eh->recv_pipe->read_fd);
+            handles[handle_count++] = eh->recv_pipe->waker.handle;
         }
     }
 
     /* Add worker done notification handle */
     int worker_done_handle_idx = -1;
-    if (ts->active_worker_count > 0 && ts->worker_done_read_fd >= 0 &&
+    if (ts->active_worker_count > 0 && ts->worker_done_signal &&
         handle_count < MAXIMUM_WAIT_OBJECTS) {
         worker_done_handle_idx = handle_count;
-        handles[handle_count++] = (HANDLE)_get_osfhandle(ts->worker_done_read_fd);
+        handles[handle_count++] = ts->worker_done_signal->waker.handle;
     }
 #endif
 
@@ -4474,10 +4555,11 @@ static int js_os_poll(JSContext *ctx)
                     err_port_idx++;
                 }
             } else if (idx == worker_done_handle_idx) {
-                uint8_t buf[16];
-                int n = read(ts->worker_done_read_fd, buf, sizeof(buf));
-                if (n > 0)
-                    ts->active_worker_count -= n;
+                JSWorkerDoneSignal *sig = ts->worker_done_signal;
+                pthread_mutex_lock(&sig->mutex);
+                ts->active_worker_count = sig->active_count;
+                js_waker_clear(&sig->waker);
+                pthread_mutex_unlock(&sig->mutex);
             }
 #endif
         }
@@ -4525,6 +4607,50 @@ static int js_os_poll(JSContext *ctx)
 #endif
         )
         return -1;
+
+#ifndef SKIP_WORKER
+    /* Reap any ports/error_ports that are drained AND marked closed by
+       the writer side. Without this, a port whose last message was
+       dispatched (draining the waker byte) would keep port_list
+       non-empty across iterations, and the next select() would block on
+       an empty pipe even though closed=1. The reap happens before
+       building the fd set so the empty-everything check above takes
+       effect on the next iteration if these were the last ports. */
+    {
+        struct list_head *_el, *_el1;
+        list_for_each_safe(_el, _el1, &ts->port_list) {
+            JSWorkerMessageHandler *port = list_entry(_el, JSWorkerMessageHandler, link);
+            JSWorkerMessagePipe *ps = port->recv_pipe;
+            int dead;
+            pthread_mutex_lock(&ps->mutex);
+            dead = ps->closed && list_empty(&ps->msg_queue);
+            pthread_mutex_unlock(&ps->mutex);
+            if (dead) {
+                list_del(&port->link);
+                JS_FreeValueRT(rt, port->on_message_func);
+                port->on_message_func = JS_NULL;
+            }
+        }
+        list_for_each_safe(_el, _el1, &ts->error_port_list) {
+            JSWorkerErrorHandler *eh = list_entry(_el, JSWorkerErrorHandler, link);
+            JSWorkerMessagePipe *ps = eh->recv_pipe;
+            int dead;
+            pthread_mutex_lock(&ps->mutex);
+            dead = ps->closed && list_empty(&ps->msg_queue);
+            pthread_mutex_unlock(&ps->mutex);
+            if (dead) {
+                list_del(&eh->link);
+                eh->link.next = NULL;
+                eh->link.prev = NULL;
+            }
+        }
+        /* Re-check the exit condition now that reaping may have
+           emptied port_list/error_port_list. */
+        if (list_empty(&ts->rw_handlers) && list_empty(&ts->timers)
+            && list_empty(&ts->port_list) && ts->active_worker_count <= 0)
+            return -1;
+    }
+#endif
 
     if (!list_empty(&ts->timers)) {
         cur_time = gettime_ms();
@@ -4574,8 +4700,8 @@ static int js_os_poll(JSContext *ctx)
         JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
         if (!JS_IsNull(port->on_message_func)) {
             JSWorkerMessagePipe *ps = port->recv_pipe;
-            fd_max = max_int(fd_max, ps->read_fd);
-            FD_SET(ps->read_fd, &rfds);
+            fd_max = max_int(fd_max, ps->waker.read_fd);
+            FD_SET(ps->waker.read_fd, &rfds);
         }
     }
 
@@ -4585,14 +4711,15 @@ static int js_os_poll(JSContext *ctx)
     list_for_each(el, &ts->error_port_list) {
         JSWorkerErrorHandler *eh = list_entry(el, JSWorkerErrorHandler, link);
         JSWorkerMessagePipe *ps = eh->recv_pipe;
-        fd_max = max_int(fd_max, ps->read_fd);
-        FD_SET(ps->read_fd, &rfds);
+        fd_max = max_int(fd_max, ps->waker.read_fd);
+        FD_SET(ps->waker.read_fd, &rfds);
     }
 
-    /* watch the worker notification pipe so we wake up when workers finish */
-    if (ts->active_worker_count > 0 && ts->worker_done_read_fd >= 0) {
-        fd_max = max_int(fd_max, ts->worker_done_read_fd);
-        FD_SET(ts->worker_done_read_fd, &rfds);
+    /* watch the worker-done waker so we wake up when workers finish */
+    if (ts->active_worker_count > 0 && ts->worker_done_signal) {
+        int wfd = ts->worker_done_signal->waker.read_fd;
+        fd_max = max_int(fd_max, wfd);
+        FD_SET(wfd, &rfds);
         /* if there's nothing else keeping us alive, use a timeout so we
            don't block forever in select */
         if (tvp == NULL) {
@@ -4623,7 +4750,7 @@ static int js_os_poll(JSContext *ctx)
             JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
             if (!JS_IsNull(port->on_message_func)) {
                 JSWorkerMessagePipe *ps = port->recv_pipe;
-                if (FD_ISSET(ps->read_fd, &rfds)) {
+                if (FD_ISSET(ps->waker.read_fd, &rfds)) {
                     int result = handle_posted_message(rt, ctx, port);
                     if (result < 0) {
                         /* EOF detected - disable port to allow event loop to exit */
@@ -4641,7 +4768,7 @@ static int js_os_poll(JSContext *ctx)
         list_for_each_safe(el, el1, &ts->error_port_list) {
             JSWorkerErrorHandler *eh = list_entry(el, JSWorkerErrorHandler, link);
             JSWorkerMessagePipe *ps = eh->recv_pipe;
-            if (FD_ISSET(ps->read_fd, &rfds)) {
+            if (FD_ISSET(ps->waker.read_fd, &rfds)) {
                 int result = handle_posted_error(rt, ctx, eh);
                 if (result < 0) {
                     /* EOF detected — unlink so the loop can exit; leave
@@ -4658,12 +4785,13 @@ static int js_os_poll(JSContext *ctx)
 
 #ifndef SKIP_WORKER
         /* handle worker completion notifications */
-        if (ts->worker_done_read_fd >= 0 &&
-            FD_ISSET(ts->worker_done_read_fd, &rfds)) {
-            uint8_t buf[16];
-            int n = read(ts->worker_done_read_fd, buf, sizeof(buf));
-            if (n > 0)
-                ts->active_worker_count -= n;
+        if (ts->worker_done_signal &&
+            FD_ISSET(ts->worker_done_signal->waker.read_fd, &rfds)) {
+            JSWorkerDoneSignal *sig = ts->worker_done_signal;
+            pthread_mutex_lock(&sig->mutex);
+            ts->active_worker_count = sig->active_count;
+            js_waker_clear(&sig->waker);
+            pthread_mutex_unlock(&sig->mutex);
         }
 #endif
     }
