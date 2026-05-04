@@ -881,6 +881,7 @@ struct JSObject {
             uint8_t is_exotic : 1; /* TRUE if object has exotic property handlers */
             uint8_t fast_array : 1; /* TRUE if u.array is used for get/put (for JS_CLASS_ARRAY, JS_CLASS_ARGUMENTS and typed arrays) */
             uint8_t is_constructor : 1; /* TRUE if object is a constructor function */
+            uint8_t has_immutable_prototype : 1; /* cannot modify the prototype */
             uint8_t tmp_mark : 1; /* used in JS_WriteObjectRec() */
             uint8_t is_HTMLDDA : 1; /* specific annex B IsHtmlDDA behavior */
             uint16_t class_id; /* see JS_CLASS_x */
@@ -5070,6 +5071,7 @@ static JSValue JS_NewObjectFromShape(JSContext *ctx, JSShape *sh, JSClassID clas
     p->is_exotic = 0;
     p->fast_array = 0;
     p->is_constructor = 0;
+    p->has_immutable_prototype = 0;
     p->tmp_mark = 0;
     p->is_HTMLDDA = 0;
     p->weakref_count = 0;
@@ -7384,6 +7386,15 @@ static inline __exception int js_poll_interrupts(JSContext *ctx)
     }
 }
 
+static void JS_SetImmutablePrototype(JSContext *ctx, JSValueConst obj)
+{
+    JSObject *p;
+    if (JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)
+        return;
+    p = JS_VALUE_GET_OBJ(obj);
+    p->has_immutable_prototype = TRUE;
+}
+
 /* Return -1 (exception) or TRUE/FALSE. 'throw_flag' = FALSE indicates
    that it is called from Reflect.setPrototypeOf(). */
 static int JS_SetPrototypeInternal(JSContext *ctx, JSValueConst obj,
@@ -7433,7 +7444,15 @@ static int JS_SetPrototypeInternal(JSContext *ctx, JSValueConst obj,
     sh = p->shape;
     if (sh->proto == proto)
         return TRUE;
-    if (!p->extensible) {
+    if (unlikely(p->has_immutable_prototype)) {
+        if (throw_flag) {
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "prototype is immutable");
+            return -1;
+        } else {
+            return FALSE;
+        }
+    }
+    if (unlikely(!p->extensible)) {
         if (throw_flag) {
             JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "object is not extensible");
             return -1;
@@ -52463,6 +52482,8 @@ static void JS_AddIntrinsicBasicObjects(JSContext *ctx)
     int i;
 
     ctx->class_proto[JS_CLASS_OBJECT] = JS_NewObjectProto(ctx, JS_NULL);
+    JS_SetImmutablePrototype(ctx, ctx->class_proto[JS_CLASS_OBJECT]);
+
     ctx->function_proto = JS_NewCFunction3(ctx, js_function_proto, "", 0,
                                            JS_CFUNC_generic, 0,
                                            ctx->class_proto[JS_CLASS_OBJECT]);
