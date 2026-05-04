@@ -83,3 +83,16 @@ index c1829e3e4c..18b3e425e8 100644
  function assertEq(...args) {
    assert.sameValue(...args)
  }
+diff --git a/test/staging/sm/misc/new-with-non-constructor.js b/test/staging/sm/misc/new-with-non-constructor.js
+index 18c2f0cc13..f9aa2094de 100644
+--- a/test/staging/sm/misc/new-with-non-constructor.js
++++ b/test/staging/sm/misc/new-with-non-constructor.js
+@@ -16,7 +16,7 @@ function checkConstruct(thing) {
+         new thing();
+         assert.sameValue(0, 1, "not reached " + thing);
+     } catch (e) {
+-        assert.sameValue(e.message.includes(" is not a constructor") ||
++        assert.sameValue(e.message.includes("not a constructor") ||
+                  e.message === "Function.prototype.toString called on incompatible object", true);
+     }
+ }
