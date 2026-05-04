@@ -731,11 +731,10 @@ static inline JS_BOOL JS_IsObject(JSValueConst v)
 JS_BOOL JS_IsPrimitive(JSValueConst value);
 
 JSValue JS_Throw(JSContext *ctx, JSValue obj);
+void JS_SetUncatchableException(JSContext *ctx, JS_BOOL flag);
 JSValue JS_GetException(JSContext *ctx);
 JS_BOOL JS_HasException(JSContext *ctx);
 JS_BOOL JS_IsError(JSContext *ctx, JSValueConst val);
-void JS_SetUncatchableError(JSContext *ctx, JSValueConst val, JS_BOOL flag);
-void JS_ResetUncatchableError(JSContext *ctx);
 JSValue JS_NewError(JSContext *ctx);
 JSValue __js_printf_like(4, 5) JS_ThrowError(JSContext *ctx, const char *filename, int line_num, const char *fmt, ...);
 JSValue __js_printf_like(4, 5) JS_ThrowSyntaxError(JSContext *ctx, const char *filename, int line_num, const char *fmt, ...);

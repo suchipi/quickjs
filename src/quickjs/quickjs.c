@@ -202,6 +202,8 @@ struct JSRuntime {
     uintptr_t stack_limit; /* lower stack limit */
 
     JSValue current_exception;
+    /* true if the current exception cannot be catched */
+    BOOL current_exception_is_uncatchable : 8;
     /* true if inside an out of memory error, to avoid recursing */
     BOOL in_out_of_memory : 8;
 
@@ -879,7 +881,6 @@ struct JSObject {
             uint8_t is_exotic : 1; /* TRUE if object has exotic property handlers */
             uint8_t fast_array : 1; /* TRUE if u.array is used for get/put (for JS_CLASS_ARRAY, JS_CLASS_ARGUMENTS and typed arrays) */
             uint8_t is_constructor : 1; /* TRUE if object is a constructor function */
-            uint8_t is_uncatchable_error : 1; /* if TRUE, error is not catchable */
             uint8_t tmp_mark : 1; /* used in JS_WriteObjectRec() */
             uint8_t is_HTMLDDA : 1; /* specific annex B IsHtmlDDA behavior */
             uint16_t class_id; /* see JS_CLASS_x */
@@ -5069,7 +5070,6 @@ static JSValue JS_NewObjectFromShape(JSContext *ctx, JSShape *sh, JSClassID clas
     p->is_exotic = 0;
     p->fast_array = 0;
     p->is_constructor = 0;
-    p->is_uncatchable_error = 0;
     p->tmp_mark = 0;
     p->is_HTMLDDA = 0;
     p->weakref_count = 0;
@@ -6718,6 +6718,7 @@ JSValue JS_Throw(JSContext *ctx, JSValue obj)
     JSRuntime *rt = ctx->rt;
     JS_FreeValue(ctx, rt->current_exception);
     rt->current_exception = obj;
+    rt->current_exception_is_uncatchable = FALSE;
     return JS_EXCEPTION;
 }
 
@@ -7358,7 +7359,7 @@ static JSValue JS_ThrowTypeErrorInvalidClass(JSContext *ctx, int class_id)
 static void JS_ThrowInterrupted(JSContext *ctx)
 {
     JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "interrupted");
-    JS_SetUncatchableError(ctx, ctx->rt->current_exception, TRUE);
+    JS_SetUncatchableException(ctx, TRUE);
 }
 
 static no_inline __exception int __js_poll_interrupts(JSContext *ctx)
@@ -10415,29 +10416,10 @@ BOOL JS_IsError(JSContext *ctx, JSValueConst val)
     return (p->class_id == JS_CLASS_ERROR);
 }
 
-/* used to avoid catching interrupt exceptions */
-BOOL JS_IsUncatchableError(JSContext *ctx, JSValueConst val)
+/* must be called after JS_Throw() */
+void JS_SetUncatchableException(JSContext *ctx, BOOL flag)
 {
-    JSObject *p;
-    if (JS_VALUE_GET_TAG(val) != JS_TAG_OBJECT)
-        return FALSE;
-    p = JS_VALUE_GET_OBJ(val);
-    return p->class_id == JS_CLASS_ERROR && p->is_uncatchable_error;
-}
-
-void JS_SetUncatchableError(JSContext *ctx, JSValueConst val, BOOL flag)
-{
-    JSObject *p;
-    if (JS_VALUE_GET_TAG(val) != JS_TAG_OBJECT)
-        return;
-    p = JS_VALUE_GET_OBJ(val);
-    if (p->class_id == JS_CLASS_ERROR)
-        p->is_uncatchable_error = flag;
-}
-
-void JS_ResetUncatchableError(JSContext *ctx)
-{
-    JS_SetUncatchableError(ctx, ctx->rt->current_exception, FALSE);
+    ctx->rt->current_exception_is_uncatchable = flag;
 }
 
 void JS_SetOpaque(JSValue obj, void *opaque)
@@ -19001,7 +18983,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         rt->current_stack_frame = top->prev_frame;
         free_synthetic_stack_frame(ctx, ssf);
     }
-    if (!JS_IsUncatchableError(ctx, rt->current_exception)) {
+    if (!rt->current_exception_is_uncatchable) {
         while (sp > stack_buf) {
             JSValue val = *--sp;
             JS_FreeValue(ctx, val);
