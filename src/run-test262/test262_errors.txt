@@ -30,8 +30,6 @@ test262/test/staging/sm/Set/is-subset-of.js:34: Test262Error: Expected SameValue
 test262/test/staging/sm/Set/is-superset-of.js:34: Test262Error: Expected SameValue(«"undefined"», «"function"») to be true
 test262/test/staging/sm/Set/union.js:34: Test262Error: Expected SameValue(«"undefined"», «"function"») to be true
 test262/test/staging/sm/String/match-defines-match-elements.js:52: Test262Error: Expected SameValue(«true», «false») to be true
-test262/test/staging/sm/String/split-01.js:20: Test262Error: Expected SameValue(«"undefined"», «undefined») to be true
-test262/test/staging/sm/String/split-xregexp.js:43: Test262Error: '.'.split(/(.)?(.)?/) Expected SameValue(«"undefined"», «undefined») to be true
 test262/test/staging/sm/TypedArray/constructor-buffer-sequence.js:73: Error: Assertion failed: expected exception ExpectedError, got Error: Poisoned Value
 test262/test/staging/sm/TypedArray/prototype-constructor-identity.js:17: Test262Error: Expected SameValue(«2», «6») to be true
 test262/test/staging/sm/TypedArray/set-detached-bigint.js:27: Error: Assertion failed: expected exception SyntaxError, got RangeError: invalid array length

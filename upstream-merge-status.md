@@ -269,7 +269,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 5e71d14 | PORT | setters cannot have rest arguments | js_parse_function_decl2: when parsing a setter and encountering TOK_ELLIPSIS (rest parameter), goto fail_accessor (the existing arg-count error path) instead of accepting it as a rest. Fixes staging/sm/object/accessor-arguments-rest.js. |
 | 5afd0eb | PORT | fix property ordering in the object returned by RegExp.prototype.exec() | js_regexp_exec: moved the `groups` property definition to after `index` and `input` so the resulting object's enumeration order matches the spec ([0, ..., index, input, groups]). Fixes 3 staging tests (15.2.3.14-01, object/entries, object/values). |
 | 1e958ab | PORT | fixed operation order in Object.prototype.propertyIsEnumerable() | js_object_propertyIsEnumerable: convert the property argument to an atom (JS_ValueToAtom) before coercing `this` to an object (JS_ToObject), matching the spec order. Also added an XXX comment in JS_ObjectDefineProperties about its known property-order divergence. Fixes staging/sm/object/propertyIsEnumerable.js. |
-| b32cccb | PENDING | fixed RegExp.prototype[Symbol.split] |  |
+| b32cccb | PORT | fixed RegExp.prototype[Symbol.split] | js_regexp_Symbol_split: removed an erroneous JS_ToStringFree() coercion of capture-group sub-strings — they should be propagated as-is (possibly undefined) to match the spec, not coerced to "undefined" strings. Fixes staging/sm/String/{split-01,split-xregexp}. |
 | a0a760f | PENDING | fixed GeneratorFunction prototype |  |
 | 08a28c0 | PENDING | fixed TypedArray.prototype.with with detached ArrayBuffer |  |
 | 3bffe67 | PENDING | fixed TypedArray.prototype.slice() when the buffers overlap |  |
