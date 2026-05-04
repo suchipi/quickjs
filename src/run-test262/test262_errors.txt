@@ -80,7 +80,6 @@ test262/test/staging/sm/lexical-environment/var-in-catch-body-annex-b-eval.js:17
 test262/test/staging/sm/misc/new-with-non-constructor.js:14: Test262Error: Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/module/module-export-name-star.js:15: SyntaxError: identifier expected
 test262/test/staging/sm/object/15.2.3.14-01.js:30: Test262Error: 0,groups,index,input Expected SameValue(«false», «true») to be true
-test262/test/staging/sm/object/accessor-arguments-rest.js:18: Error: Assertion failed: expected exception SyntaxError, no exception thrown
 test262/test/staging/sm/object/clear-dictionary-accessor-getset.js:52: TypeError: not a function
 test262/test/staging/sm/object/defineProperties-order.js:14: Test262Error: Expected SameValue(«"ownKeys,getOwnPropertyDescriptor,getOwnPropertyDescriptor,get,get"», «"ownKeys,getOwnPropertyDescriptor,get,getOwnPropertyDescriptor,get"») to be true
 test262/test/staging/sm/object/defineProperty-proxy.js:32: Test262Error: Expected ["has configurable", "get configurable", "has writable", "get writable", "has enumerable", "get enumerable", "has value", "get value", "has get", "has set"] to be structurally equal to ["has enumerable", "get enumerable", "has configurable", "get configurable", "has value", "get value", "has writable", "get writable", "has get", "has set"]. 
