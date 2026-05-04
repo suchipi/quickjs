@@ -45336,12 +45336,6 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
                 goto fail;
         }
 
-        t = groups, groups = JS_UNDEFINED;
-        if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_groups,
-                                   t, prop_flags) < 0) {
-            goto fail;
-        }
-
         t = JS_NewInt32(ctx, (capture[0] - str_buf) >> shift);
         if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_index, t, prop_flags) < 0)
             goto fail;
@@ -45349,6 +45343,12 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
         t = str_val, str_val = JS_UNDEFINED;
         if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_input, t, prop_flags) < 0)
             goto fail;
+
+        t = groups, groups = JS_UNDEFINED;
+        if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_groups,
+                                   t, prop_flags) < 0) {
+            goto fail;
+        }
 
         if (!JS_IsUndefined(indices)) {
             t = indices_groups, indices_groups = JS_UNDEFINED;
