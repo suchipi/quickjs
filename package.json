@@ -14,7 +14,7 @@
     "@babel/preset-typescript": "^7.27.0",
     "@suchipi/dtsmd": "^1.4.0",
     "@suchipi/print": "^2.5.0",
-    "@suchipi/shinobi": "^1.4.2",
+    "@suchipi/shinobi": "^2.0.0",
     "@types/node": "^22.15.2",
     "@types/shelljs": "^0.8.15",
     "a-mimir": "^1.0.1",
