@@ -69,7 +69,7 @@ test262/test/staging/sm/generators/runtime.js:35: Test262Error: Expected SameVal
 }», «function () {
     [native code]
 }») to be true
-test262/test/staging/sm/generators/syntax.js:30: Error: Assertion failed: expected SyntaxError, but no exception thrown - function* yield() { 'use strict'; (yield 3) + (yield 4); }
+test262/test/staging/sm/generators/syntax.js:30: Error: Assertion failed: expected SyntaxError, but no exception thrown - function* g() { (function* yield() {}); }
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-arguments.js:14: Test262Error: Expected SameValue(«"object"», «"function"») to be true
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-eval.js:12: Test262Error: Expected SameValue(«"outer-gouter-geval-gtruefalseq"», «"outer-geval-gwith-gtruefalseq"») to be true
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-if.js:20: TypeError: not a function
@@ -77,7 +77,6 @@ test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-notap
 test262/test/staging/sm/lexical-environment/block-scoped-functions-deprecated-redecl.js:23: Test262Error: Expected SameValue(«3», «4») to be true
 test262/test/staging/sm/lexical-environment/unscopables-proto.js:15: Test262Error: Expected SameValue(«true», «false») to be true
 test262/test/staging/sm/lexical-environment/var-in-catch-body-annex-b-eval.js:17: Test262Error: Expected SameValue(«"g"», «"global-x"») to be true
-test262/test/staging/sm/misc/future-reserved-words.js:21: Test262Error: Implement FutureReservedWords per-spec: implements: function argument retroactively strict Expected SameValue(«"no error"», «"SyntaxError"») to be true
 test262/test/staging/sm/misc/new-with-non-constructor.js:14: Test262Error: Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/module/module-export-name-star.js:15: SyntaxError: identifier expected
 test262/test/staging/sm/object/15.2.3.14-01.js:30: Test262Error: 0,groups,index,input Expected SameValue(«false», «true») to be true
