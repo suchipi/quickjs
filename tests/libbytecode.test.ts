@@ -29,11 +29,11 @@ test("bytecode - normal values", async () => {
       "error": null,
       "stderr": "",
       "stdout": "fromValue 7 ArrayBuffer {
-    	│0x00000000│ 04 00 05 0E
+    	│0x00000000│ 05 00 05 0E
     }
     back toValue 7
     fromValue { a: 5 } ArrayBuffer {
-    	│0x00000000│ 04 01 02 61 08 01 BE 03 05 0A
+    	│0x00000000│ 05 01 02 61 08 01 BE 03 05 0A
     }
     back toValue {
     	a: 5
@@ -69,7 +69,7 @@ test("bytecode - script file", async () => {
       "error": null,
       "stderr": "",
       "stdout": "fromFile ArrayBuffer {
-    	│0x00000000│ 04 03 0E 63 6F 6E 73 6F 6C 65 06 6C 6F 67 34 74
+    	│0x00000000│ 05 03 0E 63 6F 6E 73 6F 6C 65 06 6C 6F 67 34 74
     	│0x00000010│ 65 73 74 73 2F 66 69 78 74 75 72 65 73 2F 6C 6F
     	│0x00000020│ 67 2D 66 6F 75 72 2E 6A 73 0C 00 06 00 A4 01 00
     	│0x00000030│ 01 00 04 00 00 12 01 A6 01 00 00 00 39 DF 00 00
@@ -114,7 +114,7 @@ test("bytecode - module file", async () => {
       "error": null,
       "stderr": "",
       "stdout": "fromFile ArrayBuffer {
-    	│0x00000000│ 04 05 3C 74 65 73 74 73 2F 66 69 78 74 75 72 65
+    	│0x00000000│ 05 05 3C 74 65 73 74 73 2F 66 69 78 74 75 72 65
     	│0x00000010│ 73 2F 65 78 70 6F 72 74 73 2D 66 69 76 65 2E 6A
     	│0x00000020│ 73 08 66 69 76 65 0E 63 6F 6E 73 6F 6C 65 06 6C
     	│0x00000030│ 6F 67 16 65 78 70 6F 72 74 69 6E 67 20 35 0D BE
