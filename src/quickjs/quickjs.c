@@ -24505,6 +24505,7 @@ static int js_parse_destructuring_element(JSParseState *s, int tok, int is_arg,
                         emit_op(s, OP_scope_get_var);
                         emit_atom(s, var_name);
                         emit_u16(s, s->cur_func->scope_level);
+                        JS_FreeAtom(s->ctx, var_name);
                         goto lvalue0;
                     } else {
                         opcode = OP_scope_get_var;
@@ -24606,6 +24607,7 @@ static int js_parse_destructuring_element(JSParseState *s, int tok, int is_arg,
                         emit_op(s, OP_scope_get_var);
                         emit_atom(s, var_name);
                         emit_u16(s, s->cur_func->scope_level);
+                        JS_FreeAtom(s->ctx, var_name);
                         goto lvalue1;
                     } else {
                         /* no need to make a reference for let/const */
@@ -24804,6 +24806,7 @@ static int js_parse_destructuring_element(JSParseState *s, int tok, int is_arg,
                         emit_op(s, OP_scope_get_var);
                         emit_atom(s, var_name);
                         emit_u16(s, s->cur_func->scope_level);
+                        JS_FreeAtom(s->ctx, var_name);
                         goto lvalue2;
                     } else {
                         /* no need to make a reference for let/const */
