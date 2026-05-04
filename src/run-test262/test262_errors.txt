@@ -39,8 +39,6 @@ test262/test/staging/sm/TypedArray/sort-negative-nan.js:102: TypeError: cannot r
 test262/test/staging/sm/TypedArray/sort_modifications.js:12: Test262Error: Int8Array at index 0 for size 4 Expected SameValue(«0», «1») to be true
 test262/test/staging/sm/TypedArray/subarray.js:15: Test262Error: Expected SameValue(«0», «1») to be true
 test262/test/staging/sm/TypedArray/toString.js:61: ReferenceError: 'Float16Array' is not defined
-test262/test/staging/sm/TypedArray/with-detached.js:17: Error: Assertion failed: expected exception TypeError, got RangeError: invalid array index
-test262/test/staging/sm/TypedArray/with.js:27: Error: Assertion failed: expected exception Err, got RangeError: invalid array index
 test262/test/staging/sm/async-functions/async-contains-unicode-escape.js:45: Error: Assertion failed: expected exception SyntaxError, no exception thrown
 test262/test/staging/sm/async-functions/await-error.js:12: Test262Error: Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/async-functions/await-in-arrow-parameters.js:33: Error: Assertion failed: expected exception SyntaxError, no exception thrown - AsyncFunction:(a = (b = await/r/g) => {}) => {}
