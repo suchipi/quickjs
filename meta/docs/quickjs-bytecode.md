@@ -8,6 +8,7 @@ declare module "quickjs:bytecode" {
       byteSwap?: boolean;
       sourceType?: "module" | "script";
       encodedFileName?: string;
+      strip?: "source" | "debug" | false;
     },
   ): ArrayBuffer;
   export function fromValue(
@@ -41,6 +42,7 @@ export function fromFile(
     byteSwap?: boolean;
     sourceType?: "module" | "script";
     encodedFileName?: string;
+    strip?: "source" | "debug" | false;
   },
 ): ArrayBuffer;
 ```

@@ -13,11 +13,6 @@ declare module "quickjs:context" {
       mapSet?: boolean;
       typedArrays?: boolean;
       promise?: boolean;
-      bigint?: boolean;
-      bigfloat?: boolean;
-      bigdecimal?: boolean;
-      operators?: boolean;
-      useMath?: boolean;
       inspect?: boolean;
       console?: boolean;
       print?: boolean;
@@ -56,11 +51,6 @@ class Context {
     mapSet?: boolean;
     typedArrays?: boolean;
     promise?: boolean;
-    bigint?: boolean;
-    bigfloat?: boolean;
-    bigdecimal?: boolean;
-    operators?: boolean;
-    useMath?: boolean;
     inspect?: boolean;
     console?: boolean;
     print?: boolean;
@@ -115,7 +105,6 @@ The following globals are always present, regardless of options:
 - Infinity
 - NaN
 - undefined
-- \_\_date_clock
 - Number
 - Boolean
 - String
@@ -140,11 +129,6 @@ constructor(options?: {
   mapSet?: boolean;
   typedArrays?: boolean;
   promise?: boolean;
-  bigint?: boolean;
-  bigfloat?: boolean;
-  bigdecimal?: boolean;
-  operators?: boolean;
-  useMath?: boolean;
   inspect?: boolean;
   console?: boolean;
   print?: boolean;

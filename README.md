@@ -9,7 +9,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - TypeScript-format type interface files (`.d.ts` files) were added for everything.
   - There's also markdown generated from these available [here](/meta/docs)
 - Hooks have been added to the module loader that make its functionality more customizable.
-- Some non-standard ECMAScript proposals and extensions have been added (`String.cooked`, `Object.toPrimitive`/`Object.isPrimitive`, `Symbol.typeofValue`).
+- Some non-standard ECMAScript proposals and extensions have been added (`String.cooked`, `Object.toPrimitive`/`Object.isPrimitive`).
 - The way the project is organized and built was changed dramatically.
 - `quickjs-libc.c` was split into separate files: `quickjs-std.c`, `quickjs-os.c`, `quickjs-timers.c`, `quickjs-cmdline.c`, and `quickjs-eventloop.c`
 - Several new JS bindings for C APIs have been added, such as `strftime`, `access`, `fsync`, `setvbuf`, `getuid`...
@@ -22,7 +22,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 
 ### Changes to `quickjs`:
 
-- A TypeScript `.d.ts` file is provided for all QuickJS-specific APIs (BigInt extensions, `Object.toPrimitive`/`Object.isPrimitive`, `String.cooked`, `Symbol.typeofValue`).
+- A TypeScript `.d.ts` file is provided for all QuickJS-specific APIs (BigInt extensions, `Object.toPrimitive`/`Object.isPrimitive`, `String.cooked`).
 - `String.cooked` added (no-op template tag, like the proposed [String.cooked](https://github.com/tc39/proposal-string-cooked)).
 - Added function `JS_EvalThis_Privileged`, which allows C code to run eval in Contexts that have eval disabled. With this, you can disable eval in a context for security purposes, but can still execute trusted code within it.
 - Additional functions are exposed that allow importing modules synchronously or asynchronously:
@@ -43,7 +43,6 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - Added `JS_SetRuntimeOpaqueValue` and `JS_GetRuntimeOpaqueValue`, which let you associate a JSValue with a JSRuntime (similar to the Context versions above).
 - Non-standard `Object.toPrimitive` added (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
 - Non-standard `Object.isPrimitive` added (static method that returns a boolean indicating whether the given value is a primitive).
-- Non-standard `Symbol.typeofValue` has been added which can be used to override the result of using the `typeof` operator on an object. However, you can only use it to return a different one of the builtin values `typeof` would normally return: `"object"`, `"boolean"`, `"number"`, etc.
 
 ### Changes to `quickjs-libc`:
 

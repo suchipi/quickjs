@@ -120,6 +120,7 @@ declare module "quickjs:os" {
     gid?: number;
   };
   export function exec(args: Array<string>, options?: ExecOptions): number;
+  export function getpid(): number;
   export function waitpid(pid: number, options?: number): [number, number];
   export var WNOHANG: number;
   export var WUNTRACED: number;
@@ -134,6 +135,7 @@ declare module "quickjs:os" {
   export function dup2(oldfd: number, newfd: number): number;
   export function pipe(): [number, number];
   export function sleep(delay_ms: number): void;
+  export function now(): number;
   export var platform:
     | "win32"
     | "darwin"
@@ -685,11 +687,26 @@ export function readlink(path: string): string;
 
 ## "quickjs:os".setReadHandler (exported function)
 
+Register a function to be called when `fd` becomes readable.
+Pass `null` as `func` to unregister.
+
+**Windows:** only `fd === 0` (stdin) is supported. Calling with any
+other fd throws — the underlying Windows event loop has no plumbing
+for arbitrary fds (it special-cases the stdin console handle), so
+registering would silently never fire.
+
 ```ts
 export function setReadHandler(fd: number, func: null | (() => void)): void;
 ```
 
 ## "quickjs:os".setWriteHandler (exported function)
+
+Register a function to be called when `fd` becomes writable.
+Pass `null` as `func` to unregister.
+
+**Windows:** not supported — the Windows event loop has no plumbing
+for write readiness on any fd. Calling this with a non-`null`
+handler throws on Windows.
 
 ```ts
 export function setWriteHandler(fd: number, func: null | (() => void)): void;
@@ -899,6 +916,14 @@ gid?: number;
 export function exec(args: Array<string>, options?: ExecOptions): number;
 ```
 
+## "quickjs:os".getpid (exported function)
+
+Return the current process ID.
+
+```ts
+export function getpid(): number;
+```
+
 ## "quickjs:os".waitpid (exported function)
 
 ```ts
@@ -981,6 +1006,16 @@ export function pipe(): [number, number];
 
 ```ts
 export function sleep(delay_ms: number): void;
+```
+
+## "quickjs:os".now (exported function)
+
+Return a timestamp in milliseconds with more precision than
+`Date.now()`. The time origin is unspecified and is normally not
+impacted by system clock adjustments.
+
+```ts
+export function now(): number;
 ```
 
 ## "quickjs:os".platform (exported value)
@@ -1091,7 +1126,7 @@ global `onmessage` throwing, timer / I/O / signal callbacks
 throwing, microtask rejections, and unhandled promise rejections.
 
 The event is a plain object shaped like a WHATWG `ErrorEvent`
-(minus `colno`, which QuickJS stack traces don't produce):
+(minus `colno`, which this event does not surface):
 
 - `message` — the error's message, or `String(reason)` for a
   non-Error throw.

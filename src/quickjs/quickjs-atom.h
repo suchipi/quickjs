@@ -260,7 +260,6 @@ DEF(Symbol_hasInstance, "Symbol.hasInstance")
 DEF(Symbol_species, "Symbol.species")
 DEF(Symbol_unscopables, "Symbol.unscopables")
 DEF(Symbol_asyncIterator, "Symbol.asyncIterator")
-DEF(Symbol_typeofValue, "Symbol.typeofValue")
 
 #else
 #error DEF was not defined when quickjs-atom.h was run.

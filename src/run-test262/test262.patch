@@ -1,5 +1,5 @@
 diff --git a/harness/atomicsHelper.js b/harness/atomicsHelper.js
-index 9828b15..4a5919d 100644
+index 9828b15c1f..4a5919d6cc 100644
 --- a/harness/atomicsHelper.js
 +++ b/harness/atomicsHelper.js
 @@ -272,10 +272,14 @@ $262.agent.waitUntil = function(typedArray, index, expected) {
@@ -19,16 +19,16 @@ index 9828b15..4a5919d 100644
 +  long: 100,
 +  huge: 1000,
  };
-
+ 
  /**
 diff --git a/harness/regExpUtils.js b/harness/regExpUtils.js
-index b397be0..c197ddc 100644
+index b397be070b..c197ddc266 100644
 --- a/harness/regExpUtils.js
 +++ b/harness/regExpUtils.js
 @@ -6,27 +6,30 @@ description: |
  defines: [buildString, testPropertyEscapes, testPropertyOfStrings, testExtendedCharacterClass, matchValidator]
  ---*/
-
+ 
 +if ($262 && typeof $262.codePointRange === "function") {
 +    /* use C function to build the codePointRange (much faster with
 +       slow JS engines) */
@@ -51,23 +51,35 @@ index b397be0..c197ddc 100644
    const loneCodePoints = args.loneCodePoints;
    const ranges = args.ranges;
 -  const CHUNK_SIZE = 10000;
--  let result = Reflect.apply(String.fromCodePoint, null, loneCodePoints);
+   let result = String.fromCodePoint.apply(null, loneCodePoints);
 -  for (let i = 0; i < ranges.length; i++) {
--    const range = ranges[i];
--    const start = range[0];
--    const end = range[1];
--    const codePoints = [];
+-    let range = ranges[i];
+-    let start = range[0];
+-    let end = range[1];
+-    let codePoints = [];
 -    for (let length = 0, codePoint = start; codePoint <= end; codePoint++) {
 -      codePoints[length++] = codePoint;
 -      if (length === CHUNK_SIZE) {
--        result += Reflect.apply(String.fromCodePoint, null, codePoints);
+-        result += String.fromCodePoint.apply(null, codePoints);
 -        codePoints.length = length = 0;
 -      }
 -    }
--    result += Reflect.apply(String.fromCodePoint, null, codePoints);
-+  let result = String.fromCodePoint.apply(null, loneCodePoints);
+-    result += String.fromCodePoint.apply(null, codePoints);
 +  for (const [start, end] of ranges) {
 +    result += codePointRange(start, end + 1);
    }
    return result;
+ }
+diff --git a/harness/sm/non262.js b/harness/sm/non262.js
+index c1829e3e4c..18b3e425e8 100644
+--- a/harness/sm/non262.js
++++ b/harness/sm/non262.js
+@@ -41,8 +41,6 @@ globalThis.createNewGlobal = function() {
+   return $262.createRealm().global
+ }
+ 
+-function print(...args) {
+-}
+ function assertEq(...args) {
+   assert.sameValue(...args)
  }

@@ -10510,46 +10510,8 @@ static JSValue JS_ToPrimitiveFree(JSContext *ctx, JSValue val, int hint)
             JS_FreeValue(ctx, method);
         }
     }
-    goto type_error;
-
 type_error:
-    {
-        JSValue object,
-            object_prototype,
-            object_to_string_method,
-            to_string_result;
-        const char *result;
-
-        object = JS_GetProperty(ctx, ctx->global_obj, JS_ATOM_Object);
-        if (JS_IsException(object))
-            goto exception;
-
-        object_prototype = JS_GetProperty(ctx, object, JS_ATOM_prototype);
-        JS_FreeValue(ctx, object);
-        if (JS_IsException(object_prototype))
-            goto exception;
-
-        object_to_string_method = JS_GetProperty(ctx, object_prototype, JS_ATOM_toString);
-        if (JS_IsException(object_to_string_method)) {
-            JS_FreeValue(ctx, object_prototype);
-            goto exception;
-        }
-        JS_FreeValue(ctx, object_prototype);
-
-        to_string_result = JS_CallFree(ctx, object_to_string_method, val, 0, NULL);
-
-        if (JS_IsException(to_string_result)) {
-            JS_FreeValue(ctx, to_string_result);
-            goto exception;
-        }
-
-        result = JS_ToCString(ctx, to_string_result);
-        JS_FreeValue(ctx, to_string_result);
-
-        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "failed to convert value to primitive: %s", result);
-        JS_FreeCString(ctx, result);
-        goto exception;
-    }
+    JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "failed to convert value to primitive");
 exception:
     JS_FreeValue(ctx, val);
     return JS_EXCEPTION;
@@ -14932,52 +14894,7 @@ static __exception int js_operator_typeof(JSContext *ctx, JSValueConst op1)
         break;
     case JS_TAG_OBJECT:
         {
-            JSValue method;
             JSObject *p;
-
-            method = JS_GetProperty(ctx, op1, JS_ATOM_Symbol_typeofValue);
-            if (JS_IsException(method)) {
-                JS_FreeValue(ctx, JS_GetException(ctx));
-                goto normal_obj_behavior;
-            }
-            if (JS_IsFunction(ctx, method)) {
-                JSValue result;
-                JSAtom result_atom;
-
-                result = JS_Call(ctx, method, op1, 0, NULL);
-                JS_FreeValue(ctx, method);
-                if (JS_IsException(result)) {
-                    JS_FreeValue(ctx, JS_GetException(ctx));
-                    goto normal_obj_behavior;
-                }
-
-                result_atom = JS_ValueToAtom(ctx, result);
-                if (result_atom == JS_ATOM_NULL) {
-                    JS_FreeValue(ctx, result);
-                    goto normal_obj_behavior;
-                }
-
-                JS_FreeValue(ctx, result);
-                switch (result_atom) {
-                    case JS_ATOM_undefined:
-                    case JS_ATOM_object:
-                    case JS_ATOM_boolean:
-                    case JS_ATOM_number:
-                    case JS_ATOM_bigint:
-                    case JS_ATOM_string:
-                    case JS_ATOM_symbol:
-                    case JS_ATOM_function:
-                        // these are all acceptable
-                        break;
-                    default:
-                        // you can't use a weird value here
-                        JS_FreeAtom(ctx, result_atom);
-                        goto normal_obj_behavior;
-                }
-                return result_atom;
-            }
-
-        normal_obj_behavior:
             p = JS_VALUE_GET_OBJ(op1);
             if (unlikely(p->is_HTMLDDA))
                 atom = JS_ATOM_undefined;
@@ -16509,7 +16426,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         call_func = rt->class_array[p->class_id].call;
         if (!call_func) {
         not_a_function:
-            return JS_ThrowTypeError(caller_ctx, "quickjs.c", __LINE__, "attempting to call a non-function value");
+            return JS_ThrowTypeError(caller_ctx, "<internal>/quickjs.c", __LINE__, "not a function");
         }
         return call_func(caller_ctx, func_obj, this_obj, argc,
                          (JSValueConst *)argv, flags);
@@ -37928,6 +37845,7 @@ static int check_function(JSContext *ctx, JSValueConst obj)
 {
     if (likely(JS_IsFunction(ctx, obj)))
         return 0;
+    JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a function");
     return -1;
 }
 
