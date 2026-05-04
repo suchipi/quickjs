@@ -82,7 +82,6 @@ test262/test/staging/sm/module/module-export-name-star.js:15: SyntaxError: ident
 test262/test/staging/sm/object/clear-dictionary-accessor-getset.js:52: TypeError: not a function
 test262/test/staging/sm/object/defineProperties-order.js:14: Test262Error: Expected SameValue(«"ownKeys,getOwnPropertyDescriptor,getOwnPropertyDescriptor,get,get"», «"ownKeys,getOwnPropertyDescriptor,get,getOwnPropertyDescriptor,get"») to be true
 test262/test/staging/sm/object/defineProperty-proxy.js:32: Test262Error: Expected ["has configurable", "get configurable", "has writable", "get writable", "has enumerable", "get enumerable", "has value", "get value", "has get", "has set"] to be structurally equal to ["has enumerable", "get enumerable", "has configurable", "get configurable", "has value", "get value", "has writable", "get writable", "has get", "has set"]. 
-test262/test/staging/sm/object/propertyIsEnumerable.js:14: Test262Error: didn't throw ReferenceError, got: TypeError: cannot convert to object Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/regress/regress-577648-1.js:21: Test262Error: 1 Expected SameValue(«true», «false») to be true
 test262/test/staging/sm/regress/regress-577648-2.js:14: Test262Error:  Expected SameValue(«true», «false») to be true
 test262/test/staging/sm/regress/regress-584355.js:12: Test262Error:  Expected SameValue(«"function f () { ff (); }"», «"undefined"») to be true
