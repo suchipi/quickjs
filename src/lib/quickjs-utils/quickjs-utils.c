@@ -205,7 +205,9 @@ void QJU_PrintError(JSContext *ctx, FILE *f, JSValueConst exception_val)
       JS_FreeCString(ctx, json_str);
       JS_FreeValue(ctx, json_val);
     } else {
-      QJU_ToStringValueAndPrint(ctx, f, exception_val);
+      /* Use the engine's printer rather than ToString — gives `{ a: 1 }`
+         instead of `[object Object]` for thrown plain objects. */
+      JS_PrintValue(ctx, f, exception_val, NULL);
     }
 
     fprintf(f, "\n");

@@ -25,6 +25,7 @@
 
 import * as std from "quickjs:std";
 import * as os from "quickjs:os";
+import * as cmdline from "quickjs:cmdline";
 
 (function (g) {
   /* add 'os' and 'std' bindings */
@@ -547,7 +548,7 @@ import * as os from "quickjs:os";
   function control_c() {
     if (last_fun === control_c) {
       std.puts("\n");
-      std.exit(0);
+      cmdline.exit(0);
     } else {
       std.puts("\n(Press Ctrl-C again to quit)\n");
       readline_print_prompt();
@@ -910,7 +911,7 @@ import * as os from "quickjs:os";
     } else if (cmd === "clear") {
       std.puts("\x1b[H\x1b[J");
     } else if (cmd === "q") {
-      std.exit(0);
+      cmdline.exit(0);
     } else {
       std.puts("Unknown directive: " + cmd + "\n");
       return false;

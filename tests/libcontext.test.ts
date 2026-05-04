@@ -10,8 +10,11 @@ test("quickjs:context - example", async () => {
       "code": 0,
       "error": null,
       "stderr": "TypeError: eval is not supported
+        at somewhere
     ReferenceError: 'console' is not defined
+        at somewhere
     TypeError: eval is not supported
+        at somewhere
     ",
       "stdout": "c1
     true
@@ -21,9 +24,7 @@ test("quickjs:context - example", async () => {
     false
     false
     c2 require
-    function require() {
-        [native code]
-    }
+    [Function require] { resolve: [Function require.resolve] }
     c3
     Object {
     	Object: Function "Object" {…}

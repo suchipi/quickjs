@@ -1030,7 +1030,7 @@ test("C28: Promise.allSettled([reject(a), reject(b)]) — internal handlers atta
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "settled: rejected:c28-a,rejected:c28-b
+      "stdout": "settled: [ "rejected:c28-a", "rejected:c28-b" ]
     ",
     }
   `);

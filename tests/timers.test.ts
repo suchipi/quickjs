@@ -30,7 +30,7 @@ test("setInterval and clearInterval are present", async () => {
       "error": null,
       "stderr": "",
       "stdout": "function function
-    [object Timer]
+    Timer {  }
     ",
     }
   `);

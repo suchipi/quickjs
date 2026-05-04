@@ -1305,6 +1305,36 @@ JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier);
 JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier);
 JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename);
 
+/* debug value output */
+
+typedef struct {
+    JS_BOOL show_hidden : 8; /* only show enumerable properties */
+    JS_BOOL show_closure : 8; /* show closure variables */
+    JS_BOOL raw_dump : 8; /* avoid doing autoinit and avoid any malloc() call (for internal use) */
+    uint32_t max_depth; /* recurse up to this depth, 0 = no limit */
+    uint32_t max_string_length; /* print no more than this length for
+                                   strings, 0 = no limit */
+    uint32_t max_item_count; /*  print no more than this count for
+                                 arrays or objects, 0 = no limit */
+} JSPrintValueOptions;
+
+void JS_PrintValueSetDefaultOptions(JSPrintValueOptions *options);
+void JS_PrintValueRT(JSRuntime *rt, FILE *fo, JSValueConst val, const JSPrintValueOptions *options);
+void JS_PrintValue(JSContext *ctx, FILE *fo, JSValueConst val, const JSPrintValueOptions *options);
+
+/* Fork addition: same as JS_PrintValue / JS_PrintValueRT but writes
+   the formatted output to a DynBuf instead of a FILE *. The caller
+   should `dbuf_init(&dbuf)` first, then check `dbuf_error(&dbuf)` to
+   detect allocation failures, then read `dbuf.buf[0..dbuf.size]` for
+   the result. Used by the JS-side `engine.formatValue()` to capture
+   the printer's output as a JS string without going through tmpfile().
+   `DynBuf` is declared in cutils.h. */
+struct DynBuf;
+void JS_PrintValueToSinkRT(JSRuntime *rt, struct DynBuf *dbuf,
+                           JSValueConst val, const JSPrintValueOptions *options);
+void JS_PrintValueToSink(JSContext *ctx, struct DynBuf *dbuf,
+                         JSValueConst val, const JSPrintValueOptions *options);
+
 #undef js_unlikely
 #undef js_force_inline
 

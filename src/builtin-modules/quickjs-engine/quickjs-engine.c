@@ -419,6 +419,134 @@ static JSValue js_engine_gc(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+/* Helper: read an optional bool/uint32 property from an options object.
+   Returns 1 if present and valid (caller writes to its dst), 0 if
+   absent (no write), -1 on error. Frees the JS_GetProperty result
+   internally per .claude/rules/quickjs-gc-patterns.md. */
+static int js_engine_format_value_read_bool(JSContext *ctx, JSValueConst options,
+                                            const char *name, int *out)
+{
+    JSAtom atom = JS_NewAtom(ctx, name);
+    int has, b;
+    JSValue val;
+
+    has = JS_HasProperty(ctx, options, atom);
+    if (has < 0) {
+        JS_FreeAtom(ctx, atom);
+        return -1;
+    }
+    if (!has) {
+        JS_FreeAtom(ctx, atom);
+        return 0;
+    }
+    val = JS_GetProperty(ctx, options, atom);
+    JS_FreeAtom(ctx, atom);
+    if (JS_IsException(val))
+        return -1;
+    b = JS_ToBool(ctx, val);
+    JS_FreeValue(ctx, val);
+    if (b < 0)
+        return -1;
+    *out = b;
+    return 1;
+}
+
+static int js_engine_format_value_read_uint32(JSContext *ctx, JSValueConst options,
+                                              const char *name, uint32_t *out)
+{
+    JSAtom atom = JS_NewAtom(ctx, name);
+    int has;
+    JSValue val;
+    uint32_t v;
+
+    has = JS_HasProperty(ctx, options, atom);
+    if (has < 0) {
+        JS_FreeAtom(ctx, atom);
+        return -1;
+    }
+    if (!has) {
+        JS_FreeAtom(ctx, atom);
+        return 0;
+    }
+    val = JS_GetProperty(ctx, options, atom);
+    JS_FreeAtom(ctx, atom);
+    if (JS_IsException(val))
+        return -1;
+    if (JS_ToUint32(ctx, &v, val)) {
+        JS_FreeValue(ctx, val);
+        return -1;
+    }
+    JS_FreeValue(ctx, val);
+    *out = v;
+    return 1;
+}
+
+static int js_engine_parse_format_value_options(JSContext *ctx, JSValueConst options_obj,
+                                                JSPrintValueOptions *options)
+{
+    int b, rc;
+
+    rc = js_engine_format_value_read_bool(ctx, options_obj, "showHidden", &b);
+    if (rc < 0) return -1;
+    if (rc) options->show_hidden = b;
+
+    rc = js_engine_format_value_read_bool(ctx, options_obj, "showClosure", &b);
+    if (rc < 0) return -1;
+    if (rc) options->show_closure = b;
+
+    rc = js_engine_format_value_read_bool(ctx, options_obj, "rawDump", &b);
+    if (rc < 0) return -1;
+    if (rc) options->raw_dump = b;
+
+    if (js_engine_format_value_read_uint32(ctx, options_obj, "maxDepth", &options->max_depth) < 0)
+        return -1;
+    if (js_engine_format_value_read_uint32(ctx, options_obj, "maxStringLength", &options->max_string_length) < 0)
+        return -1;
+    if (js_engine_format_value_read_uint32(ctx, options_obj, "maxItemCount", &options->max_item_count) < 0)
+        return -1;
+    return 0;
+}
+
+static JSValue js_engine_formatValue(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv)
+{
+    JSPrintValueOptions options;
+    DynBuf dbuf;
+    JSValue ret;
+
+    JS_PrintValueSetDefaultOptions(&options);
+
+    if (argc >= 2 && !JS_IsUndefined(argv[1]) && !JS_IsNull(argv[1])) {
+        if (!JS_IsObject(argv[1])) {
+            return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__,
+                                     "formatValue: second argument must be an options object");
+        }
+        if (js_engine_parse_format_value_options(ctx, argv[1], &options) < 0)
+            return JS_EXCEPTION;
+    }
+
+    dbuf_init(&dbuf);
+    JS_PrintValueToSink(ctx, &dbuf, argv[0], &options);
+    if (dbuf_error(&dbuf)) {
+        dbuf_free(&dbuf);
+        return JS_ThrowOutOfMemory(ctx);
+    }
+    ret = JS_NewStringLen(ctx, (const char *)dbuf.buf, dbuf.size);
+    dbuf_free(&dbuf);
+    return ret;
+}
+
+/* Direct mirror of upstream's std.__printObject — writes the value's
+   formatted form to stdout with no trailing newline. The `__` prefix
+   matches the upstream API name; relocated to quickjs:engine because
+   the fork has been moving std helpers to engine (e.g. gc()). */
+static JSValue js_engine_printObject(JSContext *ctx, JSValueConst this_val,
+                                     int argc, JSValueConst *argv)
+{
+    JS_PrintValue(ctx, stdout, argv[0], NULL);
+    return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry js_engine_funcs[] = {
   JS_CFUNC_DEF("isMainModule", 1, js_engine_isMainModule ),
   JS_CFUNC_DEF("setMainModule", 1, js_engine_setMainModule ),
@@ -430,6 +558,8 @@ static const JSCFunctionListEntry js_engine_funcs[] = {
   JS_CFUNC_DEF("isModuleNamespace", 1, js_engine_isModuleNamespace ),
   JS_CFUNC_DEF("defineBuiltinModule", 2, js_engine_defineBuiltinModule ),
   JS_CFUNC_DEF("gc", 0, js_engine_gc ),
+  JS_CFUNC_DEF("formatValue", 2, js_engine_formatValue ),
+  JS_CFUNC_DEF("__printObject", 1, js_engine_printObject ),
 };
 
 static int js_module_init(JSContext *ctx, JSModuleDef *m)

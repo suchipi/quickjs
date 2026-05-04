@@ -4,8 +4,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val,
                         int argc, JSValueConst *argv, int magic)
 {
     int i;
-    const char *str;
-    size_t len;
+    JSValueConst v;
     FILE *out;
 
     if (magic == 1) {
@@ -20,11 +19,18 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val,
         if (i != 0) {
             putc(' ', out);
         }
-        str = JS_ToCStringLen(ctx, &len, argv[i]);
-        if (!str)
-            return JS_EXCEPTION;
-        fwrite(str, 1, len, out);
-        JS_FreeCString(ctx, str);
+        v = argv[i];
+        if (JS_IsString(v)) {
+            const char *str;
+            size_t len;
+            str = JS_ToCStringLen(ctx, &len, v);
+            if (!str)
+                return JS_EXCEPTION;
+            fwrite(str, 1, len, out);
+            JS_FreeCString(ctx, str);
+        } else {
+            JS_PrintValue(ctx, out, v, NULL);
+        }
     }
     putc('\n', out);
     fflush(out);

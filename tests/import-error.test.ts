@@ -25,6 +25,7 @@ test("module with error is gc'd properly: esm", async () => {
       "code": 0,
       "error": null,
       "stderr": "Error: that ain't good
+        at somewhere
     ",
       "stdout": "4
     ",

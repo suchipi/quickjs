@@ -50,6 +50,7 @@ test("Promises work", async () => {
     two
     three
     four Error: nah
+        at somewhere
     ",
     }
   `);

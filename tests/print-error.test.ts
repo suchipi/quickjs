@@ -72,7 +72,7 @@ test("Error with overridden toString that throws - falls back to .message", asyn
   `);
 });
 
-test("non-error object with throwing toString - falls back to Object.prototype.toString", async () => {
+test("non-error object with throwing toString - structural dump bypasses toString", async () => {
   const run = spawn(binDir("qjs"), [
     "-e",
     `throw { toString() { throw "nope"; } };`,
@@ -82,14 +82,14 @@ test("non-error object with throwing toString - falls back to Object.prototype.t
     {
       "code": 1,
       "error": null,
-      "stderr": "thrown non-Error value: [object Object]
+      "stderr": "thrown non-Error value: { toString: [Function toString] }
     ",
       "stdout": "",
     }
   `);
 });
 
-test("non-error object where Object.prototype.toString also fails", async () => {
+test("non-error object where Object.prototype.toString also fails - still uses structural dump", async () => {
   const run = spawn(binDir("qjs"), [
     "-e",
     `
@@ -102,7 +102,7 @@ test("non-error object where Object.prototype.toString also fails", async () => 
     {
       "code": 1,
       "error": null,
-      "stderr": "thrown non-Error value: [thrown object upon which Object.prototype.toString.call(...) failed]
+      "stderr": "thrown non-Error value: { toString: [Function toString] }
     ",
       "stdout": "",
     }

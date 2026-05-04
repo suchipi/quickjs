@@ -9,12 +9,12 @@ test("quickjs-print", async () => {
     {
       "code": 0,
       "error": null,
-      "stderr": "console.warn 3 [object Object]
-    console.error 4 [object Object]
+      "stderr": "console.warn 3 {  }
+    console.error 4 {  }
     ",
-      "stdout": "print 1 [object Object]
-    console.log 2 [object Object]
-    console.info 5 [object Object]
+      "stdout": "print 1 {  }
+    console.log 2 {  }
+    console.info 5 {  }
     ",
     }
   `);
