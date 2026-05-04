@@ -62,11 +62,6 @@ test262/test/staging/sm/extensions/regress-650753.js:16: TypeError: not a functi
 test262/test/staging/sm/extensions/typedarray-set-detach.js:43: TypeError: not a function
 test262/test/staging/sm/extensions/weakmap.js:97: TypeError: not a function
 test262/test/staging/sm/generators/gen-with-call-obj.js:40: TypeError: not a function
-test262/test/staging/sm/generators/runtime.js:35: Test262Error: Expected SameValue(«function Function() {
-    [native code]
-}», «function () {
-    [native code]
-}») to be true
 test262/test/staging/sm/generators/syntax.js:30: Error: Assertion failed: expected SyntaxError, but no exception thrown - function* g() { (function* yield() {}); }
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-arguments.js:14: Test262Error: Expected SameValue(«"object"», «"function"») to be true
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-eval.js:12: Test262Error: Expected SameValue(«"outer-gouter-geval-gtruefalseq"», «"outer-geval-gwith-gtruefalseq"») to be true
