@@ -16,7 +16,6 @@ test262/test/staging/sm/JSON/parse-number-syntax.js:39: Test262Error: parsing st
 test262/test/staging/sm/JSON/parse-syntax-errors-02.js:51: Test262Error: parsing string <["Illegal backslash escape: \x15"]> threw a non-SyntaxError exception: Test262Error: string <["Illegal backslash escape: \x15"]> shouldn't have parsed as JSON Expected SameValue(«false», «true») to be true Expected SameValue(«true», «false») to be true
 test262/test/staging/sm/Proxy/getPrototypeOf.js:255: TypeError: proxy: inconsistent prototype
 test262/test/staging/sm/RegExp/constructor-ordering-2.js:15: Test262Error: Expected SameValue(«false», «true») to be true
-test262/test/staging/sm/RegExp/escape.js:13: Test262Error: Expected SameValue(«"\\\n"», «"\\n"») to be true
 test262/test/staging/sm/RegExp/regress-613820-1.js:13: Test262Error: Expected SameValue(«"aaa"», «"aa"») to be true
 test262/test/staging/sm/RegExp/regress-613820-2.js:13: Test262Error: Expected SameValue(«"f"», «undefined») to be true
 test262/test/staging/sm/RegExp/regress-613820-3.js:13: Test262Error: Expected SameValue(«"aab"», «"aa"») to be true
@@ -65,4 +64,3 @@ test262/test/staging/sm/regress/regress-1383630.js:30: Error: Assertion failed: 
 test262/test/staging/sm/statements/arrow-function-in-for-statement-head.js:15: Test262Error: expected syntax error, got Error: didn't throw Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/statements/regress-642975.js:14: Test262Error: Expected SameValue(«undefined», «"y"») to be true
 test262/test/staging/sm/statements/try-completion.js:17: Test262Error: Expected SameValue(«"try"», «undefined») to be true
-test262/test/staging/sm/syntax/syntax-parsed-arrow-then-directive.js:77: Test262Error: stack should contain 'http://example.com/foo.js': block, semi Expected SameValue(«false», «true») to be true
