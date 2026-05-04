@@ -53,12 +53,7 @@ test262/test/staging/sm/extensions/TypedArray-set-object-funky-length-detaches.j
 test262/test/staging/sm/extensions/arguments-property-access-in-function.js:31: TypeError: cannot read property of undefined
 test262/test/staging/sm/extensions/function-caller-skips-eval-frames.js:41: Test262Error: Expected SameValue(«undefined», «function nest() { return eval("innermost();"); }») to be true
 test262/test/staging/sm/extensions/function-properties.js:28: Test262Error: Expected SameValue(«undefined», «null») to be true
-test262/test/staging/sm/extensions/recursion.js:54: TypeError: not a function
 test262/test/staging/sm/extensions/regress-469625-01.js:16: Test262Error: TM: Array prototype and expression closures Expected SameValue(«"TypeError: [].__proto__ is not a function"», «"TypeError: not a function"») to be true
-test262/test/staging/sm/extensions/regress-650753.js:16: TypeError: not a function
-test262/test/staging/sm/extensions/typedarray-set-detach.js:43: TypeError: not a function
-test262/test/staging/sm/extensions/weakmap.js:97: TypeError: not a function
-test262/test/staging/sm/generators/gen-with-call-obj.js:40: TypeError: not a function
 test262/test/staging/sm/generators/syntax.js:30: Error: Assertion failed: expected SyntaxError, but no exception thrown - function* g() { (function* yield() {}); }
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-arguments.js:14: Test262Error: Expected SameValue(«"object"», «"function"») to be true
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-eval.js:12: Test262Error: Expected SameValue(«"outer-gouter-geval-gtruefalseq"», «"outer-geval-gwith-gtruefalseq"») to be true
@@ -69,7 +64,6 @@ test262/test/staging/sm/lexical-environment/unscopables-proto.js:15: Test262Erro
 test262/test/staging/sm/lexical-environment/var-in-catch-body-annex-b-eval.js:17: Test262Error: Expected SameValue(«"g"», «"global-x"») to be true
 test262/test/staging/sm/misc/new-with-non-constructor.js:14: Test262Error: Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/module/module-export-name-star.js:15: SyntaxError: identifier expected
-test262/test/staging/sm/object/clear-dictionary-accessor-getset.js:52: TypeError: not a function
 test262/test/staging/sm/object/defineProperties-order.js:14: Test262Error: Expected SameValue(«"ownKeys,getOwnPropertyDescriptor,getOwnPropertyDescriptor,get,get"», «"ownKeys,getOwnPropertyDescriptor,get,getOwnPropertyDescriptor,get"») to be true
 test262/test/staging/sm/object/defineProperty-proxy.js:32: Test262Error: Expected ["has configurable", "get configurable", "has writable", "get writable", "has enumerable", "get enumerable", "has value", "get value", "has get", "has set"] to be structurally equal to ["has enumerable", "get enumerable", "has configurable", "get configurable", "has value", "get value", "has writable", "get writable", "has get", "has set"]. 
 test262/test/staging/sm/regress/regress-577648-1.js:21: Test262Error: 1 Expected SameValue(«true», «false») to be true
@@ -79,14 +73,10 @@ test262/test/staging/sm/regress/regress-586482-1.js:19: Test262Error: ok Expecte
 test262/test/staging/sm/regress/regress-586482-2.js:19: Test262Error: ok Expected SameValue(«true», «false») to be true
 test262/test/staging/sm/regress/regress-586482-3.js:18: Test262Error: ok Expected SameValue(«true», «false») to be true
 test262/test/staging/sm/regress/regress-586482-4.js:14: Test262Error: ok Expected SameValue(«function() { this.f(); }», «undefined») to be true
-test262/test/staging/sm/regress/regress-592556-c35.js:26: TypeError: not a function
-test262/test/staging/sm/regress/regress-596103.js:17: TypeError: not a function
 test262/test/staging/sm/regress/regress-602621.js:14: Test262Error: function sub-statement must override arguments Expected SameValue(«"function"», «"object"») to be true
 test262/test/staging/sm/regress/regress-699682.js:15: Test262Error: Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/regress/regress-1383630.js:30: Error: Assertion failed: expected exception TypeError, no exception thrown
-test262/test/staging/sm/regress/regress-1507322-deep-weakmap.js:17: TypeError: not a function
 test262/test/staging/sm/statements/arrow-function-in-for-statement-head.js:15: Test262Error: expected syntax error, got Error: didn't throw Expected SameValue(«false», «true») to be true
-test262/test/staging/sm/statements/for-in-with-gc-and-unvisited-deletion.js:37: TypeError: not a function
 test262/test/staging/sm/statements/regress-642975.js:14: Test262Error: Expected SameValue(«undefined», «"y"») to be true
 test262/test/staging/sm/statements/try-completion.js:17: Test262Error: Expected SameValue(«"try"», «undefined») to be true
 test262/test/staging/sm/syntax/syntax-parsed-arrow-then-directive.js:77: Test262Error: stack should contain 'http://example.com/foo.js': block, semi Expected SameValue(«false», «true») to be true
