@@ -1,7 +1,18 @@
 import { test, beforeAll, afterAll, expect } from "vitest";
 import { spawn, sanitizers } from "first-base";
-import { binDir, rootDir, testsWorkDir } from "./_utils";
+import {
+  binDir,
+  rootDir,
+  setupWineHooks,
+  shouldRunWineTests,
+  testsWorkDir,
+  wineSpawn,
+} from "./_utils";
 import fs from "fs";
+
+if (shouldRunWineTests) {
+  setupWineHooks();
+}
 
 const workDir = testsWorkDir.concat("os-module");
 
@@ -1076,6 +1087,136 @@ test("os.setWriteHandler - detects pipe writable", async () => {
     }
   `);
 });
+
+test.runIf(shouldRunWineTests)(
+  "[wine] os.setReadHandler with non-stdin fd throws",
+  async () => {
+    const run = wineSpawn([
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const [rfd, wfd] = os.pipe();
+        try {
+          os.setReadHandler(rfd, () => {});
+          console.log("ERROR: did not throw");
+        } catch (e) {
+          console.log("threw:", e.message);
+        }
+        os.close(rfd);
+        os.close(wfd);
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "threw: os.setReadHandler on Windows only supports fd 0 (stdin); got fd 3
+      ",
+      }
+    `);
+  }
+);
+
+test.runIf(shouldRunWineTests)(
+  "[wine] os.setReadHandler on stdin (fd=0) actually fires when input arrives",
+  async () => {
+    const run = wineSpawn([
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const enc = require("quickjs:encoding");
+        os.setReadHandler(0, () => {
+          const buf = new ArrayBuffer(64);
+          const n = os.read(0, buf, 0, 64);
+          console.log("read", n, "bytes:", JSON.stringify(enc.toUtf8(buf.slice(0, n))));
+          os.setReadHandler(0, null);
+        });
+        console.log("waiting on stdin");
+      `,
+    ]);
+    run.write("hello stdin\n");
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "waiting on stdin
+      read 12 bytes: "hello stdin\\n"
+      ",
+      }
+    `);
+  }
+);
+
+test.runIf(shouldRunWineTests)(
+  "[wine] os.setWriteHandler with any fd throws",
+  async () => {
+    const run = wineSpawn([
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const [rfd, wfd] = os.pipe();
+        try {
+          os.setWriteHandler(wfd, () => {});
+          console.log("ERROR: did not throw");
+        } catch (e) {
+          console.log("threw:", e.message);
+        }
+        try {
+          os.setWriteHandler(1, () => {});
+          console.log("ERROR: did not throw on stdout");
+        } catch (e) {
+          console.log("stdout threw:", e.message);
+        }
+        os.close(rfd);
+        os.close(wfd);
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "threw: os.setWriteHandler is not supported on Windows
+      stdout threw: os.setWriteHandler is not supported on Windows
+      ",
+      }
+    `);
+  }
+);
+
+test.runIf(shouldRunWineTests)(
+  "[wine] clearing a setReadHandler/setWriteHandler is allowed regardless of fd",
+  async () => {
+    const run = wineSpawn([
+      "-e",
+      `
+        const os = require("quickjs:os");
+        const [rfd, wfd] = os.pipe();
+        // Clearing should never throw, even on fds where setting would.
+        os.setReadHandler(rfd, null);
+        os.setWriteHandler(wfd, null);
+        console.log("ok");
+        os.close(rfd);
+        os.close(wfd);
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "ok
+      ",
+      }
+    `);
+  }
+);
 
 // =========== ttyGetWinSize, ttySetRaw (via PTY) ===========
 

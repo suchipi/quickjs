@@ -487,6 +487,23 @@ static JSValue js_os_setReadHandler(JSContext *ctx, JSValueConst this_val,
     } else {
         if (!JS_IsFunction(ctx, func))
             return JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "second argument to os.setReadHandler was not a function.");
+#if defined(_WIN32)
+        /* The Windows poll only watches stdin (fd==0) read handlers via
+           WaitForMultipleObjects on the console handle; it has no
+           plumbing for arbitrary fds, and never watches write handlers.
+           Registering anything else would silently never fire — throw
+           instead so callers find out at registration time. Upstream
+           silently no-ops here; this is a fork-specific improvement. */
+        if (magic == 1) {
+            return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                                 "os.setWriteHandler is not supported on Windows");
+        }
+        if (fd != 0) {
+            return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                                 "os.setReadHandler on Windows only supports fd 0 (stdin); got fd %d",
+                                 fd);
+        }
+#endif
         rh = find_rh(ts, fd);
         if (!rh) {
             rh = js_mallocz(ctx, sizeof(*rh));

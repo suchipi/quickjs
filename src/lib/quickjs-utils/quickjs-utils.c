@@ -210,6 +210,7 @@ void QJU_PrintError(JSContext *ctx, FILE *f, JSValueConst exception_val)
 
     fprintf(f, "\n");
   }
+  fflush(f);
 }
 
 void QJU_PrintException(JSContext *ctx, FILE *f)
