@@ -574,8 +574,8 @@ test("bytecode.fromFile strip: source drops fn source bytes", async () => {
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "default bytes: 209
-    strip source bytes: 165
+      "stdout": "default bytes: 213
+    strip source bytes: 169
     source-stripped is shorter: true
     default has source: true
     stripped has source: false
@@ -613,8 +613,8 @@ test("bytecode.fromFile strip: debug drops all debug info", async () => {
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "default: 209
-    strip source: 165
+      "stdout": "default: 213
+    strip source: 169
     strip debug: 96
     debug < source: true
     42
