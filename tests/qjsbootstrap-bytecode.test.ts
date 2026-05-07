@@ -33,7 +33,7 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
       "code": 1,
       "error": null,
       "stderr": "ReferenceError: 'Symbol.split' is not defined
-        at <internal>/quickjs.c:7331:0
+        at <internal>/quickjs.c:7334:0
         at <eval> (Symbol.isConcatSpreadable:1:1)
 
     ",
