@@ -507,6 +507,18 @@ static int js_engine_parse_format_value_options(JSContext *ctx, JSValueConst opt
     return 0;
 }
 
+static void js_engine_format_value_dbuf_write(void *opaque, const char *buf, size_t len)
+{
+    DynBuf *dbuf = opaque;
+    dbuf_put(dbuf, (const uint8_t *)buf, len);
+}
+
+static void js_engine_print_value_write(void *opaque, const char *buf, size_t len)
+{
+    FILE *fo = opaque;
+    fwrite(buf, 1, len, fo);
+}
+
 static JSValue js_engine_formatValue(JSContext *ctx, JSValueConst this_val,
                                      int argc, JSValueConst *argv)
 {
@@ -526,7 +538,7 @@ static JSValue js_engine_formatValue(JSContext *ctx, JSValueConst this_val,
     }
 
     dbuf_init(&dbuf);
-    JS_PrintValueToSink(ctx, &dbuf, argv[0], &options);
+    JS_PrintValue(ctx, js_engine_format_value_dbuf_write, &dbuf, argv[0], &options);
     if (dbuf_error(&dbuf)) {
         dbuf_free(&dbuf);
         return JS_ThrowOutOfMemory(ctx);
@@ -543,7 +555,7 @@ static JSValue js_engine_formatValue(JSContext *ctx, JSValueConst this_val,
 static JSValue js_engine_printObject(JSContext *ctx, JSValueConst this_val,
                                      int argc, JSValueConst *argv)
 {
-    JS_PrintValue(ctx, stdout, argv[0], NULL);
+    JS_PrintValue(ctx, js_engine_print_value_write, stdout, argv[0], NULL);
     return JS_UNDEFINED;
 }
 

@@ -1309,7 +1309,7 @@ JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueCon
 
 typedef struct {
     JS_BOOL show_hidden : 8; /* only show enumerable properties */
-    JS_BOOL show_closure : 8; /* show closure variables */
+    JS_BOOL show_closure : 8; /* fork addition: show closure variables and home object on functions */
     JS_BOOL raw_dump : 8; /* avoid doing autoinit and avoid any malloc() call (for internal use) */
     uint32_t max_depth; /* recurse up to this depth, 0 = no limit */
     uint32_t max_string_length; /* print no more than this length for
@@ -1318,22 +1318,13 @@ typedef struct {
                                  arrays or objects, 0 = no limit */
 } JSPrintValueOptions;
 
-void JS_PrintValueSetDefaultOptions(JSPrintValueOptions *options);
-void JS_PrintValueRT(JSRuntime *rt, FILE *fo, JSValueConst val, const JSPrintValueOptions *options);
-void JS_PrintValue(JSContext *ctx, FILE *fo, JSValueConst val, const JSPrintValueOptions *options);
+typedef void JSPrintValueWrite(void *opaque, const char *buf, size_t len);
 
-/* Fork addition: same as JS_PrintValue / JS_PrintValueRT but writes
-   the formatted output to a DynBuf instead of a FILE *. The caller
-   should `dbuf_init(&dbuf)` first, then check `dbuf_error(&dbuf)` to
-   detect allocation failures, then read `dbuf.buf[0..dbuf.size]` for
-   the result. Used by the JS-side `engine.formatValue()` to capture
-   the printer's output as a JS string without going through tmpfile().
-   `DynBuf` is declared in cutils.h. */
-struct DynBuf;
-void JS_PrintValueToSinkRT(JSRuntime *rt, struct DynBuf *dbuf,
-                           JSValueConst val, const JSPrintValueOptions *options);
-void JS_PrintValueToSink(JSContext *ctx, struct DynBuf *dbuf,
-                         JSValueConst val, const JSPrintValueOptions *options);
+void JS_PrintValueSetDefaultOptions(JSPrintValueOptions *options);
+void JS_PrintValueRT(JSRuntime *rt, JSPrintValueWrite *write_func, void *write_opaque,
+                     JSValueConst val, const JSPrintValueOptions *options);
+void JS_PrintValue(JSContext *ctx, JSPrintValueWrite *write_func, void *write_opaque,
+                   JSValueConst val, const JSPrintValueOptions *options);
 
 #undef js_unlikely
 #undef js_force_inline

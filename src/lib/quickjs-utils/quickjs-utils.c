@@ -8,6 +8,12 @@
 // NOTE: quickjs-utils is not allowed to use stuff from
 // quickjs-modulesys, as that would create a dependency cycle.
 
+static void qju_print_value_write(void *opaque, const char *buf, size_t len)
+{
+  FILE *fo = opaque;
+  fwrite(buf, 1, len, fo);
+}
+
 QJUForEachPropertyState *QJU_NewForEachPropertyState(JSContext *ctx, JSValue obj, int flags)
 {
   QJUForEachPropertyState *state;
@@ -207,7 +213,7 @@ void QJU_PrintError(JSContext *ctx, FILE *f, JSValueConst exception_val)
     } else {
       /* Use the engine's printer rather than ToString — gives `{ a: 1 }`
          instead of `[object Object]` for thrown plain objects. */
-      JS_PrintValue(ctx, f, exception_val, NULL);
+      JS_PrintValue(ctx, qju_print_value_write, f, exception_val, NULL);
     }
 
     fprintf(f, "\n");

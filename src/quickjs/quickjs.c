@@ -1067,6 +1067,7 @@ static __maybe_unused void JS_DumpObject(JSRuntime *rt, JSObject *p);
 static __maybe_unused void JS_DumpGCObject(JSRuntime *rt, JSGCObjectHeader *p);
 static __maybe_unused void JS_DumpValueRT(JSRuntime *rt, const char *str, JSValueConst val);
 static __maybe_unused void JS_DumpValue(JSContext *ctx, const char *str, JSValueConst val);
+static void js_dump_value_write(void *opaque, const char *buf, size_t len);
 static __maybe_unused void JS_DumpShapes(JSRuntime *rt);
 static JSValue js_function_apply(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv, int magic);
@@ -5826,7 +5827,7 @@ void __JS_FreeValueRT(JSRuntime *rt, JSValue v)
         if (tag == JS_TAG_OBJECT) {
             JS_DumpObject(rt, JS_VALUE_GET_OBJ(v));
         } else {
-            JS_PrintValueRT(rt, stdout, v, NULL);
+            JS_PrintValueRT(rt, js_dump_value_write, stdout, v, NULL);
             printf("\n");
         }
     }
@@ -13169,78 +13170,58 @@ struct JSPrintValueState {
     JSRuntime *rt;
     JSContext *ctx; /* may be NULL */
     JSPrintValueOptions options;
-    /* Exactly one of fo / dbuf is non-NULL — output goes to whichever sink
-       is set. Fork-internal: lets JS_PrintValue (FILE *) and the JS-side
-       formatValue() (DynBuf -> JS string) share the same printer. */
-    FILE *fo;
-    DynBuf *dbuf;
+    JSPrintValueWrite *write_func;
+    void *write_opaque;
     int level;
     JSObject *print_stack[JS_PRINT_MAX_DEPTH]; /* level values */
 };
 
 static void js_print_value(JSPrintValueState *s, JSValueConst val);
 
-/* Output helpers: dispatch to fo or dbuf depending on which is set.
-   DynBuf return values are silently ignored; allocation failure trips
-   the dbuf->error flag, which the caller checks once after the print
-   is complete. */
+/* Output helpers: forward to the caller-supplied write callback. */
 
 static inline void js_print_sink_putc(JSPrintValueState *s, int c)
 {
-    if (s->fo)
-        fputc(c, s->fo);
-    else
-        dbuf_putc(s->dbuf, (uint8_t)c);
+    char ch = (char)c;
+    s->write_func(s->write_opaque, &ch, 1);
 }
 
 static inline void js_print_sink_puts(JSPrintValueState *s, const char *str)
 {
-    if (s->fo)
-        fputs(str, s->fo);
-    else
-        dbuf_putstr(s->dbuf, str);
+    s->write_func(s->write_opaque, str, strlen(str));
 }
 
 static inline void js_print_sink_write(JSPrintValueState *s, const void *buf, size_t len)
 {
-    if (s->fo)
-        fwrite(buf, 1, len, s->fo);
-    else
-        dbuf_put(s->dbuf, (const uint8_t *)buf, len);
+    s->write_func(s->write_opaque, (const char *)buf, len);
 }
 
 static void __attribute__((format(printf, 2, 3)))
 js_print_sink_printf(JSPrintValueState *s, const char *fmt, ...)
 {
     va_list ap;
+    char buf[256];
+    int n;
     va_start(ap, fmt);
-    if (s->fo) {
-        vfprintf(s->fo, fmt, ap);
+    n = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    if (n < 0) {
+        /* should not happen */
+    } else if ((size_t)n < sizeof(buf)) {
+        s->write_func(s->write_opaque, buf, n);
     } else {
-        char buf[256];
-        int n = vsnprintf(buf, sizeof(buf), fmt, ap);
-        if (n < 0) {
-            /* should not happen */
-        } else if ((size_t)n < sizeof(buf)) {
-            dbuf_put(s->dbuf, (const uint8_t *)buf, n);
-        } else {
-            /* output too long for the inline buffer; fall back to
-               an allocation */
-            char *bigbuf = js_malloc_rt(s->rt, n + 1);
-            if (bigbuf) {
-                va_list ap2;
-                va_start(ap2, fmt);
-                vsnprintf(bigbuf, n + 1, fmt, ap2);
-                va_end(ap2);
-                dbuf_put(s->dbuf, (const uint8_t *)bigbuf, n);
-                js_free_rt(s->rt, bigbuf);
-            } else {
-                /* alloc failure — set the dbuf error flag explicitly */
-                s->dbuf->error = TRUE;
-            }
+        /* output too long for the inline buffer; fall back to
+           an allocation */
+        char *bigbuf = js_malloc_rt(s->rt, n + 1);
+        if (bigbuf) {
+            va_list ap2;
+            va_start(ap2, fmt);
+            vsnprintf(bigbuf, n + 1, fmt, ap2);
+            va_end(ap2);
+            s->write_func(s->write_opaque, bigbuf, n);
+            js_free_rt(s->rt, bigbuf);
         }
     }
-    va_end(ap);
 }
 
 /* Sink-aware version of JS_DumpChar (forward-declared near the
@@ -13821,18 +13802,11 @@ void JS_PrintValueSetDefaultOptions(JSPrintValueOptions *options)
     options->max_item_count = 100;
 }
 
-/* Fork-internal: drives the new printer with either a FILE * or a
-   DynBuf * sink (exactly one must be non-NULL). The upstream-signature
-   public functions JS_PrintValue / JS_PrintValueRT are thin wrappers
-   that pass NULL for the dbuf; the JS-side formatValue() helper in
-   quickjs:engine passes NULL for fo and a DynBuf to capture the
-   output as a string. */
 static void JS_PrintValueInternal(JSRuntime *rt, JSContext *ctx,
-                                  FILE *fo, DynBuf *dbuf,
+                                  JSPrintValueWrite *write_func, void *write_opaque,
                                   JSValueConst val, const JSPrintValueOptions *options)
 {
     JSPrintValueState ss, *s = &ss;
-    assert((fo != NULL) ^ (dbuf != NULL));
     if (options)
         s->options = *options;
     else
@@ -13847,35 +13821,28 @@ static void JS_PrintValueInternal(JSRuntime *rt, JSContext *ctx,
         s->options.max_item_count = UINT32_MAX;
     s->rt = rt;
     s->ctx = ctx;
-    s->fo = fo;
-    s->dbuf = dbuf;
+    s->write_func = write_func;
+    s->write_opaque = write_opaque;
     s->level = 0;
     js_print_value(s, val);
 }
 
-void JS_PrintValueRT(JSRuntime *rt, FILE *fo, JSValueConst val, const JSPrintValueOptions *options)
+void JS_PrintValueRT(JSRuntime *rt, JSPrintValueWrite *write_func, void *write_opaque,
+                     JSValueConst val, const JSPrintValueOptions *options)
 {
-    JS_PrintValueInternal(rt, NULL, fo, NULL, val, options);
+    JS_PrintValueInternal(rt, NULL, write_func, write_opaque, val, options);
 }
 
-void JS_PrintValue(JSContext *ctx, FILE *fo, JSValueConst val, const JSPrintValueOptions *options)
+void JS_PrintValue(JSContext *ctx, JSPrintValueWrite *write_func, void *write_opaque,
+                   JSValueConst val, const JSPrintValueOptions *options)
 {
-    JS_PrintValueInternal(ctx->rt, ctx, fo, NULL, val, options);
+    JS_PrintValueInternal(ctx->rt, ctx, write_func, write_opaque, val, options);
 }
 
-/* Fork addition. Same as JS_PrintValueRT/JS_PrintValue but writes to a
-   DynBuf instead of a FILE. Used by quickjs:engine's formatValue() to
-   capture the printer's output as a JS string. */
-void JS_PrintValueToSinkRT(JSRuntime *rt, DynBuf *dbuf, JSValueConst val,
-                           const JSPrintValueOptions *options)
+static void js_dump_value_write(void *opaque, const char *buf, size_t len)
 {
-    JS_PrintValueInternal(rt, NULL, NULL, dbuf, val, options);
-}
-
-void JS_PrintValueToSink(JSContext *ctx, DynBuf *dbuf, JSValueConst val,
-                         const JSPrintValueOptions *options)
-{
-    JS_PrintValueInternal(ctx->rt, ctx, NULL, dbuf, val, options);
+    FILE *fo = opaque;
+    fwrite(buf, 1, len, fo);
 }
 
 /* Defined here (rather than near the other debug helpers) because it
@@ -13887,21 +13854,22 @@ static __maybe_unused void print_atom(JSContext *ctx, JSAtom atom)
     memset(&s, 0, sizeof(s));
     s.rt = ctx->rt;
     s.ctx = ctx;
-    s.fo = stdout;
+    s.write_func = js_dump_value_write;
+    s.write_opaque = stdout;
     js_print_atom(&s, atom);
 }
 
 static __maybe_unused void JS_DumpValue(JSContext *ctx, const char *str, JSValueConst val)
 {
     printf("%s=", str);
-    JS_PrintValue(ctx, stdout, val, NULL);
+    JS_PrintValue(ctx, js_dump_value_write, stdout, val, NULL);
     printf("\n");
 }
 
 static __maybe_unused void JS_DumpValueRT(JSRuntime *rt, const char *str, JSValueConst val)
 {
     printf("%s=", str);
-    JS_PrintValueRT(rt, stdout, val, NULL);
+    JS_PrintValueRT(rt, js_dump_value_write, stdout, val, NULL);
     printf("\n");
 }
 
@@ -13935,7 +13903,7 @@ static __maybe_unused void JS_DumpObject(JSRuntime *rt, JSObject *p)
     options.max_depth = 1;
     options.show_hidden = TRUE;
     options.raw_dump = TRUE;
-    JS_PrintValueRT(rt, stdout, JS_MKPTR(JS_TAG_OBJECT, p), &options);
+    JS_PrintValueRT(rt, js_dump_value_write, stdout, JS_MKPTR(JS_TAG_OBJECT, p), &options);
 
     printf("\n");
 }
@@ -31350,7 +31318,7 @@ static void dump_byte_code(JSContext *ctx, int pass,
         has_pool_idx:
             printf(" %u: ", idx);
             if (idx < cpool_count) {
-                JS_PrintValue(ctx, stdout, cpool[idx], NULL);
+                JS_PrintValue(ctx, js_dump_value_write, stdout, cpool[idx], NULL);
             }
             break;
         case OP_FMT_atom:
@@ -50249,7 +50217,7 @@ static JSValue js_promise_resolve_function_call(JSContext *ctx,
         resolution = JS_UNDEFINED;
 #ifdef DUMP_PROMISE
     printf("js_promise_resolving_function_call: is_reject=%d resolution=", is_reject);
-    JS_PrintValue(ctx, stdout, resolution, NULL);
+    JS_PrintValue(ctx, js_dump_value_write, stdout, resolution, NULL);
     printf("\n");
 #endif
     if (is_reject || !JS_IsObject(resolution)) {
