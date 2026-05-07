@@ -50535,8 +50535,8 @@ static JSValue js_promise_withResolvers(JSContext *ctx,
     return obj;
 }
 
-static JSValue js_promise_try(JSContext *ctx, JSValue this_val,
-                              int argc, JSValue *argv)
+static JSValue js_promise_try(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv)
 {
     JSValue result_promise, resolving_funcs[2], ret, ret2;
     BOOL is_reject = 0;
@@ -50551,7 +50551,7 @@ static JSValue js_promise_try(JSContext *ctx, JSValue this_val,
         is_reject = 1;
         ret = JS_GetException(ctx);
     }
-    ret2 = JS_Call(ctx, resolving_funcs[is_reject], JS_UNDEFINED, 1, &ret);
+    ret2 = JS_Call(ctx, resolving_funcs[is_reject], JS_UNDEFINED, 1, (JSValueConst *)&ret);
     JS_FreeValue(ctx, resolving_funcs[0]);
     JS_FreeValue(ctx, resolving_funcs[1]);
     JS_FreeValue(ctx, ret);

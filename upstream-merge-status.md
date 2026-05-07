@@ -297,7 +297,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 9c973a8 | PORT | added Promise.try (saghul) | Auto-applied cleanly to `src/quickjs/quickjs.c` (new `js_promise_try` C function + `try` entry in `js_promise_funcs[]`) and `src/run-test262/test262.conf` (flipped `promise-try=skip` to enabled). 12 previously-skipped test262 tests now run and pass (no diff in test262_errors.txt). |
 | f95b8ba | PORT | added regexp modifiers | Auto-applied cleanly to `src/lib/libregexp/libregexp-opcode.h`, `src/lib/libregexp/libregexp.c`, and `src/run-test262/test262.conf` (`regexp-modifiers=skip` flipped to enabled). 230 previously-skipped test262 tests now run with no new failures. |
 | a33610d | SKIP-NA | update test results | TODO file only; not vendored (fork uses todo.txt). |
-| 1021e3c | PENDING | compilation fix |  |
+| 1021e3c | PORT | compilation fix | Auto-applied cleanly to `src/quickjs/quickjs.c`. Tightens `js_promise_try`'s param types to `JSValueConst` and adds a cast at a JS_Call site (follow-up to 9c973a8). |
 | aaa9cea | PENDING | Proxy: fixed prototype comparison in setPrototypeOf() and getPrototypeOf() (#410) |  |
 | 9bce51e | PENDING | improved JSON parser conformity (chqrlie) (#250) |  |
 | 2f167bb | PENDING | export JS_FreePropertyEnum() |  |
