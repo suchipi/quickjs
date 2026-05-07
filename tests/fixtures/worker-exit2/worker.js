@@ -9,3 +9,5 @@ os.Worker.parent.onmessage = (event) => {
     cmdline.exit(1);
   }
 };
+
+os.Worker.parent.postMessage("ready");
