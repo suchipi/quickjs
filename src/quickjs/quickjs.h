@@ -127,6 +127,7 @@ enum {
     JS_CLASS_UINT32_ARRAY,      /* u.array (typed_array) */
     JS_CLASS_BIG_INT64_ARRAY,   /* u.array (typed_array) */
     JS_CLASS_BIG_UINT64_ARRAY,  /* u.array (typed_array) */
+    JS_CLASS_FLOAT16_ARRAY,     /* u.array (typed_array) */
     JS_CLASS_FLOAT32_ARRAY,     /* u.array (typed_array) */
     JS_CLASS_FLOAT64_ARRAY,     /* u.array (typed_array) */
     JS_CLASS_DATAVIEW,          /* u.typed_array */
@@ -994,6 +995,7 @@ typedef enum JSTypedArrayEnum {
     JS_TYPED_ARRAY_UINT32,
     JS_TYPED_ARRAY_BIG_INT64,
     JS_TYPED_ARRAY_BIG_UINT64,
+    JS_TYPED_ARRAY_FLOAT16,
     JS_TYPED_ARRAY_FLOAT32,
     JS_TYPED_ARRAY_FLOAT64,
 } JSTypedArrayEnum;

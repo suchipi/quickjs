@@ -123,6 +123,7 @@ test("globals", async () => {
     Uint32Array: function (CW)
     BigInt64Array: function (CW)
     BigUint64Array: function (CW)
+    Float16Array: function (CW)
     Float32Array: function (CW)
     Float64Array: function (CW)
     DataView: function (CW)

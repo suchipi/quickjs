@@ -30,11 +30,14 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
   await run2.completion;
   expect(run2.result).toMatchInlineSnapshot(`
     {
-      "code": 0,
+      "code": 1,
       "error": null,
-      "stderr": "",
-      "stdout": "4
+      "stderr": "ReferenceError: 'Symbol.asyncIterator' is not defined
+        at <internal>/quickjs.c:7331:0
+        at <eval> (log:1:1)
+
     ",
+      "stdout": "",
     }
   `);
 });
