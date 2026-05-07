@@ -610,7 +610,7 @@ function test_json() {
 ]`
   );
 
-  assert_json_error('\n"  \\x"', 2, 4);
+  assert_json_error('\n"  \\x"', 2, 5);
   assert_json_error('\n{ "a": x }"', 2, 8);
 }
 
