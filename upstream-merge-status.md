@@ -298,7 +298,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | f95b8ba | PORT | added regexp modifiers | Auto-applied cleanly to `src/lib/libregexp/libregexp-opcode.h`, `src/lib/libregexp/libregexp.c`, and `src/run-test262/test262.conf` (`regexp-modifiers=skip` flipped to enabled). 230 previously-skipped test262 tests now run with no new failures. |
 | a33610d | SKIP-NA | update test results | TODO file only; not vendored (fork uses todo.txt). |
 | 1021e3c | PORT | compilation fix | Auto-applied cleanly to `src/quickjs/quickjs.c`. Tightens `js_promise_try`'s param types to `JSValueConst` and adds a cast at a JS_Call site (follow-up to 9c973a8). |
-| aaa9cea | PENDING | Proxy: fixed prototype comparison in setPrototypeOf() and getPrototypeOf() (#410) |  |
+| aaa9cea | PORT | Proxy: fixed prototype comparison in setPrototypeOf() and getPrototypeOf() (#410) | Auto-applied cleanly to `src/quickjs/quickjs.c`. Replaces `JS_VALUE_GET_OBJ(a) != JS_VALUE_GET_OBJ(b)` with `!js_same_value(ctx, a, b)` in two proxy prototype-comparison sites (handles non-object proto values like null correctly). Test262 drops 1 error: `staging/sm/Proxy/getPrototypeOf.js` now passes (60 errors, was 61). |
 | 9bce51e | PENDING | improved JSON parser conformity (chqrlie) (#250) |  |
 | 2f167bb | PENDING | export JS_FreePropertyEnum() |  |
 | 8381245 | PENDING | added JS_AtomToCStringLen() |  |
