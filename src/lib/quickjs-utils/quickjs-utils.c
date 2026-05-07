@@ -257,13 +257,3 @@ void QJU_ReportException(JSContext *ctx, JSValueConst exception_val)
   }
 }
 
-void QJU_PrintPromiseRejection(JSContext *ctx, JSValueConst promise,
-                               JSValueConst reason, BOOL is_handled,
-                               void *opaque)
-{
-  if (!is_handled) {
-    fprintf(stderr, "Possibly unhandled promise rejection: ");
-    QJU_PrintError(ctx, stderr, reason);
-    exit(1);
-  }
-}

@@ -930,7 +930,7 @@ test("B25: ESM main entry — engine.importModule() of TLA module, caught → no
 // Group C: deferred / microtask edge cases
 // ============================================================================
 
-test("C26: two unhandled rejections in same tick → first exits, second never reported (current behavior)", async () => {
+test("C26: two unhandled rejections in same tick → both reported, then exits 1", async () => {
   const run = spawn(binDir("qjs"), [
     "-e",
     `
@@ -944,6 +944,9 @@ test("C26: two unhandled rejections in same tick → first exits, second never r
       "code": 1,
       "error": null,
       "stderr": "Possibly unhandled promise rejection: Error: c26-first
+        at somewhere
+
+    Possibly unhandled promise rejection: Error: c26-second
         at somewhere
 
     ",

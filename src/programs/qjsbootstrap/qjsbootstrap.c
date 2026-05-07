@@ -32,6 +32,7 @@
 #include "execpath.h"
 #include "cutils.h"
 #include "quickjs-utils.h"
+#include "quickjs-eventloop.h"
 #include "quickjs-print.h"
 #include "quickjs-modulesys.h"
 #include "quickjs-full-init.h"
@@ -182,7 +183,7 @@ int main(int argc, char **argv)
   JS_SetMaxStackSize(rt, 8000000);
   QJMS_InitState(rt);
   JS_SetCanBlock(rt, TRUE);
-  JS_SetHostPromiseRejectionTracker(rt, QJU_PrintPromiseRejection, NULL);
+  JS_SetHostPromiseRejectionTracker(rt, qju_eventloop_promise_rejection_tracker, NULL);
   ctx = JS_NewCustomContext(rt);
   define_qjsbootstrap_offset(ctx);
   js_cmdline_add_scriptArgs(ctx, argc, argv);

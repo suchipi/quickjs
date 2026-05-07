@@ -265,6 +265,7 @@ void js_eventloop_init(JSRuntime *rt)
     init_list_head(&ts->rw_handlers);
     init_list_head(&ts->signal_handlers);
     init_list_head(&ts->timers);
+    init_list_head(&ts->rejected_promise_list);
 #ifndef SKIP_WORKER
     init_list_head(&ts->port_list);
     init_list_head(&ts->error_port_list);
@@ -310,6 +311,13 @@ void js_eventloop_free(JSRuntime *rt)
         js_timer_unlink(rt, th);
         if (!th->has_object)
             js_timer_free(rt, th);
+    }
+
+    list_for_each_safe(el, el1, &ts->rejected_promise_list) {
+        JSRejectedPromiseEntry *rp = list_entry(el, JSRejectedPromiseEntry, link);
+        JS_FreeValueRT(rt, rp->promise);
+        JS_FreeValueRT(rt, rp->reason);
+        free(rp);
     }
 
 #ifndef SKIP_WORKER
@@ -401,6 +409,70 @@ void js_eventloop_signal_worker_done(JSWorkerDoneSignal *sig)
 }
 #endif /* !SKIP_WORKER */
 
+static JSRejectedPromiseEntry *find_rejected_promise(JSContext *ctx, JSThreadState *ts,
+                                                     JSValueConst promise)
+{
+    struct list_head *el;
+
+    list_for_each(el, &ts->rejected_promise_list) {
+        JSRejectedPromiseEntry *rp = list_entry(el, JSRejectedPromiseEntry, link);
+        if (JS_SameValue(ctx, rp->promise, promise))
+            return rp;
+    }
+    return NULL;
+}
+
+void qju_eventloop_promise_rejection_tracker(JSContext *ctx,
+                                             JSValueConst promise,
+                                             JSValueConst reason,
+                                             JS_BOOL is_handled,
+                                             void *opaque)
+{
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSRejectedPromiseEntry *rp;
+
+    if (!is_handled) {
+        rp = find_rejected_promise(ctx, ts, promise);
+        if (!rp) {
+            rp = malloc(sizeof(*rp));
+            if (rp) {
+                rp->promise = JS_DupValue(ctx, promise);
+                rp->reason = JS_DupValue(ctx, reason);
+                list_add_tail(&rp->link, &ts->rejected_promise_list);
+            }
+        }
+    } else {
+        rp = find_rejected_promise(ctx, ts, promise);
+        if (rp) {
+            JS_FreeValue(ctx, rp->promise);
+            JS_FreeValue(ctx, rp->reason);
+            list_del(&rp->link);
+            free(rp);
+        }
+    }
+}
+
+/* If any rejected promises are still on the list at this sleep point,
+   they were never observed as handled — print and exit. Done once per
+   loop iteration before the poll func sleeps; matches upstream's
+   js_std_promise_rejection_check timing. */
+static void js_eventloop_promise_rejection_check(JSContext *ctx)
+{
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    struct list_head *el;
+
+    if (unlikely(!list_empty(&ts->rejected_promise_list))) {
+        list_for_each(el, &ts->rejected_promise_list) {
+            JSRejectedPromiseEntry *rp = list_entry(el, JSRejectedPromiseEntry, link);
+            fprintf(stderr, "Possibly unhandled promise rejection: ");
+            QJU_PrintError(ctx, stderr, rp->reason);
+        }
+        exit(1);
+    }
+}
+
 /* main loop which calls the user JS callbacks */
 int js_eventloop_run(JSContext *ctx)
 {
@@ -437,6 +509,8 @@ int js_eventloop_run(JSContext *ctx)
             if (ts) ts->last_reported_reason_ptr = NULL;
         }
 #endif
+
+        js_eventloop_promise_rejection_check(ctx);
 
         if (!js_poll_func || js_poll_func(ctx))
             break;

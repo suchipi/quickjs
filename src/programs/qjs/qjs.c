@@ -42,6 +42,7 @@
 
 #include "cutils.h"
 #include "quickjs-utils.h"
+#include "quickjs-eventloop.h"
 #include "quickjs-modulesys.h"
 #include "quickjs-full-init.h"
 
@@ -418,7 +419,7 @@ int main(int argc, char **argv)
     QJMS_InitState(rt);
 
     if (dump_unhandled_promise_rejection) {
-        JS_SetHostPromiseRejectionTracker(rt, QJU_PrintPromiseRejection, NULL);
+        JS_SetHostPromiseRejectionTracker(rt, qju_eventloop_promise_rejection_tracker, NULL);
     }
 
     if (!empty_run) {

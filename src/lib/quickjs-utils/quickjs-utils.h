@@ -69,9 +69,4 @@ directly. The hook inverts the dependency.
 */
 extern void (*qju_report_exception_hook)(JSContext *ctx, JSValueConst reason);
 
-/* an unhandled promise rejection handler suitable for passing into JS_SetHostPromiseRejectionTracker */
-void QJU_PrintPromiseRejection(JSContext *ctx, JSValueConst promise,
-                               JSValueConst reason, JS_BOOL is_handled,
-                               void *opaque);
-
 #endif /* ifndef QUICKJS_UTILS_H */

@@ -122,11 +122,22 @@ typedef struct JSWorkerErrorHandler {
 } JSWorkerErrorHandler;
 #endif /* !SKIP_WORKER */
 
+/* Entry recording a rejected promise that has not yet been observed
+   as handled. Maintained on JSThreadState.rejected_promise_list by
+   qju_eventloop_promise_rejection_tracker; drained by
+   js_eventloop_run between job batches. */
+typedef struct JSRejectedPromiseEntry {
+    struct list_head link;
+    JSValue promise;
+    JSValue reason;
+} JSRejectedPromiseEntry;
+
 /* Thread state - central event loop state attached to runtime */
 typedef struct JSThreadState {
     struct list_head rw_handlers;      /* list of JSRWHandler.link */
     struct list_head signal_handlers;  /* list of JSSignalHandler.link */
     struct list_head timers;           /* list of JSTimer.link */
+    struct list_head rejected_promise_list; /* list of JSRejectedPromiseEntry.link */
     int eval_script_recurse;           /* only used in the main thread */
     int exit_code;                     /* only used in the main thread */
 #ifndef SKIP_WORKER
@@ -162,6 +173,22 @@ extern int (*js_poll_func)(JSContext *ctx);
 void js_eventloop_init(JSRuntime *rt);
 void js_eventloop_free(JSRuntime *rt);
 int js_eventloop_run(JSContext *ctx);
+
+/* Promise rejection tracker suitable for passing to
+   JS_SetHostPromiseRejectionTracker. Defers reporting until the next
+   event loop sleep point: rejections are recorded on the runtime's
+   JSThreadState.rejected_promise_list when fired with is_handled=FALSE
+   and removed when fired with is_handled=TRUE, so a rejection that
+   gets caught synchronously before the loop yields never produces
+   output. If any unhandled rejections remain at sleep time, prints
+   them to stderr and exits(1) — matching the previous behavior of
+   QJU_PrintPromiseRejection but with no false positives for
+   handled-just-too-late cases. */
+void qju_eventloop_promise_rejection_tracker(JSContext *ctx,
+                                             JSValueConst promise,
+                                             JSValueConst reason,
+                                             JS_BOOL is_handled,
+                                             void *opaque);
 
 /* Utilities */
 JS_BOOL js_eventloop_is_main_thread(JSRuntime *rt);
