@@ -177,6 +177,12 @@ DEF(minus_zero, "-0")
 DEF(Infinity, "Infinity")
 DEF(minus_Infinity, "-Infinity")
 DEF(NaN, "NaN")
+DEF(hasIndices, "hasIndices")
+DEF(ignoreCase, "ignoreCase")
+DEF(multiline, "multiline")
+DEF(dotAll, "dotAll")
+DEF(sticky, "sticky")
+DEF(unicodeSets, "unicodeSets")
 /* the following 3 atoms are only used with SKIP_WORKER undefined, but
    the fork keeps all atoms defined unconditionally so the bytecode
    format stays compatible across differently-configured builds */

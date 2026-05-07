@@ -34,6 +34,8 @@ const libunicode_table_h = build({
     rel("./downloaded/Scripts.txt"),
     rel("./downloaded/PropertyValueAliases.txt"),
     rel("./downloaded/emoji-data.txt"),
+    rel("./downloaded/emoji-sequences.txt"),
+    rel("./downloaded/emoji-zwj-sequences.txt"),
   ],
 });
 

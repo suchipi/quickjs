@@ -32,9 +32,9 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
     {
       "code": 1,
       "error": null,
-      "stderr": "ReferenceError: 'Symbol.asyncIterator' is not defined
+      "stderr": "ReferenceError: 'Symbol.split' is not defined
         at <internal>/quickjs.c:7331:0
-        at <eval> (log:1:1)
+        at <eval> (Symbol.isConcatSpreadable:1:1)
 
     ",
       "stdout": "",
