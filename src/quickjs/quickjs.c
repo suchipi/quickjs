@@ -8080,7 +8080,7 @@ static int num_keys_cmp(const void *p1, const void *p2, void *opaque)
         return 1;
 }
 
-static void js_free_prop_enum(JSContext *ctx, JSPropertyEnum *tab, uint32_t len)
+void JS_FreePropertyEnum(JSContext *ctx, JSPropertyEnum *tab, uint32_t len)
 {
     uint32_t i;
     if (tab) {
@@ -8174,7 +8174,7 @@ static int __exception JS_GetOwnPropertyNamesInternal(JSContext *ctx,
                             /* set the "is_enumerable" field if necessary */
                             res = JS_GetOwnPropertyInternal(ctx, &desc, p, atom);
                             if (res < 0) {
-                                js_free_prop_enum(ctx, tab_exotic, exotic_count);
+                                JS_FreePropertyEnum(ctx, tab_exotic, exotic_count);
                                 return -1;
                             }
                             if (res) {
@@ -8205,7 +8205,7 @@ static int __exception JS_GetOwnPropertyNamesInternal(JSContext *ctx,
     if (atom_count < exotic_keys_count || atom_count > INT32_MAX) {
     add_overflow:
         JS_ThrowOutOfMemory(ctx);
-        js_free_prop_enum(ctx, tab_exotic, exotic_count);
+        JS_FreePropertyEnum(ctx, tab_exotic, exotic_count);
         return -1;
     }
     /* XXX: need generic way to test for js_malloc(ctx, a * b) overflow */
@@ -8213,7 +8213,7 @@ static int __exception JS_GetOwnPropertyNamesInternal(JSContext *ctx,
     /* avoid allocating 0 bytes */
     tab_atom = js_malloc(ctx, sizeof(tab_atom[0]) * max_int(atom_count, 1));
     if (!tab_atom) {
-        js_free_prop_enum(ctx, tab_exotic, exotic_count);
+        JS_FreePropertyEnum(ctx, tab_exotic, exotic_count);
         return -1;
     }
 
@@ -8258,7 +8258,7 @@ static int __exception JS_GetOwnPropertyNamesInternal(JSContext *ctx,
                 for(i = 0; i < len; i++) {
                     tab_atom[num_index].atom = __JS_AtomFromUInt32(i);
                     if (tab_atom[num_index].atom == JS_ATOM_NULL) {
-                        js_free_prop_enum(ctx, tab_atom, num_index);
+                        JS_FreePropertyEnum(ctx, tab_atom, num_index);
                         return -1;
                     }
                     tab_atom[num_index].is_enumerable = TRUE;
@@ -15823,7 +15823,7 @@ static __exception int js_for_in_prepare_prototype_chain_enum(JSContext *ctx,
             JS_FreeValue(ctx, obj1);
             goto fail;
         }
-        js_free_prop_enum(ctx, tab_atom, tab_atom_count);
+        JS_FreePropertyEnum(ctx, tab_atom, tab_atom_count);
         if (tab_atom_count != 0) {
             JS_FreeValue(ctx, obj1);
             goto slow_path;
@@ -15907,7 +15907,7 @@ static __exception int js_for_in_next(JSContext *ctx, JSValue *sp)
                                                JS_GPN_STRING_MASK | JS_GPN_SET_ENUM)) {
                 return -1;
             }
-            js_free_prop_enum(ctx, it->tab_atom, it->atom_count);
+            JS_FreePropertyEnum(ctx, it->tab_atom, it->atom_count);
             it->tab_atom = tab_atom;
             it->atom_count = tab_atom_count;
             it->idx = 0;
@@ -16430,10 +16430,10 @@ static __exception int JS_CopyDataProperties(JSContext *ctx,
         if (ret < 0)
             goto exception;
     }
-    js_free_prop_enum(ctx, tab_atom, tab_atom_count);
+    JS_FreePropertyEnum(ctx, tab_atom, tab_atom_count);
     return 0;
  exception:
-    js_free_prop_enum(ctx, tab_atom, tab_atom_count);
+    JS_FreePropertyEnum(ctx, tab_atom, tab_atom_count);
     return -1;
 }
 
@@ -39146,7 +39146,7 @@ static __exception int JS_ObjectDefineProperties(JSContext *ctx,
     ret = 0;
 
 exception:
-    js_free_prop_enum(ctx, atoms, len);
+    JS_FreePropertyEnum(ctx, atoms, len);
     JS_FreeValue(ctx, props);
     JS_FreeValue(ctx, desc);
     return ret;
@@ -39421,12 +39421,12 @@ static JSValue js_object_getOwnPropertyDescriptors(JSContext *ctx, JSValueConst 
                 goto exception;
         }
     }
-    js_free_prop_enum(ctx, props, len);
+    JS_FreePropertyEnum(ctx, props, len);
     JS_FreeValue(ctx, obj);
     return r;
 
 exception:
-    js_free_prop_enum(ctx, props, len);
+    JS_FreePropertyEnum(ctx, props, len);
     JS_FreeValue(ctx, obj);
     JS_FreeValue(ctx, r);
     return JS_EXCEPTION;
@@ -39506,7 +39506,7 @@ exception:
     JS_FreeValue(ctx, r);
     r = JS_EXCEPTION;
 done:
-    js_free_prop_enum(ctx, atoms, len);
+    JS_FreePropertyEnum(ctx, atoms, len);
     JS_FreeValue(ctx, obj);
     return r;
 }
@@ -39816,11 +39816,11 @@ static JSValue js_object_seal(JSContext *ctx, JSValueConst this_val,
                               JS_UNDEFINED, JS_UNDEFINED, desc_flags) < 0)
             goto exception;
     }
-    js_free_prop_enum(ctx, props, len);
+    JS_FreePropertyEnum(ctx, props, len);
     return JS_DupValue(ctx, obj);
 
  exception:
-    js_free_prop_enum(ctx, props, len);
+    JS_FreePropertyEnum(ctx, props, len);
     return JS_EXCEPTION;
 }
 
@@ -39877,11 +39877,11 @@ static JSValue js_object_isSealed(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     res ^= 1;
 done:
-    js_free_prop_enum(ctx, props, len);
+    JS_FreePropertyEnum(ctx, props, len);
     return JS_NewBool(ctx, res);
 
 exception:
-    js_free_prop_enum(ctx, props, len);
+    JS_FreePropertyEnum(ctx, props, len);
     return JS_EXCEPTION;
 }
 
@@ -47361,7 +47361,7 @@ static JSValue internalize_json_property(JSContext *ctx, JSValueConst holder,
                 goto fail;
         }
     }
-    js_free_prop_enum(ctx, atoms, len);
+    JS_FreePropertyEnum(ctx, atoms, len);
     atoms = NULL;
     name_val = JS_AtomToValue(ctx, name);
     if (JS_IsException(name_val))
@@ -47373,7 +47373,7 @@ static JSValue internalize_json_property(JSContext *ctx, JSValueConst holder,
     JS_FreeValue(ctx, val);
     return res;
  fail:
-    js_free_prop_enum(ctx, atoms, len);
+    JS_FreePropertyEnum(ctx, atoms, len);
     JS_FreeValue(ctx, val);
     return JS_EXCEPTION;
 }
@@ -48749,14 +48749,14 @@ static int js_proxy_get_own_property_names(JSContext *ctx,
         }
     }
 
-    js_free_prop_enum(ctx, tab2, len2);
+    JS_FreePropertyEnum(ctx, tab2, len2);
     JS_FreeValue(ctx, prop_array);
     *ptab = tab;
     *plen = len;
     return 0;
  fail:
-    js_free_prop_enum(ctx, tab2, len2);
-    js_free_prop_enum(ctx, tab, len);
+    JS_FreePropertyEnum(ctx, tab2, len2);
+    JS_FreePropertyEnum(ctx, tab, len);
     JS_FreeValue(ctx, prop_array);
     return -1;
 }
