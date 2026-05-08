@@ -241,8 +241,81 @@ static void find_unique_cname(char *cname, size_t cname_size)
     pstrcpy(cname, cname_size, cname1);
 }
 
+/* Returns 1 if `attributes.type === "json"`, else 0. */
+static int qjsc_attributes_request_json(JSContext *ctx, JSValueConst attributes)
+{
+    JSValue type_val;
+    const char *type_str;
+    int is_json = 0;
+    if (!JS_IsObject(attributes))
+        return 0;
+    type_val = JS_GetPropertyStr(ctx, attributes, "type");
+    if (JS_IsException(type_val))
+        return 0;
+    if (JS_IsString(type_val)) {
+        type_str = JS_ToCString(ctx, type_val);
+        if (type_str) {
+            is_json = strcmp(type_str, "json") == 0;
+            JS_FreeCString(ctx, type_str);
+        }
+    }
+    JS_FreeValue(ctx, type_val);
+    return is_json;
+}
+
+/* Permissive attribute checker for qjsc — interpretation is delegated
+   to the JSON-source rewrite below and to the fork's modulesys at
+   runtime. */
+static int qjsc_check_attributes(JSContext *ctx, void *opaque,
+                                 JSValueConst attributes)
+{
+    return 0;
+}
+
+/* Build a JS module source for a JSON file by wrapping its content in
+   `export default JSON.parse(<escaped>);`. The escape uses
+   `JSON.stringify` semantics — calling QuickJS's JSON encoder gives us
+   a JS string literal that round-trips JSON content (control chars,
+   surrogates, quotes, backslashes) unchanged. Returns a heap-allocated
+   string the caller must free with js_free. */
+static char *qjsc_json_to_module_source(JSContext *ctx, const char *content,
+                                        size_t content_len)
+{
+    JSValue raw_str, escaped_str;
+    const char *escaped_cstr;
+    char *out;
+    size_t prefix_len, suffix_len, escaped_len, total;
+
+    raw_str = JS_NewStringLen(ctx, content, content_len);
+    if (JS_IsException(raw_str))
+        return NULL;
+    escaped_str = JS_JSONStringify(ctx, raw_str, JS_UNDEFINED, JS_UNDEFINED);
+    JS_FreeValue(ctx, raw_str);
+    if (JS_IsException(escaped_str))
+        return NULL;
+    escaped_cstr = JS_ToCStringLen(ctx, &escaped_len, escaped_str);
+    if (!escaped_cstr) {
+        JS_FreeValue(ctx, escaped_str);
+        return NULL;
+    }
+    prefix_len = sizeof("export default JSON.parse(") - 1;
+    suffix_len = sizeof(");") - 1;
+    total = prefix_len + escaped_len + suffix_len;
+    out = js_malloc(ctx, total + 1);
+    if (out) {
+        memcpy(out, "export default JSON.parse(", prefix_len);
+        memcpy(out + prefix_len, escaped_cstr, escaped_len);
+        memcpy(out + prefix_len + escaped_len, ");", suffix_len);
+        out[total] = '\0';
+    }
+    JS_FreeCString(ctx, escaped_cstr);
+    JS_FreeValue(ctx, escaped_str);
+    return out;
+}
+
 JSModuleDef *jsc_module_loader(JSContext *ctx,
-                              const char *module_name, void *opaque)
+                              const char *module_name, void *opaque,
+                              JSValueConst attributes)
 {
     JSModuleDef *m;
     namelist_entry_t *e;
@@ -266,6 +339,9 @@ JSModuleDef *jsc_module_loader(JSContext *ctx,
         uint8_t *buf;
         JSValue func_val;
         char cname[1024];
+        char *json_module_src = NULL;
+        const char *eval_buf;
+        size_t eval_len;
 
         buf = QJU_ReadFile(ctx, &buf_len, module_name);
         if (!buf) {
@@ -274,10 +350,27 @@ JSModuleDef *jsc_module_loader(JSContext *ctx,
             return NULL;
         }
 
+        if (qjsc_attributes_request_json(ctx, attributes)) {
+            json_module_src = qjsc_json_to_module_source(ctx, (const char *)buf, buf_len);
+            js_free(ctx, buf);
+            buf = NULL;
+            if (!json_module_src)
+                return NULL;
+            eval_buf = json_module_src;
+            eval_len = strlen(json_module_src);
+        } else {
+            eval_buf = (const char *)buf;
+            eval_len = buf_len;
+        }
+
         /* compile the module */
-        func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name,
+        func_val = JS_Eval(ctx, eval_buf, eval_len, module_name,
                            JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-        js_free(ctx, buf);
+        if (json_module_src) {
+            js_free(ctx, json_module_src);
+        } else {
+            js_free(ctx, buf);
+        }
         if (JS_IsException(func_val))
             return NULL;
         get_c_name(cname, sizeof(cname), module_name);
@@ -750,7 +843,8 @@ int main(int argc, char **argv)
 
     /* loader for ES6 modules */
     JS_SetModuleNormalizeFunc(rt, NULL);
-    JS_SetModuleLoaderFunc(rt, jsc_module_loader);
+    JS_SetModuleLoaderFunc2(rt, NULL, jsc_module_loader,
+                            qjsc_check_attributes, NULL);
     JS_SetModuleLoaderOpaque(rt, NULL);
 
     debugprint("writing file header comment and include...\n");
@@ -781,7 +875,8 @@ int main(int argc, char **argv)
     }
 
     for(i = 0; i < dynamic_module_list.count; i++) {
-        if (!jsc_module_loader(ctx, dynamic_module_list.array[i].name, NULL)) {
+        if (!jsc_module_loader(ctx, dynamic_module_list.array[i].name, NULL,
+                               JS_UNDEFINED)) {
             fprintf(stderr, "Could not load dynamic module '%s'\n",
                     dynamic_module_list.array[i].name);
             exit(1);

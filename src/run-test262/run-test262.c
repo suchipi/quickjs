@@ -843,14 +843,87 @@ static char *load_file(const char *filename, size_t *lenp)
     return buf;
 }
 
+/* Permissive attribute checker — exercises the same setup the
+   fork's modulesys uses (any keys allowed). test262 tests that assert
+   strict whitelist-failure for non-`type` keys are deliberate fork
+   divergences; they are recorded in test262_errors.txt. */
+extern int qjms_module_check_attributes(JSContext *ctx, void *opaque,
+                                        JSValueConst attributes);
+
+/* Returns 1 if `attributes.type === "json"`, else 0. */
+static int test262_attributes_request_json(JSContext *ctx,
+                                           JSValueConst attributes)
+{
+    JSValue type_val;
+    const char *type_str;
+    int is_json = 0;
+    if (!JS_IsObject(attributes))
+        return 0;
+    type_val = JS_GetPropertyStr(ctx, attributes, "type");
+    if (JS_IsException(type_val))
+        return 0;
+    if (JS_IsString(type_val)) {
+        type_str = JS_ToCString(ctx, type_val);
+        if (type_str) {
+            is_json = strcmp(type_str, "json") == 0;
+            JS_FreeCString(ctx, type_str);
+        }
+    }
+    JS_FreeValue(ctx, type_val);
+    return is_json;
+}
+
+/* Build a JS module source for a JSON file by wrapping its content in
+   `export default JSON.parse(<escaped>);`. Mirrors qjsc and the fork's
+   modulesys behavior (no .json extension fallback — extension-only
+   loading requires an explicit attribute). */
+static char *test262_json_to_module_source(JSContext *ctx, const char *content,
+                                           size_t content_len)
+{
+    JSValue raw_str, escaped_str;
+    const char *escaped_cstr;
+    char *out;
+    size_t prefix_len, suffix_len, escaped_len, total;
+
+    raw_str = JS_NewStringLen(ctx, content, content_len);
+    if (JS_IsException(raw_str))
+        return NULL;
+    escaped_str = JS_JSONStringify(ctx, raw_str, JS_UNDEFINED, JS_UNDEFINED);
+    JS_FreeValue(ctx, raw_str);
+    if (JS_IsException(escaped_str))
+        return NULL;
+    escaped_cstr = JS_ToCStringLen(ctx, &escaped_len, escaped_str);
+    if (!escaped_cstr) {
+        JS_FreeValue(ctx, escaped_str);
+        return NULL;
+    }
+    prefix_len = sizeof("export default JSON.parse(") - 1;
+    suffix_len = sizeof(");") - 1;
+    total = prefix_len + escaped_len + suffix_len;
+    out = js_malloc(ctx, total + 1);
+    if (out) {
+        memcpy(out, "export default JSON.parse(", prefix_len);
+        memcpy(out + prefix_len, escaped_cstr, escaped_len);
+        memcpy(out + prefix_len + escaped_len, ");", suffix_len);
+        out[total] = '\0';
+    }
+    JS_FreeCString(ctx, escaped_cstr);
+    JS_FreeValue(ctx, escaped_str);
+    return out;
+}
+
 static JSModuleDef *js_module_loader_test(JSContext *ctx,
-                                          const char *module_name, void *opaque)
+                                          const char *module_name, void *opaque,
+                                          JSValueConst attributes)
 {
     size_t buf_len;
     uint8_t *buf;
     JSModuleDef *m;
     JSValue func_val;
     char *filename, *slash, path[1024];
+    char *json_module_src = NULL;
+    const char *eval_buf;
+    size_t eval_len;
 
     // interpret import("bar.js") from path/to/foo.js as
     // import("path/to/bar.js") but leave import("./bar.js") untouched
@@ -871,10 +944,28 @@ static JSModuleDef *js_module_loader_test(JSContext *ctx,
         return NULL;
     }
 
+    if (test262_attributes_request_json(ctx, attributes)) {
+        json_module_src = test262_json_to_module_source(ctx, (const char *)buf,
+                                                        buf_len);
+        js_free(ctx, buf);
+        buf = NULL;
+        if (!json_module_src)
+            return NULL;
+        eval_buf = json_module_src;
+        eval_len = strlen(json_module_src);
+    } else {
+        eval_buf = (const char *)buf;
+        eval_len = buf_len;
+    }
+
     /* compile the module */
-    func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name,
+    func_val = JS_Eval(ctx, eval_buf, eval_len, module_name,
                        JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-    js_free(ctx, buf);
+    if (json_module_src) {
+        js_free(ctx, json_module_src);
+    } else {
+        js_free(ctx, buf);
+    }
     if (JS_IsException(func_val))
         return NULL;
     /* the module is already referenced, so we must free it */
@@ -1594,9 +1685,8 @@ int run_test_buf(const char *filename, const char *harness, namelist_t *ip,
     JS_SetCanBlock(rt, can_block);
 
     /* loader for ES6 modules */
-    JS_SetModuleNormalizeFunc(rt, NULL);
-    JS_SetModuleLoaderFunc(rt, js_module_loader_test);
-    JS_SetModuleLoaderOpaque(rt, (void *)filename);
+    JS_SetModuleLoaderFunc2(rt, NULL, js_module_loader_test,
+                            qjms_module_check_attributes, (void *)filename);
 
     add_helpers(ctx);
 
@@ -1897,9 +1987,8 @@ int run_test262_harness_test(const char *filename, BOOL is_module)
     JS_SetCanBlock(rt, can_block);
 
     /* loader for ES6 modules */
-    JS_SetModuleNormalizeFunc(rt, NULL);
-    JS_SetModuleLoaderFunc(rt, js_module_loader_test);
-    JS_SetModuleLoaderOpaque(rt, (void *)filename);
+    JS_SetModuleLoaderFunc2(rt, NULL, js_module_loader_test,
+                            qjms_module_check_attributes, (void *)filename);
 
     add_helpers(ctx);
 
