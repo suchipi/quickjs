@@ -32,8 +32,14 @@ void QJMS_SetMainModule(JSContext *ctx, const char *module_name);
 */
 JS_BOOL QJMS_IsMainModule(JSContext *ctx, const char *module_name);
 
-/* initializes the import.meta object for the provided module function */
-int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val);
+/* initializes the import.meta object for the provided module function.
+   `attributes` is the import-attributes object (passed via the
+   `with { ... }` clause) for this module, or `JS_UNDEFINED` when no
+   attributes were used. The value is exposed as `import.meta.attributes`
+   (a defensive copy with non-writable, non-configurable own properties
+   on a non-extensible object). */
+int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
+                             JSValueConst attributes);
 
 /*
   All QJMS_Eval* functions below share an error-reporting contract:
@@ -111,13 +117,20 @@ int QJMS_EvalBinary(JSContext *ctx, const uint8_t *buf, size_t buf_len,
 int QJMS_EvalBinaryAsync(JSContext *ctx, const uint8_t *buf, size_t buf_len,
                          int load_only, const char *filename_override);
 
-/* the internal behavior of the 'require' function, exposed as a C API */
-JSValue QJMS_Require(JSContext *ctx, JSValueConst specifier);
-JSValue QJMS_Require2(JSContext *ctx, JSValueConst specifier, JSValueConst basename);
+/* the internal behavior of the 'require' function, exposed as a C API.
+   `attributes` is the import-attributes object (may be JS_UNDEFINED). */
+JSValue QJMS_Require(JSContext *ctx, JSValueConst specifier,
+                     JSValueConst attributes);
+JSValue QJMS_Require2(JSContext *ctx, JSValueConst specifier,
+                      JSValueConst basename, JSValueConst attributes);
 
-/* the internal behavior of the 'require.resolve' function, exposed as a C API */
-JSValue QJMS_RequireResolve(JSContext *ctx, JSValueConst specifier_val);
-JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val, JSAtom basename_atom);
+/* the internal behavior of the 'require.resolve' function, exposed as a
+   C API. `attributes` is the import-attributes object (may be
+   JS_UNDEFINED). */
+JSValue QJMS_RequireResolve(JSContext *ctx, JSValueConst specifier_val,
+                            JSValueConst attributes);
+JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val,
+                             JSAtom basename_atom, JSValueConst attributes);
 
 /* returns an object like { require: Function, ModuleDelegate: Object } */
 JSValue QJMS_GetModuleLoaderInternals(JSContext *ctx);

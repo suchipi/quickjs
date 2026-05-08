@@ -72,17 +72,56 @@ static JSValue js_engine_runScript(JSContext *ctx, JSValueConst this_val,
   return ret;
 }
 
+/* Extracts options.with from argv[opt_idx] (if argc > opt_idx). Returns
+   JS_UNDEFINED if not provided, the `with` value if it's an object or
+   undefined, or JS_EXCEPTION (with pending error) on type mismatch. */
+static JSValue js_engine_extract_options_with(JSContext *ctx, int argc,
+                                              JSValueConst *argv, int opt_idx)
+{
+  JSValue with_val;
+  JSValueConst options;
+  if (argc <= opt_idx)
+    return JS_UNDEFINED;
+  options = argv[opt_idx];
+  if (JS_IsUndefined(options))
+    return JS_UNDEFINED;
+  if (!JS_IsObject(options)) {
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__,
+                             "options must be an object");
+  }
+  with_val = JS_GetPropertyStr(ctx, options, "with");
+  if (JS_IsException(with_val))
+    return JS_EXCEPTION;
+  if (!JS_IsUndefined(with_val) && !JS_IsObject(with_val)) {
+    JS_FreeValue(ctx, with_val);
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__,
+                             "options.with must be an object");
+  }
+  return with_val;
+}
+
 /* load and evaluate a file as a module */
 static JSValue js_engine_importModule(JSContext *ctx, JSValueConst this_val,
                                       int argc, JSValueConst *argv)
 {
-  if (argc == 1) {
-    return JS_DynamicImportSync(ctx, argv[0], JS_UNDEFINED);
-  } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
-    return JS_DynamicImportSync2(ctx, argv[0], argv[1], JS_UNDEFINED);
-  } else {
-    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "importModule must be called with one or two arguments");
+  JSValue attributes;
+  JSValue result;
+
+  if (argc < 1 || argc > 3) {
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "importModule must be called with one, two, or three arguments");
   }
+
+  attributes = js_engine_extract_options_with(ctx, argc, argv, 2);
+  if (JS_IsException(attributes))
+    return JS_EXCEPTION;
+
+  if (argc >= 2 && !JS_IsUndefined(argv[1])) {
+    result = JS_DynamicImportSync2(ctx, argv[0], argv[1], attributes);
+  } else {
+    result = JS_DynamicImportSync(ctx, argv[0], attributes);
+  }
+  JS_FreeValue(ctx, attributes);
+  return result;
 }
 
 /* return the name of the calling script or module */
@@ -110,25 +149,33 @@ static JSValue js_engine_getFileNameFromStack(JSContext *ctx, JSValueConst this_
 static JSValue js_engine_resolveModule(JSContext *ctx, JSValueConst this_val,
                                        int argc, JSValueConst *argv)
 {
-  if (argc == 1) {
-    JSValue specifier = argv[0];
-    return QJMS_RequireResolve(ctx, specifier);
-  } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
-    JSValue result;
+  JSValue attributes;
+  JSValue result;
+
+  if (argc < 1 || argc > 3) {
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "resolveModule must be called with one, two, or three arguments");
+  }
+
+  attributes = js_engine_extract_options_with(ctx, argc, argv, 2);
+  if (JS_IsException(attributes))
+    return JS_EXCEPTION;
+
+  if (argc >= 2 && !JS_IsUndefined(argv[1])) {
     JSValue specifier = argv[0];
     JSValue basename_val = argv[1];
-
     JSAtom basename_atom = JS_ValueToAtom(ctx, basename_val);
     if (basename_atom == JS_ATOM_NULL) {
+      JS_FreeValue(ctx, attributes);
       return JS_EXCEPTION;
     }
-
-    result = QJMS_RequireResolve2(ctx, specifier, basename_atom);
+    result = QJMS_RequireResolve2(ctx, specifier, basename_atom, attributes);
     JS_FreeAtom(ctx, basename_atom);
-    return result;
   } else {
-    return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "resolveModule must be called with one or two arguments");
+    JSValue specifier = argv[0];
+    result = QJMS_RequireResolve(ctx, specifier, attributes);
   }
+  JS_FreeValue(ctx, attributes);
+  return result;
 }
 
 static JSValue js_engine_evalScript(JSContext *ctx, JSValueConst this_val,

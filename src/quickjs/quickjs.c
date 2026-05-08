@@ -816,6 +816,14 @@ struct JSModuleDef {
     JSValue eval_exception;
     JSValue meta_obj; /* for import.meta */
     JSValue private_value; /* exposed via JS_(Get|Set)ModulePrivateValue */
+    JSValue attributes; /* the attributes this module was loaded with (per
+                           the import-attributes proposal). JS_UNDEFINED
+                           when the module was loaded without a `with`
+                           clause; otherwise an object whose enumerable
+                           string keys map to string values. Used by
+                           js_find_loaded_module to distinguish
+                           same-specifier-but-different-attributes imports
+                           as separate module instances. */
     void *user_data;
 };
 
@@ -28480,6 +28488,7 @@ static JSModuleDef *js_new_module_def(JSContext *ctx, JSAtom name)
     m->eval_exception = JS_UNDEFINED;
     m->meta_obj = JS_UNDEFINED;
     m->private_value = JS_UNDEFINED;
+    m->attributes = JS_UNDEFINED;
     m->promise = JS_UNDEFINED;
     m->resolving_funcs[0] = JS_UNDEFINED;
     m->resolving_funcs[1] = JS_UNDEFINED;
@@ -28505,6 +28514,7 @@ static void js_mark_module_def(JSRuntime *rt, JSModuleDef *m,
     JS_MarkValue(rt, m->eval_exception, mark_func);
     JS_MarkValue(rt, m->meta_obj, mark_func);
     JS_MarkValue(rt, m->private_value, mark_func);
+    JS_MarkValue(rt, m->attributes, mark_func);
     JS_MarkValue(rt, m->promise, mark_func);
     JS_MarkValue(rt, m->resolving_funcs[0], mark_func);
     JS_MarkValue(rt, m->resolving_funcs[1], mark_func);
@@ -28551,6 +28561,7 @@ static void js_free_module_def(JSContext *ctx, JSModuleDef *m)
     JS_FreeValue(ctx, m->eval_exception);
     JS_FreeValue(ctx, m->meta_obj);
     JS_FreeValue(ctx, m->private_value);
+    JS_FreeValue(ctx, m->attributes);
     // m->user_data not freed because it's opaque to us;
     // we don't know what its lifetime is.
     JS_FreeValue(ctx, m->promise);
@@ -28856,12 +28867,119 @@ static char *js_default_module_normalize_name(JSContext *ctx,
     return filename;
 }
 
-static JSModuleDef *js_find_loaded_module(JSContext *ctx, JSAtom name)
+/* Compare two import-attribute objects for structural equality. Returns
+   1 if equal, 0 if not, -1 on exception (eg property-access failure).
+   Both arguments are either JS_UNDEFINED or objects whose enumerable
+   string keys map to string values (per the import-attributes proposal).
+   `JS_UNDEFINED == JS_UNDEFINED` is equal; `JS_UNDEFINED == {}` is not. */
+static int attributes_equal(JSContext *ctx, JSValueConst a, JSValueConst b)
+{
+    JSPropertyEnum *tab_a = NULL, *tab_b = NULL;
+    uint32_t n_a = 0, n_b = 0;
+    uint32_t i, j;
+    int ret = 0;
+
+    if (JS_IsUndefined(a) && JS_IsUndefined(b))
+        return 1;
+    if (JS_IsUndefined(a) || JS_IsUndefined(b))
+        return 0;
+    if (!JS_IsObject(a) || !JS_IsObject(b))
+        return 0;
+
+    if (JS_GetOwnPropertyNames(ctx, &tab_a, &n_a, a,
+                               JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) < 0)
+        return -1;
+    if (JS_GetOwnPropertyNames(ctx, &tab_b, &n_b, b,
+                               JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) < 0) {
+        ret = -1;
+        goto done;
+    }
+
+    if (n_a != n_b)
+        goto done; /* ret = 0 */
+
+    for (i = 0; i < n_a; i++) {
+        JSValue va, vb;
+        const char *sa, *sb;
+        BOOL match;
+
+        va = JS_GetProperty(ctx, a, tab_a[i].atom);
+        if (JS_IsException(va)) {
+            ret = -1;
+            goto done;
+        }
+        vb = JS_GetProperty(ctx, b, tab_a[i].atom);
+        if (JS_IsException(vb)) {
+            JS_FreeValue(ctx, va);
+            ret = -1;
+            goto done;
+        }
+        if (!JS_IsString(va) || !JS_IsString(vb)) {
+            JS_FreeValue(ctx, va);
+            JS_FreeValue(ctx, vb);
+            goto done; /* ret = 0 */
+        }
+        sa = JS_ToCString(ctx, va);
+        sb = JS_ToCString(ctx, vb);
+        match = (sa != NULL && sb != NULL && strcmp(sa, sb) == 0);
+        if (sa) JS_FreeCString(ctx, sa);
+        if (sb) JS_FreeCString(ctx, sb);
+        JS_FreeValue(ctx, va);
+        JS_FreeValue(ctx, vb);
+        if (!match)
+            goto done; /* ret = 0 */
+    }
+    ret = 1;
+
+done:
+    if (tab_a) {
+        for (j = 0; j < n_a; j++) JS_FreeAtom(ctx, tab_a[j].atom);
+        js_free(ctx, tab_a);
+    }
+    if (tab_b) {
+        for (j = 0; j < n_b; j++) JS_FreeAtom(ctx, tab_b[j].atom);
+        js_free(ctx, tab_b);
+    }
+    return ret;
+}
+
+/* Returns the cached module matching `name` and `attributes`, or NULL.
+   On comparison failure (attributes_equal raised), sets *err to 1 and
+   returns NULL. *err is 0 on a clean miss. */
+static JSModuleDef *js_find_loaded_module(JSContext *ctx, JSAtom name,
+                                          JSValueConst attributes, int *err)
 {
     struct list_head *el;
     JSModuleDef *m;
 
+    *err = 0;
     /* first look at the loaded modules */
+    list_for_each(el, &ctx->loaded_modules) {
+        int eq;
+        m = list_entry(el, JSModuleDef, link);
+        if (m->module_name != name)
+            continue;
+        eq = attributes_equal(ctx, m->attributes, attributes);
+        if (eq < 0) {
+            *err = 1;
+            return NULL;
+        }
+        if (eq)
+            return m;
+    }
+    return NULL;
+}
+
+/* find-by-name-only variant; used by call sites that don't have the
+   import-attributes context (eg `import.meta` resolution from inside a
+   running module). Returns the first match. With same-name-different-
+   attributes modules in the registry, the first one wins — a known
+   limitation that mirrors the existing imprecision flagged by
+   js_import_meta's "XXX: inefficient" comment. */
+static JSModuleDef *js_find_loaded_module_by_name(JSContext *ctx, JSAtom name)
+{
+    struct list_head *el;
+    JSModuleDef *m;
     list_for_each(el, &ctx->loaded_modules) {
         m = list_entry(el, JSModuleDef, link);
         if (m->module_name == name)
@@ -28913,11 +29031,19 @@ static JSModuleDef *js_host_resolve_imported_module(JSContext *ctx,
     }
 
     /* first look at the loaded modules */
-    m = js_find_loaded_module(ctx, module_name);
-    if (m) {
-        js_free(ctx, cname);
-        JS_FreeAtom(ctx, module_name);
-        return m;
+    {
+        int find_err = 0;
+        m = js_find_loaded_module(ctx, module_name, attributes, &find_err);
+        if (m) {
+            js_free(ctx, cname);
+            JS_FreeAtom(ctx, module_name);
+            return m;
+        }
+        if (find_err) {
+            js_free(ctx, cname);
+            JS_FreeAtom(ctx, module_name);
+            return NULL;
+        }
     }
 
     JS_FreeAtom(ctx, module_name);
@@ -28942,6 +29068,12 @@ static JSModuleDef *js_host_resolve_imported_module(JSContext *ctx,
                                cname);
         js_free(ctx, cname);
         return NULL;
+    }
+    /* Tag the freshly-loaded module with the attributes used to load it
+       so future lookups via js_find_loaded_module distinguish
+       same-name-different-attributes imports as separate instances. */
+    if (m && JS_IsUndefined(m->attributes)) {
+        m->attributes = JS_DupValue(ctx, attributes);
     }
     js_free(ctx, cname);
     return m;
@@ -29963,7 +30095,7 @@ static JSValue js_import_meta(JSContext *ctx)
 
     /* XXX: inefficient, need to add a module or script pointer in
        JSFunctionBytecode */
-    m = js_find_loaded_module(ctx, filename);
+    m = js_find_loaded_module_by_name(ctx, filename);
     JS_FreeAtom(ctx, filename);
     if (!m) {
     fail:
@@ -36774,7 +36906,7 @@ typedef enum BCTagEnum {
     BC_TAG_ERROR_OBJECT,
 } BCTagEnum;
 
-#define BC_BASE_VERSION 5
+#define BC_BASE_VERSION 6
 #define BC_BE_VERSION 0x40
 #ifdef WORDS_BIGENDIAN
 #define BC_VERSION (BC_BASE_VERSION | BC_BE_VERSION)
@@ -37204,6 +37336,43 @@ static int JS_WriteModule(BCWriterState *s, JSValueConst obj)
     for(i = 0; i < m->req_module_entries_count; i++) {
         JSReqModuleEntry *rme = &m->req_module_entries[i];
         bc_put_atom(s, rme->module_name);
+        /* import-attributes: 0 = no attributes / undefined; 1+N for an
+           attributes object with N enumerable string-keyed string-valued
+           own properties, followed by N (key_atom, value_atom) pairs. */
+        if (JS_IsObject(rme->attributes)) {
+            JSPropertyEnum *tab;
+            uint32_t n, j;
+            if (JS_GetOwnPropertyNames(s->ctx, &tab, &n, rme->attributes,
+                                       JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) < 0) {
+                goto fail;
+            }
+            bc_put_leb128(s, n + 1);
+            for (j = 0; j < n; j++) {
+                JSValue v = JS_GetProperty(s->ctx, rme->attributes, tab[j].atom);
+                JSAtom va_atom;
+                if (JS_IsException(v)) {
+                    uint32_t k;
+                    for (k = 0; k < n; k++) JS_FreeAtom(s->ctx, tab[k].atom);
+                    js_free(s->ctx, tab);
+                    goto fail;
+                }
+                va_atom = JS_ValueToAtom(s->ctx, v);
+                JS_FreeValue(s->ctx, v);
+                if (va_atom == JS_ATOM_NULL) {
+                    uint32_t k;
+                    for (k = 0; k < n; k++) JS_FreeAtom(s->ctx, tab[k].atom);
+                    js_free(s->ctx, tab);
+                    goto fail;
+                }
+                bc_put_atom(s, tab[j].atom);
+                bc_put_atom(s, va_atom);
+                JS_FreeAtom(s->ctx, va_atom);
+            }
+            for (j = 0; j < n; j++) JS_FreeAtom(s->ctx, tab[j].atom);
+            js_free(s->ctx, tab);
+        } else {
+            bc_put_leb128(s, 0);
+        }
     }
 
     bc_put_leb128(s, m->export_entries_count);
@@ -38296,8 +38465,49 @@ static JSValue JS_ReadModule(BCReaderState *s)
             goto fail;
         for(i = 0; i < m->req_module_entries_count; i++) {
             JSReqModuleEntry *rme = &m->req_module_entries[i];
+            uint32_t attr_marker;
+            rme->attributes = JS_UNDEFINED;
             if (bc_get_atom(s, &rme->module_name))
                 goto fail;
+            if (bc_get_leb128(s, &attr_marker))
+                goto fail;
+            if (attr_marker > 0) {
+                uint32_t attr_count = attr_marker - 1;
+                JSValue obj;
+                uint32_t j;
+                obj = JS_NewObject(ctx);
+                if (JS_IsException(obj))
+                    goto fail;
+                for (j = 0; j < attr_count; j++) {
+                    JSAtom key_atom = JS_ATOM_NULL;
+                    JSAtom val_atom = JS_ATOM_NULL;
+                    JSValue val;
+                    if (bc_get_atom(s, &key_atom)) {
+                        JS_FreeValue(ctx, obj);
+                        goto fail;
+                    }
+                    if (bc_get_atom(s, &val_atom)) {
+                        JS_FreeAtom(ctx, key_atom);
+                        JS_FreeValue(ctx, obj);
+                        goto fail;
+                    }
+                    val = JS_AtomToString(ctx, val_atom);
+                    JS_FreeAtom(ctx, val_atom);
+                    if (JS_IsException(val)) {
+                        JS_FreeAtom(ctx, key_atom);
+                        JS_FreeValue(ctx, obj);
+                        goto fail;
+                    }
+                    if (JS_DefinePropertyValue(ctx, obj, key_atom, val,
+                                               JS_PROP_C_W_E) < 0) {
+                        JS_FreeAtom(ctx, key_atom);
+                        JS_FreeValue(ctx, obj);
+                        goto fail;
+                    }
+                    JS_FreeAtom(ctx, key_atom);
+                }
+                rme->attributes = obj;
+            }
         }
     }
 

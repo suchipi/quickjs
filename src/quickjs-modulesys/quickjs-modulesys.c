@@ -36,10 +36,21 @@ typedef struct QJMS_State {
 } QJMS_State;
 
 static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
-                                      const char *name, QJMS_State *state);
+                                      const char *name, QJMS_State *state,
+                                      JSValueConst attributes);
 
 static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
-                                      QJMS_State *state);
+                                      QJMS_State *state,
+                                      JSValueConst attributes);
+
+/* Permissive attribute check: any attribute keys/values are accepted at
+   the engine level. ModuleDelegate (in JS) is responsible for deciding
+   how to interpret them. */
+int qjms_module_check_attributes(JSContext *ctx, void *opaque,
+                                 JSValueConst attributes)
+{
+  return 0;
+}
 
 void QJMS_InitState(JSRuntime *rt)
 {
@@ -56,9 +67,11 @@ void QJMS_InitState(JSRuntime *rt)
   state->entry_module_rejected = FALSE;
   state->entry_module_rejection_callback = NULL;
 
-  JS_SetModuleNormalizeFunc(rt, (JSModuleNormalizeFunc *) QJMS_NormalizeModuleName);
-  JS_SetModuleLoaderFunc(rt, (JSModuleLoaderFunc *) QJMS_ModuleLoader);
-  JS_SetModuleLoaderOpaque(rt, (void *) state);
+  JS_SetModuleLoaderFunc2(rt,
+                          (JSModuleNormalizeFunc2 *) QJMS_NormalizeModuleName,
+                          (JSModuleLoaderFunc2 *) QJMS_ModuleLoader,
+                          qjms_module_check_attributes,
+                          (void *) state);
 }
 
 void QJMS_FreeState(JSRuntime *rt)
@@ -164,11 +177,77 @@ BOOL QJMS_IsMainModule(JSContext *ctx, const char *module_name) {
   return strncmp(main_module, module_name, MAIN_MODULE_NAME_SIZE) == 0;
 }
 
-int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val)
+/* Build the user-visible attributes object for `import.meta.attributes`.
+   The caller-supplied `attributes` value is either JS_UNDEFINED (no
+   `with` clause) or an object. We make a defensive copy so user code
+   can't tamper with the engine's stored attributes: each enumerable
+   string key is copied as a non-writable, non-configurable own
+   property; `JS_PreventExtensions` is then applied on the copy. */
+static JSValue qjms_build_import_meta_attributes(JSContext *ctx,
+                                                 JSValueConst attributes)
+{
+  JSValue copy;
+  JSPropertyEnum *tab_atom;
+  uint32_t tab_atom_count;
+  uint32_t i;
+
+  if (JS_IsUndefined(attributes)) {
+    return JS_UNDEFINED;
+  }
+  if (!JS_IsObject(attributes)) {
+    return JS_UNDEFINED;
+  }
+
+  copy = JS_NewObject(ctx);
+  if (JS_IsException(copy))
+    return JS_EXCEPTION;
+
+  if (JS_GetOwnPropertyNames(ctx, &tab_atom, &tab_atom_count, attributes,
+                             JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) < 0) {
+    JS_FreeValue(ctx, copy);
+    return JS_EXCEPTION;
+  }
+
+  for (i = 0; i < tab_atom_count; i++) {
+    JSValue v = JS_GetProperty(ctx, attributes, tab_atom[i].atom);
+    if (JS_IsException(v)) {
+      goto fail;
+    }
+    if (JS_DefinePropertyValue(ctx, copy, tab_atom[i].atom, v,
+                               JS_PROP_HAS_VALUE | JS_PROP_HAS_CONFIGURABLE |
+                               JS_PROP_HAS_WRITABLE | JS_PROP_HAS_ENUMERABLE |
+                               JS_PROP_ENUMERABLE) < 0) {
+      goto fail;
+    }
+  }
+
+  for (i = 0; i < tab_atom_count; i++) {
+    JS_FreeAtom(ctx, tab_atom[i].atom);
+  }
+  js_free(ctx, tab_atom);
+
+  if (JS_PreventExtensions(ctx, copy) < 0) {
+    JS_FreeValue(ctx, copy);
+    return JS_EXCEPTION;
+  }
+
+  return copy;
+fail:
+  for (; i < tab_atom_count; i++) {
+    JS_FreeAtom(ctx, tab_atom[i].atom);
+  }
+  js_free(ctx, tab_atom);
+  JS_FreeValue(ctx, copy);
+  return JS_EXCEPTION;
+}
+
+int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val,
+                             JSValueConst attributes)
 {
   JSModuleDef *m;
   char url_buf[4096];
   JSValue meta_obj, module_loader_internals, require, resolve;
+  JSValue attr_copy;
   JSAtom module_name_atom;
   const char *module_name;
   BOOL is_main;
@@ -205,8 +284,18 @@ int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val)
   }
   JS_FreeValue(ctx, module_loader_internals);
 
+  attr_copy = qjms_build_import_meta_attributes(ctx, attributes);
+  if (JS_IsException(attr_copy)) {
+    JS_FreeValue(ctx, require);
+    JS_FreeValue(ctx, resolve);
+    return -1;
+  }
+
   meta_obj = JS_GetImportMeta(ctx, m);
   if (JS_IsException(meta_obj)) {
+    JS_FreeValue(ctx, require);
+    JS_FreeValue(ctx, resolve);
+    JS_FreeValue(ctx, attr_copy);
     return -1;
   }
   JS_DefinePropertyValueStr(ctx, meta_obj, "url",
@@ -219,19 +308,25 @@ int QJMS_SetModuleImportMeta(JSContext *ctx, JSValueConst func_val)
                             require, JS_PROP_C_W_E);
   JS_DefinePropertyValueStr(ctx, meta_obj, "resolve",
                             resolve, JS_PROP_C_W_E);
+  /* attributes: non-writable, non-configurable. The value itself is
+     either JS_UNDEFINED (no `with` clause was used) or a frozen-ish
+     defensive-copy object built above. */
+  JS_DefinePropertyValueStr(ctx, meta_obj, "attributes",
+                            attr_copy, 0);
   JS_FreeValue(ctx, meta_obj);
   return 0;
 }
 
 static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
-                                      const char *name, QJMS_State *state)
+                                      const char *name, QJMS_State *state,
+                                      JSValueConst attributes)
 {
   JSValue module_loader_internals, module_delegate, resolve;
   JSValue base_name_val, name_val;
   JSValue result_val;
   const char *result;
-  JSValue argv[2];
-  int argc = 2;
+  JSValue argv[3];
+  int argc = 3;
 
   module_loader_internals = QJMS_GetModuleLoaderInternals(ctx);
   if (JS_IsException(module_loader_internals)) {
@@ -287,6 +382,7 @@ static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
 
   argv[0] = name_val;
   argv[1] = base_name_val;
+  argv[2] = (JSValue)attributes;
 
   result_val = JS_Call(ctx, resolve, module_delegate, argc, argv);
 
@@ -372,7 +468,8 @@ static JSModuleDef *QJMS_ModuleLoader_so(JSContext *ctx,
 }
 
 static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
-                                      QJMS_State *state)
+                                      QJMS_State *state,
+                                      JSValueConst attributes)
 {
   JSModuleDef *m;
 
@@ -407,8 +504,8 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
       size_t buf_len;
       JSValue module_name_val;
       JSValue result;
-      JSValue argv[1];
-      int argc = 1;
+      JSValue argv[2];
+      int argc = 2;
 
       module_name_val = JS_NewString(ctx, module_name);
       if (JS_IsException(module_name_val)) {
@@ -419,6 +516,7 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
       }
 
       argv[0] = module_name_val;
+      argv[1] = (JSValue)attributes;
       result = JS_Call(ctx, read, module_delegate, argc, argv);
       JS_FreeValue(ctx, module_name_val);
 
@@ -474,7 +572,7 @@ static JSModuleDef *QJMS_ModuleLoader(JSContext *ctx, const char *module_name,
     }
 
     /* XXX: could propagate the exception */
-    QJMS_SetModuleImportMeta(ctx, func_val);
+    QJMS_SetModuleImportMeta(ctx, func_val, attributes);
     /* the module is already referenced, so we must free it */
     m = JS_VALUE_GET_PTR(func_val);
     JS_FreeValue(ctx, func_val);
@@ -586,7 +684,7 @@ static int qjms_eval_buf_impl(JSContext *ctx, const void *buf, int buf_len,
                     eval_flags | JS_EVAL_FLAG_COMPILE_ONLY);
 
       if (!JS_IsException(val)) {
-        QJMS_SetModuleImportMeta(ctx, val);
+        QJMS_SetModuleImportMeta(ctx, val, JS_UNDEFINED);
         if (is_async) {
           val = JS_EvalFunctionAsync(ctx, val);
           /* JS_EvalFunctionAsync always returns a promise for module
@@ -709,7 +807,7 @@ static int qjms_eval_binary_impl(JSContext *ctx, const uint8_t *buf, size_t buf_
     }
     if (load_only) {
       if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
-        QJMS_SetModuleImportMeta(ctx, obj);
+        QJMS_SetModuleImportMeta(ctx, obj, JS_UNDEFINED);
       }
     } else {
       BOOL is_module = JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE;
@@ -718,7 +816,7 @@ static int qjms_eval_binary_impl(JSContext *ctx, const uint8_t *buf, size_t buf_
           JS_FreeValue(ctx, obj);
           goto exception;
         }
-        QJMS_SetModuleImportMeta(ctx, obj);
+        QJMS_SetModuleImportMeta(ctx, obj, JS_UNDEFINED);
       }
       if (is_async) {
         val = JS_EvalFunctionAsync(ctx, obj);
@@ -802,11 +900,12 @@ static JSValue QJMS_InteropUnwrapExports(JSContext *ctx, JSValue module_ns)
   return cjs_export_val;
 }
 
-JSValue QJMS_Require(JSContext *ctx, JSValueConst specifier)
+JSValue QJMS_Require(JSContext *ctx, JSValueConst specifier,
+                     JSValueConst attributes)
 {
     JSValue module_ns;
 
-    module_ns = JS_DynamicImportSync(ctx, specifier, JS_UNDEFINED);
+    module_ns = JS_DynamicImportSync(ctx, specifier, attributes);
 
     if (JS_IsException(module_ns)) {
       return JS_EXCEPTION;
@@ -815,31 +914,67 @@ JSValue QJMS_Require(JSContext *ctx, JSValueConst specifier)
     return QJMS_InteropUnwrapExports(ctx, module_ns);
 }
 
-JSValue QJMS_Require2(JSContext *ctx, JSValueConst specifier, JSValueConst basename)
+JSValue QJMS_Require2(JSContext *ctx, JSValueConst specifier,
+                      JSValueConst basename, JSValueConst attributes)
 {
     JSValue module_ns;
 
-    module_ns = JS_DynamicImportSync2(ctx, specifier, basename, JS_UNDEFINED);
+    module_ns = JS_DynamicImportSync2(ctx, specifier, basename, attributes);
 
     if (JS_IsException(module_ns)) {
       return JS_EXCEPTION;
     }
 
     return QJMS_InteropUnwrapExports(ctx, module_ns);
+}
+
+/* Extracts options.with from the given object. Returns JS_UNDEFINED on
+   undefined options, the `with` property on an object, or JS_EXCEPTION
+   on type error. */
+static JSValue qjms_extract_options_with(JSContext *ctx, JSValueConst options)
+{
+  JSValue with_val;
+  if (JS_IsUndefined(options)) {
+    return JS_UNDEFINED;
+  }
+  if (!JS_IsObject(options)) {
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-modulesys.c", __LINE__,
+                             "options must be an object");
+  }
+  with_val = JS_GetPropertyStr(ctx, options, "with");
+  if (JS_IsException(with_val)) {
+    return JS_EXCEPTION;
+  }
+  if (!JS_IsUndefined(with_val) && !JS_IsObject(with_val)) {
+    JS_FreeValue(ctx, with_val);
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-modulesys.c", __LINE__,
+                             "options.with must be an object");
+  }
+  return with_val;
 }
 
 /* load and evaluate a file as a module */
 static JSValue js_require(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
 {
-  if (argc != 1 || !JS_IsString(argv[0])) {
-    return JS_ThrowTypeError(ctx, "<internal>/quickjs-modulesys.c", __LINE__, "require must be called with exactly one argument: a string");
-  }
+  JSValue attributes;
+  JSValue result;
 
-  return QJMS_Require(ctx, argv[0]);
+  if (argc < 1 || argc > 2 || !JS_IsString(argv[0])) {
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-modulesys.c", __LINE__, "require must be called with one or two arguments: a string and an optional options object");
+  }
+  attributes = (argc == 2) ? qjms_extract_options_with(ctx, argv[1])
+                           : JS_UNDEFINED;
+  if (JS_IsException(attributes)) {
+    return JS_EXCEPTION;
+  }
+  result = QJMS_Require(ctx, argv[0], attributes);
+  JS_FreeValue(ctx, attributes);
+  return result;
 }
 
-JSValue QJMS_RequireResolve(JSContext *ctx, JSValueConst specifier_val)
+JSValue QJMS_RequireResolve(JSContext *ctx, JSValueConst specifier_val,
+                            JSValueConst attributes)
 {
   JSAtom basename_atom;
   JSValue result;
@@ -849,20 +984,22 @@ JSValue QJMS_RequireResolve(JSContext *ctx, JSValueConst specifier_val)
     return JS_ThrowError(ctx, "<internal>/quickjs-modulesys.c", __LINE__, "Failed to identify the filename of the code calling require.resolve");
   }
 
-  result = QJMS_RequireResolve2(ctx, specifier_val, basename_atom);
+  result = QJMS_RequireResolve2(ctx, specifier_val, basename_atom, attributes);
   JS_FreeAtom(ctx, basename_atom);
   return result;
 }
 
-JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val, JSAtom basename_atom)
+JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val,
+                             JSAtom basename_atom, JSValueConst attributes)
 {
   JSRuntime *rt;
   JSValue normalized_value;
   void *module_loader_opaque;
-  JSModuleNormalizeFunc *normalize_module_name;
+  JSModuleNormalizeFunc *normalize_module_name_v1;
+  JSModuleNormalizeFunc2 *normalize_module_name_v2;
   const char *basename = NULL;
   const char *specifier = NULL;
-  const char *normalized = NULL;
+  char *normalized = NULL;
 
   specifier = JS_ToCString(ctx, specifier_val);
   if (specifier == NULL) {
@@ -871,18 +1008,29 @@ JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val, JSAtom 
 
   basename = JS_AtomToCString(ctx, basename_atom);
   if (basename == NULL) {
+    JS_FreeCString(ctx, specifier);
     return JS_EXCEPTION;
   }
 
   rt = JS_GetRuntime(ctx);
 
   module_loader_opaque = JS_GetModuleLoaderOpaque(rt);
-  normalize_module_name = JS_GetModuleNormalizeFunc(rt);
-  if (normalize_module_name == NULL) {
-    normalize_module_name = (JSModuleNormalizeFunc *) QJMS_NormalizeModuleName;
+  normalize_module_name_v2 = JS_GetModuleNormalizeFunc2(rt);
+  normalize_module_name_v1 = JS_GetModuleNormalizeFunc(rt);
+
+  if (normalize_module_name_v2 != NULL) {
+    normalized = normalize_module_name_v2(ctx, basename, specifier,
+                                          module_loader_opaque, attributes);
+  } else if (normalize_module_name_v1 != NULL) {
+    normalized = normalize_module_name_v1(ctx, basename, specifier,
+                                          module_loader_opaque);
+  } else {
+    /* No installed normalizer — fall through to fork's default. */
+    normalized = QJMS_NormalizeModuleName(ctx, basename, specifier,
+                                          (QJMS_State *) module_loader_opaque,
+                                          attributes);
   }
 
-  normalized = normalize_module_name(ctx, basename, specifier, module_loader_opaque);
   if (normalized == NULL) {
     JS_FreeCString(ctx, basename);
     JS_FreeCString(ctx, specifier);
@@ -895,6 +1043,7 @@ JSValue QJMS_RequireResolve2(JSContext *ctx, JSValueConst specifier_val, JSAtom 
   // case and non-exception case is the same (free stuff and return
   // normalized_value), so we don't have handling using JS_IsException
 
+  js_free(ctx, normalized);
   JS_FreeCString(ctx, basename);
   JS_FreeCString(ctx, specifier);
   return normalized_value;
@@ -905,9 +1054,11 @@ static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
                                   int argc, JSValueConst *argv)
 {
   JSValue name_val;
+  JSValue attributes;
+  JSValue result;
 
-  if (argc != 1) {
-    return JS_ThrowTypeError(ctx, "<internal>/quickjs-modulesys.c", __LINE__, "require.resolve must be called with exactly one argument");
+  if (argc < 1 || argc > 2) {
+    return JS_ThrowTypeError(ctx, "<internal>/quickjs-modulesys.c", __LINE__, "require.resolve must be called with one or two arguments");
   }
 
   name_val = JS_ToString(ctx, argv[0]);
@@ -915,7 +1066,17 @@ static JSValue js_require_resolve(JSContext *ctx, JSValueConst this_val,
     return JS_EXCEPTION;
   }
 
-  return QJMS_RequireResolve(ctx, name_val);
+  attributes = (argc == 2) ? qjms_extract_options_with(ctx, argv[1])
+                           : JS_UNDEFINED;
+  if (JS_IsException(attributes)) {
+    JS_FreeValue(ctx, name_val);
+    return JS_EXCEPTION;
+  }
+
+  result = QJMS_RequireResolve(ctx, name_val, attributes);
+  JS_FreeValue(ctx, name_val);
+  JS_FreeValue(ctx, attributes);
+  return result;
 }
 
 static JSValue QJMS_MakeRequireFunction(JSContext *ctx)

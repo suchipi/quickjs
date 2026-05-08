@@ -9,18 +9,45 @@ globalThis.__qjms_temp_ModuleDelegate_init =
     S_IFREG
   ) {
     const ModuleDelegate = __qjms_temp_ModuleDelegate;
+    const compilers = ModuleDelegate.compilers;
 
-    ModuleDelegate.read = (moduleName) => {
+    // Loads JSON files. Registered under "json" (no leading dot) so it
+    // matches `import x from "..." with { type: "json" }` by default.
+    // Users wanting extension-only `.json` loading can mirror it:
+    //   ModuleDelegate.compilers[".json"] = ModuleDelegate.compilers["json"];
+    compilers["json"] = (filename, content, attributes) =>
+      `export default JSON.parse(${JSON.stringify(content)});`;
+
+    ModuleDelegate.read = (moduleName, attributes) => {
       if (typeof moduleName !== "string") {
         const err = new Error("moduleName must be a string");
         err.moduleName = moduleName;
         throw err;
       }
-      const matches = moduleName.match(/(\.[^.]+)$/);
-      const ext = matches ? matches[1] : "";
 
-      const compilers = ModuleDelegate.compilers;
-      const userCompiler = compilers[ext];
+      // Attribute-type takes precedence over file extension.
+      let compilerKey = null;
+      let userCompiler = null;
+      if (
+        attributes != null &&
+        typeof attributes === "object" &&
+        typeof attributes.type === "string"
+      ) {
+        const candidate = compilers[attributes.type];
+        if (candidate != null) {
+          compilerKey = attributes.type;
+          userCompiler = candidate;
+        }
+      }
+      if (userCompiler == null) {
+        const matches = moduleName.match(/(\.[^.]+)$/);
+        const ext = matches ? matches[1] : "";
+        const candidate = compilers[ext];
+        if (candidate != null) {
+          compilerKey = ext;
+          userCompiler = candidate;
+        }
+      }
 
       let fileContent;
       try {
@@ -34,17 +61,17 @@ globalThis.__qjms_temp_ModuleDelegate_init =
         if (typeof userCompiler !== "function") {
           const err = new Error(
             `ModuleDelegate.compilers[${JSON.stringify(
-              ext
+              compilerKey
             )}] was not a function`
           );
           err.compiler = userCompiler;
           throw err;
         }
-        const result = userCompiler(moduleName, fileContent);
+        const result = userCompiler(moduleName, fileContent, attributes);
         if (typeof result !== "string") {
           const err = new Error(
             `ModuleDelegate.compilers[${JSON.stringify(
-              ext
+              compilerKey
             )}] returned non-string`
           );
           err.result = result;
@@ -56,7 +83,7 @@ globalThis.__qjms_temp_ModuleDelegate_init =
       }
     };
 
-    ModuleDelegate.resolve = (name, baseName) => {
+    ModuleDelegate.resolve = (name, baseName, attributes) => {
       try {
         if (name.includes(":")) {
           // namespaced module

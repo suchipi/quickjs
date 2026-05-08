@@ -46,11 +46,13 @@ declare module "quickjs:engine" {
    *
    * @param filename - The relative or absolute path to the file to import. Relative paths are resolved relative to the file calling `importModule`, or `basename` if present.
    * @param basename - If present and `filename` is a relative path, `filename` will be resolved relative to this basename.
+   * @param options - Mirrors the second argument of dynamic `import()`. Its `with` property carries import attributes, eg `{ with: { type: "json" } }`.
    * @returns The result of the evaluation (module namespace object).
    */
   export function importModule(
     filename: string,
-    basename?: string
+    basename?: string,
+    options?: { with?: Record<string, string> }
   ): { [key: string]: any };
 
   /**
@@ -58,9 +60,14 @@ declare module "quickjs:engine" {
    *
    * @param filename - The relative or absolute path to the file to import. Relative paths are resolved relative to the file calling `importModule`, or `basename` if present.
    * @param basename - If present and `filename` is a relative path, `filename` will be resolved relative to this basename.
+   * @param options - Mirrors the second argument of dynamic `import()`. Its `with` property carries import attributes, eg `{ with: { type: "json" } }`.
    * @returns The resolved module path.
    */
-  export function resolveModule(filename: string, basename?: string): string;
+  export function resolveModule(
+    filename: string,
+    basename?: string,
+    options?: { with?: Record<string, string> }
+  ): string;
 
   /**
    * Read the script of module filename from an active stack frame, then return it as a string.
