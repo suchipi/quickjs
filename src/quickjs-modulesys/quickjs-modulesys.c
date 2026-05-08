@@ -806,7 +806,7 @@ JSValue QJMS_Require(JSContext *ctx, JSValueConst specifier)
 {
     JSValue module_ns;
 
-    module_ns = JS_DynamicImportSync(ctx, specifier);
+    module_ns = JS_DynamicImportSync(ctx, specifier, JS_UNDEFINED);
 
     if (JS_IsException(module_ns)) {
       return JS_EXCEPTION;
@@ -819,7 +819,7 @@ JSValue QJMS_Require2(JSContext *ctx, JSValueConst specifier, JSValueConst basen
 {
     JSValue module_ns;
 
-    module_ns = JS_DynamicImportSync2(ctx, specifier, basename);
+    module_ns = JS_DynamicImportSync2(ctx, specifier, basename, JS_UNDEFINED);
 
     if (JS_IsException(module_ns)) {
       return JS_EXCEPTION;

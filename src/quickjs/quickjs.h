@@ -1061,10 +1061,58 @@ typedef char *JSModuleNormalizeFunc(JSContext *ctx,
 typedef JSModuleDef *JSModuleLoaderFunc(JSContext *ctx,
                                         const char *module_name, void *opaque);
 
+/* v2 form: receives the import attributes as a JSValue. The attributes
+   value is an object whose enumerable string keys map to string values
+   (eg `{ type: "json" }`), or JS_UNDEFINED when no `with { ... }` clause
+   was used at the import site. Use the v2 forms when your loader or
+   normalizer needs to vary behavior based on the attributes. */
+typedef JSModuleDef *JSModuleLoaderFunc2(JSContext *ctx,
+                                         const char *module_name, void *opaque,
+                                         JSValueConst attributes);
+typedef char *JSModuleNormalizeFunc2(JSContext *ctx,
+                                     const char *module_base_name,
+                                     const char *module_name, void *opaque,
+                                     JSValueConst attributes);
+
+/* Validate that the supplied attributes are supported by your loader.
+   Called once per import before the loader runs. Return 0 if the
+   attributes are acceptable, or -1 (with a pending exception) to reject
+   the import. Pass NULL for the corresponding parameter of
+   JS_SetModuleLoaderFunc2 to accept any attributes. */
+typedef int JSModuleCheckSupportedImportAttributes(JSContext *ctx, void *opaque,
+                                                   JSValueConst attributes);
+
 void JS_SetModuleLoaderFunc(JSRuntime *rt,
                             JSModuleLoaderFunc *module_loader);
-/* return the value set by JS_SetModuleLoaderFunc. could be NULL. */
+/* Returns the v1 loader if one was installed via
+   JS_SetModuleLoaderFunc. Returns NULL if a v2 loader is installed
+   instead (or if no loader has been set). */
 JSModuleLoaderFunc *JS_GetModuleLoaderFunc(JSRuntime *rt);
+
+/* Install attribute-aware module loader, normalizer, and
+   attribute-checker. This variant takes a v2 normalizer and v2 loader
+   (different from the v1 setters above, which keep v1 signatures).
+   `module_normalize` may be NULL to invoke the default module filename
+   normalizer. `module_check_attrs` may be NULL to accept any
+   attributes. The v1 setters remain available for back-compat with
+   non-attribute-aware code. Replaces any previously installed v1 or v2
+   loader/normalizer. */
+void JS_SetModuleLoaderFunc2(JSRuntime *rt,
+                             JSModuleNormalizeFunc2 *module_normalize,
+                             JSModuleLoaderFunc2 *module_loader,
+                             JSModuleCheckSupportedImportAttributes *module_check_attrs,
+                             void *opaque);
+/* Returns the v2 loader if one was installed via
+   JS_SetModuleLoaderFunc2. Returns NULL if a v1 loader is installed
+   instead (or if no loader has been set). */
+JSModuleLoaderFunc2 *JS_GetModuleLoaderFunc2(JSRuntime *rt);
+/* Returns the v2 normalizer if one was installed via
+   JS_SetModuleLoaderFunc2. Returns NULL otherwise (including the case
+   where only a v1 normalizer is installed). */
+JSModuleNormalizeFunc2 *JS_GetModuleNormalizeFunc2(JSRuntime *rt);
+/* Returns the attribute-check function installed via
+   JS_SetModuleLoaderFunc2, or NULL if none was installed. */
+JSModuleCheckSupportedImportAttributes *JS_GetModuleCheckSupportedImportAttributes(JSRuntime *rt);
 
 /* module_normalize = NULL is allowed and invokes the default module
    filename normalizer */
@@ -1076,6 +1124,16 @@ JSModuleNormalizeFunc *JS_GetModuleNormalizeFunc(JSRuntime *rt);
 void JS_SetModuleLoaderOpaque(JSRuntime *rt, void *opaque);
 /* return the value set by JS_SetModuleLoaderOpaque. could be NULL. */
 void *JS_GetModuleLoaderOpaque(JSRuntime *rt);
+
+/* Read/write a private value associated with a module. Intended for use
+   by C-module loaders that want to stash auxiliary data (eg the parsed
+   value of a JSON module) and retrieve it later. The setter takes
+   ownership of `val`; the getter returns a duplicated value that the
+   caller must free. Returns JS_UNDEFINED when no value has been set.
+   The fork's modulesys does not use these, but they are exported so
+   third-party C code linking against libquickjs may use them. */
+JSValue JS_GetModulePrivateValue(JSContext *ctx, JSModuleDef *m);
+int JS_SetModulePrivateValue(JSContext *ctx, JSModuleDef *m, JSValue val);
 
 /* return the import.meta object of a module. you'll have to free it when done */
 JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);
@@ -1308,10 +1366,12 @@ int JS_SetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name,
 int JS_SetModuleExportList(JSContext *ctx, JSModuleDef *m,
                            const JSCFunctionListEntry *tab, int len);
 
-/* module-related addons */
-JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier);
-JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier);
-JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename);
+/* module-related addons. `attributes` is an object whose enumerable
+   string keys map to string values (eg `{ type: "json" }`), or
+   JS_UNDEFINED for no `with { ... }` clause. */
+JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier, JSValueConst attributes);
+JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier, JSValueConst attributes);
+JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename, JSValueConst attributes);
 
 /* debug value output */
 

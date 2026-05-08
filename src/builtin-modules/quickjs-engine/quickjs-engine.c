@@ -77,9 +77,9 @@ static JSValue js_engine_importModule(JSContext *ctx, JSValueConst this_val,
                                       int argc, JSValueConst *argv)
 {
   if (argc == 1) {
-    return JS_DynamicImportSync(ctx, argv[0]);
+    return JS_DynamicImportSync(ctx, argv[0], JS_UNDEFINED);
   } else if (argc == 2 && !JS_IsUndefined(argv[1])) {
-    return JS_DynamicImportSync2(ctx, argv[0], argv[1]);
+    return JS_DynamicImportSync2(ctx, argv[0], argv[1], JS_UNDEFINED);
   } else {
     return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "importModule must be called with one or two arguments");
   }
