@@ -1,3 +1,13 @@
+test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-get-with-error.js:23: Test262Error: 
+test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-non-object.js:32: TypeError: import() options must be an object
+test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-enumeration-abrupt.js:28: TypeError: $DONE() not called
+test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-enumeration-enumerable.js:53: Test262Error: Expected SameValue(«0», «1») to be true
+test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-non-object.js:39: TypeError: import() 'with' option must be an object
+test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-value-abrupt.js:26: TypeError: $DONE() not called
+test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-value-non-string.js:33: TypeError: $DONE() not called
+test262/test/language/module-code/import-attributes/early-dup-attribute-key-export.js:18: unexpected error type: Test262: This statement should not be evaluated.
+test262/test/language/module-code/import-attributes/early-dup-attribute-key-import-nobinding.js:19: unexpected error type: Test262: This statement should not be evaluated.
+test262/test/language/module-code/import-attributes/early-dup-attribute-key-import-withbinding.js:19: unexpected error type: Test262: This statement should not be evaluated.
 test262/test/language/module-code/top-level-await/module-graphs-does-not-hang.js:10: TypeError: $DONE() not called
 test262/test/staging/sm/Date/UTC-convert-all-arguments.js:75: Test262Error: index 1: expected 42, got Error: didn't throw Expected SameValue(«Error: didn't throw», «42») to be true
 test262/test/staging/sm/Date/constructor-convert-all-arguments.js:75: Test262Error: index undefined: expected 42, got Error: didn't throw Expected SameValue(«Error: didn't throw», «42») to be true
