@@ -243,6 +243,8 @@ The divergence is a feature, not a bug. The port work adapts upstream changes in
 
 **Keep `.d.ts` files in sync with what you port.** The `.d.ts` files ([src/quickjs/quickjs.d.ts](src/quickjs/quickjs.d.ts) and the per-module ones under [src/builtin-modules/](src/builtin-modules/)) are fork-added and upstream has no equivalent, so no diff will touch them. When a PORT adds/removes/changes an exported API, update the `.d.ts` corresponding to the `.c`/module the API was added to — as part of the same PORT commit.
 
+**Regenerate docs whenever a `.d.ts` file changed.** The Markdown files under [meta/docs/](../../meta/docs/) are generated from the `.d.ts` files via `dtsmd` and are committed to the repo. If a PORT (or a related cleanup) modified any `.d.ts`, regenerate by running `env QUICKJS_BUILD_DOCS=1 QUICKJS_EXTRAS=1 meta/build.sh` and include the resulting `meta/docs/*.md` changes in the same commit. Do not hand-edit the docs; only edit the `.d.ts` and re-run the generator.
+
 ## Out of scope / not part of this protocol
 
 - Cleaning up the `upstream-master` local branch (it looks like a stale prior attempt; leave it alone unless the user wants it pruned).

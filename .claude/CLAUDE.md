@@ -10,18 +10,15 @@ The engine is written in C. Tests and build configuration are in TypeScript/Java
 
 ## Build Commands
 
-```bash
-env QUICKJS_EXTRAS=1 meta/build.sh test-platforms # Build native + cross-platform outputs
-                                                  # (REQUIRED before `npm test` — wine/wasm tests
-                                                  # need x86_64-pc-windows-static and wasm32 binaries)
-env QUICKJS_EXTRAS=1 meta/build.sh                # Native-only build (auto-detects HOST/TARGET);
-                                                  # faster, but `npm test` will fail without
-                                                  # the cross-platform outputs
-meta/build.sh x86_64-pc-windows-static            # Build only the Windows target via Docker
-meta/clean.sh                                     # Clean build artifacts
-npm test                                          # Run all tests (vitest)
-npx vitest tests/foo.test.ts                      # Run a single test file
-```
+| Command | What it does |
+|---------|--------------|
+| `env QUICKJS_EXTRAS=1 meta/build.sh test-platforms` | Build native + cross-platform outputs. **REQUIRED before `npm test`** — wine/wasm tests need `x86_64-pc-windows-static` and `wasm32` binaries. |
+| `env QUICKJS_EXTRAS=1 meta/build.sh` | Native-only build (auto-detects `HOST`/`TARGET`); faster, but `npm test` will fail without the cross-platform outputs. |
+| `env QUICKJS_BUILD_DOCS=1 QUICKJS_EXTRAS=1 meta/build.sh` | Regenerate `meta/docs/*.md` from `.d.ts` files via `dtsmd`. Run whenever a `.d.ts` file has changed so the committed docs stay in sync. Do NOT hand-edit `meta/docs/*.md`. |
+| `meta/build.sh x86_64-pc-windows-static` | Build only the Windows target via Docker. |
+| `meta/clean.sh` | Clean build artifacts. |
+| `npm test` | Run all tests (vitest). |
+| `npx vitest tests/foo.test.ts` | Run a single test file. |
 
 Build requires: Ninja, Node.js 18+, Bash 4+, a C compiler (gcc/clang).
 

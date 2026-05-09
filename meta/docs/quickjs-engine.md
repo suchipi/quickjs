@@ -16,10 +16,19 @@ declare module "quickjs:engine" {
   export function importModule(
     filename: string,
     basename?: string,
+    options?: {
+      with?: Record<string, string>;
+    },
   ): {
     [key: string]: any;
   };
-  export function resolveModule(filename: string, basename?: string): string;
+  export function resolveModule(
+    filename: string,
+    basename?: string,
+    options?: {
+      with?: Record<string, string>;
+    },
+  ): string;
   export function getFileNameFromStack(stackLevels?: number): string;
   export function isModuleNamespace(target: any): boolean;
   export function defineBuiltinModule(
@@ -109,12 +118,16 @@ Evaluate the file `filename` as a module. Effectively a synchronous dynamic `imp
 
 - `@param` _filename_ — The relative or absolute path to the file to import. Relative paths are resolved relative to the file calling `importModule`, or `basename` if present.
 - `@param` _basename_ — If present and `filename` is a relative path, `filename` will be resolved relative to this basename.
+- `@param` _options_ — Mirrors the second argument of dynamic `import()`. Its `with` property carries import attributes, eg `{ with: { type: "json" } }`.
 - `@returns` The result of the evaluation (module namespace object).
 
 ```ts
 export function importModule(
   filename: string,
   basename?: string,
+  options?: {
+    with?: Record<string, string>;
+  },
 ): {
   [key: string]: any;
 };
@@ -126,10 +139,17 @@ Return the resolved path to a module.
 
 - `@param` _filename_ — The relative or absolute path to the file to import. Relative paths are resolved relative to the file calling `importModule`, or `basename` if present.
 - `@param` _basename_ — If present and `filename` is a relative path, `filename` will be resolved relative to this basename.
+- `@param` _options_ — Mirrors the second argument of dynamic `import()`. Its `with` property carries import attributes, eg `{ with: { type: "json" } }`.
 - `@returns` The resolved module path.
 
 ```ts
-export function resolveModule(filename: string, basename?: string): string;
+export function resolveModule(
+  filename: string,
+  basename?: string,
+  options?: {
+    with?: Record<string, string>;
+  },
+): string;
 ```
 
 ## "quickjs:engine".getFileNameFromStack (exported function)
