@@ -40,13 +40,11 @@ build({
   inputs: [rel("quickjs-inspect.d.ts")],
 });
 
-if (env.QUICKJS_BUILD_DOCS === "1") {
-  build({
-    output: "meta/docs/quickjs-inspect.md",
-    rule: "dtsmd",
-    inputs: [rel("quickjs-inspect.d.ts")],
-  });
-}
+build({
+  output: "meta/docs/quickjs-inspect.md",
+  rule: "dtsmd",
+  inputs: [rel("quickjs-inspect.d.ts")],
+});
 
 build({
   output: builddir("include/quickjs-inspect.h"),

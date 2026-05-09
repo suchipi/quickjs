@@ -50,13 +50,11 @@ build({
   inputs: [rel("quickjs-modulesys.d.ts")],
 });
 
-if (env.QUICKJS_BUILD_DOCS === "1") {
-  build({
-    output: "meta/docs/quickjs-modulesys.md",
-    rule: "dtsmd",
-    inputs: [rel("quickjs-modulesys.d.ts")],
-  });
-}
+build({
+  output: "meta/docs/quickjs-modulesys.md",
+  rule: "dtsmd",
+  inputs: [rel("quickjs-modulesys.d.ts")],
+});
 
 build({
   output: builddir("include/quickjs-modulesys.h"),
