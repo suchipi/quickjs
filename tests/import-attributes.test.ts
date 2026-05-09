@@ -2,7 +2,8 @@ import { test, expect } from "vitest";
 import { spawn } from "first-base";
 import { binDir, fixturesDir } from "./_utils";
 
-const f = (name: string) => fixturesDir("import-attributes", name);
+const importAttributesFixture = (name: string) =>
+  fixturesDir("import-attributes", name);
 
 // A. Basic JSON import via attribute (.json file).
 test("import-attributes - JSON import via attribute on .json file", async () => {
@@ -11,7 +12,7 @@ test("import-attributes - JSON import via attribute on .json file", async () => 
     "-e",
     `
       const data = (await import(${JSON.stringify(
-        f("data.json")
+        importAttributesFixture("data.json")
       )}, { with: { type: "json" } })).default;
       console.log(JSON.stringify(data));
     `,
@@ -35,7 +36,7 @@ test("import-attributes - JSON import on extensionless file via attribute", asyn
     "-e",
     `
       const data = (await import(${JSON.stringify(
-        f("data-noext")
+        importAttributesFixture("data-noext")
       )}, { with: { type: "json" } })).default;
       console.log(JSON.stringify(data));
     `,
@@ -59,7 +60,7 @@ test("import-attributes - JSON import on .js-extensioned file via attribute", as
     "-e",
     `
       const data = (await import(${JSON.stringify(
-        f("data-jsext.js")
+        importAttributesFixture("data-jsext.js")
       )}, { with: { type: "json" } })).default;
       console.log(JSON.stringify(data));
     `,
@@ -83,7 +84,7 @@ test("import-attributes - extension-only loading fails by default", async () => 
     "-e",
     `
       try {
-        await import(${JSON.stringify(f("data.json"))});
+        await import(${JSON.stringify(importAttributesFixture("data.json"))});
         console.log("UNEXPECTED success");
       } catch (e) {
         console.log("threw:", e.constructor.name);
@@ -110,7 +111,9 @@ test("import-attributes - extension-only loading works after opt-in", async () =
     `
       const { ModuleDelegate } = await import("quickjs:engine");
       ModuleDelegate.compilers[".json"] = ModuleDelegate.compilers["json"];
-      const data = (await import(${JSON.stringify(f("data.json"))})).default;
+      const data = (await import(${JSON.stringify(
+        importAttributesFixture("data.json")
+      )})).default;
       console.log(JSON.stringify(data));
     `,
   ]);
@@ -137,7 +140,7 @@ test("import-attributes - removing compilers[json] disables attribute dispatch",
       delete ModuleDelegate.compilers["json"];
       try {
         await import(${JSON.stringify(
-          f("data.json")
+          importAttributesFixture("data.json")
         )}, { with: { type: "json" } });
         console.log("UNEXPECTED success");
       } catch (e) {
@@ -164,7 +167,7 @@ test("import-attributes - import.meta.attributes populated with multi-key", asyn
     "-e",
     `
       const m = await import(${JSON.stringify(
-        f("multi-key-inspect.js")
+        importAttributesFixture("multi-key-inspect.js")
       )}, { with: { type: "custom", flavor: "spicy", chunky: "bacon" } });
       console.log(JSON.stringify(m.default));
     `,
@@ -187,7 +190,9 @@ test("import-attributes - import.meta.attributes is undefined when no with claus
     "-m",
     "-e",
     `
-      const m = await import(${JSON.stringify(f("meta-inspect.js"))});
+      const m = await import(${JSON.stringify(
+        importAttributesFixture("meta-inspect.js")
+      )});
       console.log("attrs===undefined:", m.attrs === undefined);
       console.log("descriptor:", JSON.stringify({
         writable: m.desc.writable,
@@ -215,7 +220,7 @@ test("import-attributes - import.meta.attributes is locked-down", async () => {
     "-e",
     `
       const m = await import(${JSON.stringify(
-        f("meta-inspect.js")
+        importAttributesFixture("meta-inspect.js")
       )}, { with: { type: "custom", k: "v" } });
       console.log("descriptor:", JSON.stringify({
         writable: m.desc.writable,
@@ -252,8 +257,12 @@ test("import-attributes - caching with same attributes evaluates once", async ()
     "-m",
     "-e",
     `
-      await import(${JSON.stringify(f("side-effect.js"))});
-      await import(${JSON.stringify(f("side-effect.js"))});
+      await import(${JSON.stringify(
+        importAttributesFixture("side-effect.js")
+      )});
+      await import(${JSON.stringify(
+        importAttributesFixture("side-effect.js")
+      )});
       console.log("done");
     `,
   ]);
@@ -285,10 +294,10 @@ test("import-attributes - different attributes = distinct module instances", asy
       // Use the same specifier path with two different attribute sets.
       // Each is a distinct module instance, so each compiles + runs once.
       await import(${JSON.stringify(
-        f("side-effect.js")
+        importAttributesFixture("side-effect.js")
       )}, { with: { type: "toml" } });
       await import(${JSON.stringify(
-        f("side-effect.js")
+        importAttributesFixture("side-effect.js")
       )}, { with: { type: "yaml" } });
       console.log("done");
     `,
@@ -314,7 +323,7 @@ test("import-attributes - require(name, { with: { type } })", async () => {
     "-e",
     `
       const data = require(${JSON.stringify(
-        f("data.json")
+        importAttributesFixture("data.json")
       )}, { with: { type: "json" } }).default;
       console.log(JSON.stringify(data));
     `,
@@ -338,7 +347,7 @@ test("import-attributes - import.meta.require(name, { with: { type } })", async 
     "-e",
     `
       const data = import.meta.require(${JSON.stringify(
-        f("data.json")
+        importAttributesFixture("data.json")
       )}, { with: { type: "json" } }).default;
       console.log(JSON.stringify(data));
     `,
@@ -363,7 +372,7 @@ test("import-attributes - dynamic import() with attributes", async () => {
     "-e",
     `
       const m = await import(${JSON.stringify(
-        f("data.json")
+        importAttributesFixture("data.json")
       )}, { with: { type: "json" } });
       console.log(JSON.stringify(m.default));
     `,
@@ -388,7 +397,7 @@ test("import-attributes - engine.importModule with options", async () => {
     `
       const { importModule } = await import("quickjs:engine");
       const m = importModule(${JSON.stringify(
-        f("data.json")
+        importAttributesFixture("data.json")
       )}, undefined, { with: { type: "json" } });
       console.log(JSON.stringify(m.default));
     `,
@@ -414,7 +423,7 @@ test("import-attributes - ModuleDelegate.read error propagation", async () => {
       const { ModuleDelegate } = await import("quickjs:engine");
       ModuleDelegate.read = () => { throw new Error("boom-read"); };
       try {
-        await import(${JSON.stringify(f("data.json"))});
+        await import(${JSON.stringify(importAttributesFixture("data.json"))});
         console.log("UNEXPECTED success");
       } catch (e) {
         console.log("caught:", e.message);
@@ -442,7 +451,7 @@ test("import-attributes - ModuleDelegate.resolve error propagation", async () =>
       const { ModuleDelegate } = await import("quickjs:engine");
       ModuleDelegate.resolve = () => { throw new Error("boom-resolve"); };
       try {
-        await import(${JSON.stringify(f("data.json"))});
+        await import(${JSON.stringify(importAttributesFixture("data.json"))});
         console.log("UNEXPECTED success");
       } catch (e) {
         console.log("caught:", e.message);
@@ -471,7 +480,7 @@ test("import-attributes - compiler error propagation", async () => {
       ModuleDelegate.compilers["json"] = () => { throw new Error("boom-compiler"); };
       try {
         await import(${JSON.stringify(
-          f("data.json")
+          importAttributesFixture("data.json")
         )}, { with: { type: "json" } });
         console.log("UNEXPECTED success");
       } catch (e) {
