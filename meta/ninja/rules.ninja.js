@@ -1,12 +1,16 @@
 // compiles one or more .c files into one .o file.
 // takes 1..n inputs, has one output (the .o file).
 rule("cc_host", {
-  command: `$CC_HOST $DEFINES_HOST $CFLAGS_HOST $cc_args -c $in -o $out`,
+  command: `$CC_HOST $DEFINES_HOST $CFLAGS_HOST $cc_args -MD -MF $out.d -c $in -o $out`,
   description: "CC_HOST $out",
+  depfile: "$out.d",
+  deps: "gcc",
 });
 rule("cc_target", {
-  command: `$CC_TARGET $DEFINES_TARGET $CFLAGS_TARGET $cc_args -c $in -o $out`,
+  command: `$CC_TARGET $DEFINES_TARGET $CFLAGS_TARGET $cc_args -MD -MF $out.d -c $in -o $out`,
   description: "CC_TARGET $out",
+  depfile: "$out.d",
+  deps: "gcc",
 });
 
 // compiles one or more .c files into one .so file.
@@ -22,12 +26,16 @@ if (getVar("SKIP_SHARED_LIBS")) {
   });
 } else {
   rule("shared_lib_host", {
-    command: `$CC_HOST $DEFINES_HOST $CFLAGS_HOST -shared $SHARED_LIBRARY_FLAGS_HOST $in -o $out`,
+    command: `$CC_HOST $DEFINES_HOST $CFLAGS_HOST -shared $SHARED_LIBRARY_FLAGS_HOST -MD -MF $out.d $in -o $out`,
     description: "SHARED_LIB_HOST $out",
+    depfile: "$out.d",
+    deps: "gcc",
   });
   rule("shared_lib_target", {
-    command: `$CC_TARGET $DEFINES_TARGET $CFLAGS_TARGET -shared $SHARED_LIBRARY_FLAGS_TARGET $in -o $out`,
+    command: `$CC_TARGET $DEFINES_TARGET $CFLAGS_TARGET -shared $SHARED_LIBRARY_FLAGS_TARGET -MD -MF $out.d $in -o $out`,
     description: "SHARED_LIB_TARGET $out",
+    depfile: "$out.d",
+    deps: "gcc",
   });
 }
 
