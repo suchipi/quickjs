@@ -16483,6 +16483,7 @@ static __exception int js_append_enumerate(JSContext *ctx, JSValue *sp)
     int is_array_iterator;
     JSValue *arrp;
     uint32_t i, count32, pos;
+    JSCFunctionType ft;
 
     if (JS_VALUE_GET_TAG(sp[-2]) != JS_TAG_INT) {
         JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "invalid index for append");
@@ -16500,8 +16501,8 @@ static __exception int js_append_enumerate(JSContext *ctx, JSValue *sp)
     iterator = JS_GetProperty(ctx, sp[-1], JS_ATOM_Symbol_iterator);
     if (JS_IsException(iterator))
         return -1;
-    is_array_iterator = JS_IsCFunction(ctx, iterator,
-                                       (JSCFunction *)js_create_array_iterator,
+    ft.generic_magic = js_create_array_iterator;
+    is_array_iterator = JS_IsCFunction(ctx, iterator, ft.generic,
                                        JS_ITERATOR_KIND_VALUE);
     JS_FreeValue(ctx, iterator);
 
@@ -16513,8 +16514,10 @@ static __exception int js_append_enumerate(JSContext *ctx, JSValue *sp)
         JS_FreeValue(ctx, enumobj);
         return -1;
     }
+
+    ft.iterator_next = js_array_iterator_next;
     if (is_array_iterator
-    &&  JS_IsCFunction(ctx, method, (JSCFunction *)js_array_iterator_next, 0)
+    &&  JS_IsCFunction(ctx, method, ft.generic, 0)
     &&  js_get_fast_array(ctx, sp[-1], &arrp, &count32)) {
         uint32_t len;
         if (js_get_length32(ctx, &len, sp[-1]))
@@ -52222,6 +52225,7 @@ void JS_AddIntrinsicPromise(JSContext *ctx)
 {
     JSRuntime *rt = ctx->rt;
     JSValue obj1;
+    JSCFunctionType ft;
 
     if (!JS_IsRegisteredClass(rt, JS_CLASS_PROMISE)) {
         init_class_range(rt, js_async_class_def, JS_CLASS_PROMISE,
@@ -52250,7 +52254,8 @@ void JS_AddIntrinsicPromise(JSContext *ctx)
 
     /* AsyncFunction */
     ctx->class_proto[JS_CLASS_ASYNC_FUNCTION] = JS_NewObjectProto(ctx, ctx->function_proto);
-    obj1 = JS_NewCFunction3(ctx, (JSCFunction *)js_function_constructor,
+    ft.generic_magic = js_function_constructor;
+    obj1 = JS_NewCFunction3(ctx, ft.generic,
                             "AsyncFunction", 1,
                             JS_CFUNC_constructor_or_func_magic, JS_FUNC_ASYNC,
                             ctx->function_ctor);
@@ -52286,7 +52291,8 @@ void JS_AddIntrinsicPromise(JSContext *ctx)
     /* AsyncGeneratorFunction */
     ctx->class_proto[JS_CLASS_ASYNC_GENERATOR_FUNCTION] =
         JS_NewObjectProto(ctx, ctx->function_proto);
-    obj1 = JS_NewCFunction3(ctx, (JSCFunction *)js_function_constructor,
+    ft.generic_magic = js_function_constructor;
+    obj1 = JS_NewCFunction3(ctx, ft.generic,
                             "AsyncGeneratorFunction", 1,
                             JS_CFUNC_constructor_or_func_magic,
                             JS_FUNC_ASYNC_GENERATOR,
@@ -54035,6 +54041,7 @@ void JS_AddIntrinsicBaseObjects(JSContext *ctx)
     int i;
     JSValueConst obj, number_obj;
     JSValue obj1;
+    JSCFunctionType ft;
 
     ctx->throw_type_error = JS_NewCFunction(ctx, js_throw_type_error, NULL, 0);
 
@@ -54077,7 +54084,7 @@ void JS_AddIntrinsicBaseObjects(JSContext *ctx)
     JS_SetPropertyFunctionList(ctx, obj1, js_error_funcs, countof(js_error_funcs));
 
     /* Used to squelch a -Wcast-function-type warning. */
-    JSCFunctionType ft = { .generic_magic = js_error_constructor };
+    ft.generic_magic = js_error_constructor;
     for(i = 0; i < JS_NATIVE_ERROR_COUNT; i++) {
         JSValue func_obj;
         int n_args;
@@ -54220,7 +54227,8 @@ void JS_AddIntrinsicBaseObjects(JSContext *ctx)
                                countof(js_generator_proto_funcs));
 
     ctx->class_proto[JS_CLASS_GENERATOR_FUNCTION] = JS_NewObjectProto(ctx, ctx->function_proto);
-    obj1 = JS_NewCFunction3(ctx, (JSCFunction *)js_function_constructor,
+    ft.generic_magic = js_function_constructor;
+    obj1 = JS_NewCFunction3(ctx, ft.generic,
                             "GeneratorFunction", 1,
                             JS_CFUNC_constructor_or_func_magic, JS_FUNC_GENERATOR,
                             ctx->function_ctor);

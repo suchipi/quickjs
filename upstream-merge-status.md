@@ -334,7 +334,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | d9ec8f1 | PORT | limit function and regexp bytecode to 1G to avoid buffer overflows (the bytecode generators assume that bytecode offsets can fit a 32 bit signed integer | Added 1G bytecode-size caps in `src/quickjs/quickjs.c` and `src/lib/libregexp/libregexp.c`. |
 | a4ac84d | PORT | Adjust lastIndex to leading surrogate when inside a surrogate pair in unicode RegExp (initial patch by auvred) | In `lre_exec` in `src/lib/libregexp/libregexp.c`, snap `cptr` back to the leading surrogate when `lastIndex` points inside a surrogate pair under a unicode RegExp. Added the new test_regexp cases to `tests/oldtests/test_builtin.js`. |
 | 5689f30 | PORT | fixed handling of 8 bit unicode strings in RegExp (regression introduced by commit a4ac84d) | One-line follow-up to a4ac84d in `src/lib/libregexp/libregexp.c`. |
-| 0b3c73e | PENDING | removed function cast warnings (initial patch by saghul) |  |
+| 0b3c73e | PORT | removed function cast warnings (initial patch by saghul) | Cast cleanups in `src/quickjs/quickjs.c` and `src/quickjs/quickjs.h`. |
 | a4e4b43 | PENDING | run-test262: added --count_skipped_features option |  |
 | 20d2b40 | PENDING | qjsc: handle C name conflicts between scripts and modules (#432) |  |
 | 8a0a6e9 | PENDING | better pretty printing of strings - removed String.prototype.__quote() |  |
