@@ -316,7 +316,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | bb986e5 | PORT | update tests | Added `upsert=skip` to `src/run-test262/test262.conf` (forward-compat for a future test262 upgrade — no upsert-tagged tests exist at the fork's current test262 commit, so the skip is currently a no-op). `TODO` is not vendored. The upstream `test262_errors.txt` diff is also not applicable — upstream's recorded errors reflect their test262 advance to commit 4b5d36ab, but the fork is at 56e77d63; errors stay at 57. |
 | 638ec8c | PORT | fixed js_bigint_to_string1() (#412) | Fixed BigInt-to-string conversion in `js_bigint_to_string1` in `src/quickjs/quickjs.c`. |
 | 00b1d8d | PORT | Read byteOffset for detached buffers | In `js_typed_array_subarray` in `src/quickjs/quickjs.c`, read the typed array's stored offset directly (`ta->offset`) instead of going through `js_typed_array_get_byteOffset`, which throws on a detached buffer. Per spec, byteOffset is still readable from a detached buffer. Fixes `staging/sm/TypedArray/subarray.js` (test262 errors 57 → 56). |
-| 0f7eadf | PENDING | Fix Windows MinGW CI Build |  |
+| 0f7eadf | SKIP-NA | Fix Windows MinGW CI Build | Edits `.github/workflows/ci.yml`. The fork has its own CI in `.github/workflows/ci_tests.yml`, structured differently. |
 | 9b935db | PENDING | Merge pull request #418 from nickva/fix-byteoffset-for-detached-array-buffers |  |
 | 098f221 | PENDING | added Error.isError() (bnoordhuis) |  |
 | 4d9a27c | PENDING | update Changelog |  |
