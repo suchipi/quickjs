@@ -336,7 +336,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 5689f30 | PORT | fixed handling of 8 bit unicode strings in RegExp (regression introduced by commit a4ac84d) | One-line follow-up to a4ac84d in `src/lib/libregexp/libregexp.c`. |
 | 0b3c73e | PORT | removed function cast warnings (initial patch by saghul) | Cast cleanups in `src/quickjs/quickjs.c` and `src/quickjs/quickjs.h`. |
 | a4e4b43 | PORT | run-test262: added --count_skipped_features option | Added the option in `src/run-test262/run-test262.c`. |
-| 20d2b40 | PENDING | qjsc: handle C name conflicts between scripts and modules (#432) |  |
+| 20d2b40 | PORT | qjsc: handle C name conflicts between scripts and modules (#432) | In `src/programs/qjsc/qjsc.c`, call `find_unique_cname` on the script-input branch too so a script-derived cname won't collide with a previously-registered module-derived one. |
 | 8a0a6e9 | PENDING | better pretty printing of strings - removed String.prototype.__quote() |  |
 | 9f6c190 | PENDING | more efficient handling of strings in JSON.stringify() |  |
 | 391cd3f | PENDING | Fix crash on failure to read bytecode (penneryu) |  |

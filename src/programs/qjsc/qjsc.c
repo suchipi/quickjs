@@ -441,6 +441,9 @@ static void compile_file(JSContext *ctx, FILE *fo,
         pstrcpy(c_name, sizeof(c_name), c_name1);
     } else {
         get_c_name(c_name, sizeof(c_name), filename);
+        if (namelist_find(&cname_list, c_name)) {
+            find_unique_cname(c_name, sizeof(c_name));
+        }
     }
 
     debugprint("writing object code...\n");
