@@ -1,0 +1,9 @@
+// JSON5-flavored config
+{
+  hello: 'world', // unquoted key, single-quoted string
+  count: 42,
+  ratio: .5, // leading-dot decimal
+  weird: NaN,
+  big: Infinity,
+  trailing: [1, 2, 3,], // trailing comma
+}

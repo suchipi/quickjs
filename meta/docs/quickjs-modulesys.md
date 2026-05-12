@@ -79,6 +79,13 @@ register the same loader under the dot-prefixed key:
 ModuleDelegate.compilers[".json"] = ModuleDelegate.compilers["json"];
 ```
 
+`compilers["json5"]` is also pre-registered, which turns JSON5
+file content (JSON with comments, trailing commas, unquoted keys,
+single quotes, NaN/Infinity, `.N` decimals, multi-line strings,
+and the `\v` escape) into a JS module source that parses the
+content via `std.parseExtJSON`. It matches
+`import x from "..." with { type: "json5" }` by default.
+
 As an example, to make it possible to import .txt files, you might do:
 
 ```js

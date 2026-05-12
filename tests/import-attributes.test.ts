@@ -77,6 +77,30 @@ test("import-attributes - JSON import on .js-extensioned file via attribute", as
   `);
 });
 
+// A4. JSON5 import via attribute on .json5 file.
+test("import-attributes - JSON5 import via attribute on .json5 file", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-m",
+    "-e",
+    `
+      const data = (await import(${JSON.stringify(
+        importAttributesFixture("data.json5")
+      )}, { with: { type: "json5" } })).default;
+      console.log(JSON.stringify(data));
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "{"hello":"world","count":42,"ratio":0.5,"weird":null,"big":null,"trailing":[1,2,3]}
+    ",
+    }
+  `);
+});
+
 // B. Extension-only loading fails by default (spec-aligned).
 test("import-attributes - extension-only loading fails by default", async () => {
   const run = spawn(binDir("qjs"), [

@@ -18,6 +18,16 @@ globalThis.__qjms_temp_ModuleDelegate_init =
     compilers["json"] = (filename, content, attributes) =>
       `export default JSON.parse(${JSON.stringify(content)});`;
 
+    // Loads JSON5-flavored files via std.parseExtJSON, which accepts
+    // JSON5 syntax (comments, trailing commas, unquoted keys, single
+    // quotes, NaN/Infinity, .N decimals, multi-line strings, \v
+    // escape). Registered under "json5" so it matches
+    // `import x from "..." with { type: "json5" }` by default.
+    compilers["json5"] = (filename, content, attributes) =>
+      `import * as std from "quickjs:std"; export default std.parseExtJSON(${JSON.stringify(
+        content
+      )});`;
+
     ModuleDelegate.read = (moduleName, attributes) => {
       if (typeof moduleName !== "string") {
         const err = new Error("moduleName must be a string");

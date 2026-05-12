@@ -850,13 +850,13 @@ static char *load_file(const char *filename, size_t *lenp)
 extern int qjms_module_check_attributes(JSContext *ctx, void *opaque,
                                         JSValueConst attributes);
 
-/* Returns 1 if `attributes.type === "json"`, else 0. */
+/* Returns 1 if `attributes.type === "json"`, 2 if "json5", else 0. */
 static int test262_attributes_request_json(JSContext *ctx,
                                            JSValueConst attributes)
 {
     JSValue type_val;
     const char *type_str;
-    int is_json = 0;
+    int kind = 0;
     if (!JS_IsObject(attributes))
         return 0;
     type_val = JS_GetPropertyStr(ctx, attributes, "type");
@@ -865,25 +865,37 @@ static int test262_attributes_request_json(JSContext *ctx,
     if (JS_IsString(type_val)) {
         type_str = JS_ToCString(ctx, type_val);
         if (type_str) {
-            is_json = strcmp(type_str, "json") == 0;
+            if (strcmp(type_str, "json") == 0)
+                kind = 1;
+            else if (strcmp(type_str, "json5") == 0)
+                kind = 2;
             JS_FreeCString(ctx, type_str);
         }
     }
     JS_FreeValue(ctx, type_val);
-    return is_json;
+    return kind;
 }
 
-/* Build a JS module source for a JSON file by wrapping its content in
-   `export default JSON.parse(<escaped>);`. Mirrors qjsc and the fork's
-   modulesys behavior (no .json extension fallback — extension-only
-   loading requires an explicit attribute). */
+/* Build a JS module source for a JSON or JSON5 file by wrapping its
+   content in either `export default JSON.parse(<escaped>);` or
+   `import * as std from "quickjs:std"; export default
+   std.parseExtJSON(<escaped>);` depending on `is_json5`. Mirrors qjsc
+   and the fork's modulesys behavior (no .json extension fallback —
+   extension-only loading requires an explicit attribute). */
 static char *test262_json_to_module_source(JSContext *ctx, const char *content,
-                                           size_t content_len)
+                                           size_t content_len, int is_json5)
 {
     JSValue raw_str, escaped_str;
     const char *escaped_cstr;
+    const char *prefix;
+    const char *suffix = ");";
     char *out;
     size_t prefix_len, suffix_len, escaped_len, total;
+
+    if (is_json5)
+        prefix = "import * as std from \"quickjs:std\"; export default std.parseExtJSON(";
+    else
+        prefix = "export default JSON.parse(";
 
     raw_str = JS_NewStringLen(ctx, content, content_len);
     if (JS_IsException(raw_str))
@@ -897,14 +909,14 @@ static char *test262_json_to_module_source(JSContext *ctx, const char *content,
         JS_FreeValue(ctx, escaped_str);
         return NULL;
     }
-    prefix_len = sizeof("export default JSON.parse(") - 1;
-    suffix_len = sizeof(");") - 1;
+    prefix_len = strlen(prefix);
+    suffix_len = strlen(suffix);
     total = prefix_len + escaped_len + suffix_len;
     out = js_malloc(ctx, total + 1);
     if (out) {
-        memcpy(out, "export default JSON.parse(", prefix_len);
+        memcpy(out, prefix, prefix_len);
         memcpy(out + prefix_len, escaped_cstr, escaped_len);
-        memcpy(out + prefix_len + escaped_len, ");", suffix_len);
+        memcpy(out + prefix_len + escaped_len, suffix, suffix_len);
         out[total] = '\0';
     }
     JS_FreeCString(ctx, escaped_cstr);
@@ -944,9 +956,10 @@ static JSModuleDef *js_module_loader_test(JSContext *ctx,
         return NULL;
     }
 
-    if (test262_attributes_request_json(ctx, attributes)) {
+    int json_kind = test262_attributes_request_json(ctx, attributes);
+    if (json_kind) {
         json_module_src = test262_json_to_module_source(ctx, (const char *)buf,
-                                                        buf_len);
+                                                        buf_len, json_kind == 2);
         js_free(ctx, buf);
         buf = NULL;
         if (!json_module_src)
