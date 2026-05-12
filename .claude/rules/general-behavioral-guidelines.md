@@ -1,6 +1,6 @@
-# Andrej Karpathy's Claude Code Guidelines
+# Code Guidelines
 
-> from <https://github.com/forrestchang/andrej-karpathy-skills>
+> Based on Andrej Karpathy's Claude Code Guidelines from <https://github.com/forrestchang/andrej-karpathy-skills>
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
@@ -29,6 +29,8 @@ Before implementing:
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
+**Scope is set by the request, not by this guideline.** "Minimum code that solves the problem" means *the problem as stated* — not a paring-down of it. If the task is inherently large (implementing a feature spec, completing a migration, executing a multi-step plan), do the whole thing. Do not invoke "simplicity" or "minimum code" as a reason to deliver less than what was asked. Skipping steps, dropping requirements, or stopping early because the work feels big is laziness, not simplicity.
+
 ## 3. Surgical Changes
 
 **Touch only what you must. Clean up only your own mess.**
@@ -46,6 +48,8 @@ When your changes create orphans:
 - Don't remove pre-existing dead code unless asked.
 
 The test: Every changed line should trace directly to the user's request.
+
+**"Surgical" describes precision, not magnitude.** A large task done surgically still touches a lot of code. This guideline is about *avoiding drive-by changes outside the request* — not about reducing the size of the request. If the user (or a plan you're executing) asks for a 20-file refactor, "surgical" means each of those 20 files gets exactly the changes the refactor needs — not that you do 5 files and call it done. When executing from a plan, the plan defines the scope; do not unilaterally trim it because it feels too big. If you genuinely think the scope should be smaller, say so and ask — do not silently deliver less.
 
 ## 4. Goal-Driven Execution
 
