@@ -340,7 +340,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 8a0a6e9 | PORT | better pretty printing of strings - removed String.prototype.__quote() | Replaced upstream's old `js_dump_char` per-char approach with the new `js_print_string1` (whole-string, surrogate-pair-aware, more escape rules) in `src/quickjs/quickjs.c`. Three conflicts: the fork's sink-aware versions (`JS_DumpCharSink`, `js_print_sink_putc`) were updated to use `js_print_string1` with `js_print_sink_*` API; `JS_DumpCharSink` is now unused and removed. Removed `String.prototype.__quote` (unused in fork). `tests/test_bjson.js` not vendored. |
 | 9f6c190 | PORT | more efficient handling of strings in JSON.stringify() | JSON-stringify string-handling efficiency refactor in `src/quickjs/quickjs.c`. |
 | 391cd3f | PORT | Fix crash on failure to read bytecode (penneryu) | One-line crash fix in bytecode reader in `src/quickjs/quickjs.c`. |
-| fa628f8 | PENDING | new release |  |
+| fa628f8 | SKIP-NA | new release | Touches `Changelog` and `VERSION`, neither vendored by fork. |
 | dc7af0a | PENDING | updated release.sh |  |
 | de4d392 | PENDING | removed memory leak (#441) |  |
 | a1e073e | PENDING | added set methods (bnoordhuis) |  |
