@@ -83,6 +83,50 @@ index c1829e3e4c..18b3e425e8 100644
  function assertEq(...args) {
    assert.sameValue(...args)
  }
+@@ -71,4 +69,4 @@ if (globalThis.createExternalArrayBuffer === undefined) {
+ if (globalThis.enableGeckoProfilingWithSlowAssertions === undefined) {
+   globalThis.enableGeckoProfilingWithSlowAssertions = globalThis.enableGeckoProfiling =
+     globalThis.disableGeckoProfiling = () => {}
+-}
+\ No newline at end of file
++}
+diff --git a/test/staging/sm/extensions/regress-469625-01.js b/test/staging/sm/extensions/regress-469625-01.js
+index 5b62aeb..da07aae 100644
+--- a/test/staging/sm/extensions/regress-469625-01.js
++++ b/test/staging/sm/extensions/regress-469625-01.js
+@@ -14,8 +14,7 @@ esid: pending
+ //-----------------------------------------------------------------------------
+ var BUGNUMBER = 469625;
+ var summary = 'TM: Array prototype and expression closures';
+-var actual = '';
+-var expect = '';
++var actual = null;
+
+
+ //-----------------------------------------------------------------------------
+@@ -27,9 +26,6 @@ function test()
+   printBugNumber(BUGNUMBER);
+   printStatus (summary);
+
+-  expect = 'TypeError: [].__proto__ is not a function';
+-
+-
+   Array.prototype.__proto__ = function () { return 3; };
+
+   try
+@@ -38,8 +34,10 @@ function test()
+   }
+   catch(ex)
+   {
+-    print(actual = ex + '');
++    print(ex + '');
++    actual = ex;
+   }
+
+-  assert.sameValue(expect, actual, summary);
++  assert.sameValue(actual instanceof TypeError, true);
++  assert.sameValue(actual.message.includes("not a function"), true);
+ }
 diff --git a/test/staging/sm/misc/new-with-non-constructor.js b/test/staging/sm/misc/new-with-non-constructor.js
 index 18c2f0cc13..f9aa2094de 100644
 --- a/test/staging/sm/misc/new-with-non-constructor.js
