@@ -17,9 +17,6 @@ test262/test/staging/sm/Function/arguments-parameter-shadowing.js:15: Test262Err
 test262/test/staging/sm/Function/constructor-binding.js:12: Test262Error: Expected SameValue(«"function"», «"undefined"») to be true
 test262/test/staging/sm/Function/function-bind.js:14: Test262Error: Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/Function/function-name-for.js:12: Test262Error: Expected SameValue(«""», «"forInHead"») to be true
-test262/test/staging/sm/Function/function-toString-builtin.js:14: Test262Error: Expected match to '/^\s*function\s*(get|set)?\s*(\w+|(?:'[^']*')|(?:"[^"]*")|\d+|(?:\[[^\]]+\]))?\s*\(\s*\)\s*\{\s*\[native code\]\s*\}\s*$/', Actual value 'function bound fn() {
-    [native code]
-}' Expected SameValue(«null», «null») to be false
 test262/test/staging/sm/Function/implicit-this-in-parameter-expression.js:13: Test262Error: Expected SameValue(«[object Object]», «undefined») to be true
 test262/test/staging/sm/Function/invalid-parameter-list.js:35: Error: Assertion failed: expected exception SyntaxError, no exception thrown
 test262/test/staging/sm/RegExp/constructor-ordering-2.js:15: Test262Error: Expected SameValue(«false», «true») to be true

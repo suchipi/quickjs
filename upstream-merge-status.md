@@ -320,7 +320,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 9b935db | SKIP-DONE | Merge pull request #418 from nickva/fix-byteoffset-for-detached-array-buffers | Merge commit pulling 00b1d8d and 0f7eadf together; both already processed. |
 | 098f221 | PORT | added Error.isError() (bnoordhuis) | Added `js_error_isError` (wrapping `JS_IsError`) and the `Error.isError` static method registration in `src/quickjs/quickjs.c`. Removed `Error.isError=skip` from `src/run-test262/test262.conf` so the feature group runs. `TODO` is not vendored. No fork `.d.ts` change needed - the fork's `quickjs.d.ts` does not declare `Error` (TS lib provides it). |
 | 4d9a27c | SKIP-NA | update Changelog | Changelog is not vendored in the fork. |
-| f1b1c00 | PENDING | update test262 |  |
+| f1b1c00 | PORT | update test262 | Applied the `test262.conf` exclude for `staging/sm/Function/function-toString-builtin.js` (the "bound fn" toString form is permitted by spec). The `tests/test262.patch` hunk is SKIP-NA — upstream is re-anchoring its patch's line-number contexts against a newer test262 commit, but the fork is at a different test262 commit (56e77d63) and its `src/run-test262/test262.patch` is already valid against that. `TODO` not vendored. test262 errors 56 → 55. |
 | 2fd48bf | PENDING | fixed module async evaluation logic - added DUMP_MODULE_EXEC |  |
 | 458c34d | PENDING | fixed GC logic so that a module can live after a JSContext is destroyed (#280) - update the reference count for the realm in jobs and FinalizationRegistry |  |
 | 1fdc768 | PENDING | removed module leak in js_std_eval_binary() (#425) |  |
