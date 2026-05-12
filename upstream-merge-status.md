@@ -319,7 +319,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 0f7eadf | SKIP-NA | Fix Windows MinGW CI Build | Edits `.github/workflows/ci.yml`. The fork has its own CI in `.github/workflows/ci_tests.yml`, structured differently. |
 | 9b935db | SKIP-DONE | Merge pull request #418 from nickva/fix-byteoffset-for-detached-array-buffers | Merge commit pulling 00b1d8d and 0f7eadf together; both already processed. |
 | 098f221 | PORT | added Error.isError() (bnoordhuis) | Added `js_error_isError` (wrapping `JS_IsError`) and the `Error.isError` static method registration in `src/quickjs/quickjs.c`. Removed `Error.isError=skip` from `src/run-test262/test262.conf` so the feature group runs. `TODO` is not vendored. No fork `.d.ts` change needed - the fork's `quickjs.d.ts` does not declare `Error` (TS lib provides it). |
-| 4d9a27c | PENDING | update Changelog |  |
+| 4d9a27c | SKIP-NA | update Changelog | Changelog is not vendored in the fork. |
 | f1b1c00 | PENDING | update test262 |  |
 | 2fd48bf | PENDING | fixed module async evaluation logic - added DUMP_MODULE_EXEC |  |
 | 458c34d | PENDING | fixed GC logic so that a module can live after a JSContext is destroyed (#280) - update the reference count for the realm in jobs and FinalizationRegistry |  |
