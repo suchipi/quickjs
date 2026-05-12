@@ -338,7 +338,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | a4e4b43 | PORT | run-test262: added --count_skipped_features option | Added the option in `src/run-test262/run-test262.c`. |
 | 20d2b40 | PORT | qjsc: handle C name conflicts between scripts and modules (#432) | In `src/programs/qjsc/qjsc.c`, call `find_unique_cname` on the script-input branch too so a script-derived cname won't collide with a previously-registered module-derived one. |
 | 8a0a6e9 | PORT | better pretty printing of strings - removed String.prototype.__quote() | Replaced upstream's old `js_dump_char` per-char approach with the new `js_print_string1` (whole-string, surrogate-pair-aware, more escape rules) in `src/quickjs/quickjs.c`. Three conflicts: the fork's sink-aware versions (`JS_DumpCharSink`, `js_print_sink_putc`) were updated to use `js_print_string1` with `js_print_sink_*` API; `JS_DumpCharSink` is now unused and removed. Removed `String.prototype.__quote` (unused in fork). `tests/test_bjson.js` not vendored. |
-| 9f6c190 | PENDING | more efficient handling of strings in JSON.stringify() |  |
+| 9f6c190 | PORT | more efficient handling of strings in JSON.stringify() | JSON-stringify string-handling efficiency refactor in `src/quickjs/quickjs.c`. |
 | 391cd3f | PENDING | Fix crash on failure to read bytecode (penneryu) |  |
 | fa628f8 | PENDING | new release |  |
 | dc7af0a | PENDING | updated release.sh |  |
