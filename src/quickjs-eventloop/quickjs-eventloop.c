@@ -477,7 +477,6 @@ static void js_eventloop_promise_rejection_check(JSContext *ctx)
 int js_eventloop_run(JSContext *ctx)
 {
     JSRuntime *rt;
-    JSContext *ctx1;
     int err;
 
     rt = JS_GetRuntime(ctx);
@@ -485,12 +484,12 @@ int js_eventloop_run(JSContext *ctx)
     for(;;) {
         /* execute the pending jobs */
         for(;;) {
-            err = JS_ExecutePendingJob(rt, &ctx1);
+            err = JS_ExecutePendingJob(rt, NULL);
             if (err <= 0) {
                 if (err < 0) {
-                    JSValue exc = JS_GetException(ctx1);
-                    QJU_ReportException(ctx1, exc);
-                    JS_FreeValue(ctx1, exc);
+                    JSValue exc = JS_GetException(ctx);
+                    QJU_ReportException(ctx, exc);
+                    JS_FreeValue(ctx, exc);
                 }
                 break;
             }
