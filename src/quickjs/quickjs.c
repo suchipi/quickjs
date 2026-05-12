@@ -2519,11 +2519,6 @@ static __maybe_unused void JS_DumpChar(FILE *fo, int c, int sep)
     }
 }
 
-/* JS_DumpCharSink is the sink-aware companion to JS_DumpChar (above);
-   the body lives next to the other js_print_sink_* helpers around
-   line ~13150. */
-static void JS_DumpCharSink(JSPrintValueState *s, int c, int sep);
-
 static __maybe_unused void JS_DumpString(JSRuntime *rt, const JSString *p)
 {
     int i, sep;
@@ -13355,24 +13350,6 @@ js_print_sink_printf(JSPrintValueState *s, const char *fmt, ...)
     }
 }
 
-/* Sink-aware version of JS_DumpChar (forward-declared near the
-   FILE-based JS_DumpChar). Same escaping logic but routes through the
-   state's sink helpers. */
-static void JS_DumpCharSink(JSPrintValueState *s, int c, int sep)
-{
-    if (c == sep || c == '\\') {
-        js_print_sink_putc(s, '\\');
-        js_print_sink_putc(s, c);
-    } else if (c >= ' ' && c <= 126) {
-        js_print_sink_putc(s, c);
-    } else if (c == '\n') {
-        js_print_sink_putc(s, '\\');
-        js_print_sink_putc(s, 'n');
-    } else {
-        js_print_sink_printf(s, "\\u%04x", c);
-    }
-}
-
 static void js_print_float64(JSPrintValueState *s, double d)
 {
     JSDTOATempMem dtoa_mem;
@@ -13395,17 +13372,74 @@ static uint32_t js_string_get_length(JSValueConst val)
     }
 }
 
+/* pretty print the first 'len' characters of 'p' */
+static void js_print_string1(JSPrintValueState *s, JSString *p, int len, int sep)
+{
+    uint8_t buf[UTF8_CHAR_LEN_MAX];
+    int l, i, c, c1;
+
+    for(i = 0; i < len; i++) {
+        c = string_get(p, i);
+        switch(c) {
+        case '\t':
+            c = 't';
+            goto quote;
+        case '\r':
+            c = 'r';
+            goto quote;
+        case '\n':
+            c = 'n';
+            goto quote;
+        case '\b':
+            c = 'b';
+            goto quote;
+        case '\f':
+            c = 'f';
+            goto quote;
+        case '\\':
+        quote:
+            js_print_sink_putc(s, '\\');
+            js_print_sink_putc(s, c);
+            break;
+        default:
+            if (c == sep)
+                goto quote;
+            if (c >= 32 && c <= 126) {
+                js_print_sink_putc(s, c);
+            } else if (c < 32 ||
+                       (c >= 0x7f && c <= 0x9f)) {
+            escape:
+                js_print_sink_printf(s, "\\u%04x", c);
+            } else {
+                if (is_hi_surrogate(c)) {
+                    if ((i + 1) >= len)
+                        goto escape;
+                    c1 = string_get(p, i + 1);
+                    if (!is_lo_surrogate(c1))
+                        goto escape;
+                    i++;
+                    c = from_surrogate(c, c1);
+                } else if (is_lo_surrogate(c)) {
+                    goto escape;
+                }
+                l = unicode_to_utf8(buf, c);
+                js_print_sink_write(s, buf, l);
+            }
+            break;
+        }
+    }
+}
+
+
 static void js_print_string_rec(JSPrintValueState *s, JSValueConst val,
                                     int sep, uint32_t pos)
 {
     if (JS_VALUE_GET_TAG(val) == JS_TAG_STRING) {
         JSString *p = JS_VALUE_GET_STRING(val);
-        uint32_t i, len;
+        uint32_t len;
         if (pos < s->options.max_string_length) {
             len = min_uint32(p->len, s->options.max_string_length - pos);
-            for(i = 0; i < len; i++) {
-                JS_DumpCharSink(s, string_get(p, i), sep);
-            }
+            js_print_string1(s, p, len, sep);
         }
     } else if (JS_VALUE_GET_TAG(val) == JS_TAG_STRING_ROPE) {
         JSStringRope *r = JS_VALUE_GET_PTR(val);
@@ -13479,9 +13513,7 @@ static void js_print_atom(JSPrintValueState *s, JSAtom atom)
             }
         } else {
             js_print_sink_putc(s, '"');
-            for(i = 0; i < p->len; i++) {
-                JS_DumpCharSink(s, string_get(p, i), '\"');
-            }
+            js_print_string1(s, p, p->len, '\"');
             js_print_sink_putc(s, '"');
         }
     }
@@ -45387,12 +45419,6 @@ static JSValue js_string_trim(JSContext *ctx, JSValueConst this_val,
     return ret;
 }
 
-static JSValue js_string___quote(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
-{
-    return JS_ToQuotedString(ctx, this_val);
-}
-
 /* return 0 if before the first char */
 static int string_prevc(JSString *p, int *pidx)
 {
@@ -45881,7 +45907,6 @@ static const JSCFunctionListEntry js_string_proto_funcs[] = {
     JS_ALIAS_DEF("trimLeft", "trimStart" ),
     JS_CFUNC_DEF("toString", 0, js_string_toString ),
     JS_CFUNC_DEF("valueOf", 0, js_string_toString ),
-    JS_CFUNC_DEF("__quote", 1, js_string___quote ),
     JS_CFUNC_MAGIC_DEF("toLowerCase", 0, js_string_toLowerCase, 1 ),
     JS_CFUNC_MAGIC_DEF("toUpperCase", 0, js_string_toLowerCase, 0 ),
     JS_CFUNC_MAGIC_DEF("toLocaleLowerCase", 0, js_string_toLowerCase, 1 ),
