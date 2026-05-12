@@ -329,7 +329,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | e1c18be | PORT | fixed buffer overflow in js_bigint_from_string() | Added length sanity-check before allocating in `js_bigint_from_string` in `src/quickjs/quickjs.c`, and the matching `js_atof` exception-handling cleanup. Adapted upstream's `JS_ThrowRangeError(ctx, fmt)` call to the fork's `JS_ThrowRangeError(ctx, filename, line, fmt)` signature. |
 | 1168c21 | PORT | fixed crash in OP_add_loc if the variable is modified in JS_ToPrimitiveFree() | Small fix in the `OP_add_loc` handler in `src/quickjs/quickjs.c` to guard against the local being modified during `JS_ToPrimitiveFree`. |
 | 9ce5442 | PORT | fixed buffer overflow in js_bigint_to_string1() | Buffer-overflow guard in `js_bigint_to_string1` in `src/quickjs/quickjs.c`. |
-| c927eca | PENDING | fixed buffer overflow in TypedArray.prototype.lastIndexOf() |  |
+| c927eca | PORT | fixed buffer overflow in TypedArray.prototype.lastIndexOf() | Overflow guard in `TypedArray.prototype.lastIndexOf` in `src/quickjs/quickjs.c`. |
 | 4e0d0b7 | PENDING | avoid side effects in JS_PrintValue() which may lead to crashes in print() and js_std_promise_rejection_check() |  |
 | d9ec8f1 | PENDING | limit function and regexp bytecode to 1G to avoid buffer overflows (the bytecode generators assume that bytecode offsets can fit a 32 bit signed integer |  |
 | a4ac84d | PENDING | Adjust lastIndex to leading surrogate when inside a surrogate pair in unicode RegExp (initial patch by auvred) |  |
