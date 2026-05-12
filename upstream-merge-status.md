@@ -341,7 +341,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 9f6c190 | PORT | more efficient handling of strings in JSON.stringify() | JSON-stringify string-handling efficiency refactor in `src/quickjs/quickjs.c`. |
 | 391cd3f | PORT | Fix crash on failure to read bytecode (penneryu) | One-line crash fix in bytecode reader in `src/quickjs/quickjs.c`. |
 | fa628f8 | SKIP-NA | new release | Touches `Changelog` and `VERSION`, neither vendored by fork. |
-| dc7af0a | PENDING | updated release.sh |  |
+| dc7af0a | SKIP-NA | updated release.sh | `release.sh` not vendored. |
 | de4d392 | PENDING | removed memory leak (#441) |  |
 | a1e073e | PENDING | added set methods (bnoordhuis) |  |
 | 0cef7f0 | PENDING | set methods: removed memory leaks - fixed ordering of property access - fixed conversion to integer of 'size' in GetSetRecord() - added missing iterator close - factorized code |  |
