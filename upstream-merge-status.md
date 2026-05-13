@@ -433,4 +433,4 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | e7b9f21 | PORT | Fix async generator lifecycle bug (bnoordhuis) (quickjs-ng/quickjs#1355) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. Snapshot update in qjsbootstrap-bytecode. |
 | 5022f2b | PORT | fixed use-after-free via re-entrant GC in FinalizationRegistry weak reference cleanup (#494) | Bug fix in `src/quickjs/quickjs.c`. Resolved 1 conflict (took theirs — JS_EnqueueJob → JS_EnqueueJob2 with no-exception flag). |
 | a31dcef | PORT | added basic protection against too large function in serialized bytecode | Security hardening in `src/quickjs/quickjs.c`. Applied cleanly. Flaky wine tests passed on retry. |
-| d7ae12a | PENDING | added JSON.parse source text access |  |
+| d7ae12a | PORT | added JSON.parse source text access | Adds JSON.parse source text access (`JSON.rawJSON`, `JSON.isRawJSON`, source text for reviver). Resolved 2 conflicts: enum (added JS_CLASS_RAWJSON to fork's quickjs.h), and a minor BOOLEAN/BIG_INT formatting line. Adapted 1 new JS_ThrowSyntaxError call to fork's signature. Bytecode snapshots updated in 3 test files. |
