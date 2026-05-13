@@ -27,8 +27,6 @@ test("quickjs:context - example", async () => {
     [Function require] { resolve: [Function require.resolve] }
     c3
     Object {
-    	Object: Function "Object" {…}
-    	Function: Function "Function" {…}
     	Error: Function "Error" {…}
     	EvalError: Function "EvalError" {…}
     	RangeError: Function "RangeError" {…}
@@ -38,8 +36,10 @@ test("quickjs:context - example", async () => {
     	URIError: Function "URIError" {…}
     	InternalError: Function "InternalError" {…}
     	AggregateError: Function "AggregateError" {…}
-    	Iterator: Function "Iterator" {…}
     	Array: Function "Array" {…}
+    	Object: Function "Object" {…}
+    	Function: Function "Function" {…}
+    	Iterator: Function "Iterator" {…}
     	parseInt: Function "parseInt" {…}
     	parseFloat: Function "parseFloat" {…}
     	isNaN: Function "isNaN" {…}
@@ -53,13 +53,13 @@ test("quickjs:context - example", async () => {
     	Infinity: Infinity
     	NaN: NaN
     	undefined: undefined
+    	eval: Function "eval" {…}
     	Number: Function "Number" {…}
     	Boolean: Function "Boolean" {…}
     	String: Function "String" {…}
     	Math: Object {…}
     	Reflect: Object {…}
     	Symbol: Function "Symbol" {…}
-    	eval: Function "eval" {…}
     	globalThis: -> {root}
     	BigInt: Function "BigInt" {…}
     	@@toStringTag: "global"
