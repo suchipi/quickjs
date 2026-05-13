@@ -59754,38 +59754,54 @@ static JSValue js_typed_array_constructor(JSContext *ctx,
     if (JS_VALUE_GET_TAG(argv[0]) != JS_TAG_OBJECT) {
         if (JS_ToIndex(ctx, &len, argv[0]))
             return JS_EXCEPTION;
+        obj = js_create_from_ctor(ctx, new_target, classid);
+        if (JS_IsException(obj))
+            return JS_EXCEPTION;
         buffer = js_array_buffer_constructor1(ctx, JS_UNDEFINED,
                                               len << size_log2,
                                               NULL);
         if (JS_IsException(buffer))
-            return JS_EXCEPTION;
+            goto fail;
         offset = 0;
     } else {
         JSObject *p = JS_VALUE_GET_OBJ(argv[0]);
         if (p->class_id == JS_CLASS_ARRAY_BUFFER ||
             p->class_id == JS_CLASS_SHARED_ARRAY_BUFFER) {
-            abuf = p->u.array_buffer;
-            if (JS_ToIndex(ctx, &offset, argv[1]))
+            obj = js_create_from_ctor(ctx, new_target, classid);
+            if (JS_IsException(obj))
                 return JS_EXCEPTION;
-            if (abuf->detached)
-                return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
-            if ((offset & ((1 << size_log2) - 1)) != 0 ||
-                offset > abuf->byte_length)
-                return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid offset");
+            if (JS_ToIndex(ctx, &offset, argv[1]))
+                goto fail;
+            if ((offset & ((1 << size_log2) - 1)) != 0)
+                goto invalid_offset;
+            abuf = p->u.array_buffer;
             if (JS_IsUndefined(argv[2])) {
+                if (abuf->detached) {
+                    JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
+                    goto fail;
+                }
+                if (offset > abuf->byte_length) {
+                invalid_offset:
+                    JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid offset");
+                    goto fail;
+                }
                 track_rab = array_buffer_is_resizable(abuf);
-                if (!track_rab)
+                if (!track_rab) {
                     if ((abuf->byte_length & ((1 << size_log2) - 1)) != 0)
                         goto invalid_length;
+                }
                 len = (abuf->byte_length - offset) >> size_log2;
             } else {
                 if (JS_ToIndex(ctx, &len, argv[2]))
-                    return JS_EXCEPTION;
-                if (abuf->detached)
-                    return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
+                    goto fail;
+                if (abuf->detached) {
+                    JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
+                    goto fail;
+                }
                 if ((offset + (len << size_log2)) > abuf->byte_length) {
                 invalid_length:
-                    return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid length");
+                    JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid length");
+                    goto fail;
                 }
             }
             buffer = JS_DupValue(ctx, argv[0]);
@@ -59799,17 +59815,12 @@ static JSValue js_typed_array_constructor(JSContext *ctx,
             }
         }
     }
-
-    obj = js_create_from_ctor(ctx, new_target, classid);
-    if (JS_IsException(obj)) {
-        JS_FreeValue(ctx, buffer);
-        return JS_EXCEPTION;
-    }
-    if (typed_array_init(ctx, obj, buffer, offset, len, track_rab)) {
-        JS_FreeValue(ctx, obj);
-        return JS_EXCEPTION;
-    }
+    if (typed_array_init(ctx, obj, buffer, offset, len, track_rab))
+        goto fail;
     return obj;
+ fail:
+    JS_FreeValue(ctx, obj);
+    return JS_EXCEPTION;
 }
 
 static void js_typed_array_finalizer(JSRuntime *rt, JSValue val)
