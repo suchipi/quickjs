@@ -386,7 +386,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 9a421b3 | PORT | optimized Array.prototype.push | Optimization in `src/quickjs/quickjs.c`. Applied cleanly. |
 | af16a97 | PORT | changed module rejection order according to spec change | Spec compliance fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | c31809e | PORT | fixed operation order in Regexp constructor | Spec compliance fix in `src/quickjs/quickjs.c`. Resolved 1 conflict in `js_regexp_set_internal` (preserved fork's `JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, ...)` signature while taking upstream's structural change: removed `fail:` label, added `JS_FreeValue(ctx, obj)`). Also adapted `js_puts` → `js_print_sink_puts` (fork renamed these helpers). Fixed 1 test262 test (47 → 46 errors). |
-| eab6945 | PENDING | updated test results |  |
+| eab6945 | PORT | updated test results | Excludes 1 test262 staging case (RegExp.lastMatch not supported) in `src/run-test262/test262.conf`. TODO + upstream's test262_errors.txt skipped (fork has its own). 46 → 45 errors. |
 | eb2c890 | PENDING | removed uninitialized variable |  |
 | a6816be | PENDING | optimized global variable access |  |
 | e015918 | PENDING | Much faster destructuring at the expense of a slight incompatibility with the spec when direct evals are present (v8 behaves the same way). |  |

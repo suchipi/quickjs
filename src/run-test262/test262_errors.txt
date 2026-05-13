@@ -42,5 +42,4 @@ test262/test/staging/sm/object/defineProperties-order.js:14: Test262Error: Expec
 test262/test/staging/sm/regress/regress-602621.js:14: Test262Error: function sub-statement must override arguments Expected SameValue(«"function"», «"object"») to be true
 test262/test/staging/sm/regress/regress-1383630.js:30: Error: Assertion failed: expected exception TypeError, no exception thrown
 test262/test/staging/sm/statements/arrow-function-in-for-statement-head.js:15: Test262Error: expected syntax error, got Error: didn't throw Expected SameValue(«false», «true») to be true
-test262/test/staging/sm/statements/regress-642975.js:14: Test262Error: Expected SameValue(«undefined», «"y"») to be true
 test262/test/staging/sm/statements/try-completion.js:17: Test262Error: Expected SameValue(«"try"», «undefined») to be true
