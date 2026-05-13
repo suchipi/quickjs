@@ -60257,9 +60257,8 @@ typedef enum AtomicsOpEnum {
     ATOMICS_OP_LOAD,
 } AtomicsOpEnum;
 
-static int js_atomics_get_ptr(JSContext *ctx,
-                              void **pptr,
-                              JSArrayBuffer **pabuf,
+static int js_atomics_get_ptr(JSContext *ctx, void **pptr,
+                              JSObject **pobj, uint64_t *pidx,
                               int *psize_log2, JSClassID *pclass_id,
                               JSValueConst obj, JSValueConst idx_val,
                               int is_waitable)
@@ -60325,13 +60324,16 @@ static int js_atomics_get_ptr(JSContext *ctx,
 
     size_log2 = typed_array_size_log2(p->class_id);
     ptr = p->u.array.u.uint8_ptr + ((uintptr_t)idx << size_log2);
-    if (pabuf)
-        *pabuf = abuf;
+
+    *pptr = ptr;
+    if (pobj)
+        *pobj = p;
+    if (pidx)
+        *pidx = idx;
     if (psize_log2)
         *psize_log2 = size_log2;
     if (pclass_id)
         *pclass_id = p->class_id;
-    *pptr = ptr;
     return 0;
 }
 
@@ -60340,13 +60342,13 @@ static JSValue js_atomics_op(JSContext *ctx,
                              int argc, JSValueConst *argv, int op)
 {
     int size_log2;
-    uint64_t v, a, rep_val;
+    uint64_t v, a, rep_val, idx;
     void *ptr;
     JSValue ret;
     JSClassID class_id;
-    JSArrayBuffer *abuf;
+    JSObject *p;
 
-    if (js_atomics_get_ptr(ctx, &ptr, &abuf, &size_log2, &class_id,
+    if (js_atomics_get_ptr(ctx, &ptr, &p, &idx, &size_log2, &class_id,
                            argv[0], argv[1], 0))
         return JS_EXCEPTION;
     rep_val = 0;
@@ -60374,8 +60376,10 @@ static JSValue js_atomics_op(JSContext *ctx,
                     rep_val = v32;
                 }
         }
-        if (abuf->detached)
+        if (typed_array_is_oob(p))
             return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
+        if (idx >= p->u.array.count)
+            return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "out-of-bound access");
    }
 
    switch(op | (size_log2 << 3)) {
@@ -60484,48 +60488,53 @@ static JSValue js_atomics_store(JSContext *ctx,
     int size_log2;
     void *ptr;
     JSValue ret;
-    JSArrayBuffer *abuf;
+    JSObject *p;
+    uint64_t idx;
+    int64_t v;
 
-    if (js_atomics_get_ptr(ctx, &ptr, &abuf, &size_log2, NULL,
+    if (js_atomics_get_ptr(ctx, &ptr, &p, &idx, &size_log2, NULL,
                            argv[0], argv[1], 0))
         return JS_EXCEPTION;
     if (size_log2 == 3) {
-        int64_t v64;
         ret = JS_ToBigIntFree(ctx, JS_DupValue(ctx, argv[2]));
         if (JS_IsException(ret))
             return ret;
-        if (JS_ToBigInt64(ctx, &v64, ret)) {
+        if (JS_ToBigInt64(ctx, &v, ret)) {
             JS_FreeValue(ctx, ret);
             return JS_EXCEPTION;
         }
-        if (abuf->detached)
-            return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
-        atomic_store((_Atomic(uint64_t) *)ptr, v64);
     } else {
-        uint32_t v;
+        uint32_t v32;
         /* XXX: spec, would be simpler to return the written value */
         ret = JS_ToIntegerFree(ctx, JS_DupValue(ctx, argv[2]));
         if (JS_IsException(ret))
             return ret;
-        if (JS_ToUint32(ctx, &v, ret)) {
+        if (JS_ToUint32(ctx, &v32, ret)) {
             JS_FreeValue(ctx, ret);
             return JS_EXCEPTION;
         }
-        if (abuf->detached)
-            return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
-        switch(size_log2) {
-        case 0:
-            atomic_store((_Atomic(uint8_t) *)ptr, v);
-            break;
-        case 1:
-            atomic_store((_Atomic(uint16_t) *)ptr, v);
-            break;
-        case 2:
-            atomic_store((_Atomic(uint32_t) *)ptr, v);
-            break;
-        default:
-            abort();
-        }
+        v = v32;
+    }
+    if (typed_array_is_oob(p))
+        return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
+    if (idx >= p->u.array.count)
+        return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "out-of-bound access");
+
+    switch(size_log2) {
+    case 0:
+        atomic_store((_Atomic(uint8_t) *)ptr, v);
+        break;
+    case 1:
+        atomic_store((_Atomic(uint16_t) *)ptr, v);
+        break;
+    case 2:
+        atomic_store((_Atomic(uint32_t) *)ptr, v);
+        break;
+    case 3:
+        atomic_store((_Atomic(uint64_t) *)ptr, v);
+        break;
+    default:
+        abort();
     }
     return ret;
 }
@@ -60608,9 +60617,10 @@ static JSValue js_atomics_wait(JSContext *ctx,
     int ret, size_log2, res;
     double d;
 
-    if (js_atomics_get_ptr(ctx, &ptr, NULL, &size_log2, NULL,
+    if (js_atomics_get_ptr(ctx, &ptr, NULL, NULL, &size_log2, NULL,
                              argv[0], argv[1], 2))
         return JS_EXCEPTION;
+    /* 'argv[0]' is a SharedArrayBuffer so it cannot be detached nor reduced */
     if (size_log2 == 3) {
         if (JS_ToBigInt64(ctx, &v, argv[2]))
             return JS_EXCEPTION;
@@ -60687,8 +60697,9 @@ static JSValue js_atomics_notify(JSContext *ctx,
     void *ptr;
     JSAtomicsWaiter *waiter;
     JSArrayBuffer *abuf;
+    JSObject *p;
 
-    if (js_atomics_get_ptr(ctx, &ptr, &abuf, NULL, NULL, argv[0], argv[1], 1))
+    if (js_atomics_get_ptr(ctx, &ptr, &p, NULL, NULL, NULL, argv[0], argv[1], 1))
         return JS_EXCEPTION;
 
     if (JS_IsUndefined(argv[2])) {
@@ -60699,7 +60710,9 @@ static JSValue js_atomics_notify(JSContext *ctx,
     }
 
     n = 0;
+    abuf = p->u.typed_array->buffer->u.array_buffer;
     if (abuf->shared && count > 0) {
+        /* 'argv[0]' is a SharedArrayBuffer so it cannot be detached nor reduced */
         pthread_mutex_lock(&js_atomics_mutex);
         init_list_head(&waiter_list);
         list_for_each_safe(el, el1, &js_atomics_waiter_list) {

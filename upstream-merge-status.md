@@ -428,7 +428,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 841dd03 | PORT | fixed buffer overflow in TypedArray.prototype.with (#492) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | f1b63fc | PORT | Fix memory leak in Iterator.prototype.map (saghul) (#493) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | 16d6947 | PORT | typo | One-char typo fix in `src/quickjs/quickjs.c`. Applied cleanly. |
-| 46bd985 | PENDING | fixed buffer overflow in Atomics with resizable typed arrays |  |
+| 46bd985 | PORT | fixed buffer overflow in Atomics with resizable typed arrays | Bug fix in `src/quickjs/quickjs.c`. Adapted 2 new JS_ThrowRangeError calls to fork's signature. |
 | 4d16546 | PENDING | fixed RegExp.escape |  |
 | e7b9f21 | PENDING | Fix async generator lifecycle bug (bnoordhuis) (quickjs-ng/quickjs#1355) |  |
 | 5022f2b | PENDING | fixed use-after-free via re-entrant GC in FinalizationRegistry weak reference cleanup (#494) |  |
