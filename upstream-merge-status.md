@@ -423,7 +423,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 4c722ce | PORT | modified js_allocate_fast_array() so that the array is fully initialized. It is slightly slower but avoids several nasty bugs (#471) | Bug fix / safety improvement in `src/quickjs/quickjs.c`. Applied cleanly. Snapshot update in qjsbootstrap-bytecode. |
 | 0989d4c | PORT | fixed TypedArray sort semantics by copying the array before calling the comparison function. Fixed buffer overflow when the array is resized (#477) | Bug fix in `src/quickjs/quickjs.c`. Resolved 1 trivial conflict (extra fork variable declaration). Fixes 1 test262 case. |
 | 68caa5f | PORT | fixed TypedArray constructor semantics which removes a buffer overflow (#478) | Bug fix in `src/quickjs/quickjs.c`. Resolved 2 conflicts in `js_typed_array_constructor` (fork's "ours" used early returns; took upstream's goto-fail flow). Adapted 3 JS_ThrowRangeError/TypeError calls to fork's signature. Fixed 1 test262 case. |
-| aaf0174 | PENDING | test262 update |  |
+| aaf0174 | PORT | test262 update | `src/run-test262/test262.conf` exclusions added; Makefile/TODO/upstream test262_errors.txt skipped (not vendored). |
 | 69090b9 | PENDING | Fix stack underflow with generator in iterable (saghul) (#488) |  |
 | 841dd03 | PENDING | fixed buffer overflow in TypedArray.prototype.with (#492) |  |
 | f1b63fc | PENDING | Fix memory leak in Iterator.prototype.map (saghul) (#493) |  |
