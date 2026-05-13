@@ -33,7 +33,7 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
       "code": 1,
       "error": null,
       "stderr": "TypeError: not a function
-        at <internal>/quickjs.c:17196:0
+        at <internal>/quickjs.c:17227:0
         at callee (Symbol.hasInstance:1:12)
 
     ",

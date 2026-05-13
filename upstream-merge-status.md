@@ -365,7 +365,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 4af5b1e | SKIP-DONE | Merge pull request #408 from nickva/run-test262-in-ci | Merge commit pulling fb14cc6 (already ported in previous commit). |
 | 31663a9 | PORT | updated test262 | Applied test262.conf additions (host-gc-required, nonextensible-applies-to-private=skip, stable-array-sort, stable-typedarray-sort); one conflict resolved by taking upstream's `host-gc-required` (no =skip). Applied the index-hash refresh in `tests/test262.patch` (kept fork's hash on atomicsHelper since fork uses different timeouts; dropped upstream's removal of fork's existing patch hunks for harness/sm/non262.js, regress-469625-01.js, new-with-non-constructor.js — those hunks still apply at the fork's test262 commit). Makefile + TODO not vendored. Upstream's test262_errors.txt diff doesn't apply (different commit). |
 | f1253f2 | PORT | Improve error handling in Promise.withResolvers (bnoordhuis) | Error-handling cleanup in `src/quickjs/quickjs.c`. |
-| f4951ef | PENDING | optimize the create of arrays - optimized the rest and array_from opcodes |  |
+| f4951ef | PORT | optimize the create of arrays - optimized the rest and array_from opcodes | Optimization of array creation in `src/quickjs/quickjs.c`. Bytecode-test snapshot regenerated for shape drift. |
 | 2c90110 | PENDING | - optimized global variable access |  |
 | 57f8ec0 | PENDING | inlined fast path for get_field, get_field2 and put_field |  |
 | 64c55c6 | PENDING | removed JS_PROP_NO_ADD |  |
