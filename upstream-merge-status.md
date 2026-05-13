@@ -416,7 +416,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | e5fd391 | PORT | fixed fast array extension optimization when there are multiple realms | Bug fix in `src/quickjs/quickjs.c`. Upstream removed the per-context `std_array_prototype` field; the fix tracks the "normal" state differently (presumably on the proto object itself). Resolved 1 conflict by taking theirs. Snapshot update in qjsbootstrap-bytecode. |
 | fcd33c1 | PORT | removed memory leak in case of error in cpool_add() (#468) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. Snapshot update in qjsbootstrap-bytecode (line drift). |
 | 1dbba8a | PORT | removed use after free in js_create_module_bytecode_function() (#467) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
-| c73a435 | PENDING | Don't call well-known Symbol methods for RegExp on primitive values |  |
+| c73a435 | PORT | Don't call well-known Symbol methods for RegExp on primitive values | Spec compliance fix in `src/quickjs/quickjs.c`. Resolved 1 conflict in `src/run-test262/test262.conf`: dropped the fork's 23-entry "not yet in official specification" block now that the underlying fix makes those tests pass. |
 | 31ef02b | PENDING | slightly faster lexical variable assignment |  |
 | 7bd1ae2 | PENDING | \x{N} is a syntax error |  |
 | f113949 | PENDING | regexp: removed alloca() is lre_exec() - added specific opcodes for \s and \S to have a smaller bytecode - optimized \b and \B |  |
