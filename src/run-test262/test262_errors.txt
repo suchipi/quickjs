@@ -1,3 +1,16 @@
+test262/test/language/expressions/assignment/S11.13.1_A6_T1.js:23: Test262Error: #1: innerX === undefined. Actual: 1
+test262/test/language/expressions/assignment/S11.13.1_A6_T2.js:23: Test262Error: #1: innerX === 2. Actual: 1
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.1_T1.js:24: Test262Error: #1: innerX === 2. Actual: 12
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.2_T1.js:24: Test262Error: #1: innerX === 2. Actual: 5
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.3_T1.js:24: Test262Error: #1: innerX === 2. Actual: 3
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.4_T1.js:24: Test262Error: #1: innerX === 2. Actual: 4
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.5_T1.js:24: Test262Error: #1: innerX === 2. Actual: 4
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.6_T1.js:24: Test262Error: #1: innerX === 2. Actual: 8
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.7_T1.js:24: Test262Error: #1: innerX === 2. Actual: 4
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.8_T1.js:24: Test262Error: #1: innerX === 2. Actual: 4
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.9_T1.js:24: Test262Error: #1: innerX === 2. Actual: 1
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.10_T1.js:24: Test262Error: #1: innerX === 2. Actual: 5
+test262/test/language/expressions/compound-assignment/S11.13.2_A6.11_T1.js:24: Test262Error: #1: innerX === 2. Actual: 5
 test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-get-with-error.js:23: Test262Error: 
 test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-non-object.js:32: TypeError: import() options must be an object
 test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-enumeration-abrupt.js:28: TypeError: $DONE() not called
@@ -27,8 +40,6 @@ test262/test/staging/sm/async-functions/await-in-arrow-parameters.js:33: Error: 
 test262/test/staging/sm/class/boundFunctionSubclassing.js:12: Test262Error: Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/class/strictExecution.js:32: Error: Assertion failed: expected exception TypeError, no exception thrown
 test262/test/staging/sm/class/superPropOrdering.js:83: Error: Assertion failed: expected exception TypeError, no exception thrown
-test262/test/staging/sm/expressions/short-circuit-compound-assignment-const.js:97: TypeError: 'a' is read-only
-test262/test/staging/sm/expressions/short-circuit-compound-assignment-tdz.js:23: Error: Assertion failed: expected exception ReferenceError, got TypeError: 'a' is read-only
 test262/test/staging/sm/extensions/regress-469625-01.js:16: Test262Error: TM: Array prototype and expression closures Expected SameValue(«"TypeError: [].__proto__ is not a function"», «"TypeError: not a function"») to be true
 test262/test/staging/sm/generators/syntax.js:30: Error: Assertion failed: expected SyntaxError, but no exception thrown - function* g() { (function* yield() {}); }
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-arguments.js:14: Test262Error: Expected SameValue(«"object"», «"function"») to be true
