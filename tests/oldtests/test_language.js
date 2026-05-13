@@ -373,8 +373,8 @@ function test_template_skip() {
 function test_object_literal() {
   var x = 0,
     get = 1,
-    set = 2;
-  async = 3;
+    set = 2,
+    async = 3;
   a = { get: 2, set: 3, async: 4, get a(){ return this.get} };
   assert(JSON.stringify(a), '{"get":2,"set":3,"async":4,"a":2}');
   assert(a.a === 2);
@@ -652,6 +652,34 @@ test_spread();
 test_function_length();
 test_argument_scope();
 test_function_expr_name();
+/* check global variable optimization */
+function test_global_var_opt()
+{
+    var v2;
+    (1, eval)('var gvar1'); /* create configurable global variables */
+
+    gvar1 = 1;
+    Object.defineProperty(globalThis, "gvar1", { writable: false });
+    gvar1 = 2;
+    assert(gvar1, 1);
+
+    Object.defineProperty(globalThis, "gvar1", { get: function() { return "hello" },
+                                                 set: function(v) { v2 = v; } });
+    assert(gvar1, "hello");
+    gvar1 = 3;
+    assert(v2, 3);
+
+    Object.defineProperty(globalThis, "gvar1", { value: 4, writable: true, configurable: true });
+    assert(gvar1, 4);
+    gvar1 = 6;
+
+    delete gvar1;
+    assert_throws(ReferenceError, function() { return gvar1 });
+    gvar1 = 5;
+    assert(gvar1, 5);
+}
+
 test_parse_semicolon();
 test_optional_chaining();
 test_parse_arrow_function();
+test_global_var_opt();
