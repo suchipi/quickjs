@@ -380,7 +380,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 2a53de0 | SKIP-NA | test262 update | Makefile + TODO + test262_errors.txt only; fork uses Ninja/meta build, todo.txt, and maintains its own test262_errors.txt (50 errors vs upstream's). |
 | 0d4cd2d | PORT | faster and safer dbuf functions (#443) | Touches `src/lib/cutils/`, `src/lib/libregexp/`, `src/lib/encoding/libunicode/`, and `src/quickjs/`. Split by directory and applied each cleanly. One flaky timer test (`tests/timers.test.ts`) timed out under load; passed on retry. |
 | 7fb994c | PORT | fixed argument evaluation order in Date constructor and Date.UTC() | Fix in `src/quickjs/quickjs.c`. Applied cleanly. Fixed 2 test262 tests: `staging/sm/Date/UTC-convert-all-arguments.js` and `staging/sm/Date/constructor-convert-all-arguments.js` (50 → 48 errors). |
-| 2161640 | PENDING | stricter year parsing in Date |  |
+| 2161640 | PORT | stricter year parsing in Date | Fix in `src/quickjs/quickjs.c`. Applied cleanly. Fixed 1 test262 test (48 → 47 errors). |
 | c720e35 | PENDING | added js_string_eq() |  |
 | 3e5f2bb | PENDING | inlined the get_length operation |  |
 | 9a421b3 | PENDING | optimized Array.prototype.push |  |
