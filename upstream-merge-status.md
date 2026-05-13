@@ -409,7 +409,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 728ed94 | SKIP-DONE | fixed Worker freeing logic (#462) | Fork's `src/builtin-modules/quickjs-os/quickjs-os.c` already has the equivalent fixes: `js_free_port` already guards `list_del` with `if (port->link.next)`; `js_worker_gc_mark` already exists and marks BOTH msg_handler and err_handler (upstream's mark only covers msg_handler). |
 | a774007 | PORT | removed buffer overflows introduced in regexp optimizations | Bug fixes in `src/lib/libregexp/libregexp.c` + `src/quickjs/quickjs.c`. Applied cleanly. |
 | 371c06e | PORT | regexp: ensure that the bytecode size grows linearly with respect to the input regexp. | New REOP_loop_* opcodes in `src/lib/libregexp/libregexp-opcode.h` and rewritten quantifier emission in `libregexp.c`. Resolved 1 conflict (took upstream's restructured emit code). |
-| 47aac8b | PENDING | regexp: cosmetic: make it clearer that there is now a set of registers instead of an auxiliary stack |  |
+| 47aac8b | PORT | regexp: cosmetic: make it clearer that there is now a set of registers instead of an auxiliary stack | Cosmetic rename in `src/lib/libregexp/`. Applied cleanly. |
 | 5907aa6 | PENDING | added missing lre_poll_timeout() |  |
 | b226856 | PENDING | updated to unicode 17.0.0 - updated test262 version |  |
 | 24379bf | PENDING | added regexp duplicate named groups - fixed reset of captures with quantizers |  |
