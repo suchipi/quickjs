@@ -412,7 +412,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 47aac8b | PORT | regexp: cosmetic: make it clearer that there is now a set of registers instead of an auxiliary stack | Cosmetic rename in `src/lib/libregexp/`. Applied cleanly. |
 | 5907aa6 | PORT | added missing lre_poll_timeout() | Simplification in `src/lib/libregexp/libregexp.c`. Applied cleanly. |
 | b226856 | PORT | updated to unicode 17.0.0 - updated test262 version | Updated Unicode data to 17.0.0: re-ran `unicode_download.sh` (adapted to fork's structure with VERSION var, no separate EMOJI_VERSION) and rebuilt libunicode-table.h. Added 5 new scripts to `unicode_gen_def.h`: Beria_Erfe, Katakana_Or_Hiragana, Sidetic, Tai_Yo, Tolong_Siki. Test262 submodule bump NOT done (would require submodule update + maintenance) — this causes 70 new test262 errors (58 → 128) in the property-escapes tests that test specific characters added/changed in Unicode 17. Most fork users should not be affected; revisit if the test262 submodule gets bumped separately. |
-| 24379bf | PENDING | added regexp duplicate named groups - fixed reset of captures with quantizers |  |
+| 24379bf | PORT | added regexp duplicate named groups - fixed reset of captures with quantizers | New regexp feature in `src/lib/libregexp/`. Resolved 1 conflict in back-reference emission (took theirs — upstream changed to emit length-prefixed). Fixed 3 test262 cases (128 → 125 errors); flaky worker-stress test passed on retry. |
 | e5fd391 | PENDING | fixed fast array extension optimization when there are multiple realms |  |
 | fcd33c1 | PENDING | removed memory leak in case of error in cpool_add() (#468) |  |
 | 1dbba8a | PENDING | removed use after free in js_create_module_bytecode_function() (#467) |  |
