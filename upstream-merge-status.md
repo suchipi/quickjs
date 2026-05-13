@@ -415,7 +415,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 24379bf | PORT | added regexp duplicate named groups - fixed reset of captures with quantizers | New regexp feature in `src/lib/libregexp/`. Resolved 1 conflict in back-reference emission (took theirs — upstream changed to emit length-prefixed). Fixed 3 test262 cases (128 → 125 errors); flaky worker-stress test passed on retry. |
 | e5fd391 | PORT | fixed fast array extension optimization when there are multiple realms | Bug fix in `src/quickjs/quickjs.c`. Upstream removed the per-context `std_array_prototype` field; the fix tracks the "normal" state differently (presumably on the proto object itself). Resolved 1 conflict by taking theirs. Snapshot update in qjsbootstrap-bytecode. |
 | fcd33c1 | PORT | removed memory leak in case of error in cpool_add() (#468) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. Snapshot update in qjsbootstrap-bytecode (line drift). |
-| 1dbba8a | PENDING | removed use after free in js_create_module_bytecode_function() (#467) |  |
+| 1dbba8a | PORT | removed use after free in js_create_module_bytecode_function() (#467) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | c73a435 | PENDING | Don't call well-known Symbol methods for RegExp on primitive values |  |
 | 31ef02b | PENDING | slightly faster lexical variable assignment |  |
 | 7bd1ae2 | PENDING | \x{N} is a syntax error |  |
