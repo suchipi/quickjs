@@ -359,7 +359,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 456e016 | PORT | added Map and WeakMap upsert methods (bnoordhuis) | Added `Map.prototype.upsert` / `WeakMap.prototype.upsert` in `src/quickjs/quickjs.c`. Adapted 2 JS_ThrowTypeError to fork's 4-arg signature. `TODO` not vendored. |
 | bc753c6 | PORT | added Math.sumPrecise() | Added `Math.sumPrecise()` in `src/quickjs/quickjs.c`. Adapted 1 JS_ThrowTypeError; added the test case to `tests/oldtests/test_builtin.js`. `TODO` not vendored. |
 | a6db749 | PORT | fixed Atomics.pause() in the NaN boxing case (32 bit cpu) | One-line fix in `src/quickjs/quickjs.c`. |
-| 0060876 | PENDING | fixed Date parsing: "1997-03-08 11:19:10-0700" is a valid date and "1997-03-08T11:19:10-07" should yield an error |  |
+| 0060876 | PORT | fixed Date parsing: "1997-03-08 11:19:10-0700" is a valid date and "1997-03-08T11:19:10-07" should yield an error | Date-parsing fix in `src/quickjs/quickjs.c`. test262 errors 50 → 49. `TODO` not vendored. |
 | c3e5ae2 | PENDING | simplified math.sumPrecise() |  |
 | fb14cc6 | PENDING | Run test262 tests in CI |  |
 | 4af5b1e | PENDING | Merge pull request #408 from nickva/run-test262-in-ci |  |
