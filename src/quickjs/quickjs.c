@@ -39320,8 +39320,9 @@ static JSValue JS_ReadFunctionTag(BCReaderState *s)
     uint16_t v16;
     uint8_t v8;
     int idx, i, local_count;
-    int function_size, cpool_offset, byte_code_offset;
+    int cpool_offset, byte_code_offset;
     int closure_var_offset, vardefs_offset;
+    uint64_t function_size;
 
     memset(&bc, 0, sizeof(bc));
     bc.header.ref_count = 1;
@@ -39372,15 +39373,18 @@ static JSValue JS_ReadFunctionTag(BCReaderState *s)
         function_size = offsetof(JSFunctionBytecode, debug);
     }
     cpool_offset = function_size;
-    function_size += bc.cpool_count * sizeof(*bc.cpool);
+    function_size += (uint64_t)bc.cpool_count * sizeof(*bc.cpool);
     vardefs_offset = function_size;
-    function_size += local_count * sizeof(*bc.vardefs);
+    function_size += (uint64_t)local_count * sizeof(*bc.vardefs);
     closure_var_offset = function_size;
-    function_size += bc.closure_var_count * sizeof(*bc.closure_var);
+    function_size += (uint64_t)bc.closure_var_count * sizeof(*bc.closure_var);
     byte_code_offset = function_size;
     if (!bc.read_only_bytecode) {
         function_size += bc.byte_code_len;
     }
+
+    if (function_size > INT32_MAX)
+        return JS_ThrowOutOfMemory(ctx);
 
     b = js_mallocz(ctx, function_size);
     if (!b)

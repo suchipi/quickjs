@@ -432,5 +432,5 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 4d16546 | PORT | fixed RegExp.escape | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | e7b9f21 | PORT | Fix async generator lifecycle bug (bnoordhuis) (quickjs-ng/quickjs#1355) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. Snapshot update in qjsbootstrap-bytecode. |
 | 5022f2b | PORT | fixed use-after-free via re-entrant GC in FinalizationRegistry weak reference cleanup (#494) | Bug fix in `src/quickjs/quickjs.c`. Resolved 1 conflict (took theirs — JS_EnqueueJob → JS_EnqueueJob2 with no-exception flag). |
-| a31dcef | PENDING | added basic protection against too large function in serialized bytecode |  |
+| a31dcef | PORT | added basic protection against too large function in serialized bytecode | Security hardening in `src/quickjs/quickjs.c`. Applied cleanly. Flaky wine tests passed on retry. |
 | d7ae12a | PENDING | added JSON.parse source text access |  |
