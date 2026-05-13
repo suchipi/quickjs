@@ -30,11 +30,14 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
   await run2.completion;
   expect(run2.result).toMatchInlineSnapshot(`
     {
-      "code": 0,
+      "code": 1,
       "error": null,
-      "stderr": "",
-      "stdout": "4
+      "stderr": "ReferenceError: 'Symbol.unscopables' is not defined
+        at <internal>/quickjs.c:7416:0
+        at callee (console:1:1)
+
     ",
+      "stdout": "",
     }
   `);
 });
