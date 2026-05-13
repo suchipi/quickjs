@@ -32,9 +32,9 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
     {
       "code": 1,
       "error": null,
-      "stderr": "ReferenceError: 'Symbol.hasInstance' is not defined
-        at <internal>/quickjs.c:7423:0
-        at callee (Symbol.unscopables:1:1)
+      "stderr": "ReferenceError: 'Symbol.isConcatSpreadable' is not defined
+        at <internal>/quickjs.c:7428:0
+        at callee (Symbol.species:1:1)
 
     ",
       "stdout": "",
