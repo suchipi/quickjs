@@ -58202,6 +58202,8 @@ static JSValue js_typed_array_with(JSContext *ctx, JSValueConst this_val,
     if (typed_array_is_oob(p) || idx < 0 || idx >= p->u.array.count)
         return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid array index");
 
+    /* warning: 'this_val' may have been resized, so 'len' may be
+       larger than its length */
     arr = js_typed_array_constructor_ta(ctx, JS_UNDEFINED, this_val,
                                         p->class_id, len);
     if (JS_IsException(arr)) {
@@ -59706,9 +59708,6 @@ static JSValue js_typed_array_constructor_ta(JSContext *ctx,
         JS_ThrowTypeErrorArrayBufferOOB(ctx);
         goto fail;
     }
-    ta = p->u.typed_array;
-    src_buffer = ta->buffer;
-    src_abuf = src_buffer->u.array_buffer;
     size_log2 = typed_array_size_log2(classid);
     buffer = js_array_buffer_constructor1(ctx, JS_UNDEFINED,
                                           (uint64_t)len << size_log2,
@@ -59724,8 +59723,12 @@ static JSValue js_typed_array_constructor_ta(JSContext *ctx,
     abuf = JS_GetOpaque(buffer, JS_CLASS_ARRAY_BUFFER);
     if (typed_array_init(ctx, obj, buffer, 0, len, /*track_rab*/FALSE))
         goto fail;
-    if (p->class_id == classid) {
-        /* same type: copy the content */
+    ta = p->u.typed_array;
+    src_buffer = ta->buffer;
+    src_abuf = src_buffer->u.array_buffer;
+    if (p->class_id == classid &&
+        (int64_t)ta->offset + (int64_t)abuf->byte_length <= src_abuf->byte_length) {
+        /* same type and no overflow: copy the content */
         memcpy(abuf->data, src_abuf->data + ta->offset, abuf->byte_length);
     } else {
         for(i = 0; i < len; i++) {
