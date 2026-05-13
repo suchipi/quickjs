@@ -32,9 +32,9 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
     {
       "code": 1,
       "error": null,
-      "stderr": "ReferenceError: 'Symbol.unscopables' is not defined
-        at <internal>/quickjs.c:7416:0
-        at callee (console:1:1)
+      "stderr": "ReferenceError: 'Symbol.species' is not defined
+        at <internal>/quickjs.c:7418:0
+        at callee (Symbol.asyncIterator:1:1)
 
     ",
       "stdout": "",

@@ -38,6 +38,7 @@ test("quickjs:context - example", async () => {
     	URIError: Function "URIError" {…}
     	InternalError: Function "InternalError" {…}
     	AggregateError: Function "AggregateError" {…}
+    	Iterator: Function "Iterator" {…}
     	Array: Function "Array" {…}
     	parseInt: Function "parseInt" {…}
     	parseFloat: Function "parseFloat" {…}

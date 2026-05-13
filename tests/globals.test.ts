@@ -81,6 +81,7 @@ test("globals", async () => {
     URIError: function (CW)
     InternalError: function (CW)
     AggregateError: function (CW)
+    Iterator: function (CW)
     Array: function (CW)
     parseInt: function (CW)
     parseFloat: function (CW)
