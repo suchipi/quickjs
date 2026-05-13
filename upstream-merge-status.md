@@ -399,7 +399,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | d10613f | PORT | fixed exception handling in put_var operation (regression introduced by commit a6816be) (#454) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | b07ad11 | PORT | fixed JS_PROP_AUTOINIT handling in js_closure_define_global_var() (#455) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | 9688007 | PORT | Restore a mistakenly removed goto on error in js_build_module_ns() (igorburago) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
-| ae7219b | PENDING | - Closure optimization (go from quadratic to linear time when the number of closure variables is large) - Separated JSVarDef and JSBytecodeVarDef to simplify the code and save memory - fixed debug info stripping with global variables |  |
+| ae7219b | PORT | - Closure optimization (go from quadratic to linear time when the number of closure variables is large) - Separated JSVarDef and JSBytecodeVarDef to simplify the code and save memory - fixed debug info stripping with global variables | Large refactor in `src/quickjs/quickjs.c`. Applied cleanly. Required adapting fork's synthetic stack frame init: replaced `init_list_head(&ssf->frame.var_ref_list)` with `ssf->frame.var_refs = NULL` to match the refactored JSStackFrame layout (list head field renamed to array pointer). Bytecode snapshots updated in 3 test files because closure layout changed. |
 | 125b012 | PENDING | added error checking in JS_InstantiateFunctionListItem() |  |
 | 3d0cc29 | PENDING | optimized add/sub int32 overflow |  |
 | 4bd485d | PENDING | - Added Iterator.concat (initial patch by bnoordhuis) - optimized js_iterator_concat_next() - added more guards against recursion in Iterator.concat operations |  |

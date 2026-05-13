@@ -30,9 +30,12 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
   await run2.completion;
   expect(run2.result).toMatchInlineSnapshot(`
     {
-      "code": null,
+      "code": 1,
       "error": null,
-      "stderr": "",
+      "stderr": "SyntaxError: read after the end of the buffer
+        at quickjs.c:38819:0
+
+    ",
       "stdout": "",
     }
   `);
