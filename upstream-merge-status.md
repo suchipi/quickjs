@@ -385,7 +385,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 3e5f2bb | PORT | inlined the get_length operation | Optimization in `src/quickjs/quickjs.c`. Added `array_length_read` and `string_length` microbenches to `meta/microbench.js`. |
 | 9a421b3 | PORT | optimized Array.prototype.push | Optimization in `src/quickjs/quickjs.c`. Applied cleanly. |
 | af16a97 | PORT | changed module rejection order according to spec change | Spec compliance fix in `src/quickjs/quickjs.c`. Applied cleanly. |
-| c31809e | PENDING | fixed operation order in Regexp constructor |  |
+| c31809e | PORT | fixed operation order in Regexp constructor | Spec compliance fix in `src/quickjs/quickjs.c`. Resolved 1 conflict in `js_regexp_set_internal` (preserved fork's `JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, ...)` signature while taking upstream's structural change: removed `fail:` label, added `JS_FreeValue(ctx, obj)`). Also adapted `js_puts` → `js_print_sink_puts` (fork renamed these helpers). Fixed 1 test262 test (47 → 46 errors). |
 | eab6945 | PENDING | updated test results |  |
 | eb2c890 | PENDING | removed uninitialized variable |  |
 | a6816be | PENDING | optimized global variable access |  |

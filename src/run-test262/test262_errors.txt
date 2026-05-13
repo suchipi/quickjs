@@ -15,7 +15,6 @@ test262/test/staging/sm/Function/function-bind.js:14: Test262Error: Expected Sam
 test262/test/staging/sm/Function/function-name-for.js:12: Test262Error: Expected SameValue(«""», «"forInHead"») to be true
 test262/test/staging/sm/Function/implicit-this-in-parameter-expression.js:13: Test262Error: Expected SameValue(«[object Object]», «undefined») to be true
 test262/test/staging/sm/Function/invalid-parameter-list.js:35: Error: Assertion failed: expected exception SyntaxError, no exception thrown
-test262/test/staging/sm/RegExp/constructor-ordering-2.js:15: Test262Error: Expected SameValue(«false», «true») to be true
 test262/test/staging/sm/RegExp/regress-613820-1.js:13: Test262Error: Expected SameValue(«"aaa"», «"aa"») to be true
 test262/test/staging/sm/RegExp/regress-613820-2.js:13: Test262Error: Expected SameValue(«"f"», «undefined») to be true
 test262/test/staging/sm/RegExp/regress-613820-3.js:13: Test262Error: Expected SameValue(«"aab"», «"aa"») to be true
