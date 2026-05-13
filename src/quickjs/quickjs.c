@@ -18639,6 +18639,18 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 sp--;
             }
             BREAK;
+        CASE(OP_set_loc_check):
+            {
+                int idx;
+                idx = get_u16(pc);
+                pc += 2;
+                if (unlikely(JS_IsUninitialized(var_buf[idx]))) {
+                    JS_ThrowReferenceErrorUninitialized2(ctx, b, idx, FALSE);
+                    goto exception;
+                }
+                set_value(ctx, &var_buf[idx], JS_DupValue(ctx, sp[-1]));
+            }
+            BREAK;
         CASE(OP_put_loc_check_init):
             {
                 int idx;
@@ -35691,7 +35703,7 @@ static __exception int resolve_labels(JSContext *ctx, JSFunctionDef *s)
                 /* Transformation: dup put_x(n) drop -> put_x(n) */
                 int op1, line2 = -1;
                 /* Transformation: dup put_x(n) -> set_x(n) */
-                if (code_match(&cc, pos_next, M3(OP_put_loc, OP_put_arg, OP_put_var_ref), -1, -1)) {
+                if (code_match(&cc, pos_next, M4(OP_put_loc, OP_put_loc_check, OP_put_arg, OP_put_var_ref), -1, -1)) {
                     if (cc.line_num >= 0) line_num = cc.line_num;
                     op1 = cc.op + 1;  /* put_x -> set_x */
                     pos_next = cc.pos;
@@ -35799,6 +35811,7 @@ static __exception int resolve_labels(JSContext *ctx, JSFunctionDef *s)
             goto no_change;
 #endif
         case OP_put_loc:
+        case OP_put_loc_check:
         case OP_put_arg:
         case OP_put_var_ref:
             if (OPTIMIZE) {
