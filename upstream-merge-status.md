@@ -373,7 +373,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | e5de89f | PORT | optimized post_inc and post_dec | Optimization in `src/quickjs/quickjs.c`. Applied cleanly via 3-way merge. |
 | 79f3ae2 | PORT | optimized string_buffer_putc() | Optimization in `src/quickjs/quickjs.c`. Applied cleanly. Required snapshot update in `tests/qjsbootstrap-bytecode.test.ts` (line number 7423 → 7443 due to added code). |
 | c8a8cf5 | PORT | faster appending of elements in arrays | Optimization in `src/quickjs/quickjs.c`. Applied cleanly. Snapshot update in `tests/qjsbootstrap-bytecode.test.ts` (line 7443 → 7447). |
-| 7a488f3 | PENDING | update |  |
+| 7a488f3 | SKIP-NA | update | Changelog + doc/quickjs.texi only; fork doesn't vendor either. |
 | 42eb279 | PENDING | Faster context creation and exception checks in JS_NewContext (#404) |  |
 | eb9fa2b | PENDING | compilation fix for clang |  |
 | 6345009 | PENDING | fixed regression in error message display introduced in commit 42eb279 |  |
