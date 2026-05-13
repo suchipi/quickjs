@@ -361,7 +361,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | a6db749 | PORT | fixed Atomics.pause() in the NaN boxing case (32 bit cpu) | One-line fix in `src/quickjs/quickjs.c`. |
 | 0060876 | PORT | fixed Date parsing: "1997-03-08 11:19:10-0700" is a valid date and "1997-03-08T11:19:10-07" should yield an error | Date-parsing fix in `src/quickjs/quickjs.c`. test262 errors 50 → 49. `TODO` not vendored. |
 | c3e5ae2 | PORT | simplified math.sumPrecise() | Upstream refactor of `sum_precise_add` and `sum_precise_get_result` in `src/quickjs/quickjs.c` — simpler algorithm using a renorm-on-counter pattern. 4 conflicts resolved by taking upstream's version. |
-| fb14cc6 | PENDING | Run test262 tests in CI |  |
+| fb14cc6 | PORT | Run test262 tests in CI | The CI workflow + Makefile changes are SKIP-NA (fork's CI is different, no Makefile). The vendored bits applied: `immutable-arraybuffer=skip` added to `src/run-test262/test262.conf` (one conflict resolved keeping fork's `host-gc-required=skip` and `import-assertions` lines too); atomicsHelper timeouts doubled in `src/run-test262/test262.patch` (yield 20→40, small 20→40, long 100→200). |
 | 4af5b1e | PENDING | Merge pull request #408 from nickva/run-test262-in-ci |  |
 | 31663a9 | PENDING | updated test262 |  |
 | f1253f2 | PENDING | Improve error handling in Promise.withResolvers (bnoordhuis) |  |
