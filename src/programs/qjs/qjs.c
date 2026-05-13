@@ -243,7 +243,8 @@ void help(void)
            "-i  --interactive  go to interactive mode\n"
            "-m  --module       load as ES6 module (default=autodetect)\n"
            "    --script       load as ES6 script (default=autodetect)\n"
-           "-I  --include file include an additional file\n"
+           "    --strict       force strict mode for non-module input\n"
+           "-I  --include file include an additional file (always evaluated as script)\n"
            "    --std          make 'std' and 'os' available to the loaded script\n"
            "-T  --trace        trace memory allocation\n"
            "-d  --dump         dump the memory usage stats\n"
@@ -268,6 +269,7 @@ int main(int argc, char **argv)
     int trace_memory = 0;
     int empty_run = 0;
     int module = -1;
+    int strict = 0;
     int load_std = 0;
     int dump_unhandled_promise_rejection = 1;
     size_t memory_limit = 0;
@@ -336,6 +338,10 @@ int main(int argc, char **argv)
             }
             if (!strcmp(longopt, "script")) {
                 module = 0;
+                continue;
+            }
+            if (!strcmp(longopt, "strict")) {
+                strict = 1;
                 continue;
             }
             if (opt == 'd' || !strcmp(longopt, "dump")) {
@@ -438,8 +444,11 @@ int main(int argc, char **argv)
             QJMS_EvalBuf(ctx, str, strlen(str), "<input>", JS_EVAL_TYPE_MODULE);
         }
 
+        /* -I include files are always treated as scripts (not modules),
+           matching upstream qjs's "don't consider included files as
+           modules" behavior. --strict applies. */
         for(i = 0; i < include_count; i++) {
-            if (QJMS_EvalFile(ctx, include_list[i], module))
+            if (QJMS_EvalFile(ctx, include_list[i], 0, strict))
                 goto fail;
         }
 
@@ -452,6 +461,8 @@ int main(int argc, char **argv)
                 eval_flags |= JS_EVAL_TYPE_MODULE;
             } else {
                 eval_flags |= JS_EVAL_TYPE_GLOBAL;
+                if (strict)
+                    eval_flags |= JS_EVAL_FLAG_STRICT;
             }
             /* Async evaluation: qjs has its own event loop running after
                this call (js_eventloop_run below), so top-level await in
@@ -466,7 +477,7 @@ int main(int argc, char **argv)
             const char *filename;
             filename = argv[optind];
             /* Async: see comment above. */
-            if (QJMS_EvalFileAsync(ctx, filename, module))
+            if (QJMS_EvalFileAsync(ctx, filename, module, strict))
                 goto fail;
         }
         if (interactive) {

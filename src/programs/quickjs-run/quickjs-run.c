@@ -92,7 +92,7 @@ int main(int argc, char **argv)
      and consumes it before returning -1; do not call QJU_PrintException
      here (it would re-fetch a now-empty exception slot and print
      "thrown non-Error value: [unsupported type]"). */
-  if (QJMS_EvalFileAsync(ctx, filename, -1)) {
+  if (QJMS_EvalFileAsync(ctx, filename, -1, /*strict=*/0)) {
     exit_status = 1;
     goto cleanup;
   }

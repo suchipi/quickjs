@@ -82,18 +82,21 @@ int QJMS_EvalBufAsync(JSContext *ctx, const void *buf, int buf_len,
 
 /*
   module can be -1 for autodetect.
+  strict is only honored when the input ends up as script (module=0
+  after autodetect, or module=0 forced by the caller); for modules
+  it has no effect (modules are always strict per spec).
   Synchronously evaluates the file; see QJMS_EvalBuf for the TLA
   constraint.
 
   Returns 0 on success, -1 on error. See contract above.
 */
-int QJMS_EvalFile(JSContext *ctx, const char *filename, int module);
+int QJMS_EvalFile(JSContext *ctx, const char *filename, int module, int strict);
 
 /*
-  module can be -1 for autodetect.
+  module can be -1 for autodetect. See QJMS_EvalFile for strict.
   Async variant; see QJMS_EvalBufAsync.
 */
-int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module);
+int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module, int strict);
 
 /*
   Synchronously evaluates bytecode. Throws TypeError if the bytecode is

@@ -741,7 +741,7 @@ int QJMS_EvalBufAsync(JSContext *ctx, const void *buf, int buf_len,
 
 /* Common helper for QJMS_EvalFile / QJMS_EvalFileAsync. */
 static int qjms_eval_file_impl(JSContext *ctx, const char *filename, int module,
-                               BOOL is_async)
+                               int strict, BOOL is_async)
 {
     uint8_t *buf;
     int ret, eval_flags;
@@ -761,20 +761,22 @@ static int qjms_eval_file_impl(JSContext *ctx, const char *filename, int module,
       eval_flags = JS_EVAL_TYPE_MODULE;
     } else {
       eval_flags = JS_EVAL_TYPE_GLOBAL;
+      if (strict)
+        eval_flags |= JS_EVAL_FLAG_STRICT;
     }
     ret = qjms_eval_buf_impl(ctx, buf, buf_len, filename, eval_flags, is_async);
     js_free(ctx, buf);
     return ret;
 }
 
-int QJMS_EvalFile(JSContext *ctx, const char *filename, int module)
+int QJMS_EvalFile(JSContext *ctx, const char *filename, int module, int strict)
 {
-    return qjms_eval_file_impl(ctx, filename, module, /*is_async=*/FALSE);
+    return qjms_eval_file_impl(ctx, filename, module, strict, /*is_async=*/FALSE);
 }
 
-int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module)
+int QJMS_EvalFileAsync(JSContext *ctx, const char *filename, int module, int strict)
 {
-    return qjms_eval_file_impl(ctx, filename, module, /*is_async=*/TRUE);
+    return qjms_eval_file_impl(ctx, filename, module, strict, /*is_async=*/TRUE);
 }
 
 /* Common helper for QJMS_EvalBinary / QJMS_EvalBinaryAsync. When is_async
