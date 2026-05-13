@@ -410,7 +410,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | a774007 | PORT | removed buffer overflows introduced in regexp optimizations | Bug fixes in `src/lib/libregexp/libregexp.c` + `src/quickjs/quickjs.c`. Applied cleanly. |
 | 371c06e | PORT | regexp: ensure that the bytecode size grows linearly with respect to the input regexp. | New REOP_loop_* opcodes in `src/lib/libregexp/libregexp-opcode.h` and rewritten quantifier emission in `libregexp.c`. Resolved 1 conflict (took upstream's restructured emit code). |
 | 47aac8b | PORT | regexp: cosmetic: make it clearer that there is now a set of registers instead of an auxiliary stack | Cosmetic rename in `src/lib/libregexp/`. Applied cleanly. |
-| 5907aa6 | PENDING | added missing lre_poll_timeout() |  |
+| 5907aa6 | PORT | added missing lre_poll_timeout() | Simplification in `src/lib/libregexp/libregexp.c`. Applied cleanly. |
 | b226856 | PENDING | updated to unicode 17.0.0 - updated test262 version |  |
 | 24379bf | PENDING | added regexp duplicate named groups - fixed reset of captures with quantizers |  |
 | e5fd391 | PENDING | fixed fast array extension optimization when there are multiple realms |  |
