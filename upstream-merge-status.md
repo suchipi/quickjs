@@ -384,7 +384,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | c720e35 | PORT | added js_string_eq() | New helper in `src/quickjs/quickjs.c`. Applied cleanly. Snapshot update in `tests/qjsbootstrap-bytecode.test.ts` (line number drift). |
 | 3e5f2bb | PORT | inlined the get_length operation | Optimization in `src/quickjs/quickjs.c`. Added `array_length_read` and `string_length` microbenches to `meta/microbench.js`. |
 | 9a421b3 | PORT | optimized Array.prototype.push | Optimization in `src/quickjs/quickjs.c`. Applied cleanly. |
-| af16a97 | PENDING | changed module rejection order according to spec change |  |
+| af16a97 | PORT | changed module rejection order according to spec change | Spec compliance fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | c31809e | PENDING | fixed operation order in Regexp constructor |  |
 | eab6945 | PENDING | updated test results |  |
 | eb2c890 | PENDING | removed uninitialized variable |  |
