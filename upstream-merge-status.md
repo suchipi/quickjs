@@ -418,7 +418,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 1dbba8a | PORT | removed use after free in js_create_module_bytecode_function() (#467) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | c73a435 | PORT | Don't call well-known Symbol methods for RegExp on primitive values | Spec compliance fix in `src/quickjs/quickjs.c`. Resolved 1 conflict in `src/run-test262/test262.conf`: dropped the fork's 23-entry "not yet in official specification" block now that the underlying fix makes those tests pass. |
 | 31ef02b | PORT | slightly faster lexical variable assignment | New opcode in `src/quickjs/quickjs-opcode.h` + `quickjs.c`. Applied cleanly. Bytecode snapshots updated in 3 test files; flaky wine tests passed on retry. |
-| 7bd1ae2 | PENDING | \x{N} is a syntax error |  |
+| 7bd1ae2 | PORT | \x{N} is a syntax error | Spec compliance fix in `src/lib/libregexp/libregexp.c`. Applied cleanly. |
 | f113949 | PENDING | regexp: removed alloca() is lre_exec() - added specific opcodes for \s and \S to have a smaller bytecode - optimized \b and \B |  |
 | 4c722ce | PENDING | modified js_allocate_fast_array() so that the array is fully initialized. It is slightly slower but avoids several nasty bugs (#471) |  |
 | 0989d4c | PENDING | fixed TypedArray sort semantics by copying the array before calling the comparison function. Fixed buffer overflow when the array is resized (#477) |  |
