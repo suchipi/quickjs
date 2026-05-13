@@ -427,7 +427,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 69090b9 | PORT | Fix stack underflow with generator in iterable (saghul) (#488) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. Snapshot update in qjsbootstrap-bytecode; flaky wine tests passed on retry. |
 | 841dd03 | PORT | fixed buffer overflow in TypedArray.prototype.with (#492) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | f1b63fc | PORT | Fix memory leak in Iterator.prototype.map (saghul) (#493) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
-| 16d6947 | PENDING | typo |  |
+| 16d6947 | PORT | typo | One-char typo fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | 46bd985 | PENDING | fixed buffer overflow in Atomics with resizable typed arrays |  |
 | 4d16546 | PENDING | fixed RegExp.escape |  |
 | e7b9f21 | PENDING | Fix async generator lifecycle bug (bnoordhuis) (quickjs-ng/quickjs#1355) |  |
