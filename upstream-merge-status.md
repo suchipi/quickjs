@@ -360,7 +360,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | bc753c6 | PORT | added Math.sumPrecise() | Added `Math.sumPrecise()` in `src/quickjs/quickjs.c`. Adapted 1 JS_ThrowTypeError; added the test case to `tests/oldtests/test_builtin.js`. `TODO` not vendored. |
 | a6db749 | PORT | fixed Atomics.pause() in the NaN boxing case (32 bit cpu) | One-line fix in `src/quickjs/quickjs.c`. |
 | 0060876 | PORT | fixed Date parsing: "1997-03-08 11:19:10-0700" is a valid date and "1997-03-08T11:19:10-07" should yield an error | Date-parsing fix in `src/quickjs/quickjs.c`. test262 errors 50 → 49. `TODO` not vendored. |
-| c3e5ae2 | PENDING | simplified math.sumPrecise() |  |
+| c3e5ae2 | PORT | simplified math.sumPrecise() | Upstream refactor of `sum_precise_add` and `sum_precise_get_result` in `src/quickjs/quickjs.c` — simpler algorithm using a renorm-on-counter pattern. 4 conflicts resolved by taking upstream's version. |
 | fb14cc6 | PENDING | Run test262 tests in CI |  |
 | 4af5b1e | PENDING | Merge pull request #408 from nickva/run-test262-in-ci |  |
 | 31663a9 | PENDING | updated test262 |  |
