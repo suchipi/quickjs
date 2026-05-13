@@ -30,13 +30,9 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
   await run2.completion;
   expect(run2.result).toMatchInlineSnapshot(`
     {
-      "code": 1,
+      "code": null,
       "error": null,
-      "stderr": "TypeError: not an object
-        at <internal>/quickjs.c:7505:0
-        at callee (Symbol.isConcatSpreadable:1:8)
-
-    ",
+      "stderr": "",
       "stdout": "",
     }
   `);

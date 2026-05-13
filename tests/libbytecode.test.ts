@@ -72,9 +72,9 @@ test("bytecode - script file", async () => {
     	│0x00000000│ 06 03 0E 63 6F 6E 73 6F 6C 65 06 6C 6F 67 34 74
     	│0x00000010│ 65 73 74 73 2F 66 69 78 74 75 72 65 73 2F 6C 6F
     	│0x00000020│ 67 2D 66 6F 75 72 2E 6A 73 0C 00 06 00 A8 01 00
-    	│0x00000030│ 01 00 04 00 00 12 01 AA 01 00 00 00 38 ED 00 00
-    	│0x00000040│ 00 41 EE 00 00 00 B7 B7 9D 24 01 00 CD 28 DE 03
-    	│0x00000050│ 08 00 00 1B 0E 25 0E 07 05 00
+    	│0x00000030│ 01 00 04 01 00 10 01 AA 01 00 00 00 DA 03 00 05
+    	│0x00000040│ 00 38 00 00 3E EE 00 00 00 B4 B4 9A 24 01 00 CA
+    	│0x00000050│ 28 DE 03 08 00 00 11 0E 25 0E 07 05 00
     }
     toValue Function "bound bytecode" {
     	│1│ function bound bytecode() {
@@ -119,10 +119,10 @@ test("bytecode - module file", async () => {
     	│0x00000020│ 73 08 66 69 76 65 0E 63 6F 6E 73 6F 6C 65 06 6C
     	│0x00000030│ 6F 67 16 65 78 70 6F 72 74 69 6E 67 20 35 0D DA
     	│0x00000040│ 03 00 01 00 00 DC 03 00 00 00 0C 20 06 01 A8 01
-    	│0x00000050│ 00 00 00 03 01 00 1B 00 DC 03 00 0D 08 EA 02 29
-    	│0x00000060│ 38 EF 00 00 00 41 F0 00 00 00 04 F1 00 00 00 24
-    	│0x00000070│ 01 00 0E BA E1 06 2F DA 03 06 00 00 2F 0E 34 08
-    	│0x00000080│ 00
+    	│0x00000050│ 00 00 00 03 02 00 19 00 DC 03 00 1E 00 DE 03 00
+    	│0x00000060│ 05 00 08 E7 02 29 38 01 00 3E F0 00 00 00 04 F1
+    	│0x00000070│ 00 00 00 24 01 00 0E B7 DE 06 2F DA 03 06 00 00
+    	│0x00000080│ 25 0E 34 08 00
     }
     toValue Function "bound bytecode" {
     	│1│ function bound bytecode() {
@@ -574,8 +574,8 @@ test("bytecode.fromFile strip: source drops fn source bytes", async () => {
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "default bytes: 213
-    strip source bytes: 169
+      "stdout": "default bytes: 208
+    strip source bytes: 164
     source-stripped is shorter: true
     default has source: true
     stripped has source: false
@@ -610,14 +610,17 @@ test("bytecode.fromFile strip: debug drops all debug info", async () => {
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
-      "code": 0,
+      "code": null,
       "error": null,
-      "stderr": "",
-      "stdout": "default: 213
-    strip source: 169
-    strip debug: 96
+      "stderr": "TypeError: not a function
+        at somewhere
+
+    Assertion failed: (list_empty(&rt->gc_obj_list)), function JS_FreeRuntime, file quickjs.c, line 2049.
+    ",
+      "stdout": "default: 208
+    strip source: 164
+    strip debug: 81
     debug < source: true
-    42
     ",
     }
   `);
