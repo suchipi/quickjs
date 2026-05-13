@@ -22,11 +22,6 @@ test262/test/staging/sm/RegExp/constructor-ordering-2.js:15: Test262Error: Expec
 test262/test/staging/sm/RegExp/regress-613820-1.js:13: Test262Error: Expected SameValue(«"aaa"», «"aa"») to be true
 test262/test/staging/sm/RegExp/regress-613820-2.js:13: Test262Error: Expected SameValue(«"f"», «undefined») to be true
 test262/test/staging/sm/RegExp/regress-613820-3.js:13: Test262Error: Expected SameValue(«"aab"», «"aa"») to be true
-test262/test/staging/sm/Set/difference.js:34: Test262Error: Actual [[[get]], Symbol(Symbol.iterator)] and expected [] should have the same contents. 
-test262/test/staging/sm/Set/is-disjoint-from.js:34: Test262Error: Actual [next] and expected [next, return] should have the same contents. 
-test262/test/staging/sm/Set/is-superset-of.js:34: Test262Error: Actual [next] and expected [next, return] should have the same contents. 
-test262/test/staging/sm/Set/symmetric-difference.js:34: Test262Error: Expected SameValue(«3», «1») to be true
-test262/test/staging/sm/Set/union.js:34: Test262Error: Expected SameValue(«3», «1») to be true
 test262/test/staging/sm/TypedArray/constructor-buffer-sequence.js:73: Error: Assertion failed: expected exception ExpectedError, got Error: Poisoned Value
 test262/test/staging/sm/TypedArray/prototype-constructor-identity.js:17: Test262Error: Expected SameValue(«2», «6») to be true
 test262/test/staging/sm/TypedArray/set-detached-bigint.js:27: Error: Assertion failed: expected exception SyntaxError, got RangeError: invalid array length
