@@ -371,7 +371,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 64c55c6 | PORT | removed JS_PROP_NO_ADD | Cleanup in `src/quickjs/quickjs.c` and `src/quickjs/quickjs.h`. |
 | 8e8eefb | PORT | optimized array access by inlining get_array_el, get_array_el2, get_array_el3 and put_array_el | Optimization in `src/quickjs/quickjs.c`: macro-ized OP_get_field/OP_get_field2 (`GET_FIELD_INLINE`); added array-fast-path to OP_get_array_el/OP_get_array_el2 (`GET_ARRAY_EL_INLINE`), OP_get_array_el3 (also fixes the `switch(sp[-2])` → `switch(sp[-1])` property-key check), and OP_put_array_el. Preserved fork's `JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, ...)` signature in OP_get_array_el3. Also added `array_update` benchmark to `meta/microbench.js`. Earlier attempt in this session (note in commit a99c91d) was prematurely rolled back due to `tests/worker-onerror.test.ts` *appearing* to hang — actually just slow under wine cold-start (~3min for 41 tests including 21 wine variants). Tests all pass green when given enough time. |
 | e5de89f | PORT | optimized post_inc and post_dec | Optimization in `src/quickjs/quickjs.c`. Applied cleanly via 3-way merge. |
-| 79f3ae2 | PENDING | optimized string_buffer_putc() |  |
+| 79f3ae2 | PORT | optimized string_buffer_putc() | Optimization in `src/quickjs/quickjs.c`. Applied cleanly. Required snapshot update in `tests/qjsbootstrap-bytecode.test.ts` (line number 7423 → 7443 due to added code). |
 | c8a8cf5 | PENDING | faster appending of elements in arrays |  |
 | 7a488f3 | PENDING | update |  |
 | 42eb279 | PENDING | Faster context creation and exception checks in JS_NewContext (#404) |  |
