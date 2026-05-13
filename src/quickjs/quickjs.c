@@ -50917,14 +50917,12 @@ static JSValue js_set_isDisjointFrom(JSContext *ctx, JSValueConst this_val,
     int64_t size;
     int ok;
 
-    has = JS_UNDEFINED;
     iter = JS_UNDEFINED;
-    keys = JS_UNDEFINED;
     next = JS_UNDEFINED;
     rval = JS_EXCEPTION;
     s = JS_GetOpaque2(ctx, this_val, JS_CLASS_SET);
     if (!s)
-        goto exception;
+        return JS_EXCEPTION;
     if (get_set_record(ctx, argv[0], &size, &has, &keys) < 0)
         goto exception;
     if (s->record_count <= size) {
@@ -50986,14 +50984,12 @@ static JSValue js_set_isSubsetOf(JSContext *ctx, JSValueConst this_val,
     int64_t size;
     int done, ok;
 
-    has = JS_UNDEFINED;
     iter = JS_UNDEFINED;
-    keys = JS_UNDEFINED;
     next = JS_UNDEFINED;
     rval = JS_EXCEPTION;
     s = JS_GetOpaque2(ctx, this_val, JS_CLASS_SET);
     if (!s)
-        goto exception;
+        return JS_EXCEPTION;
     if (get_set_record(ctx, argv[0], &size, &has, &keys) < 0)
         goto exception;
     found = FALSE;
@@ -51035,14 +51031,12 @@ static JSValue js_set_isSupersetOf(JSContext *ctx, JSValueConst this_val,
     JSMapState *s;
     int64_t size;
 
-    has = JS_UNDEFINED;
     iter = JS_UNDEFINED;
-    keys = JS_UNDEFINED;
     next = JS_UNDEFINED;
     rval = JS_EXCEPTION;
     s = JS_GetOpaque2(ctx, this_val, JS_CLASS_SET);
     if (!s)
-        goto exception;
+        return JS_EXCEPTION;
     if (get_set_record(ctx, argv[0], &size, &has, &keys) < 0)
         goto exception;
     found = FALSE;
@@ -51088,14 +51082,12 @@ static JSValue js_set_intersection(JSContext *ctx, JSValueConst this_val,
     int64_t size;
     int done, ok;
 
-    has = JS_UNDEFINED;
     iter = JS_UNDEFINED;
-    keys = JS_UNDEFINED;
     next = JS_UNDEFINED;
     newset = JS_UNDEFINED;
     s = JS_GetOpaque2(ctx, this_val, JS_CLASS_SET);
     if (!s)
-        goto exception;
+        return JS_EXCEPTION;
     if (get_set_record(ctx, argv[0], &size, &has, &keys) < 0)
         goto exception;
     if (s->record_count > size) {
@@ -51181,14 +51173,12 @@ static JSValue js_set_difference(JSContext *ctx, JSValueConst this_val,
     int done;
     int ok;
 
-    has = JS_UNDEFINED;
     iter = JS_UNDEFINED;
-    keys = JS_UNDEFINED;
     next = JS_UNDEFINED;
     newset = JS_UNDEFINED;
     s = JS_GetOpaque2(ctx, this_val, JS_CLASS_SET);
     if (!s)
-        goto exception;
+        return JS_EXCEPTION;
     if (get_set_record(ctx, argv[0], &size, &has, &keys) < 0)
         goto exception;
 
@@ -51265,6 +51255,7 @@ static JSValue js_set_symmetricDifference(JSContext *ctx, JSValueConst this_val,
     JS_FreeValue(ctx, has);
 
     next = JS_UNDEFINED;
+    newset = JS_UNDEFINED;
     iter = JS_Call(ctx, keys, argv[0], 0, NULL);
     if (JS_IsException(iter))
         goto exception;
@@ -51330,6 +51321,8 @@ static JSValue js_set_union(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     JS_FreeValue(ctx, has);
 
+    next = JS_UNDEFINED;
+    newset = JS_UNDEFINED;
     iter = JS_Call(ctx, keys, argv[0], 0, NULL);
     if (JS_IsException(iter))
         goto exception;
