@@ -3355,6 +3355,12 @@ int lre_exec(uint8_t **capture,
     return ret;
 }
 
+int lre_get_alloc_count(const uint8_t *bc_buf)
+{
+    return bc_buf[RE_HEADER_CAPTURE_COUNT] * 2 +
+        bc_buf[RE_HEADER_REGISTER_COUNT];
+}
+
 int lre_get_capture_count(const uint8_t *bc_buf)
 {
     return bc_buf[RE_HEADER_CAPTURE_COUNT];

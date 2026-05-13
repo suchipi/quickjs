@@ -47003,7 +47003,6 @@ static JSValue js_string_split(JSContext *ctx, JSValueConst this_val,
             goto add_tail;
         goto done;
     }
-    q = p;
     for (q = p; (q += !r) <= s - r - !r; q = p = e + r) {
         e = string_indexof(sp, rp, q);
         if (e < 0)
@@ -48940,7 +48939,7 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
     JSValue indices, indices_groups;
     uint8_t *re_bytecode;
     uint8_t **capture, *str_buf;
-    int rc, capture_count, shift, i, re_flags;
+    int rc, capture_count, shift, i, re_flags, alloc_count;
     int64_t last_index;
     const char *group_name_ptr;
     JSObject *p_obj;
@@ -48970,12 +48969,13 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
         last_index = 0;
     }
     str = JS_VALUE_GET_STRING(str_val);
-    capture_count = lre_get_capture_count(re_bytecode);
-    if (capture_count > 0) {
-        capture = js_malloc(ctx, sizeof(capture[0]) * capture_count * 2);
+    alloc_count = lre_get_alloc_count(re_bytecode);
+    if (alloc_count > 0) {
+        capture = js_malloc(ctx, sizeof(capture[0]) * alloc_count);
         if (!capture)
             goto fail;
     }
+    capture_count = lre_get_capture_count(re_bytecode);
     shift = str->is_wide_char;
     str_buf = str->u.str8;
     if (last_index > str->len) {
@@ -49159,7 +49159,7 @@ static JSValue js_regexp_replace(JSContext *ctx, JSValueConst this_val, JSValueC
     uint8_t *re_bytecode;
     int ret;
     uint8_t **capture, *str_buf;
-    int capture_count, shift, re_flags;
+    int capture_count, alloc_count, shift, re_flags;
     int next_src_pos, start, end;
     int64_t last_index;
     StringBuffer b_s, *b = &b_s;
@@ -49193,12 +49193,13 @@ static JSValue js_regexp_replace(JSContext *ctx, JSValueConst this_val, JSValueC
         if (js_regexp_get_lastIndex(ctx, &last_index, this_val))
             goto fail;
     }
-    capture_count = lre_get_capture_count(re_bytecode);
-    if (capture_count > 0) {
-        capture = js_malloc(ctx, sizeof(capture[0]) * capture_count * 2);
+    alloc_count = lre_get_alloc_count(re_bytecode);
+    if (alloc_count > 0) {
+        capture = js_malloc(ctx, sizeof(capture[0]) * alloc_count);
         if (!capture)
             goto fail;
     }
+    capture_count = lre_get_capture_count(re_bytecode);
     fullUnicode = ((re_flags & (LRE_FLAG_UNICODE | LRE_FLAG_UNICODE_SETS)) != 0);
     shift = str->is_wide_char;
     str_buf = str->u.str8;
