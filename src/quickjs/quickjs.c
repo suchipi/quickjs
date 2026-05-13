@@ -48835,8 +48835,9 @@ static JSValue js_regexp_escape(JSContext *ctx, JSValueConst this_val,
     JSValue str;
     StringBuffer b_s, *b = &b_s;
     JSString *p;
-    uint32_t c, i;
+    uint32_t c;
     char s[16];
+    int i, i0;
 
     if (!JS_IsString(argv[0]))
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "not a string");
@@ -48845,8 +48846,9 @@ static JSValue js_regexp_escape(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     p = JS_VALUE_GET_STRING(str);
     string_buffer_init2(ctx, b, 0, p->is_wide_char);
-    for (i = 0; i < p->len; i++) {
-        c = string_get(p, i);
+    for (i = 0; i < p->len; ) {
+        i0 = i;
+        c = string_getc(p, &i);
         if (c < 33) {
             if (c >= 9 && c <= 13) {
                 string_buffer_putc8(b, '\\');
@@ -48858,7 +48860,7 @@ static JSValue js_regexp_escape(JSContext *ctx, JSValueConst this_val,
             if ((c >= '0' && c <= '9')
              || (c >= 'A' && c <= 'Z')
              || (c >= 'a' && c <= 'z')) {
-                if (i == 0)
+                if (i0 == 0)
                     goto hex2;
             } else if (strchr(",-=<>#&!%:;@~'`\"", c)) {
                 goto hex2;
@@ -48874,7 +48876,7 @@ static JSValue js_regexp_escape(JSContext *ctx, JSValueConst this_val,
             snprintf(s, sizeof(s), "\\u%04x", c);
             string_buffer_puts8(b, s);
         } else {
-            string_buffer_putc16(b, c);
+            string_buffer_putc(b, c);
         }
     }
     JS_FreeValue(ctx, str);
