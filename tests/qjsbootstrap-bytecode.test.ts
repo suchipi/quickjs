@@ -33,7 +33,7 @@ test("qjsbootstrap-bytecode - can execute bytecode", async () => {
       "code": 1,
       "error": null,
       "stderr": "SyntaxError: read after the end of the buffer
-        at quickjs.c:38983:0
+        at quickjs.c:38982:0
 
     ",
       "stdout": "",
