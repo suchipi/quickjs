@@ -382,7 +382,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 7fb994c | PORT | fixed argument evaluation order in Date constructor and Date.UTC() | Fix in `src/quickjs/quickjs.c`. Applied cleanly. Fixed 2 test262 tests: `staging/sm/Date/UTC-convert-all-arguments.js` and `staging/sm/Date/constructor-convert-all-arguments.js` (50 → 48 errors). |
 | 2161640 | PORT | stricter year parsing in Date | Fix in `src/quickjs/quickjs.c`. Applied cleanly. Fixed 1 test262 test (48 → 47 errors). |
 | c720e35 | PORT | added js_string_eq() | New helper in `src/quickjs/quickjs.c`. Applied cleanly. Snapshot update in `tests/qjsbootstrap-bytecode.test.ts` (line number drift). |
-| 3e5f2bb | PENDING | inlined the get_length operation |  |
+| 3e5f2bb | PORT | inlined the get_length operation | Optimization in `src/quickjs/quickjs.c`. Added `array_length_read` and `string_length` microbenches to `meta/microbench.js`. |
 | 9a421b3 | PENDING | optimized Array.prototype.push |  |
 | af16a97 | PENDING | changed module rejection order according to spec change |  |
 | c31809e | PENDING | fixed operation order in Regexp constructor |  |

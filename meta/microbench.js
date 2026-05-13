@@ -356,6 +356,20 @@ function array_slice(n) {
   return len * n;
 }
 
+function array_length_read(n) {
+  var tab, sum, j;
+  tab = [1, 2, 3];
+  sum = 0;
+  for (j = 0; j < n; j++) {
+    sum += tab.length;
+    sum += tab.length;
+    sum += tab.length;
+    sum += tab.length;
+  }
+  global_res = sum;
+  return n * 4;
+}
+
 function array_length_decr(n) {
   var tab, i, j, len;
   len = 1000;
@@ -777,6 +791,20 @@ function regexp_utf16(n) {
   return n * 10000;
 }
 
+function string_length(n) {
+  var str, sum, j;
+  str = "abcde";
+  sum = 0;
+  for (j = 0; j < n; j++) {
+    sum += str.length;
+    sum += str.length;
+    sum += str.length;
+    sum += str.length;
+  }
+  global_res = sum;
+  return n * 4;
+}
+
 /* incremental string contruction as local var */
 function string_build1(n) {
   var i, j, r;
@@ -1147,6 +1175,7 @@ function main(options) {
     array_update,
     array_prop_create,
     array_slice,
+    array_length_read,
     array_length_decr,
     array_hole_length_decr,
     array_push,
@@ -1174,6 +1203,7 @@ function main(options) {
     math_min,
     regexp_ascii,
     regexp_utf16,
+    string_length,
     string_build1,
     string_build1x,
     string_build2c,
