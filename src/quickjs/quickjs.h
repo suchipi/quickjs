@@ -387,8 +387,7 @@ JSClassID JS_VALUE_GET_CLASS_ID(JSValue v);
    (JS_SetProperty) */
 #define JS_PROP_THROW_STRICT     (1 << 15)
 
-#define JS_PROP_NO_ADD           (1 << 16) /* internal use */
-#define JS_PROP_NO_EXOTIC        (1 << 17) /* internal use */
+#define JS_PROP_NO_EXOTIC        (1 << 16) /* internal use */
 
 #ifndef JS_DEFAULT_STACK_SIZE
 #define JS_DEFAULT_STACK_SIZE (1024 * 1024)
