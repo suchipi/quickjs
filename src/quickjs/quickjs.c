@@ -30298,6 +30298,7 @@ static JSValue js_build_module_ns(JSContext *ctx, JSModuleDef *m)
                                           en->export_name,
                                           JS_AUTOINIT_ID_MODULE_NS,
                                           m, JS_PROP_ENUMERABLE | JS_PROP_WRITABLE) < 0)
+                goto fail;
             break;
         default:
             break;

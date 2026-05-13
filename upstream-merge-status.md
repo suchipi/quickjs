@@ -398,7 +398,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 080c01f | PORT | More informative "not a constructor" error message (initial patch by bnoordhuis) (#368) | New helper `JS_ThrowTypeErrorNotAConstructor` in `src/quickjs/quickjs.c` that includes the function name in the error message. Adapted helper body to use fork's `JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, ...)` signature. Resolved 6 conflicts at call sites (all the same shape: fork was calling `JS_ThrowTypeError(...)` directly, upstream replaces with the helper). Test addition in fork's `tests/oldtests/test_language.js` (corresponds to upstream's `tests/test_language.js`). |
 | d10613f | PORT | fixed exception handling in put_var operation (regression introduced by commit a6816be) (#454) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | b07ad11 | PORT | fixed JS_PROP_AUTOINIT handling in js_closure_define_global_var() (#455) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
-| 9688007 | PENDING | Restore a mistakenly removed goto on error in js_build_module_ns() (igorburago) |  |
+| 9688007 | PORT | Restore a mistakenly removed goto on error in js_build_module_ns() (igorburago) | Bug fix in `src/quickjs/quickjs.c`. Applied cleanly. |
 | ae7219b | PENDING | - Closure optimization (go from quadratic to linear time when the number of closure variables is large) - Separated JSVarDef and JSBytecodeVarDef to simplify the code and save memory - fixed debug info stripping with global variables |  |
 | 125b012 | PENDING | added error checking in JS_InstantiateFunctionListItem() |  |
 | 3d0cc29 | PENDING | optimized add/sub int32 overflow |  |
