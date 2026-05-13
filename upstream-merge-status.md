@@ -367,7 +367,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | f1253f2 | PORT | Improve error handling in Promise.withResolvers (bnoordhuis) | Error-handling cleanup in `src/quickjs/quickjs.c`. |
 | f4951ef | PORT | optimize the create of arrays - optimized the rest and array_from opcodes | Optimization of array creation in `src/quickjs/quickjs.c`. Bytecode-test snapshot regenerated for shape drift. |
 | 2c90110 | PORT | - optimized global variable access | Optimized global variable access in `src/quickjs/quickjs.c` and `src/quickjs/quickjs-opcode.h`. Upstream's commit message: "removed full compliance with the spec for strict mode variable assignment so that they are as fast as in non strict mode (V8, SpiderMonkey and JavascriptCore do the same)" — this regresses `language/identifier-resolution/assign-to-global-undefined.js` (49 → 50 errors), matching upstream's own intentional change. Bytecode-test snapshots regenerated for opcode renumbering. `tests/microbench.js` not vendored. |
-| 57f8ec0 | PENDING | inlined fast path for get_field, get_field2 and put_field |  |
+| 57f8ec0 | PORT | inlined fast path for get_field, get_field2 and put_field | Optimization in `src/quickjs/quickjs.c`. |
 | 64c55c6 | PENDING | removed JS_PROP_NO_ADD |  |
 | 8e8eefb | PENDING | optimized array access by inlining get_array_el, get_array_el2, get_array_el3 and put_array_el |  |
 | e5de89f | PENDING | optimized post_inc and post_dec |  |
