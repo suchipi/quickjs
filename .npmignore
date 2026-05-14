@@ -2,6 +2,8 @@
 .gitmodules
 .nvmrc
 .claude
+upstream-merge-status.md
+compile_commands.json
 examples
 meta
 node_modules
@@ -15,7 +17,7 @@ tests
 .prettierignore
 build.ninja
 Changelog
-jest.config.js
+vitest.config.ts
 build/*/intermediate
 build/*/bin/encoding-fuzzer
 build/**/.ninja_*
