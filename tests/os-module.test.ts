@@ -1237,8 +1237,7 @@ test("os.ttyGetWinSize - returns size in PTY", async () => {
   expect(run.cleanResult()).toMatchObject({
     code: 0,
     error: null,
-    stderr: "",
-    stdout: expect.stringMatching(/size: \[\d+,\d+\]/),
+    output: expect.stringMatching(/size: \[\d+,\d+\]/),
   });
 });
 
@@ -1281,8 +1280,7 @@ test("os.ttySetRaw - sets raw mode without error", async () => {
     {
       "code": 0,
       "error": null,
-      "stderr": "",
-      "stdout": "raw mode set
+      "output": "raw mode set
     ",
     }
   `);
@@ -1326,8 +1324,7 @@ test("os.isatty - returns true in PTY", async () => {
     {
       "code": 0,
       "error": null,
-      "stderr": "",
-      "stdout": "isatty stdin: true
+      "output": "isatty stdin: true
     ",
     }
   `);

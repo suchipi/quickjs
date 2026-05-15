@@ -1,4 +1,5 @@
 import path from "path";
+import { spawn as childSpawn } from "child_process";
 import { pathMarker } from "path-less-traveled";
 import { spawn } from "first-base";
 import { beforeAll, vi } from "vitest";
@@ -36,8 +37,21 @@ export function wineSpawn(
 export function setupWineHooks() {
   vi.setConfig({ testTimeout: 60000 });
   beforeAll(async () => {
-    // Warm wineserver so the first test doesn't eat its cold-start cost.
-    const run = wineSpawn(["-e", "2 + 2"]);
-    await run.completion;
+    // Cold-start wineserver with stdio:"ignore" so it doesn't inherit Node's
+    // pipes. If it did, every subsequent test's `'close'` event would block on
+    // wineserver's ~3s shutdown linger. With no inherited pipes, wineserver
+    // closes at process exit.
+    await new Promise<void>((resolve, reject) => {
+      const child = childSpawn("wine", [qjsExe, "-e", "2 + 2"], {
+        env: {
+          ...process.env,
+          WINEDEBUG: "-all",
+          MVK_CONFIG_LOG_LEVEL: "0",
+        },
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+      child.on("close", () => resolve());
+      child.on("error", reject);
+    });
   }, 60000);
 }
