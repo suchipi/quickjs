@@ -2,8 +2,7 @@ import { test, expect } from "vitest";
 import { spawn } from "first-base";
 import { binDir, fixturesDir } from "./_utils";
 
-const importAttributesFixture = (name: string) =>
-  fixturesDir("import-attributes", name);
+const importAttributesFixture = fixturesDir.concat("import-attributes");
 
 // A. Basic JSON import via attribute (.json file).
 test("import-attributes - JSON import via attribute on .json file", async () => {
@@ -519,6 +518,35 @@ test("import-attributes - compiler error propagation", async () => {
       "error": null,
       "stderr": "",
       "stdout": "caught: boom-compiler
+    ",
+    }
+  `);
+});
+
+// Custom import type
+test("import-attributes - custom import type", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-I",
+    importAttributesFixture("registers-text-attribute-type.js"),
+    "-m",
+    "-e",
+    `
+      import rawtext from ${JSON.stringify(
+        importAttributesFixture("rawtext")
+      )} with { type: "text" };
+      console.log(rawtext);
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "bla bla bla
+
+    this is raw text
+
     ",
     }
   `);
