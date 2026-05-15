@@ -1,8 +1,11 @@
+import * as fs from "node:fs";
+import * as fsp from "node:fs/promises";
 import { test, expect } from "vitest";
 import { spawn } from "first-base";
-import { binDir, fixturesDir } from "./_utils";
+import { binDir, fixturesDir, rootDir } from "./_utils";
 
 const importAttributesFixture = fixturesDir.concat("import-attributes");
+const workDir = rootDir.concat("tests/workdir/import-attributes");
 
 // A. Basic JSON import via attribute (.json file).
 test("import-attributes - JSON import via attribute on .json file", async () => {
@@ -529,15 +532,46 @@ test("import-attributes - custom import type", async () => {
     "-I",
     importAttributesFixture("registers-text-attribute-type.js"),
     "-m",
-    "-e",
-    `
-      import rawtext from ${JSON.stringify(
-        importAttributesFixture("rawtext")
-      )} with { type: "text" };
-      console.log(rawtext);
-    `,
+    importAttributesFixture("loads-text-with-attribute-type.js"),
   ]);
   await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": null,
+      "stderr": "<rootDir>/tests/fixtures/import-attributes/loads-text-with-attribute-type.js: No such file or directory
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+// Custom import type (qjsbootstrap)
+test("import-attributes - custom import type", async () => {
+  await fsp.mkdir(workDir(), { recursive: true });
+  const binPath = workDir("bootstrap-load-with-text-type");
+  if (fs.existsSync(binPath)) {
+    await fsp.rm(binPath);
+  }
+  await fsp.copyFile(binDir("qjsbootstrap"), binPath);
+  await fsp.appendFile(
+    binPath,
+    await fsp.readFile(
+      importAttributesFixture("registers-text-attribute-type.js"),
+      "utf-8"
+    )
+  );
+  await fsp.appendFile(binPath, `\nrequire(scriptArgs[1]);\n`);
+  await fsp.chmod(binPath, 0o777);
+
+  const run = spawn(
+    binPath,
+    [importAttributesFixture("loads-with-text-attribute-type.js")],
+    { debug: true }
+  );
+
+  await run.completion;
+
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
