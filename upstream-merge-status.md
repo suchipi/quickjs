@@ -434,3 +434,14 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 5022f2b | PORT | fixed use-after-free via re-entrant GC in FinalizationRegistry weak reference cleanup (#494) | Bug fix in `src/quickjs/quickjs.c`. Resolved 1 conflict (took theirs — JS_EnqueueJob → JS_EnqueueJob2 with no-exception flag). |
 | a31dcef | PORT | added basic protection against too large function in serialized bytecode | Security hardening in `src/quickjs/quickjs.c`. Applied cleanly. Flaky wine tests passed on retry. |
 | d7ae12a | PORT | added JSON.parse source text access | Adds JSON.parse source text access (`JSON.rawJSON`, `JSON.isRawJSON`, source text for reviver). Resolved 2 conflicts: enum (added JS_CLASS_RAWJSON to fork's quickjs.h), and a minor BOOLEAN/BIG_INT formatting line. Adapted 1 new JS_ThrowSyntaxError call to fork's signature. Bytecode snapshots updated in 3 test files. |
+| d38eea9 | PORT | Avoid initializer-string warning for the digits array | Compiler-warning fix in `src/quickjs/quickjs.c`: rewrite `static char const digits[36]` as individual char initializers. Applied cleanly. |
+| 66afb72 | PENDING | Fix member access on non-decimal numeric literals |  |
+| 8e09295 | PENDING | Merge pull request #495 from nickva/fix-initializer-string-warning |  |
+| 6b62098 | PENDING | Merge pull request #496 from bptato/fix-hex-access |  |
+| d417caf | PENDING | added libunicode unicode version (#509) |  |
+| efda450 | PENDING | fixed (again) JS atomics in case of typed array resizing - use same function name as quickjs-ng for js_atomics_get_buf() (#508) |  |
+| 9b90125 | PENDING | use __EMSCRIPTEN__ define instead of EMSCRIPTEN |  |
+| c1ba371 | PENDING | added missing NULL pointer check (#504) |  |
+| b1b4733 | PENDING | fixed error handling in os.exec() (#503) |  |
+| 1f50b39 | PENDING | memcpy() (currently) has undefined behavior if a pointer is NULL with zero size (#500) |  |
+| e182e3d | PENDING | Add Uint8Array base64/hex methods (initial patch by saghul) |  |
