@@ -438,7 +438,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 66afb72 | PORT | Fix member access on non-decimal numeric literals | Bug fix in `src/quickjs/quickjs.c` (port of quickjs-ng PR #377): `0x0.toString()` now returns `'0'` instead of throwing. Test added to `tests/oldtests/test_language.js` (resolved 3way conflict manually — fork has reordered test call list). Snapshot line-number drift in qjsbootstrap-bytecode.test.ts. |
 | 8e09295 | SKIP-DONE | Merge pull request #495 from nickva/fix-initializer-string-warning | GitHub merge commit for #495; the underlying change is d38eea9, already ported. |
 | 6b62098 | SKIP-DONE | Merge pull request #496 from bptato/fix-hex-access | GitHub merge commit for #496; the underlying change is 66afb72, already ported. |
-| d417caf | PENDING | added libunicode unicode version (#509) |  |
+| d417caf | PORT | added libunicode unicode version (#509) | Add `LIBUNICODE_UNICODE_VERSION_{MAJOR,MINOR,PATCH}` defines to `src/lib/encoding/libunicode/libunicode.h`. Resolved 1 conflict — fork moved `CONFIG_ALL_UNICODE` to a `-D` compiler flag in `meta/ninja/defs.ninja.js`, so dropped that addition from the patch. |
 | efda450 | PENDING | fixed (again) JS atomics in case of typed array resizing - use same function name as quickjs-ng for js_atomics_get_buf() (#508) |  |
 | 9b90125 | PENDING | use __EMSCRIPTEN__ define instead of EMSCRIPTEN |  |
 | c1ba371 | PENDING | added missing NULL pointer check (#504) |  |

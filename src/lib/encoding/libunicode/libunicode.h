@@ -26,6 +26,11 @@
 
 #include <stdint.h>
 
+/* unicode standard version */
+#define LIBUNICODE_UNICODE_VERSION_MAJOR 17
+#define LIBUNICODE_UNICODE_VERSION_MINOR 0
+#define LIBUNICODE_UNICODE_VERSION_PATCH 0
+
 #define LRE_CC_RES_LEN_MAX 3
 
 /* char ranges */
