@@ -689,7 +689,18 @@ function test_global_var_opt()
     assert(gvar1, 5);
 }
 
+function test_number_literals()
+{
+    assert(0.1.a, undefined);
+    assert(0x1.a, undefined);
+    assert(0b1.a, undefined);
+    assert(01.a, undefined);
+    assert(0o1.a, undefined);
+    assert_throws(SyntaxError, () => eval('0.a'));
+}
+
 test_parse_semicolon();
 test_optional_chaining();
 test_parse_arrow_function();
 test_global_var_opt();
+test_number_literals();

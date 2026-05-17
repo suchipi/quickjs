@@ -435,7 +435,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | a31dcef | PORT | added basic protection against too large function in serialized bytecode | Security hardening in `src/quickjs/quickjs.c`. Applied cleanly. Flaky wine tests passed on retry. |
 | d7ae12a | PORT | added JSON.parse source text access | Adds JSON.parse source text access (`JSON.rawJSON`, `JSON.isRawJSON`, source text for reviver). Resolved 2 conflicts: enum (added JS_CLASS_RAWJSON to fork's quickjs.h), and a minor BOOLEAN/BIG_INT formatting line. Adapted 1 new JS_ThrowSyntaxError call to fork's signature. Bytecode snapshots updated in 3 test files. |
 | d38eea9 | PORT | Avoid initializer-string warning for the digits array | Compiler-warning fix in `src/quickjs/quickjs.c`: rewrite `static char const digits[36]` as individual char initializers. Applied cleanly. |
-| 66afb72 | PENDING | Fix member access on non-decimal numeric literals |  |
+| 66afb72 | PORT | Fix member access on non-decimal numeric literals | Bug fix in `src/quickjs/quickjs.c` (port of quickjs-ng PR #377): `0x0.toString()` now returns `'0'` instead of throwing. Test added to `tests/oldtests/test_language.js` (resolved 3way conflict manually — fork has reordered test call list). Snapshot line-number drift in qjsbootstrap-bytecode.test.ts. |
 | 8e09295 | PENDING | Merge pull request #495 from nickva/fix-initializer-string-warning |  |
 | 6b62098 | PENDING | Merge pull request #496 from bptato/fix-hex-access |  |
 | d417caf | PENDING | added libunicode unicode version (#509) |  |
