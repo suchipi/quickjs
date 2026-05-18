@@ -232,7 +232,7 @@ The refusal happens up front, before any module body runs — the sync evaluator
 - Stuff is reorganized into separate folders under `src`.
 - Ninja is used instead of make. Ninja build config is generated via `.ninja.js` files which get loaded into [@suchipi/shinobi](https://github.com/suchipi/shinobi).
 - Line endings have been made consistent and trailing whitespace has been removed
-- The tests are authored in a new format which leverages jest snapshot testing.
+- The tests are authored in a new format which leverages vitest snapshot testing.
 - Some parts of `quickjs-libc` were moved into `quickjs-modulesys` and `quickjs-engine`.
 - The `eval_*` functions that were duplicated in each of the programs (`eval_buf`, `eval_file`, and `eval_binary`) were deduplicated and moved into `quickjs-modulesys`.
 
