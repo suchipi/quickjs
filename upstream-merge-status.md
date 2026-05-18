@@ -441,7 +441,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | d417caf | PORT | added libunicode unicode version (#509) | Add `LIBUNICODE_UNICODE_VERSION_{MAJOR,MINOR,PATCH}` defines to `src/lib/encoding/libunicode/libunicode.h`. Resolved 1 conflict — fork moved `CONFIG_ALL_UNICODE` to a `-D` compiler flag in `meta/ninja/defs.ninja.js`, so dropped that addition from the patch. |
 | efda450 | PORT | fixed (again) JS atomics in case of typed array resizing - use same function name as quickjs-ng for js_atomics_get_buf() (#508) | Bug fix in `src/quickjs/quickjs.c` Atomics. Resolved 7 conflicts (all upstream's `JS_ThrowTypeError/RangeError` lines vs fork's `(ctx, "<internal>/quickjs.c", __LINE__, message)` signature — kept fork's throw signature, kept upstream's return-NULL + new ptr-derivation logic). |
 | 9b90125 | SKIP-DONE | use __EMSCRIPTEN__ define instead of EMSCRIPTEN | Fork already uses `__EMSCRIPTEN__` exclusively; no bare `EMSCRIPTEN` references remain. |
-| c1ba371 | PENDING | added missing NULL pointer check (#504) |  |
+| c1ba371 | PORT | added missing NULL pointer check (#504) | Bug fix in `src/quickjs/quickjs.c` `check_regexp_getter` — guard against NULL `pr->u.getset.getter`. Applied cleanly. |
 | b1b4733 | PENDING | fixed error handling in os.exec() (#503) |  |
 | 1f50b39 | PENDING | memcpy() (currently) has undefined behavior if a pointer is NULL with zero size (#500) |  |
 | e182e3d | PENDING | Add Uint8Array base64/hex methods (initial patch by saghul) |  |
