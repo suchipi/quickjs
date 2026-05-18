@@ -443,5 +443,5 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 9b90125 | SKIP-DONE | use __EMSCRIPTEN__ define instead of EMSCRIPTEN | Fork already uses `__EMSCRIPTEN__` exclusively; no bare `EMSCRIPTEN` references remain. |
 | c1ba371 | PORT | added missing NULL pointer check (#504) | Bug fix in `src/quickjs/quickjs.c` `check_regexp_getter` — guard against NULL `pr->u.getset.getter`. Applied cleanly. |
 | b1b4733 | PORT | fixed error handling in os.exec() (#503) | Bug fix in `src/builtin-modules/quickjs-os/quickjs-os.c` (upstream `quickjs-libc.c`'s `js_os_exec`): guard `envp != environ` with NULL check. Applied by hand because upstream-libc fork-split. |
-| 1f50b39 | PENDING | memcpy() (currently) has undefined behavior if a pointer is NULL with zero size (#500) |  |
+| 1f50b39 | PORT | memcpy() (currently) has undefined behavior if a pointer is NULL with zero size (#500) | Bug fix in `src/lib/encoding/libunicode/libunicode.c` `unicode_normalize`: guard memcpy with `src_len != 0`. Applied cleanly. |
 | e182e3d | PENDING | Add Uint8Array base64/hex methods (initial patch by saghul) |  |
