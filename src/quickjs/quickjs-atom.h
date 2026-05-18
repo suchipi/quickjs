@@ -192,6 +192,11 @@ DEF(unicodeSets, "unicodeSets")
 DEF(not_equal, "not-equal")
 DEF(timed_out, "timed-out")
 DEF(ok, "ok")
+DEF(toISOString, "toISOString")
+DEF(alphabet, "alphabet")
+DEF(lastChunkHandling, "lastChunkHandling")
+DEF(omitPadding, "omitPadding")
+/* */
 DEF(toJSON, "toJSON")
 DEF(maxByteLength, "maxByteLength")
 /* class names */
