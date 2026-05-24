@@ -27,6 +27,17 @@ Cross-compilation: Set `HOST` and `TARGET` env vars. `meta/docker/compile-all.sh
 
 **Always use `test-platforms` before `npm test`.** A plain `meta/build.sh` only produces the native platform's binaries, so cross-platform tests fail with "file not found" errors like `wine: failed to open "<rootDir>/build/x86_64-pc-windows-static/bin/qjs.exe": c0000135` — those look like real test failures but are purely the absence of the cross-platform outputs.
 
+### Running build commands on Windows MSYS2
+
+If you're running on Windows and the `Bash` tool's shell is Git Bash (`/usr/bin/bash` resolves under `C:/Program Files/Git/`), `meta/build.sh` will fail with `npm: command not found` even though Node is installed under `C:\msys64\ucrt64\bin\`. Git Bash has no `/ucrt64` mount and doesn't read MSYS2's `/etc/profile`. Wrap commands with MSYS2's bash, and `cd` to the repo inside `-c` (CHERE_INVOKING doesn't survive the env translation, so `--login` always lands in `$HOME`):
+
+```bash
+MSYSTEM=UCRT64 /c/msys64/usr/bin/bash --login -c \
+  'cd /home/suchipi/Code/quickjs && env QUICKJS_EXTRAS=1 meta/build.sh'
+```
+
+See [.claude/research/msys2-bash-tool-environment-2026-05-24-025658Z.md](.claude/research/msys2-bash-tool-environment-2026-05-24-025658Z.md) for details.
+
 ## Build System Architecture
 
 The build uses Ninja with a JavaScript-based configuration layer (`@suchipi/shinobi`):
