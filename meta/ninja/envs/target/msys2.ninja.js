@@ -6,6 +6,8 @@ declare("AR_TARGET", "ar");
 declare("LDEXPORT_TARGET", "-static -Wl,--stack,8388608");
 declare("PROGRAM_SUFFIX_TARGET", ".exe");
 
+declare("SKIP_SHARED_LIBS", true);
+
 // needed for localtime_r
 declare("DEFINES_TARGET", "-D_POSIX_C_SOURCE");
 // needed for __imp_gethostname
