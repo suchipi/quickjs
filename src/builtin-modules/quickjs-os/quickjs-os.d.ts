@@ -271,12 +271,14 @@ declare module "quickjs:os" {
      * fallback. When `onerror` is unset, errors print to stderr in the
      * same format as an uncaught exception would.
      */
-    onerror: null | ((event: {
-      message: string;
-      filename: string;
-      lineno: number;
-      error: Error | null;
-    }) => void);
+    onerror:
+      | null
+      | ((event: {
+          message: string;
+          filename: string;
+          lineno: number;
+          error: Error | null;
+        }) => void);
   }
 
   /**

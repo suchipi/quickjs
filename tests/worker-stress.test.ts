@@ -179,10 +179,12 @@ test("double terminate does not crash", async () => {
   `);
 });
 
-test.runIf(shouldRunWineTests)("[wine] double terminate does not crash", async () => {
-  const run = wineSpawn([testFixturesDir("main-double-terminate.js")]);
-  await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
+test.runIf(shouldRunWineTests)(
+  "[wine] double terminate does not crash",
+  async () => {
+    const run = wineSpawn([testFixturesDir("main-double-terminate.js")]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -194,7 +196,8 @@ test.runIf(shouldRunWineTests)("[wine] double terminate does not crash", async (
     ",
     }
   `);
-});
+  }
+);
 
 test("postMessage after terminate", async () => {
   const run = spawn(binDir("qjs"), [
@@ -216,10 +219,12 @@ test("postMessage after terminate", async () => {
   `);
 });
 
-test.runIf(shouldRunWineTests)("[wine] postMessage after terminate", async () => {
-  const run = wineSpawn([testFixturesDir("main-post-after-terminate.js")]);
-  await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
+test.runIf(shouldRunWineTests)(
+  "[wine] postMessage after terminate",
+  async () => {
+    const run = wineSpawn([testFixturesDir("main-post-after-terminate.js")]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -232,7 +237,8 @@ test.runIf(shouldRunWineTests)("[wine] postMessage after terminate", async () =>
     ",
     }
   `);
-});
+  }
+);
 
 test("main never cleans up, worker exits on its own", async () => {
   const run = spawn(binDir("qjs"), [testFixturesDir("main-no-cleanup.js")]);
@@ -299,10 +305,12 @@ test("std.out.flush works in worker", async () => {
   `);
 });
 
-test.runIf(shouldRunWineTests)("[wine] std.out.flush works in worker", async () => {
-  const run = wineSpawn([testFixturesDir("main-worker-std-out.js")]);
-  await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
+test.runIf(shouldRunWineTests)(
+  "[wine] std.out.flush works in worker",
+  async () => {
+    const run = wineSpawn([testFixturesDir("main-worker-std-out.js")]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -314,7 +322,8 @@ test.runIf(shouldRunWineTests)("[wine] std.out.flush works in worker", async () 
     ",
     }
   `);
-});
+  }
+);
 
 test("SIGKILL kills process while worker is running", async () => {
   const run = spawn(binDir("qjs"), [

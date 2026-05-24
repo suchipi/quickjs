@@ -11221,7 +11221,7 @@ static void mp_mul_basecase(js_limb_t *result,
 {
     int i;
     js_limb_t r;
-    
+
     result[op1_size] = mp_mul1(result, op1, op1_size, op2[0], 0);
     for(i=1;i<op2_size;i++) {
         r = mp_add_mul1(result + i, op1, op1_size, op2[i]);
@@ -11388,7 +11388,7 @@ static js_limb_t mp_shl(js_limb_t *tabr, const js_limb_t *taba, int n,
     return l;
 }
 
-/* r = (a + high*B^n) >> shift. Return the remainder r (0 <= r < 2^shift). 
+/* r = (a + high*B^n) >> shift. Return the remainder r (0 <= r < 2^shift).
    1 <= shift <= LIMB_BITS - 1 */
 static js_limb_t mp_shr(js_limb_t *tab_r, const js_limb_t *tab, int n,
                         int shift, js_limb_t high)
@@ -11633,7 +11633,7 @@ static JSBigInt *js_bigint_add(JSContext *ctx, const JSBigInt *a,
     JSBigInt *r;
     int n1, n2, i;
     js_limb_t carry, op1, op2, a_sign, b_sign;
-    
+
     n2 = max_int(a->len, b->len);
     n1 = min_int(a->len, b->len);
     r = js_bigint_new(ctx, n2);
@@ -11680,7 +11680,7 @@ static JSBigInt *js_bigint_mul(JSContext *ctx, const JSBigInt *a,
                                const JSBigInt *b)
 {
     JSBigInt *r;
-    
+
     r = js_bigint_new(ctx, a->len + b->len);
     if (!r)
         return NULL;
@@ -11702,18 +11702,18 @@ static JSBigInt *js_bigint_divrem(JSContext *ctx, const JSBigInt *a,
     JSBigInt *r, *q;
     js_limb_t *tabb, h;
     int na, nb, a_sign, b_sign, shift;
-    
+
     if (b->len == 1 && b->tab[0] == 0) {
         JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "BigInt division by zero");
         return NULL;
     }
-    
+
     a_sign = js_bigint_sign(a);
     b_sign = js_bigint_sign(b);
     na = a->len;
     nb = b->len;
 
-    r = js_bigint_new(ctx, na + 2); 
+    r = js_bigint_new(ctx, na + 2);
     if (!r)
         return NULL;
     if (a_sign) {
@@ -11748,7 +11748,7 @@ static JSBigInt *js_bigint_divrem(JSContext *ctx, const JSBigInt *a,
             r = js_bigint_new(ctx, a->len);
             if (!r)
                 return NULL;
-            memcpy(r->tab, a->tab, a->len * sizeof(a->tab[0])); 
+            memcpy(r->tab, a->tab, a->len * sizeof(a->tab[0]));
             return r;
         } else {
             /* q = 0 */
@@ -11854,7 +11854,7 @@ static JSBigInt *js_bigint_not(JSContext *ctx, const JSBigInt *a)
 {
     JSBigInt *r;
     int i;
-    
+
     r = js_bigint_new(ctx, a->len);
     if (!r)
         return NULL;
@@ -11926,7 +11926,7 @@ static JSBigInt *js_bigint_pow(JSContext *ctx, const JSBigInt *a, JSBigInt *b)
     uint32_t e;
     int n_bits, i;
     JSBigInt *r, *r1;
-    
+
     /* b must be >= 0 */
     if (js_bigint_sign(b)) {
         JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "BigInt negative exponent");
@@ -12036,7 +12036,7 @@ static uint64_t js_bigint_get_mant_exp(JSContext *ctx,
         }
         t[j] = v;
     }
-    
+
 #if JS_LIMB_BITS == 32
     a1 = ((uint64_t)t[2] << 32) | t[1];
     a0 = (uint64_t)t[0] << 32;
@@ -12160,7 +12160,7 @@ static int js_bigint_float64_cmp(JSContext *ctx, const JSBigInt *a,
 {
     int b_sign, a_sign, e, f;
     uint64_t mant, b1, a_mant;
-    
+
     b1 = float64_as_uint64(b);
     b_sign = b1 >> 63;
     e = (b1 >> 52) & ((1 << 11) - 1);
@@ -12276,7 +12276,7 @@ static JSBigInt *js_bigint_from_string(JSContext *ctx,
     int is_neg, n_digits, n_limbs, len, log2_radix, n_bits, i;
     JSBigInt *r;
     js_limb_t v, c, h;
-    
+
     is_neg = 0;
     if (*p == '-') {
         is_neg = 1;
@@ -12335,7 +12335,7 @@ static JSBigInt *js_bigint_from_string(JSContext *ctx,
         r->len = len;
     } else {
         unsigned int bit_pos, shift, pos;
-        
+
         /* power of two base: no multiplication is needed */
         r->len = n_limbs;
         memset(r->tab, 0, sizeof(r->tab[0]) * n_limbs);
@@ -12857,7 +12857,7 @@ static __exception int __JS_ToFloat64Free(JSContext *ctx, double *pres,
 {
     double d;
     uint32_t tag;
-    
+
     val = JS_ToNumberFree(ctx, val);
     if (JS_IsException(val))
         goto fail;
@@ -14980,7 +14980,7 @@ static no_inline __exception int js_add_slow(JSContext *ctx, JSValue *sp)
         }
         return 0;
     }
-    
+
     if (tag1 == JS_TAG_OBJECT || tag2 == JS_TAG_OBJECT) {
         op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NONE);
         if (JS_IsException(op1)) {
@@ -15227,7 +15227,7 @@ static JSBigInt *JS_ToBigIntBuf(JSContext *ctx, JSBigIntBuf *buf1,
                                 JSValue op1)
 {
     JSBigInt *p1;
-    
+
     switch(JS_VALUE_GET_TAG(op1)) {
     case JS_TAG_INT:
         p1 = js_bigint_set_si(buf1, JS_VALUE_GET_INT(op1));
@@ -15252,7 +15252,7 @@ static int js_compare_bigint(JSContext *ctx, OPCodeEnum op,
     int res, val, tag1, tag2;
     JSBigIntBuf buf1, buf2;
     JSBigInt *p1, *p2;
-    
+
     tag1 = JS_VALUE_GET_NORM_TAG(op1);
     tag2 = JS_VALUE_GET_NORM_TAG(op2);
     if ((tag1 == JS_TAG_SHORT_BIG_INT || tag1 == JS_TAG_INT) &&
@@ -38226,7 +38226,7 @@ static int JS_WriteBigInt(BCWriterState *s, JSValueConst obj)
     uint32_t len, i;
     js_limb_t v, b;
     int shift;
-    
+
     bc_put_u8(s, BC_TAG_BIG_INT);
 
     if (JS_VALUE_GET_TAG(obj) == JS_TAG_SHORT_BIG_INT)
@@ -39249,7 +39249,7 @@ static JSValue JS_ReadBigInt(BCReaderState *s)
     JSBigInt *p;
     js_limb_t v;
     uint8_t v8;
-    
+
     if (bc_get_leb128(s, &len))
         goto fail;
     bc_read_trace(s, "len=%" PRId64 "\n", (int64_t)len);

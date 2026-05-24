@@ -16,7 +16,8 @@ const prog = (body: string) =>
   `import("quickjs:engine").then(e => { ${body} });`;
 
 test("formatValue: primitives", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     print(e.formatValue(null));
     print(e.formatValue(undefined));
     print(e.formatValue(true));
@@ -25,7 +26,8 @@ test("formatValue: primitives", async () => {
     print(e.formatValue(1.5));
     print(e.formatValue(123n));
     print(e.formatValue(Symbol("x")));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -60,11 +62,13 @@ test("formatValue: plain object expands at default depth", async () => {
 });
 
 test("formatValue: nested object uses [Object] placeholder past default depth", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     const o = { a: { b: { c: { d: 1 } } } };
     print("default:", e.formatValue(o));
     print("maxDepth=8:", e.formatValue(o, { maxDepth: 8 }));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -79,13 +83,15 @@ test("formatValue: nested object uses [Object] placeholder past default depth", 
 });
 
 test("formatValue: dense and sparse arrays", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     print(e.formatValue([1, 2, 3]));
     const sparse = [];
     sparse[0] = "a";
     sparse.length = 5;
     print(e.formatValue(sparse));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -100,14 +106,16 @@ test("formatValue: dense and sparse arrays", async () => {
 });
 
 test("formatValue: maxItemCount truncates long arrays", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     const arr = Array.from({ length: 200 }, (_, i) => i);
     const out = e.formatValue(arr);
     /* Just verify the truncation marker is present and shape is right;
        printing 100 ints would dominate the snapshot. */
     print("ends with truncation marker:", out.endsWith(", ... 100 more items ]"));
     print("starts with [ 0, 1,:", out.startsWith("[ 0, 1,"));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -122,12 +130,14 @@ test("formatValue: maxItemCount truncates long arrays", async () => {
 });
 
 test("formatValue: maxStringLength truncates long strings", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     const s = "x".repeat(2000);
     const out = e.formatValue(s);
     print("contains truncation marker:", out.includes("... 1000 more characters"));
     print("starts with quoted x...:", out.startsWith('"xxxx'));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -142,12 +152,14 @@ test("formatValue: maxStringLength truncates long strings", async () => {
 });
 
 test("formatValue: showHidden controls non-enumerable visibility", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     const o = { visible: 1 };
     Object.defineProperty(o, "hidden", { value: 2, enumerable: false });
     print("default:", e.formatValue(o));
     print("showHidden:", e.formatValue(o, { showHidden: true }));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -162,12 +174,14 @@ test("formatValue: showHidden controls non-enumerable visibility", async () => {
 });
 
 test("formatValue: showClosure exposes captured closure variables (C-only superpower)", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     function makeAdder(n) { return x => x + n; }
     const add42 = makeAdder(42);
     print("default:", e.formatValue(add42));
     print("showClosure:", e.formatValue(add42, { showClosure: true }));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -182,7 +196,8 @@ test("formatValue: showClosure exposes captured closure variables (C-only superp
 });
 
 test("formatValue: rawDump skips Proxy traps and toString/toPrimitive", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     const log = [];
     const trapping = new Proxy({ a: 1 }, {
       get(t, k) { log.push("get:" + String(k)); return Reflect.get(t, k); },
@@ -193,7 +208,8 @@ test("formatValue: rawDump skips Proxy traps and toString/toPrimitive", async ()
     const dumped = e.formatValue(trapping, { rawDump: true });
     print("after rawDump, log:", JSON.stringify(log));
     print("dump output sample:", dumped.length > 0 ? "non-empty" : "empty");
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -208,10 +224,12 @@ test("formatValue: rawDump skips Proxy traps and toString/toPrimitive", async ()
 });
 
 test("formatValue: Map and Set", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     print(e.formatValue(new Map([["a", 1], ["b", 2]])));
     print(e.formatValue(new Set([10, 20, 30])));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -226,10 +244,12 @@ test("formatValue: Map and Set", async () => {
 });
 
 test("formatValue: TypedArray", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     print(e.formatValue(new Uint8Array([1, 2, 3])));
     print(e.formatValue(new Int16Array([-1, 0, 32767])));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -244,14 +264,16 @@ test("formatValue: TypedArray", async () => {
 });
 
 test("formatValue: function with name, anonymous function, and arrow", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     function foo() {}
     const anon = function() {};
     const arrow = () => 1;
     print(e.formatValue(foo));
     print(e.formatValue(anon));
     print(e.formatValue(arrow));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -267,11 +289,13 @@ test("formatValue: function with name, anonymous function, and arrow", async () 
 });
 
 test("formatValue: RegExp, Date, Error use canonical toString paths", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     print(e.formatValue(/abc/gi));
     print(e.formatValue(new Date("2026-05-04T00:00:00.000Z")));
     print(e.formatValue(new Error("oh no")));
-  `));
+  `)
+  );
   await run.completion;
   /* The Error case includes the stack which contains a runtime path;
      just verify the prefix is present. */
@@ -282,11 +306,13 @@ test("formatValue: RegExp, Date, Error use canonical toString paths", async () =
 });
 
 test("formatValue: circular reference uses [circular N] marker", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     const o = { a: 1 };
     o.self = o;
     print(e.formatValue(o));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -300,10 +326,12 @@ test("formatValue: circular reference uses [circular N] marker", async () => {
 });
 
 test("formatValue: class instance is treated as plain object", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     class Foo { constructor() { this.x = 1; } }
     print(e.formatValue(new Foo()));
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -317,10 +345,12 @@ test("formatValue: class instance is treated as plain object", async () => {
 });
 
 test("__printObject writes formatted value directly to stdout (no newline)", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     e.__printObject({ a: 1 });
     print();  /* terminate the line so the snapshot is stable */
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -334,13 +364,15 @@ test("__printObject writes formatted value directly to stdout (no newline)", asy
 });
 
 test("formatValue: throws on non-object options arg", async () => {
-  const run = runFmt(prog(`
+  const run = runFmt(
+    prog(`
     try {
       e.formatValue({ a: 1 }, "not an object");
     } catch (err) {
       print("caught:", err.name, err.message);
     }
-  `));
+  `)
+  );
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {

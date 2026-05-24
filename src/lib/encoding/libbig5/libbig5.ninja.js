@@ -21,10 +21,7 @@ if (process.env.CONFIG_BIG5 !== "0") {
     output: builddir("intermediate/libbig5-table.h"),
     rule: "big5_gen",
     inputs: [rel("downloaded")],
-    implicitInputs: [
-      big5_gen_host,
-      rel("./downloaded/index-big5.txt"),
-    ],
+    implicitInputs: [big5_gen_host, rel("./downloaded/index-big5.txt")],
   });
 
   build({

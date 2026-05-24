@@ -34,7 +34,7 @@
 #include "cutils.h"
 #include "dtoa.h"
 
-/* 
+/*
    TODO:
    - test n_digits=101 instead of 100
    - simplify subnormal handling
@@ -88,7 +88,7 @@ static limb_t mp_add_ui(limb_t *tab, limb_t b, size_t n)
 }
 
 /* tabr[] = taba[] * b + l. Return the high carry */
-static limb_t mp_mul1(limb_t *tabr, const limb_t *taba, limb_t n, 
+static limb_t mp_mul1(limb_t *tabr, const limb_t *taba, limb_t n,
                       limb_t b, limb_t l)
 {
     limb_t i;
@@ -146,9 +146,9 @@ static limb_t mp_div1(limb_t *tabr, const limb_t *taba, limb_t n,
     return r;
 }
 
-/* r = (a + high*B^n) >> shift. Return the remainder r (0 <= r < 2^shift). 
+/* r = (a + high*B^n) >> shift. Return the remainder r (0 <= r < 2^shift).
    1 <= shift <= LIMB_BITS - 1 */
-static limb_t mp_shr(limb_t *tab_r, const limb_t *tab, mp_size_t n, 
+static limb_t mp_shr(limb_t *tab_r, const limb_t *tab, mp_size_t n,
                      int shift, limb_t high)
 {
     mp_size_t i;
@@ -166,7 +166,7 @@ static limb_t mp_shr(limb_t *tab_r, const limb_t *tab, mp_size_t n,
 
 /* r = (a << shift) + low. 1 <= shift <= LIMB_BITS - 1, 0 <= low <
    2^shift. */
-static limb_t mp_shl(limb_t *tab_r, const limb_t *tab, mp_size_t n, 
+static limb_t mp_shl(limb_t *tab_r, const limb_t *tab, mp_size_t n,
               int shift, limb_t low)
 {
     mp_size_t i;
@@ -177,7 +177,7 @@ static limb_t mp_shl(limb_t *tab_r, const limb_t *tab, mp_size_t n,
     for(i = 0; i < n; i++) {
         a = tab[i];
         tab_r[i] = (a << shift) | l;
-        l = (a >> (LIMB_BITS - shift)); 
+        l = (a >> (LIMB_BITS - shift));
     }
     return l;
 }
@@ -200,7 +200,7 @@ static no_inline limb_t mp_div1norm(limb_t *tabr, const limb_t *taba, limb_t n,
 static __maybe_unused void mpb_dump(const char *str, const mpb_t *a)
 {
     int i;
-    
+
     printf("%s= 0x", str);
     for(i = a->len - 1; i >= 0; i--) {
         printf("%08x", a->tab[i]);
@@ -218,15 +218,15 @@ static void mpb_renorm(mpb_t *r)
 
 #ifdef USE_POW5_TABLE
 static const uint32_t pow5_table[17] = {
-    0x00000005, 0x00000019, 0x0000007d, 0x00000271, 
-    0x00000c35, 0x00003d09, 0x0001312d, 0x0005f5e1, 
-    0x001dcd65, 0x009502f9, 0x02e90edd, 0x0e8d4a51, 
-    0x48c27395, 0x6bcc41e9, 0x1afd498d, 0x86f26fc1, 
-    0xa2bc2ec5, 
+    0x00000005, 0x00000019, 0x0000007d, 0x00000271,
+    0x00000c35, 0x00003d09, 0x0001312d, 0x0005f5e1,
+    0x001dcd65, 0x009502f9, 0x02e90edd, 0x0e8d4a51,
+    0x48c27395, 0x6bcc41e9, 0x1afd498d, 0x86f26fc1,
+    0xa2bc2ec5,
 };
 
 static const uint8_t pow5h_table[4] = {
-    0x00000001, 0x00000007, 0x00000023, 0x000000b1, 
+    0x00000001, 0x00000007, 0x00000023, 0x000000b1,
 };
 
 static const uint32_t pow5_inv_table[13] = {
@@ -299,7 +299,7 @@ enum {
 static int mpb_get_bit(const mpb_t *r, int k)
 {
     int l;
-    
+
     l = (unsigned)k / LIMB_BITS;
     k = k & (LIMB_BITS - 1);
     if (l >= r->len)
@@ -334,7 +334,7 @@ static void mpb_shr_round(mpb_t *r, int shift, int rnd_mode)
     } else {
         limb_t bit1, bit2;
         int k, add_one;
-        
+
         switch(rnd_mode) {
         default:
         case JS_RNDZ:
@@ -458,14 +458,14 @@ static int mpb_floor_log2(mpb_t *a)
 
 /* round((1 << MUL_LOG2_RADIX_BASE_LOG2)/log2(i + 2)) */
 static const uint32_t mul_log2_radix_table[JS_RADIX_MAX - 1] = {
-    0x000000, 0xa1849d, 0x000000, 0x6e40d2, 
-    0x6308c9, 0x5b3065, 0x000000, 0x50c24e, 
-    0x4d104d, 0x4a0027, 0x4768ce, 0x452e54, 
-    0x433d00, 0x418677, 0x000000, 0x3ea16b, 
-    0x3d645a, 0x3c43c2, 0x3b3b9a, 0x3a4899, 
-    0x39680b, 0x3897b3, 0x37d5af, 0x372069, 
-    0x367686, 0x35d6df, 0x354072, 0x34b261, 
-    0x342bea, 0x33ac62, 0x000000, 0x32bfd9, 
+    0x000000, 0xa1849d, 0x000000, 0x6e40d2,
+    0x6308c9, 0x5b3065, 0x000000, 0x50c24e,
+    0x4d104d, 0x4a0027, 0x4768ce, 0x452e54,
+    0x433d00, 0x418677, 0x000000, 0x3ea16b,
+    0x3d645a, 0x3c43c2, 0x3b3b9a, 0x3a4899,
+    0x39680b, 0x3897b3, 0x37d5af, 0x372069,
+    0x367686, 0x35d6df, 0x354072, 0x34b261,
+    0x342bea, 0x33ac62, 0x000000, 0x32bfd9,
     0x3251dd, 0x31e8d6, 0x318465,
 };
 
@@ -511,7 +511,7 @@ static void build_mul_log2_radix_table(void)
 static void mul_log2_radix_test(void)
 {
     int radix, i, ref, r;
-    
+
     for(radix = 2; radix <= 36; radix++) {
         for(i = -2048; i <= 2047; i++) {
             ref = (int)floor((double)i / log2(radix));
@@ -590,7 +590,7 @@ size_t u32toa(char *buf, uint32_t n)
 {
     char buf1[10], *q;
     size_t len;
-    
+
     q = buf1 + sizeof(buf1);
     do {
         *--q = n % 10 + '0';
@@ -620,7 +620,7 @@ size_t u64toa(char *buf, uint64_t n)
         uint64_t n1;
         char *q = buf;
         uint32_t n2;
-        
+
         n1 = n / 1000000000;
         n %= 1000000000;
         if (n1 >= 0x100000000) {
@@ -733,27 +733,27 @@ static uint8_t atod_max_digits_table[JS_RADIX_MAX - 1] = {
 
 /* if abs(d) >= B^max_exponent, it is an overflow */
 static const int16_t max_exponent[JS_RADIX_MAX - 1] = {
- 1024,   647,   512,   442,   397,   365,   342,   324, 
-  309,   297,   286,   277,   269,   263,   256,   251, 
-  246,   242,   237,   234,   230,   227,   224,   221, 
-  218,   216,   214,   211,   209,   207,   205,   203, 
-  202,   200,   199, 
+ 1024,   647,   512,   442,   397,   365,   342,   324,
+  309,   297,   286,   277,   269,   263,   256,   251,
+  246,   242,   237,   234,   230,   227,   224,   221,
+  218,   216,   214,   211,   209,   207,   205,   203,
+  202,   200,   199,
 };
 
 /* if abs(d) <= B^min_exponent, it is an underflow */
 static const int16_t min_exponent[JS_RADIX_MAX - 1] = {
--1075,  -679,  -538,  -463,  -416,  -383,  -359,  -340, 
- -324,  -311,  -300,  -291,  -283,  -276,  -269,  -263, 
- -258,  -254,  -249,  -245,  -242,  -238,  -235,  -232, 
- -229,  -227,  -224,  -222,  -220,  -217,  -215,  -214, 
- -212,  -210,  -208, 
+-1075,  -679,  -538,  -463,  -416,  -383,  -359,  -340,
+ -324,  -311,  -300,  -291,  -283,  -276,  -269,  -263,
+ -258,  -254,  -249,  -245,  -242,  -238,  -235,  -232,
+ -229,  -227,  -224,  -222,  -220,  -217,  -215,  -214,
+ -212,  -210,  -208,
 };
 
 #if 0
 void build_tables(void)
 {
     int r, j, radix, n, col, i;
-    
+
     /* radix_base_table */
     for(radix = 2; radix <= 36; radix++) {
         r = 1;
@@ -797,7 +797,7 @@ void build_tables(void)
     printf("\n};\n\n");
 
     printf("static const int16_t min_exponent[JS_RADIX_MAX - 1] = {\n");
-    col = 0; 
+    col = 0;
     for(radix = 2; radix <= 36; radix++) {
         printf("%5d, ", (int)floor(-1075 / log2(radix)));
         if (++col == 8) {
@@ -808,7 +808,7 @@ void build_tables(void)
     printf("\n};\n\n");
 
     printf("static const uint32_t pow5_table[16] = {\n");
-    col = 0; 
+    col = 0;
     for(i = 2; i <= 17; i++) {
         r = 1;
         for(j = 0; j < i; j++) {
@@ -824,7 +824,7 @@ void build_tables(void)
 
     /* high part */
     printf("static const uint8_t pow5h_table[4] = {\n");
-    col = 0; 
+    col = 0;
     for(i = 14; i <= 17; i++) {
         uint64_t r1;
         r1 = 1;
@@ -898,7 +898,7 @@ static int mul_pow(mpb_t *a, int radix1, int radix_shift, int f, BOOL is_int, in
         d = digits_per_limb_table[radix1 - 2];
         if (f >= 0) {
             limb_t h, b;
-            
+
             b = 0;
             n0 = 0;
             while (f != 0) {
@@ -916,7 +916,7 @@ static int mul_pow(mpb_t *a, int radix1, int radix_shift, int f, BOOL is_int, in
         } else {
             int extra_bits, l, shift;
             limb_t r, rem, b, b_inv;
-            
+
             f = -f;
             l = (f + d - 1) / d; /* high bound for the number of limbs (XXX: make it better) */
             e_offset += l * LIMB_BITS;
@@ -930,7 +930,7 @@ static int mul_pow(mpb_t *a, int radix1, int radix_shift, int f, BOOL is_int, in
             }
             e_offset += extra_bits;
             mpb_shr_round(a, -(l * LIMB_BITS + extra_bits), JS_RNDZ);
-            
+
             b = 0;
             b_inv = 0;
             shift = 0;
@@ -1175,11 +1175,11 @@ int js_dtoa(char *buf, double d, int radix, int n_digits, int flags,
         goto done;
     }
 #endif
-    
-    /* this choice of E implies F=round(x*B^(P-E) is such as: 
+
+    /* this choice of E implies F=round(x*B^(P-E) is such as:
        B^(P-1) <= F < 2.B^P. */
     E = 1 + mul_log2_radix(e - 1, radix);
-    
+
     if (fmt == JS_DTOA_FORMAT_FREE) {
         int P_max, E0, e1, E_found, P_found;
         uint64_t m1, mant_found, mant, mant_max1;
@@ -1237,7 +1237,7 @@ int js_dtoa(char *buf, double d, int radix, int n_digits, int flags,
         if (radix == 10) {
             out_len_count[P - 1]++;
         }
-#endif        
+#endif
     } else if (fmt == JS_DTOA_FORMAT_FRAC) {
         int len;
 
@@ -1265,7 +1265,7 @@ int js_dtoa(char *buf, double d, int radix, int n_digits, int flags,
         mant_max->tab[0] = 1;
         pow_shift = mul_pow(mant_max, radix1, radix_shift, P, FALSE, 0);
         mpb_shr_round(mant_max, pow_shift, JS_RNDZ);
-        
+
         for(;;) {
             /* fixed and frac are rounded using RNDNA */
             mul_pow_round(tmp1, m, e - 53, radix1, radix_shift, P - E, JS_RNDNA);
@@ -1380,7 +1380,7 @@ double js_atod(const char *str, const char **pnext, int radix, int flags,
     } else {
         p_start = p;
     }
-    
+
     if (p[0] == '0') {
         if ((p[1] == 'x' || p[1] == 'X') &&
             (radix == 0 || radix == 16)) {
@@ -1456,7 +1456,7 @@ double js_atod(const char *str, const char **pnext, int radix, int flags,
         p++;
         pos++;
     }
-    
+
     sig_pos = pos;
     for(;;) {
         limb_t c;
@@ -1502,13 +1502,13 @@ double js_atod(const char *str, const char **pnext, int radix, int flags,
             dot_pos = pos;
         expn_offset = sig_pos + digit_count - dot_pos;
     }
-    
+
     /* Use the extra digits for rounding if the base is a power of
        two. Otherwise they are just truncated. */
     if (radix_bits != 0 && extra_digits != 0) {
         tmp0->tab[0] |= 1;
     }
-    
+
     /* parse the exponent, if any */
     expn = 0;
     expn_overflow = FALSE;

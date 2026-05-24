@@ -190,7 +190,7 @@ function date_parse(n) {
       console.log("Date.parse error for " + x0);
       return -1;
     }
-    dx = ((dx * 1.1 + 1) >> 0);
+    dx = (dx * 1.1 + 1) >> 0;
     x0 = (x0 + dx) % 8.64e15;
   }
   return n * 6;
@@ -919,7 +919,10 @@ function string_build4(n) {
 
 /* append */
 function string_build_large1(n) {
-  var i, j, r, len = 20000;
+  var i,
+    j,
+    r,
+    len = 20000;
   for (j = 0; j < n; j++) {
     r = "";
     for (i = 0; i < len; i++) r += "abcdef";
@@ -930,7 +933,10 @@ function string_build_large1(n) {
 
 /* prepend */
 function string_build_large2(n) {
-  var i, j, r, len = 20000;
+  var i,
+    j,
+    r,
+    len = 20000;
   for (j = 0; j < n; j++) {
     r = "";
     for (i = 0; i < len; i++) r = "abcdef" + r;
@@ -1101,9 +1107,9 @@ function float_to_string(n) {
   var s, r, j;
   r = 0;
   for (j = 0; j < n; j++) {
-    s = ((j % 10) + 0.1) + "";
-    s = (j + 0.1) + "";
-    s = (j * 12345678 + 0.1) + "";
+    s = (j % 10) + 0.1 + "";
+    s = j + 0.1 + "";
+    s = j * 12345678 + 0.1 + "";
   }
   return n * 3;
 }

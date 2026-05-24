@@ -174,7 +174,8 @@ test("onerror itself throws — secondary error printed to stderr", async () => 
 test.runIf(shouldRunWineTests)(
   "[wine] onerror itself throws — secondary error printed to stderr",
   async () => {
-    expect(await runFixtureWine("onerror-itself-throws")).toMatchInlineSnapshot(`
+    expect(await runFixtureWine("onerror-itself-throws"))
+      .toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -291,7 +292,8 @@ test("non-Error throw with no onerror — stderr matches QJU_PrintError format",
 test.runIf(shouldRunWineTests)(
   "[wine] non-Error throw with no onerror — stderr matches QJU_PrintError format",
   async () => {
-    expect(await runFixtureWine("non-error-throw-no-handler")).toMatchInlineSnapshot(`
+    expect(await runFixtureWine("non-error-throw-no-handler"))
+      .toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -587,7 +589,8 @@ test("parent-side onmessage throw — goes to stderr, not worker.onerror", async
 test.runIf(shouldRunWineTests)(
   "[wine] parent-side onmessage throw — goes to stderr, not worker.onerror",
   async () => {
-    expect(await runFixtureWine("parent-onmessage-throws")).toMatchInlineSnapshot(`
+    expect(await runFixtureWine("parent-onmessage-throws"))
+      .toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
@@ -638,7 +641,8 @@ test("main-thread-only signal API in worker — onerror fires with TypeError", a
 test.runIf(shouldRunWineTests)(
   "[wine] main-thread-only signal API in worker — onerror fires with TypeError",
   async () => {
-    expect(await runFixtureWine("signal-handler-throws")).toMatchInlineSnapshot(`
+    expect(await runFixtureWine("signal-handler-throws"))
+      .toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,

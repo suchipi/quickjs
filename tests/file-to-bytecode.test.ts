@@ -186,12 +186,7 @@ test("file-to-bytecode --strip source / debug produce smaller binaries", async (
     rm("-f", out);
     const run = spawn(
       binDir("quickjs-run"),
-      [
-        binDir("file-to-bytecode.js"),
-        ...extraArgs,
-        fixture,
-        out,
-      ],
+      [binDir("file-to-bytecode.js"), ...extraArgs, fixture, out],
       { cwd: __dirname }
     );
     await run.completion;
@@ -212,13 +207,7 @@ test("file-to-bytecode rejects invalid --strip value", async () => {
   const out = workDir("named-function.bin");
   const run = spawn(
     binDir("quickjs-run"),
-    [
-      binDir("file-to-bytecode.js"),
-      "--strip",
-      "garbage",
-      fixture,
-      out,
-    ],
+    [binDir("file-to-bytecode.js"), "--strip", "garbage", fixture, out],
     { cwd: __dirname }
   );
   await run.completion;

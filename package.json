@@ -30,7 +30,9 @@
     "test": "vitest",
     "typecheck": "npx --no-install tsc --noEmit"
   },
-  "prettier": {},
+  "prettier": {
+    "trailingComma": "es5"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",

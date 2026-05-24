@@ -4,10 +4,7 @@ declare module "quickjs:timers" {
   export type Timer = { [Symbol.toStringTag]: "Timer" };
 
   /** Call the function func after delay ms. Return a handle to the timer. */
-  export function setTimeout(
-    func: (...args: any) => any,
-    delay: number
-  ): Timer;
+  export function setTimeout(func: (...args: any) => any, delay: number): Timer;
 
   /** Cancel a timer. */
   export function clearTimeout(handle: Timer): void;

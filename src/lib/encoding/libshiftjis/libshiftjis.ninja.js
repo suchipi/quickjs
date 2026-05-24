@@ -21,10 +21,7 @@ if (process.env.CONFIG_SHIFTJIS !== "0") {
     output: builddir("intermediate/libshiftjis-table.h"),
     rule: "shiftjis_gen",
     inputs: [rel("downloaded")],
-    implicitInputs: [
-      shiftjis_gen_host,
-      rel("./downloaded/index-jis0208.txt"),
-    ],
+    implicitInputs: [shiftjis_gen_host, rel("./downloaded/index-jis0208.txt")],
   });
 
   build({

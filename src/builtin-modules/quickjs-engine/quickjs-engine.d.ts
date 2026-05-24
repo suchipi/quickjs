@@ -30,7 +30,11 @@ declare module "quickjs:engine" {
    */
   export function evalScript(
     code: string,
-    options?: { backtraceBarrier?: boolean; filename?: string; async?: boolean }
+    options?: {
+      backtraceBarrier?: boolean;
+      filename?: string;
+      async?: boolean;
+    }
   ): any;
 
   /**

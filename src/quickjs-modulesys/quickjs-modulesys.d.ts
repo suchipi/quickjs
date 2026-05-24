@@ -126,10 +126,7 @@ interface ModuleDelegate {
    * own implementation. Note that you must handle `ModuleDelegate.compilers`
    * yourself in your replacement implementation.
    */
-  read(
-    modulePath: string,
-    attributes?: Record<string, string>
-  ): string;
+  read(modulePath: string, attributes?: Record<string, string>): string;
 }
 
 interface RequireFunction {

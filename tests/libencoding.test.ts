@@ -100,8 +100,8 @@ test("TextEncoder - basic encode", async () => {
       "stdout": "encoding: utf-8
     instanceof: true
     bytes: 104,101,108,108,111
-    empty: 
-    empty2: 
+    empty:
+    empty2:
     ",
     }
   `);

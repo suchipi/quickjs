@@ -1,2 +1,16 @@
-# prettier handles operator precedence wrong for math mode
-tests/oldtests/test_qjscalc.js
+build/
+.tmp/
+.claude/
+
+# generated docs; we already run prettier on them at generation time
+meta/docs/
+
+# submodules
+src/run-test262/test262/
+src/run-test262/test262o/
+
+# intentionally-invalid syntax used in some test inputs
+tests/fixtures/
+
+# prettier table formatting makes this unreadable
+upstream-merge-status.md

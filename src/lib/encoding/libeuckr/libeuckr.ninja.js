@@ -21,10 +21,7 @@ if (process.env.CONFIG_EUCKR !== "0") {
     output: builddir("intermediate/libeuckr-table.h"),
     rule: "euckr_gen",
     inputs: [rel("downloaded")],
-    implicitInputs: [
-      euckr_gen_host,
-      rel("./downloaded/index-euc-kr.txt"),
-    ],
+    implicitInputs: [euckr_gen_host, rel("./downloaded/index-euc-kr.txt")],
   });
 
   build({

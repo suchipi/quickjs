@@ -334,7 +334,10 @@ declare module "quickjs:std" {
      * - `responseHeaders`: headers separated by CRLF (string)
      * - `status`: status code (number)
      */
-    (url: string, options: { full: true }): {
+    (
+      url: string,
+      options: { full: true }
+    ): {
       status: number;
       response: string;
       responseHeaders: string;
@@ -349,7 +352,10 @@ declare module "quickjs:std" {
      * - `responseHeaders`: headers separated by CRLF (string)
      * - `status`: status code (number)
      */
-    (url: string, options: { full: true; binary: false }): {
+    (
+      url: string,
+      options: { full: true; binary: false }
+    ): {
       status: number;
       response: string;
       responseHeaders: string;
@@ -364,7 +370,10 @@ declare module "quickjs:std" {
      * - `responseHeaders`: headers separated by CRLF (string)
      * - `status`: status code (number)
      */
-    (url: string, options: { full: true; binary: true }): {
+    (
+      url: string,
+      options: { full: true; binary: true }
+    ): {
       status: number;
       response: ArrayBuffer;
       responseHeaders: string;

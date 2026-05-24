@@ -87,9 +87,7 @@ test("engine.importModule on a TLA module throws TypeError synchronously", async
 });
 
 test("require() on a non-TLA module still works (no regression)", async () => {
-  const run = spawn(binDir("qjs"), [
-    fixturesDir("tla", "require-nontla.mjs"),
-  ]);
+  const run = spawn(binDir("qjs"), [fixturesDir("tla", "require-nontla.mjs")]);
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -253,7 +251,9 @@ test("ModuleDelegate.resolve called synchronously during async module linking", 
 // ============================================================================
 
 test("TLA works with quickjs-run", async () => {
-  const run = spawn(binDir("quickjs-run"), [fixturesDir("tla", "tla-basic.mjs")]);
+  const run = spawn(binDir("quickjs-run"), [
+    fixturesDir("tla", "tla-basic.mjs"),
+  ]);
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
@@ -304,10 +304,7 @@ beforeEach(() => {
 });
 
 test("TLA works with qjsbootstrap (appended source)", async () => {
-  const prog = makeBootstrapProg(
-    fixturesDir("tla", "tla-basic.mjs"),
-    "tla-ok"
-  );
+  const prog = makeBootstrapProg(fixturesDir("tla", "tla-basic.mjs"), "tla-ok");
   const run = spawn(prog);
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
@@ -346,7 +343,12 @@ test("uncaught TLA rejection with qjsbootstrap prints and exits nonzero", async 
 async function compileToBytecode(sourceFile: string, outFile: string) {
   const run = spawn(
     binDir("quickjs-run"),
-    [binDir("file-to-bytecode.js"), sourceFile, outFile, path.basename(sourceFile)],
+    [
+      binDir("file-to-bytecode.js"),
+      sourceFile,
+      outFile,
+      path.basename(sourceFile),
+    ],
     { cwd: rootDir() }
   );
   await run.completion;
@@ -357,10 +359,7 @@ async function compileToBytecode(sourceFile: string, outFile: string) {
   }
 }
 
-async function makeBytecodeBootstrapProg(
-  sourceFile: string,
-  progName: string
-) {
+async function makeBytecodeBootstrapProg(sourceFile: string, progName: string) {
   const bytecodePath = path.join(bootstrapWorkDir, progName + ".bin");
   await compileToBytecode(sourceFile, bytecodePath);
   const bytecode = fs.readFileSync(bytecodePath);

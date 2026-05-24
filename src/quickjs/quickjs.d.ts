@@ -121,4 +121,3 @@ interface BigIntConstructor {
    */
   ctz(a: bigint): bigint;
 }
-

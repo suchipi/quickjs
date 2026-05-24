@@ -41,10 +41,12 @@ test("cmdline.exit in worker throws", async () => {
   `);
 });
 
-test.runIf(shouldRunWineTests)("[wine] cmdline.exit in worker throws", async () => {
-  const run = wineSpawn([testFixturesDir("main.js")]);
-  await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
+test.runIf(shouldRunWineTests)(
+  "[wine] cmdline.exit in worker throws",
+  async () => {
+    const run = wineSpawn([testFixturesDir("main.js")]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
@@ -65,7 +67,8 @@ test.runIf(shouldRunWineTests)("[wine] cmdline.exit in worker throws", async () 
     ",
     }
   `);
-});
+  }
+);
 
 test("worker terminates when main sets worker.onmessage = null", async () => {
   const run = spawn(binDir("qjs"), [

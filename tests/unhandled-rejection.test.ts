@@ -140,10 +140,7 @@ test("A1: Promise.reject with sync .catch attached → not reported", async () =
 });
 
 test("A2: Promise.reject with no handler → exits 1, reported", async () => {
-  const run = spawn(binDir("qjs"), [
-    "-e",
-    `Promise.reject(new Error("a2"));`,
-  ]);
+  const run = spawn(binDir("qjs"), ["-e", `Promise.reject(new Error("a2"));`]);
   await run.completion;
   expect(run.cleanResult()).toMatchInlineSnapshot(`
     {
