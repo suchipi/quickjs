@@ -1040,3 +1040,26 @@ test("quickjs:context - ctx.eval with all options enabled (default)", async () =
     }
   `);
 });
+
+test("quickjs:context - deeply-nested contexts", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context();
+      ctx.eval("Context = require('quickjs:context').Context;");
+      ctx.eval("ctx2 = new Context()");
+      ctx.globalThis.ctx2.eval("console.log('hi')");
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "hi
+    ",
+    }
+  `);
+});

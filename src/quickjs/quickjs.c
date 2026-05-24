@@ -2012,9 +2012,6 @@ void JS_FreeRuntime(JSRuntime *rt)
     /* don't remove the weak objects to avoid create new jobs with
        FinalizationRegistry */
     JS_RunGCInternal(rt, FALSE);
-    // Need to run GC twice in order to handle any Context objects created by
-    // quickjs-context... TODO: surely there is a better way to handle this.
-    JS_RunGCInternal(rt, FALSE);
 
 #ifdef DUMP_LEAKS
     /* leaking objects */
@@ -2319,9 +2316,16 @@ JSContext *JS_DupContext(JSContext *ctx)
     return ctx;
 }
 
+void JS_MarkContext(JSRuntime *rt, JSContext *ctx, JS_MarkFunc *mark_func)
+{
+    if (ctx) {
+        mark_func(rt, &ctx->header);
+    }
+}
+
 /* used by the GC */
-static void JS_MarkContext(JSRuntime *rt, JSContext *ctx,
-                           JS_MarkFunc *mark_func)
+static void JS_MarkContextChildren(JSRuntime *rt, JSContext *ctx,
+                                   JS_MarkFunc *mark_func)
 {
     int i;
     struct list_head *el;
@@ -6297,7 +6301,7 @@ static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
     case JS_GC_OBJ_TYPE_JS_CONTEXT:
         {
             JSContext *ctx = (JSContext *)gp;
-            JS_MarkContext(rt, ctx, mark_func);
+            JS_MarkContextChildren(rt, ctx, mark_func);
         }
         break;
     case JS_GC_OBJ_TYPE_MODULE:

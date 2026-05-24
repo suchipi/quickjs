@@ -453,6 +453,11 @@ void JS_SetRuntimeOpaqueValue(JSRuntime *rt, JSValue value);
 JSValue JS_GetRuntimeOpaqueValue(JSRuntime *rt);
 typedef void JS_MarkFunc(JSRuntime *rt, JSGCObjectHeader *gp);
 void JS_MarkValue(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func);
+/* Mark a JSContext as a GC root from a class gc_mark callback. Use this
+   when a class instance holds a raw JSContext* in its opaque slot
+   (eg. quickjs:context) so the cycle collector can see across that
+   reference. Passing NULL is a no-op. */
+void JS_MarkContext(JSRuntime *rt, JSContext *ctx, JS_MarkFunc *mark_func);
 void JS_RunGC(JSRuntime *rt);
 JS_BOOL JS_IsLiveObject(JSRuntime *rt, JSValueConst obj);
 

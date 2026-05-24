@@ -23,9 +23,17 @@ static void js_context_finalizer(JSRuntime *rt, JSValue val)
     }
 }
 
+static void js_context_gc_mark(JSRuntime *rt, JSValueConst val,
+                               JS_MarkFunc *mark_func)
+{
+    JSContext *inner_ctx = JS_GetOpaque(val, js_context_class_id);
+    JS_MarkContext(rt, inner_ctx, mark_func);
+}
+
 static JSClassDef js_context_class = {
     "Context",
     .finalizer = js_context_finalizer,
+    .gc_mark = js_context_gc_mark,
 };
 
 /** returns 0 on success, 1 on exception */
