@@ -12,6 +12,9 @@
 #include <mach-o/dyld.h>
 #include <libgen.h>
 #endif
+#ifdef __FreeBSD__
+#include <sys/sysctl.h>
+#endif
 
 #if !defined(PATH_MAX)
 #define PATH_MAX 4096
@@ -162,6 +165,18 @@ char *execpath(char *argv0, char *info_message, char *error_message)
       found = 1;
     }
   }
+#ifdef __FreeBSD__
+  if (!found) {
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+    size_t path_size = PATH_MAX;
+    if (sysctl(mib, 4, result, &path_size, NULL, 0) == 0) {
+      if (info_message != NULL) {
+        sprintf(info_message, "found via sysctl(KERN_PROC_PATHNAME)");
+      }
+      found = 1;
+    }
+  }
+#endif
   if (!found && exists((char *)PROC_PATH_SOLARIS)) {
     if (readlink_null_terminated(PROC_PATH_SOLARIS, result, PATH_MAX) != -1) {
       if (info_message != NULL) {

@@ -105,8 +105,6 @@ hello!
 
 You can use this to create distributable binaries that run JS code without needing to use qjsc or a C compiler. Instructions [here](https://github.com/suchipi/quickjs/tree/main/src/programs/qjsbootstrap).
 
-> Note: On FreeBSD, `qjsbootstrap` requires procfs. You can mount it with `mount -t procfs proc /proc`. I started some work to use libprocstat instead, but haven't completed it yet.
-
 ### New binary: `qjsbootstrap-bytecode`:
 
 Like `qjsbootstrap`, but the user appends bytecode (produced by the `quickjs:bytecode` module) instead of source code. Useful when you want to ship a smaller binary, or want to avoid including the source text in the binary.
