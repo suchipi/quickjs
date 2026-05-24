@@ -30,9 +30,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
   - `JS_DynamicImportSync`
   - `JS_DynamicImportSync2` (additional arg for specifying basename that the import specifier is relative to)
 - Error-throwing functions (`JS_ThrowError`, `JS_ThrowSyntaxError`, `JS_ThrowTypeError`, `JS_ThrowReferenceError`, `JS_ThrowRangeError`, `JS_ThrowInternalError`) now accept `filename` and `line_num` parameters, so that C source locations can appear in JS error stack traces.
-- Additional error-related functions added:
-  - `JS_ThrowError`
-  - `JS_AddPropertyToException`
+- Added `JS_AddPropertyToException` helper which defines a property on the current thrown exception.
 - Additional utility functions added:
   - `JS_FreezeObjectValue` (performs Object.freeze)
   - `JS_IsPrimitive`
