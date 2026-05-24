@@ -87,8 +87,8 @@ test("TextEncoder - basic encode", async () => {
       const bytes = enc.encode("hello");
       console.log("instanceof:", bytes instanceof Uint8Array);
       console.log("bytes:", Array.from(bytes).join(","));
-      console.log("empty:", Array.from(enc.encode()).join(","));
-      console.log("empty2:", Array.from(enc.encode(undefined)).join(","));
+      console.log("empty:", Array.from(enc.encode()).join(","), "|");
+      console.log("empty2:", Array.from(enc.encode(undefined)).join(","), "|");
     `,
   ]);
   await run.completion;
@@ -100,8 +100,8 @@ test("TextEncoder - basic encode", async () => {
       "stdout": "encoding: utf-8
     instanceof: true
     bytes: 104,101,108,108,111
-    empty:
-    empty2:
+    empty:  |
+    empty2:  |
     ",
     }
   `);
