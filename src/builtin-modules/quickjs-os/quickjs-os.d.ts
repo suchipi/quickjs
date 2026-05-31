@@ -226,7 +226,17 @@ declare module "quickjs:os" {
     | { [key: string | number]: StructuredClonable };
 
   export class Worker {
+    /**
+     * Create a Worker which runs the module at `moduleFilename`.
+     */
     constructor(moduleFilename: string);
+    /**
+     * Create a Worker which runs a synthetic module with filename
+     * `fakeModuleFilename` and source code `overrideCode` (JS source code
+     * string). `fakeModuleFilename` is not read from disk and is only used as
+     * the module's assigned filename for import.meta, module resolution, etc.
+     */
+    constructor(fakeModuleFilename: string, overrideCode: string);
     static parent: Worker;
     postMessage(msg: StructuredClonable): void;
     /**

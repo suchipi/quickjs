@@ -123,6 +123,9 @@ typedef struct {
 typedef struct {
     char *filename; /* module filename */
     char *basename; /* module base name */
+    char *override_code; /* when non-NULL, synthetic module source eval'd
+                            in-memory instead of loading `filename` from disk;
+                            `filename` is then only the assigned module name. */
     JSWorkerMessagePipe *recv_pipe, *send_pipe;
     JSWorkerMessagePipe *error_send_pipe; /* worker's write end of the error pipe */
     JSWorkerDoneSignal *worker_done_signal; /* signaling channel to wake the main thread on completion */
@@ -3703,23 +3706,40 @@ static void *worker_func(void *opaque)
            is the single source of truth. */
         JS_SetHostPromiseRejectionTracker(rt, worker_promise_rejection_tracker, NULL);
 
-        /* Workers support top-level await: load the module via the async
-           path and let the worker's own event loop drive the promise to
-           completion. Sync throws (parse error, missing import, etc.)
-           from JS_LoadModule go directly to the error pipe. Async
-           rejections go through the callback above. */
-        JSValue module_promise = JS_LoadModule(ctx, args->basename, args->filename);
-        if (JS_IsException(module_promise)) {
-            JSValue reason = JS_GetException(ctx);
-            QJU_ReportException(ctx, reason);
-            JS_FreeValue(ctx, reason);
+        /* Workers support top-level await: kick off the entry module via the
+           async path and let the worker's own event loop drive the promise to
+           completion. Sync throws (parse error, missing import, etc.) go to
+           the error pipe via QJU_ReportException; async TLA rejections go
+           through the callbacks installed above. */
+        if (args->override_code) {
+            /* Second overload: synthetic in-memory module. Source is
+               override_code; its assigned filename (for import.meta,
+               relative-import resolution, error fallback) is args->filename,
+               which is NOT read from disk. QJMS_EvalBufAsync compiles, sets
+               import.meta, evals async, attaches the entry rejection handler,
+               and reports any sync exception via QJU_ReportException
+               internally — so we must NOT attach a second handler or report
+               again here. */
+            QJMS_EvalBufAsync(ctx, args->override_code,
+                              (int)strlen(args->override_code),
+                              args->filename, JS_EVAL_TYPE_MODULE);
         } else {
-            QJMS_AttachEntryRejectionHandler(ctx, module_promise);
+            /* First overload: load args->filename from disk, resolving
+               against args->basename (the caller's script/module name). */
+            JSValue module_promise = JS_LoadModule(ctx, args->basename, args->filename);
+            if (JS_IsException(module_promise)) {
+                JSValue reason = JS_GetException(ctx);
+                QJU_ReportException(ctx, reason);
+                JS_FreeValue(ctx, reason);
+            } else {
+                QJMS_AttachEntryRejectionHandler(ctx, module_promise);
+            }
         }
     }
 
     free(args->filename);
     free(args->basename);
+    free(args->override_code);
     free(args);
 
     js_eventloop_run(ctx);
@@ -3812,7 +3832,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     JSRuntime *rt = JS_GetRuntime(ctx);
     WorkerFuncArgs *args = NULL;
     JSValue obj = JS_UNDEFINED;
-    const char *filename = NULL, *basename;
+    const char *filename = NULL, *basename, *override = NULL;
     JSAtom basename_atom;
 
     /* XXX: in order to avoid problems with resource liberation, we
@@ -3841,6 +3861,21 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     memset(args, 0, sizeof(*args));
     args->filename = strdup(filename);
     args->basename = strdup(basename);
+
+    /* Second overload: new Worker(fakeModuleFilename, overrideCode). When a
+       second arg is present and not undefined, the worker runs a synthetic
+       in-memory module whose source is `override` and whose assigned filename
+       is `filename` (argv[0]) — `filename` is not read from disk in that case.
+       An empty string is a valid (empty) module; only `undefined`/absent
+       selects the disk path. */
+    if (argc >= 2 && !JS_IsUndefined(argv[1])) {
+        override = JS_ToCString(ctx, argv[1]);
+        if (!override)
+            goto fail;
+        args->override_code = strdup(override);
+        if (!args->override_code)
+            goto oom_fail;
+    }
 
     /* ports */
     args->recv_pipe = js_new_message_pipe();
@@ -3899,15 +3934,18 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
 
     JS_FreeCString(ctx, basename);
     JS_FreeCString(ctx, filename);
+    JS_FreeCString(ctx, override);
     return obj;
  oom_fail:
     JS_ThrowOutOfMemory(ctx);
  fail:
     JS_FreeCString(ctx, basename);
     JS_FreeCString(ctx, filename);
+    JS_FreeCString(ctx, override);
     if (args) {
         free(args->filename);
         free(args->basename);
+        free(args->override_code);
         js_free_message_pipe_local(args->recv_pipe);
         js_free_message_pipe_local(args->send_pipe);
         js_free_message_pipe_local(args->error_send_pipe);
@@ -5066,7 +5104,7 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
 #ifndef SKIP_WORKER
         JS_SetPropertyFunctionList(ctx, proto, js_worker_proto_funcs, countof(js_worker_proto_funcs));
 #endif
-        obj = JS_NewCFunction2(ctx, js_worker_ctor, "Worker", 1,
+        obj = JS_NewCFunction2(ctx, js_worker_ctor, "Worker", 2,
                                 JS_CFUNC_constructor, 0);
         JS_SetConstructor(ctx, obj, proto);
         JS_SetClassProto(ctx, js_worker_class_id, proto);
