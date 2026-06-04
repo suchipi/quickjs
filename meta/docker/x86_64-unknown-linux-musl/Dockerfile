@@ -17,12 +17,14 @@ ARG GID=1000
 RUN if ! getent group $GID; then addgroup -g $GID user; fi
 
 # If there's no user with id $UID, create one (named 'user').
-RUN if ! id $UID; then \
-    GROUP_NAME="$(id -gn $GID)" adduser -s /bin/sh -u $UID -D -G $GROUP_NAME user; \
+RUN if ! getent passwd $UID; then \
+    GROUP_NAME="$(getent group $GID | cut -d: -f1)" && \
+    adduser -s /bin/sh -u $UID -D -G "$GROUP_NAME" user; \
   fi
 
 # Allow user with id $UID to use sudo with no password prompt.
-RUN USER_NAME="$(id -un $UID)" echo "$USER_NAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN USER_NAME="$(getent passwd $UID | cut -d: -f1)" && \
+  echo "$USER_NAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 USER $UID
 
