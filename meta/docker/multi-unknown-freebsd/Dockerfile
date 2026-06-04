@@ -52,19 +52,16 @@ COPY freebsd-cc-x86_64 freebsd-cc-aarch64 /usr/local/bin/
 ARG UID=1000
 ARG GID=1000
 
-# Make normal user
-
-# if group with that GID already exists, use it (macOS ubuntu image on at least
-# orbstack has group staff with gid 20, which matches a macOS user's group. Not
-# sure if Docker Desktop does that)
+# If there's no group with id $GID, create one (named 'user').
 RUN if ! getent group $GID; then groupadd -g $GID user; fi
 
-RUN useradd -m -s /bin/bash -u $UID -g $GID user
+# If there's no user with id $UID, create one (named 'user').
+RUN if ! id $UID; then useradd -m -s /bin/bash -u $UID -g $GID user; fi
 
-# allow user to use sudo with no password prompt
-RUN echo "user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+# Allow user with id $UID to use sudo with no password prompt.
+RUN USER_NAME="$(id -un $UID)" && echo "$USER_NAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-USER user
+USER $UID
 
 # The intent is that you volume-mount the repo into /opt/quickjs.
 WORKDIR /opt/quickjs
