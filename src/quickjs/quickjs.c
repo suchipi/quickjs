@@ -58428,6 +58428,7 @@ static JSValue js_array_buffer_transfer(JSContext *ctx,
 {
     JSArrayBuffer *abuf;
     uint64_t new_len, *pmax_len, max_len;
+    JSValue res;
 
     abuf = JS_GetOpaque2(ctx, this_val, JS_CLASS_ARRAY_BUFFER);
     if (!abuf)
@@ -58451,18 +58452,17 @@ static JSValue js_array_buffer_transfer(JSContext *ctx,
                 pmax_len = &max_len;
         }
     }
+
     /* create an empty AB */
     if (new_len == 0) {
+        res = js_array_buffer_constructor2(ctx, JS_UNDEFINED, 0, pmax_len, JS_CLASS_ARRAY_BUFFER);
+        if (JS_IsException(res))
+            return res;
         JS_DetachArrayBuffer(ctx, this_val);
-        return js_array_buffer_constructor2(ctx, JS_UNDEFINED, 0, pmax_len, JS_CLASS_ARRAY_BUFFER);
     } else {
         uint64_t old_len;
-        uint8_t *bs, *new_bs;
-        JSFreeArrayBufferDataFunc *free_func;
 
-        bs = abuf->data;
         old_len = abuf->byte_length;
-        free_func = abuf->free_func;
 
         /* if length mismatch, realloc. Otherwise, use the same backing buffer. */
         if (new_len != old_len) {
@@ -58470,35 +58470,53 @@ static JSValue js_array_buffer_transfer(JSContext *ctx,
             if (new_len > INT32_MAX)
                 return JS_ThrowRangeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid array buffer length");
 
-            if (free_func != js_array_buffer_free) {
+            if (abuf->free_func != js_array_buffer_free) {
+                JSArrayBuffer *new_abuf;
                 /* cannot use js_realloc() because the buffer was
                    allocated with a custom allocator */
-                new_bs = js_mallocz(ctx, new_len);
-                if (!new_bs)
-                    return JS_EXCEPTION;
-                memcpy(new_bs, bs, min_int(old_len, new_len));
-                abuf->free_func(ctx->rt, abuf->opaque, bs);
-                bs = new_bs;
-                free_func = js_array_buffer_free;
+                res = js_array_buffer_constructor2(ctx, JS_UNDEFINED, new_len, pmax_len, JS_CLASS_ARRAY_BUFFER);
+                if (JS_IsException(res))
+                    return res;
+                new_abuf = JS_GetOpaque2(ctx, res, JS_CLASS_ARRAY_BUFFER);
+                memcpy(new_abuf->data, abuf->data, min_int(old_len, new_len));
+                abuf->free_func(ctx->rt, abuf->opaque, abuf->data);
             } else {
-                new_bs = js_realloc(ctx, bs, new_len);
-                if (!new_bs)
+                JSArrayBuffer *new_abuf;
+                uint8_t *new_bs;
+                /* reallocate the buffer after the new array buffer is
+                   created in case the new array buffer creation
+                   fails. */
+                res = js_array_buffer_constructor2(ctx, JS_UNDEFINED, 0, pmax_len, JS_CLASS_ARRAY_BUFFER);
+                if (JS_IsException(res))
+                    return res;
+                new_bs = js_realloc(ctx, abuf->data, new_len);
+                if (!new_bs) {
+                    JS_FreeValue(ctx, res);
                     return JS_EXCEPTION;
-                bs = new_bs;
+                }
                 if (new_len > old_len)
-                    memset(bs + old_len, 0, new_len - old_len);
+                    memset(new_bs + old_len, 0, new_len - old_len);
+                new_abuf = JS_GetOpaque2(ctx, res, JS_CLASS_ARRAY_BUFFER);
+                js_free(ctx, new_abuf->data);
+                new_abuf->data = new_bs;
+                new_abuf->byte_length = new_len;
             }
+        } else {
+            /* can keep the custom free function */
+            res = js_array_buffer_constructor3(ctx, JS_UNDEFINED, new_len, pmax_len,
+                                               JS_CLASS_ARRAY_BUFFER,
+                                               abuf->data, abuf->free_func,
+                                               abuf->opaque, FALSE);
+            if (JS_IsException(res))
+                return res;
         }
         /* neuter the backing buffer */
         abuf->data = NULL;
         abuf->byte_length = 0;
         abuf->detached = TRUE;
         js_array_buffer_update_typed_arrays(abuf);
-        return js_array_buffer_constructor3(ctx, JS_UNDEFINED, new_len, pmax_len,
-                                            JS_CLASS_ARRAY_BUFFER,
-                                            bs, free_func,
-                                            NULL, FALSE);
     }
+    return res;
 }
 
 static JSValue js_array_buffer_resize(JSContext *ctx, JSValueConst this_val,
