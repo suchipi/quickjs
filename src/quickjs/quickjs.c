@@ -28705,6 +28705,7 @@ static __exception int js_parse_var(JSParseState *s, int parse_flags, int tok,
             }
 
             if (s->token.val == '=') {
+                const uint8_t *source_ptr = s->token.ptr;
                 if (next_token(s))
                     goto var_error;
                 if (need_var_reference(s, tok)) {
@@ -28722,12 +28723,14 @@ static __exception int js_parse_var(JSParseState *s, int parse_flags, int tok,
                         goto var_error;
                     }
                     set_object_name(s, name);
+                    emit_source_pos(s, source_ptr);
                     put_lvalue(s, opcode, scope, name1, label,
                                PUT_LVALUE_NOKEEP, FALSE);
                 } else {
                     if (js_parse_assign_expr2(s, parse_flags))
                         goto var_error;
                     set_object_name(s, name);
+                    emit_source_pos(s, source_ptr);
                     emit_op(s, (tok == TOK_CONST || tok == TOK_LET) ?
                         OP_scope_put_var_init : OP_scope_put_var);
                     emit_atom(s, name);
@@ -33006,7 +33009,7 @@ static void dump_byte_code(JSContext *ctx, int pass,
     const JSOpCode *oi;
     int pos, pos_next, op, size, idx, addr, line, line1, in_source, line_num;
     uint8_t *bits = js_mallocz(ctx, len * sizeof(*bits));
-    BOOL use_short_opcodes = (b != NULL);
+    BOOL use_short_opcodes = (b != NULL), dump_pc;
 
     if (b) {
         int col_num;
@@ -33112,7 +33115,12 @@ static void dump_byte_code(JSContext *ctx, int pass,
             printf("%*s", x0 + 20 - x, "");
         }
 #endif
-        if (bits[pos]) {
+#if defined(DUMP_BYTECODE) && (DUMP_BYTECODE & 32)
+        dump_pc = TRUE;
+#else
+        dump_pc = bits[pos];
+#endif
+        if (dump_pc) {
             printf("%5d:  ", pos);
         } else {
             printf("        ");
