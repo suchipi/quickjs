@@ -365,6 +365,10 @@ void js_eventloop_free(JSRuntime *rt)
     }
 #endif
 
+#if !defined(_WIN32)
+    free(ts->poll_fds);
+#endif
+
     free(ts);
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
 }

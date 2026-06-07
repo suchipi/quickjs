@@ -1088,6 +1088,60 @@ test("os.setWriteHandler - detects pipe writable", async () => {
   `);
 });
 
+test("os.setReadHandler/setWriteHandler - many concurrent handlers (poll, not select)", async () => {
+  // Upstream 163b9b7 switched js_os_poll from select() to poll() so the
+  // number of watched fds isn't capped at FD_SETSIZE. Exercise a large
+  // batch of simultaneous rw handlers (the upstream test_rw_handler.js
+  // scenario) to confirm they all dispatch.
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const os = require("quickjs:os");
+
+      const N = 100;
+      const pipes = [];
+      let readsDone = 0;
+
+      function handleRead(rfd, index) {
+        const buf = new ArrayBuffer(4);
+        os.read(rfd, buf, 0, 4);
+        os.setReadHandler(rfd, null);
+        const got = new Uint32Array(buf)[0];
+        if (got !== index) {
+          console.log("MISMATCH at", index, "got", got);
+          require("quickjs:cmdline").exit(1);
+        }
+        readsDone++;
+        if (readsDone === N) {
+          console.log("all", N, "handlers fired");
+          require("quickjs:cmdline").exit(0);
+        }
+      }
+
+      for (let i = 0; i < N; i++) {
+        const [rfd, wfd] = os.pipe();
+        pipes.push([rfd, wfd]);
+        os.setReadHandler(rfd, () => handleRead(rfd, i));
+      }
+      for (let i = N - 1; i >= 0; i--) {
+        const [, wfd] = pipes[i];
+        const buf = new Uint32Array([i]);
+        os.write(wfd, buf.buffer, 0, 4);
+      }
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "all 100 handlers fired
+    ",
+    }
+  `);
+});
+
 test.runIf(shouldRunWineTests)(
   "[wine] os.setReadHandler with non-stdin fd throws",
   async () => {

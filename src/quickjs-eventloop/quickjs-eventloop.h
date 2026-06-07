@@ -34,6 +34,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <poll.h>
 #endif
 
 #ifdef __cplusplus
@@ -44,6 +46,7 @@ extern "C" {
 typedef struct JSRWHandler {
     struct list_head link;
     int fd;
+    int poll_fd_index; /* temporary use in js_os_poll() */
     JSValue rw_func[2];
 } JSRWHandler;
 
@@ -106,6 +109,7 @@ typedef struct JSWorkerMessageHandler {
     struct list_head link;
     JSWorkerMessagePipe *recv_pipe;
     JSValue on_message_func;
+    int poll_fd_index; /* temporary use in js_os_poll() */
 } JSWorkerMessageHandler;
 
 /* Worker error handler — parent-side counterpart to an onerror listener
@@ -119,6 +123,7 @@ typedef struct JSWorkerErrorHandler {
     struct list_head link;
     JSWorkerMessagePipe *recv_pipe;
     JSValue on_error_func;
+    int poll_fd_index; /* temporary use in js_os_poll() */
 } JSWorkerErrorHandler;
 #endif /* !SKIP_WORKER */
 
@@ -149,6 +154,10 @@ typedef struct JSThreadState {
     void *last_reported_reason_ptr;    /* worker-side only: pointer identity of the last reason value routed to the error pipe. Used by qju_report_exception_hook_impl to dedupe the chain of tracker fires produced by module-evaluation machinery when a module has a top-level throw — the chain shares a single reason value, so comparing pointer identity collapses the N reports into one. Non-JS_TAG_OBJECT values (strings, numbers) are never deduped because they don't have stable pointer identity in QuickJS's tagged-value representation. */
     int active_worker_count;           /* number of active worker threads (main thread only); mirrored from worker_done_signal->active_count, refreshed under its mutex */
     struct JSWorkerDoneSignal *worker_done_signal; /* signaling channel for worker-completion notifications (main thread only; lazily allocated on first worker) */
+#endif
+#if !defined(_WIN32)
+    struct pollfd *poll_fds;           /* scratch pollfd array for js_os_poll(); grown on demand, freed in js_eventloop_free() */
+    int poll_fds_size;
 #endif
 } JSThreadState;
 

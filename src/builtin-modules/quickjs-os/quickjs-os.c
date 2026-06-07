@@ -4622,19 +4622,48 @@ static int js_os_poll(JSContext *ctx)
     return 0;
 }
 #else /* !_WIN32 */
+
+static no_inline int js_poll_expand(JSThreadState *ts)
+{
+    struct pollfd *new_fds;
+    int new_size = max_int(ts->poll_fds_size + ts->poll_fds_size / 2, 16);
+    new_fds = realloc(ts->poll_fds, new_size * sizeof(struct pollfd));
+    if (!new_fds)
+        return -1;
+    ts->poll_fds = new_fds;
+    ts->poll_fds_size = new_size;
+    return 0;
+}
+
+static int js_poll_add_poll_fd(JSThreadState *ts, int *pnfds, int fd, int events)
+{
+    struct pollfd *fds;
+    int nfds;
+    nfds = *pnfds;
+    if (unlikely(nfds >= ts->poll_fds_size)) {
+        if (js_poll_expand(ts))
+            return -1;
+    }
+    fds = &ts->poll_fds[nfds++];
+    fds->fd = fd;
+    fds->events = events;
+    fds->revents = 0;
+    *pnfds = nfds;
+    return 0;
+}
+
 static int js_os_poll(JSContext *ctx)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
-    int ret, fd_max, min_delay;
+    int min_delay, nfds;
     int64_t cur_time, delay;
-    fd_set rfds, wfds;
     JSRWHandler *rh;
     struct list_head *el;
 #ifndef SKIP_WORKER
     struct list_head *el1;
+    int worker_done_poll_index;
 #endif
-    struct timeval tv, *tvp;
 
     if (
 #ifndef SKIP_WORKER
@@ -4665,7 +4694,7 @@ static int js_os_poll(JSContext *ctx)
     /* Reap any ports/error_ports that are drained AND marked closed by
        the writer side. Without this, a port whose last message was
        dispatched (draining the waker byte) would keep port_list
-       non-empty across iterations, and the next select() would block on
+       non-empty across iterations, and the next poll() would block on
        an empty pipe even though closed=1. The reap happens before
        building the fd set so the empty-everything check above takes
        effect on the next iteration if these were the last ports. */
@@ -4729,23 +4758,25 @@ static int js_os_poll(JSContext *ctx)
                 min_delay = delay;
             }
         }
-        tv.tv_sec = min_delay / 1000;
-        tv.tv_usec = (min_delay % 1000) * 1000;
-        tvp = &tv;
     } else {
-        tvp = NULL;
+        min_delay = -1; /* infinite */
     }
 
-    FD_ZERO(&rfds);
-    FD_ZERO(&wfds);
-    fd_max = -1;
+    nfds = 0;
     list_for_each(el, &ts->rw_handlers) {
+        int events;
+
         rh = list_entry(el, JSRWHandler, link);
-        fd_max = max_int(fd_max, rh->fd);
+        events = 0;
         if (!JS_IsNull(rh->rw_func[0]))
-            FD_SET(rh->fd, &rfds);
+            events |= POLLIN;
         if (!JS_IsNull(rh->rw_func[1]))
-            FD_SET(rh->fd, &wfds);
+            events |= POLLOUT;
+        if (events) {
+            rh->poll_fd_index = nfds;
+            if (js_poll_add_poll_fd(ts, &nfds, rh->fd, events))
+                return -1;
+        }
     }
 
 #ifndef SKIP_WORKER
@@ -4753,8 +4784,9 @@ static int js_os_poll(JSContext *ctx)
         JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
         if (!JS_IsNull(port->on_message_func)) {
             JSWorkerMessagePipe *ps = port->recv_pipe;
-            fd_max = max_int(fd_max, ps->waker.read_fd);
-            FD_SET(ps->waker.read_fd, &rfds);
+            port->poll_fd_index = nfds;
+            if (js_poll_add_poll_fd(ts, &nfds, ps->waker.read_fd, POLLIN))
+                return -1;
         }
     }
 
@@ -4764,34 +4796,36 @@ static int js_os_poll(JSContext *ctx)
     list_for_each(el, &ts->error_port_list) {
         JSWorkerErrorHandler *eh = list_entry(el, JSWorkerErrorHandler, link);
         JSWorkerMessagePipe *ps = eh->recv_pipe;
-        fd_max = max_int(fd_max, ps->waker.read_fd);
-        FD_SET(ps->waker.read_fd, &rfds);
+        eh->poll_fd_index = nfds;
+        if (js_poll_add_poll_fd(ts, &nfds, ps->waker.read_fd, POLLIN))
+            return -1;
     }
 
     /* watch the worker-done waker so we wake up when workers finish */
+    worker_done_poll_index = -1;
     if (ts->active_worker_count > 0 && ts->worker_done_signal) {
         int wfd = ts->worker_done_signal->waker.read_fd;
-        fd_max = max_int(fd_max, wfd);
-        FD_SET(wfd, &rfds);
+        worker_done_poll_index = nfds;
+        if (js_poll_add_poll_fd(ts, &nfds, wfd, POLLIN))
+            return -1;
         /* if there's nothing else keeping us alive, use a timeout so we
-           don't block forever in select */
-        if (tvp == NULL) {
-            tv.tv_sec = 10;
-            tv.tv_usec = 0;
-            tvp = &tv;
-        }
+           don't block forever in poll */
+        if (min_delay < 0)
+            min_delay = 10000;
     }
 #endif
 
-    ret = select(fd_max + 1, &rfds, &wfds, NULL, tvp);
-    if (ret > 0) {
+    nfds = poll(ts->poll_fds, nfds, min_delay);
+    if (nfds > 0) {
         list_for_each(el, &ts->rw_handlers) {
             rh = list_entry(el, JSRWHandler, link);
-            if (!JS_IsNull(rh->rw_func[0]) && FD_ISSET(rh->fd, &rfds)) {
+            if (!JS_IsNull(rh->rw_func[0]) &&
+                (ts->poll_fds[rh->poll_fd_index].revents & (POLLERR | POLLHUP | POLLNVAL | POLLIN))) {
                 js_eventloop_call_handler(ctx, rh->rw_func[0]);
                 return 0;
             }
-            if (!JS_IsNull(rh->rw_func[1]) && FD_ISSET(rh->fd, &wfds)) {
+            if (!JS_IsNull(rh->rw_func[1]) &&
+                (ts->poll_fds[rh->poll_fd_index].revents & (POLLERR | POLLHUP | POLLNVAL | POLLOUT))) {
                 js_eventloop_call_handler(ctx, rh->rw_func[1]);
                 return 0;
             }
@@ -4802,8 +4836,7 @@ static int js_os_poll(JSContext *ctx)
         list_for_each_safe(el, el1, &ts->port_list) {
             JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
             if (!JS_IsNull(port->on_message_func)) {
-                JSWorkerMessagePipe *ps = port->recv_pipe;
-                if (FD_ISSET(ps->waker.read_fd, &rfds)) {
+                if (ts->poll_fds[port->poll_fd_index].revents != 0) {
                     int result = handle_posted_message(rt, ctx, port);
                     if (result < 0) {
                         /* EOF detected - disable port to allow event loop to exit */
@@ -4820,8 +4853,7 @@ static int js_os_poll(JSContext *ctx)
         /* Handle worker errors */
         list_for_each_safe(el, el1, &ts->error_port_list) {
             JSWorkerErrorHandler *eh = list_entry(el, JSWorkerErrorHandler, link);
-            JSWorkerMessagePipe *ps = eh->recv_pipe;
-            if (FD_ISSET(ps->waker.read_fd, &rfds)) {
+            if (ts->poll_fds[eh->poll_fd_index].revents != 0) {
                 int result = handle_posted_error(rt, ctx, eh);
                 if (result < 0) {
                     /* EOF detected — unlink so the loop can exit; leave
@@ -4838,8 +4870,8 @@ static int js_os_poll(JSContext *ctx)
 
 #ifndef SKIP_WORKER
         /* handle worker completion notifications */
-        if (ts->worker_done_signal &&
-            FD_ISSET(ts->worker_done_signal->waker.read_fd, &rfds)) {
+        if (ts->worker_done_signal && worker_done_poll_index >= 0 &&
+            ts->poll_fds[worker_done_poll_index].revents != 0) {
             JSWorkerDoneSignal *sig = ts->worker_done_signal;
             pthread_mutex_lock(&sig->mutex);
             ts->active_worker_count = sig->active_count;
