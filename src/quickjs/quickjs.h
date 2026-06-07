@@ -164,6 +164,7 @@ enum {
     JS_CLASS_INIT_COUNT, /* last entry for predefined classes */
 };
 
+/* must match the layout of 'JSMallocBlockHeader' */
 typedef struct JSRefCountHeader {
     int ref_count;
 } JSRefCountHeader;
@@ -761,10 +762,16 @@ JSValue JS_ThrowOutOfMemory(JSContext *ctx);
 void JS_AddPropertyToException(JSContext *ctx, const char *propName, JSValue value);
 
 void __JS_FreeValue(JSContext *ctx, JSValue v);
+
+static inline JSRefCountHeader *__js_rc(void *ptr)
+{
+    return (JSRefCountHeader *)((uint32_t *)ptr - 1);
+}
+
 static inline void JS_FreeValue(JSContext *ctx, JSValue v)
 {
     if (JS_VALUE_HAS_REF_COUNT(v)) {
-        JSRefCountHeader *p = (JSRefCountHeader *)JS_VALUE_GET_PTR(v);
+        JSRefCountHeader *p = __js_rc(JS_VALUE_GET_PTR(v));
         if (--p->ref_count <= 0) {
             __JS_FreeValue(ctx, v);
         }
@@ -774,7 +781,7 @@ void __JS_FreeValueRT(JSRuntime *rt, JSValue v);
 static inline void JS_FreeValueRT(JSRuntime *rt, JSValue v)
 {
     if (JS_VALUE_HAS_REF_COUNT(v)) {
-        JSRefCountHeader *p = (JSRefCountHeader *)JS_VALUE_GET_PTR(v);
+        JSRefCountHeader *p = __js_rc(JS_VALUE_GET_PTR(v));
         if (--p->ref_count <= 0) {
             __JS_FreeValueRT(rt, v);
         }
@@ -784,7 +791,7 @@ static inline void JS_FreeValueRT(JSRuntime *rt, JSValue v)
 static inline JSValue JS_DupValue(JSContext *ctx, JSValueConst v)
 {
     if (JS_VALUE_HAS_REF_COUNT(v)) {
-        JSRefCountHeader *p = (JSRefCountHeader *)JS_VALUE_GET_PTR(v);
+        JSRefCountHeader *p = __js_rc(JS_VALUE_GET_PTR(v));
         p->ref_count++;
     }
     return (JSValue)v;
@@ -793,7 +800,7 @@ static inline JSValue JS_DupValue(JSContext *ctx, JSValueConst v)
 static inline JSValue JS_DupValueRT(JSRuntime *rt, JSValueConst v)
 {
     if (JS_VALUE_HAS_REF_COUNT(v)) {
-        JSRefCountHeader *p = (JSRefCountHeader *)JS_VALUE_GET_PTR(v);
+        JSRefCountHeader *p = __js_rc(JS_VALUE_GET_PTR(v));
         p->ref_count++;
     }
     return (JSValue)v;
