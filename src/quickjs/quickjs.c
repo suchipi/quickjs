@@ -1779,22 +1779,22 @@ static void js_trigger_gc(JSRuntime *rt, size_t size)
     }
 }
 
-extern force_inline void *js_malloc_rt(JSRuntime *rt, size_t size)
+void *js_malloc_rt(JSRuntime *rt, size_t size)
 {
     return __js_malloc(&rt->malloc_ctx, size);
 }
 
-extern force_inline void js_free_rt(JSRuntime *rt, void *ptr)
+void js_free_rt(JSRuntime *rt, void *ptr)
 {
     __js_free(&rt->malloc_ctx, ptr);
 }
 
-extern force_inline void *js_realloc_rt(JSRuntime *rt, void *ptr, size_t size)
+void *js_realloc_rt(JSRuntime *rt, void *ptr, size_t size)
 {
     return __js_realloc(&rt->malloc_ctx, ptr, size);
 }
 
-extern force_inline size_t js_malloc_usable_size_rt(JSRuntime *rt, const void *ptr)
+size_t js_malloc_usable_size_rt(JSRuntime *rt, const void *ptr)
 {
     return __js_malloc_usable_size(&rt->malloc_ctx, ptr);
 }
@@ -1809,7 +1809,7 @@ void *js_mallocz_rt(JSRuntime *rt, size_t size)
 }
 
 /* Throw out of memory in case of error */
-extern force_inline void *js_malloc(JSContext *ctx, size_t size)
+void *js_malloc(JSContext *ctx, size_t size)
 {
     void *ptr;
     ptr = js_malloc_rt(ctx->rt, size);
@@ -1821,7 +1821,7 @@ extern force_inline void *js_malloc(JSContext *ctx, size_t size)
 }
 
 /* Throw out of memory in case of error */
-extern force_inline void *js_mallocz(JSContext *ctx, size_t size)
+void *js_mallocz(JSContext *ctx, size_t size)
 {
     void *ptr;
     ptr = js_mallocz_rt(ctx->rt, size);
@@ -1832,7 +1832,7 @@ extern force_inline void *js_mallocz(JSContext *ctx, size_t size)
     return ptr;
 }
 
-extern force_inline void js_free(JSContext *ctx, void *ptr)
+void js_free(JSContext *ctx, void *ptr)
 {
     js_free_rt(ctx->rt, ptr);
 }
