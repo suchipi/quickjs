@@ -175,6 +175,12 @@ typedef enum OPCodeEnum OPCodeEnum;
 #define JS_MALLOC_BLOCK_SIZE_COUNT 31
 #define JS_MALLOC_MIN_SMALL_SIZE 16
 #define JS_MALLOC_MAX_SMALL_SIZE 512
+#if defined(__SANITIZE_ADDRESS__)
+/* use the host malloc() for all allocations */
+#define JS_MALLOC_LARGE_BLOCKS_ONLY 1
+#else
+#define JS_MALLOC_LARGE_BLOCKS_ONLY 0
+#endif
 
 /* allow iteration among the allocated blocks. Currently not used. May
    be used to suppress the memory overhead of JSGCObjectHeader */
@@ -1538,7 +1544,8 @@ static void *__js_malloc(JSMallocContext *s, size_t size)
     } else {
         total_size = ((size + JS_MALLOC_ALIGN - 1) & ~(JS_MALLOC_ALIGN - 1)) +
             sizeof(JSMallocBlockHeader);
-        if (total_size <= JS_MALLOC_MAX_SMALL_SIZE) { /* TEST */
+        if (!JS_MALLOC_LARGE_BLOCKS_ONLY &&
+            total_size <= JS_MALLOC_MAX_SMALL_SIZE) {
             int block_size_idx;
             unsigned int block_idx, block_size;
             JSMallocBlockHeader *b;
