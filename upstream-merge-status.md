@@ -445,3 +445,25 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | b1b4733 | PORT | fixed error handling in os.exec() (#503) | Bug fix in `src/builtin-modules/quickjs-os/quickjs-os.c` (upstream `quickjs-libc.c`'s `js_os_exec`): guard `envp != environ` with NULL check. Applied by hand because upstream-libc fork-split. |
 | 1f50b39 | PORT | memcpy() (currently) has undefined behavior if a pointer is NULL with zero size (#500) | Bug fix in `src/lib/encoding/libunicode/libunicode.c` `unicode_normalize`: guard memcpy with `src_len != 0`. Applied cleanly. |
 | e182e3d | PORT | Add Uint8Array base64/hex methods (initial patch by saghul) | Major new feature in `src/quickjs/quickjs.c` + 4 new atoms in `src/quickjs/quickjs-atom.h`. Adds `toBase64`/`toHex`/`setFromBase64`/`setFromHex` on Uint8Array.prototype and `fromBase64`/`fromHex` on Uint8Array. Resolved 2 conflicts (atom-comment, ctor-loop bpe declaration); adapted 16 new throw calls to fork's `(ctx, "<internal>/quickjs.c", __LINE__, msg)` signature. Unskipped `uint8array-base64` in test262.conf. Bytecode snapshots in 3 tests updated due to new atoms; 1 test262 case fixed. |
+| 99e9181 | PENDING | added custom malloc for small blocks (11% faster on bench-v8) |  |
+| d73189d | PENDING | fixed compilation with clang |  |
+| 8a3aaa1 | PENDING | Add run-test262 --no-can-block flag (#505) |  |
+| 163b9b7 | PENDING | added poll() support so that the number of file handles is not limited (#502) |  |
+| e6c2be8 | PENDING | disable inlining of malloc() wrappers to avoid problems with LTO (#515) |  |
+| 4a13c45 | PENDING | fixed setuid() / setgid() ordering (#517) |  |
+| ecd05ea | PENDING | use the host malloc() for all allocations when ASAN is enabled |  |
+| 14a1536 | PENDING | add line number info in variable initialization (#458) |  |
+| f838177 | PENDING | ArrayBuffer.prototype.transfer: avoid destroying the old array buffer in case the allocation of the new array buffer fails. Also avoid setting opaque = NULL for the custom array buffer free function |  |
+| 774e30e | PENDING | fixed win32 compilation |  |
+| 458992e | PENDING | removed CONFIG_AGENT |  |
+| 2504823 | PENDING | added multi-threading support in run-test262 (initial patch by bnoordhuis) - fixed unsafe thread termination in show_progress() - use the number of physical cores by default - added -T option to force the number of threads - avoid hardcoding the maximum number of threads |  |
+| e2c01df | PENDING | add optional define to add asm labels for each opcode to ease code inspection and profiling |  |
+| 10c81b1 | PENDING | fixed large performance regression with recent GCC versions |  |
+| 594f965 | PENDING | exclude few very slow and currently useless test262 tests |  |
+| 8e97f24 | PENDING | faster add, sub and mul for mixed integer floating point operands |  |
+| 92a3d4d | PENDING | fixed microbench with d8 |  |
+| ad1e7bd | PENDING | keep more generic cpu_count() for non Linux systems |  |
+| cfc846a | PENDING | doc update |  |
+| 8b04550 | PENDING | Add fuzz targets for ES6 modules, JSON, RegExp, and bytecode (#512) |  |
+| ccfe076 | PENDING | Check return values of fallible functions (#518) |  |
+| 3d5e064 | PENDING | new release |  |
