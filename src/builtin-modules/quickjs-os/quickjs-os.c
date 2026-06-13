@@ -126,6 +126,11 @@ typedef struct {
     char *override_code; /* when non-NULL, synthetic module source eval'd
                             in-memory instead of loading `filename` from disk;
                             `filename` is then only the assigned module name. */
+    uint8_t *initial_data; /* serialized structured-clone of the `initialData`
+                              option, or NULL when none was passed */
+    size_t initial_data_len;
+    uint8_t **initial_sab_tab; /* SharedArrayBuffers referenced by initial_data */
+    size_t initial_sab_tab_len;
     JSWorkerMessagePipe *recv_pipe, *send_pipe;
     JSWorkerMessagePipe *error_send_pipe; /* worker's write end of the error pipe */
     JSWorkerDoneSignal *worker_done_signal; /* signaling channel to wake the main thread on completion */
@@ -3286,17 +3291,9 @@ static JSWorkerMessagePipe *js_dup_message_pipe(JSWorkerMessagePipe *ps)
 static void js_free_message(JSWorkerMessage *msg)
 {
     size_t i;
-    /* free the SAB - use js_worker_message_pipe_free's approach */
+    /* drop our refcount on each referenced SAB, freeing it at zero */
     for(i = 0; i < msg->sab_tab_len; i++) {
-        /* sab_free equivalent - decrement ref count */
-        typedef struct {
-            int ref_count;
-            uint64_t buf[0];
-        } JSSABHeader;
-        JSSABHeader *sab = (JSSABHeader *)((uint8_t *)msg->sab_tab[i] - sizeof(JSSABHeader));
-        int ref_count = atomic_add_int(&sab->ref_count, -1);
-        if (ref_count == 0)
-            free(sab);
+        js_sab_free(NULL, msg->sab_tab[i]);
     }
     free(msg->sab_tab);
     free(msg->data);
@@ -3545,9 +3542,7 @@ static int worker_send_error(JSContext *ctx, JSValueConst reason)
     /* Bump SAB refcounts. (Error event payloads typically don't contain
        SABs, but be correct.) */
     for (i = 0; i < msg->sab_tab_len; i++) {
-        typedef struct { int ref_count; uint64_t buf[0]; } JSSABHeader;
-        JSSABHeader *sab = (JSSABHeader *)((uint8_t *)msg->sab_tab[i] - sizeof(JSSABHeader));
-        atomic_add_int(&sab->ref_count, 1);
+        js_sab_dup(NULL, msg->sab_tab[i]);
     }
 
     ps = ts->error_send_pipe;
@@ -3674,6 +3669,13 @@ static void *worker_func(void *opaque)
     /* Stash the entry module filename for use as a fallback in
        worker_send_error when a thrown reason lacks a fileName own-prop. */
     ts->entry_filename = strdup(args->filename);
+    /* Transfer ownership of the serialized initialData onto the thread state;
+       js_os_init deserializes it into Worker.initialData when the worker
+       imports quickjs:os, and js_eventloop_free releases it at teardown. */
+    ts->initial_data = args->initial_data;
+    ts->initial_data_len = args->initial_data_len;
+    ts->initial_sab_tab = args->initial_sab_tab;
+    ts->initial_sab_tab_len = args->initial_sab_tab_len;
 
     ctx = js_worker_new_context_func(rt);
     if (ctx == NULL) {
@@ -3743,6 +3745,21 @@ static void *worker_func(void *opaque)
     free(args);
 
     js_eventloop_run(ctx);
+
+    /* Mark the send pipe closed so the parent's onmessage port sees EOF
+       and gets reaped. Without this, a worker that exits on its own (e.g.
+       a startup failure, or simply running to completion) while the parent
+       still has `.onmessage` set would leave the parent's port_list entry
+       alive forever, so the parent's event loop never reaches its empty-
+       everything exit condition and hangs. terminate()/onmessage=null
+       closes this same pipe from the parent side; here we close it from the
+       worker side for the case where the parent never does. */
+    if (ts->send_pipe) {
+        pthread_mutex_lock(&ts->send_pipe->mutex);
+        ts->send_pipe->closed = 1;
+        pthread_mutex_unlock(&ts->send_pipe->mutex);
+        js_waker_signal(&ts->send_pipe->waker);
+    }
 
     /* Mark the error pipe closed so the parent sees EOF and can
        unregister the error port. The pipe struct itself is freed by
@@ -3862,19 +3879,83 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     args->filename = strdup(filename);
     args->basename = strdup(basename);
 
-    /* Second overload: new Worker(fakeModuleFilename, overrideCode). When a
-       second arg is present and not undefined, the worker runs a synthetic
-       in-memory module whose source is `override` and whose assigned filename
-       is `filename` (argv[0]) — `filename` is not read from disk in that case.
-       An empty string is a valid (empty) module; only `undefined`/absent
-       selects the disk path. */
-    if (argc >= 2 && !JS_IsUndefined(argv[1])) {
-        override = JS_ToCString(ctx, argv[1]);
-        if (!override)
+    /* Options bag: new Worker(moduleFilename, { overrideCode?, initialData? }).
+       `null`/`undefined`/absent means no options. Any other non-object is a
+       type error. */
+    if (argc >= 2 && !JS_IsUndefined(argv[1]) && !JS_IsNull(argv[1])) {
+        JSValue override_val, initial_val;
+
+        if (!JS_IsObject(argv[1])) {
+            JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__, "Worker options must be an object");
             goto fail;
-        args->override_code = strdup(override);
-        if (!args->override_code)
-            goto oom_fail;
+        }
+
+        /* overrideCode: when present, the worker runs a synthetic in-memory
+           module whose source is this string and whose assigned filename is
+           `filename` (argv[0]), which is then not read from disk. An empty
+           string is a valid (empty) module. */
+        override_val = JS_GetPropertyStr(ctx, argv[1], "overrideCode");
+        if (JS_IsException(override_val))
+            goto fail;
+        if (!JS_IsUndefined(override_val)) {
+            override = JS_ToCString(ctx, override_val);
+            JS_FreeValue(ctx, override_val);
+            if (!override)
+                goto fail;
+            args->override_code = strdup(override);
+            if (!args->override_code)
+                goto oom_fail;
+        } else {
+            JS_FreeValue(ctx, override_val);
+        }
+
+        /* initialData: structured-cloned here on the parent and deserialized
+           into Worker.initialData inside the worker. Reuses the postMessage
+           serialization (SAB-aware, reference-preserving). */
+        initial_val = JS_GetPropertyStr(ctx, argv[1], "initialData");
+        if (JS_IsException(initial_val))
+            goto fail;
+        if (!JS_IsUndefined(initial_val)) {
+            uint8_t *data, **sab_tab;
+            size_t data_len, sab_tab_len, i;
+
+            data = JS_WriteObject2(ctx, &data_len, initial_val,
+                                   JS_WRITE_OBJ_SAB | JS_WRITE_OBJ_REFERENCE,
+                                   &sab_tab, &sab_tab_len);
+            JS_FreeValue(ctx, initial_val);
+            if (!data)
+                goto fail;
+
+            args->initial_data = malloc(data_len);
+            if (!args->initial_data) {
+                js_free(ctx, data);
+                js_free(ctx, sab_tab);
+                goto oom_fail;
+            }
+            memcpy(args->initial_data, data, data_len);
+            args->initial_data_len = data_len;
+
+            if (sab_tab_len > 0) {
+                args->initial_sab_tab = malloc(sizeof(args->initial_sab_tab[0]) * sab_tab_len);
+                if (!args->initial_sab_tab) {
+                    js_free(ctx, data);
+                    js_free(ctx, sab_tab);
+                    goto oom_fail;
+                }
+                memcpy(args->initial_sab_tab, sab_tab, sizeof(args->initial_sab_tab[0]) * sab_tab_len);
+            }
+            args->initial_sab_tab_len = sab_tab_len;
+
+            js_free(ctx, data);
+            js_free(ctx, sab_tab);
+
+            /* keep the SABs alive across the cross-thread handoff */
+            for (i = 0; i < args->initial_sab_tab_len; i++) {
+                js_sab_dup(NULL, args->initial_sab_tab[i]);
+            }
+        } else {
+            JS_FreeValue(ctx, initial_val);
+        }
     }
 
     /* ports */
@@ -3946,6 +4027,16 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
         free(args->filename);
         free(args->basename);
         free(args->override_code);
+        /* Release the initialData SABs we refcounted above (mirrors
+           js_free_message), then free the serialized payload. */
+        {
+            size_t i;
+            for (i = 0; i < args->initial_sab_tab_len; i++) {
+                js_sab_free(NULL, args->initial_sab_tab[i]);
+            }
+        }
+        free(args->initial_sab_tab);
+        free(args->initial_data);
         js_free_message_pipe_local(args->recv_pipe);
         js_free_message_pipe_local(args->send_pipe);
         js_free_message_pipe_local(args->error_send_pipe);
@@ -4000,12 +4091,7 @@ static JSValue js_worker_postMessage(JSContext *ctx, JSValueConst this_val,
 
     /* increment the SAB reference counts */
     for(i = 0; i < msg->sab_tab_len; i++) {
-        typedef struct {
-            int ref_count;
-            uint64_t buf[0];
-        } JSSABHeader;
-        JSSABHeader *sab = (JSSABHeader *)((uint8_t *)msg->sab_tab[i] - sizeof(JSSABHeader));
-        atomic_add_int(&sab->ref_count, 1);
+        js_sab_dup(NULL, msg->sab_tab[i]);
     }
 
     ps = worker->send_pipe;
@@ -5146,6 +5232,25 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
             JS_DefinePropertyValueStr(ctx, obj, "parent",
                                       js_worker_ctor_internal(ctx, JS_UNDEFINED, ts->recv_pipe, ts->send_pipe, NULL),
                                       JS_PROP_C_W_E);
+        }
+        /* Set 'Worker.initialData'. In a worker constructed with an
+           `initialData` option, ts->initial_data holds its serialized form;
+           deserialize a fresh structured clone here. Otherwise (no option, or
+           on the main thread) the property reads `undefined`. */
+        if (ts->initial_data) {
+            JSValue data = JS_ReadObject(ctx, ts->initial_data, ts->initial_data_len,
+                                         JS_READ_OBJ_SAB | JS_READ_OBJ_REFERENCE);
+            if (JS_IsException(data)) {
+                /* Leave the pending exception in place; returning < 0 from a C
+                   module's init makes module evaluation reject with it, which
+                   routes to the parent's onerror like other worker startup
+                   errors. */
+                JS_FreeValue(ctx, obj);
+                return -1;
+            }
+            JS_DefinePropertyValueStr(ctx, obj, "initialData", data, JS_PROP_C_W_E);
+        } else {
+            JS_DefinePropertyValueStr(ctx, obj, "initialData", JS_UNDEFINED, JS_PROP_C_W_E);
         }
 #endif
         JS_SetModuleExport(ctx, m, "Worker", obj);

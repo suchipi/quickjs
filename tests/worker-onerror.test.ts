@@ -684,3 +684,43 @@ test.runIf(shouldRunWineTests)(
     `);
   }
 );
+
+// Regression: a worker whose entry module fails to load, with the parent
+// having set onmessage but NOT onerror, must still exit cleanly instead of
+// hanging the event loop. The startup error falls back to stderr.
+test("startup failure with onmessage but no onerror - process exits, error on stderr", async () => {
+  expect(await runFixture("startup-failure-no-onerror")).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "Error: Failed to resolve './does-not-exist.mjs' from '<rootDir>/tests/fixtures/worker-onerror/startup-failure-no-onerror/worker.mjs': No such file: '<rootDir>/tests/fixtures/worker-onerror/startup-failure-no-onerror/./does-not-exist.mjs' (using search extensions: [".js"])
+        at somewhere
+    Caused by: Error: No such file: '<rootDir>/tests/fixtures/worker-onerror/startup-failure-no-onerror/./does-not-exist.mjs' (using search extensions: [".js"])
+        at somewhere
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
+test.runIf(shouldRunWineTests)(
+  "[wine] startup failure with onmessage but no onerror - process exits, error on stderr",
+  async () => {
+    expect(
+      await runFixtureWine("startup-failure-no-onerror")
+    ).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "Error: Failed to resolve './does-not-exist.mjs' from '<rootDir>\\tests\\fixtures\\worker-onerror\\startup-failure-no-onerror\\worker.mjs': No such file: './does-not-exist.mjs' (using search extensions: [".js"])
+          at somewhere
+      Caused by: Error: No such file: './does-not-exist.mjs' (using search extensions: [".js"])
+          at somewhere
+
+      ",
+        "stdout": "",
+      }
+    `);
+  }
+);

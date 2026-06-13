@@ -7,7 +7,7 @@ const source = `
   };
 `;
 
-const w = new Worker("/virtual/basic-worker.js", source);
+const w = new Worker("/virtual/basic-worker.js", { overrideCode: source });
 w.onmessage = (event) => {
   console.log("parent received:", event.data);
   w.terminate();

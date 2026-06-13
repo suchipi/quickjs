@@ -58,7 +58,13 @@ static int atomic_add_int(int *ptr, int v)
     return atomic_fetch_add((_Atomic(uint32_t) *)ptr, v) + v;
 }
 
-static void *js_sab_alloc(void *opaque, size_t size)
+/* SharedArrayBuffer alloc/refcount helpers. Public (declared in the header)
+   so quickjs-os.c can bump/drop SAB refcounts when it serializes messages and
+   initialData across threads, instead of re-deriving the JSSABHeader offset
+   inline. The (opaque, ptr) signatures match JSSharedArrayBufferFunctions so
+   these are assignable directly to sf.sab_*; callers outside that context pass
+   NULL for opaque. */
+void *js_sab_alloc(void *opaque, size_t size)
 {
     JSSABHeader *sab;
     sab = malloc(sizeof(JSSABHeader) + size);
@@ -68,7 +74,7 @@ static void *js_sab_alloc(void *opaque, size_t size)
     return sab->buf;
 }
 
-static void js_sab_free(void *opaque, void *ptr)
+void js_sab_free(void *opaque, void *ptr)
 {
     JSSABHeader *sab;
     int ref_count;
@@ -80,7 +86,7 @@ static void js_sab_free(void *opaque, void *ptr)
     }
 }
 
-static void js_sab_dup(void *opaque, void *ptr)
+void js_sab_dup(void *opaque, void *ptr)
 {
     JSSABHeader *sab;
     sab = (JSSABHeader *)((uint8_t *)ptr - sizeof(JSSABHeader));
@@ -271,6 +277,10 @@ void js_eventloop_init(JSRuntime *rt)
     init_list_head(&ts->error_port_list);
     ts->error_send_pipe = NULL;
     ts->entry_filename = NULL;
+    ts->initial_data = NULL;
+    ts->initial_data_len = 0;
+    ts->initial_sab_tab = NULL;
+    ts->initial_sab_tab_len = 0;
     ts->last_reported_reason_ptr = NULL;
     ts->active_worker_count = 0;
     ts->worker_done_signal = NULL;
@@ -355,6 +365,20 @@ void js_eventloop_free(JSRuntime *rt)
     if (ts->entry_filename) {
         free(ts->entry_filename);
         ts->entry_filename = NULL;
+    }
+    /* worker-side only: release the serialized initialData and drop our
+       cross-thread refs on its SharedArrayBuffers. */
+    if (ts->initial_data) {
+        size_t i;
+        for (i = 0; i < ts->initial_sab_tab_len; i++) {
+            js_sab_free(NULL, ts->initial_sab_tab[i]);
+        }
+        free(ts->initial_sab_tab);
+        free(ts->initial_data);
+        ts->initial_sab_tab = NULL;
+        ts->initial_data = NULL;
+        ts->initial_sab_tab_len = 0;
+        ts->initial_data_len = 0;
     }
 
     if (ts->worker_done_signal) {

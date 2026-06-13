@@ -151,6 +151,10 @@ typedef struct JSThreadState {
     JSWorkerMessagePipe *recv_pipe, *send_pipe; /* not used in the main thread */
     JSWorkerMessagePipe *error_send_pipe; /* worker-side only: write-end of the one-way error pipe back to the parent */
     char *entry_filename;              /* worker-side only: duped filename of the entry module; used as a fallback in worker_send_error when a thrown reason lacks a fileName own-prop */
+    uint8_t *initial_data;             /* worker-side only: serialized structured-clone of the constructor's `initialData` option, deserialized into Worker.initialData by js_os_init; NULL when none was passed */
+    size_t initial_data_len;
+    uint8_t **initial_sab_tab;         /* worker-side only: SharedArrayBuffers referenced by initial_data, refcounted across threads */
+    size_t initial_sab_tab_len;
     void *last_reported_reason_ptr;    /* worker-side only: pointer identity of the last reason value routed to the error pipe. Used by qju_report_exception_hook_impl to dedupe the chain of tracker fires produced by module-evaluation machinery when a module has a top-level throw — the chain shares a single reason value, so comparing pointer identity collapses the N reports into one. Non-JS_TAG_OBJECT values (strings, numbers) are never deduped because they don't have stable pointer identity in QuickJS's tagged-value representation. */
     int active_worker_count;           /* number of active worker threads (main thread only); mirrored from worker_done_signal->active_count, refreshed under its mutex */
     struct JSWorkerDoneSignal *worker_done_signal; /* signaling channel for worker-completion notifications (main thread only; lazily allocated on first worker) */
@@ -220,7 +224,16 @@ void js_timer_free(JSRuntime *rt, JSTimer *th);
 #ifndef SKIP_WORKER
 void js_worker_message_pipe_free(JSWorkerMessagePipe *ps);
 
-/* JSWaker helpers — implemented in quickjs-os.c. */
+/* SharedArrayBuffer alloc/refcount helpers. The (opaque, ptr) signatures
+   match JSSharedArrayBufferFunctions so they're directly assignable to
+   sf.sab_alloc/sf.sab_free/sf.sab_dup; pass NULL for opaque when calling
+   them outside that context (e.g. bumping/dropping refcounts in
+   quickjs-os.c's message and initialData serialization). */
+void *js_sab_alloc(void *opaque, size_t size);
+void js_sab_free(void *opaque, void *ptr);
+void js_sab_dup(void *opaque, void *ptr);
+
+/* JSWaker helpers - implemented in quickjs-os.c. */
 int js_waker_init(JSWaker *w);
 void js_waker_signal(JSWaker *w);
 void js_waker_clear(JSWaker *w);

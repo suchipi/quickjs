@@ -1,5 +1,11 @@
 import { afterAll } from "vitest";
 import { allInflightRunContexts, sanitizers } from "first-base";
+import { rootDir } from "./_utils";
+
+const wineRepoRoot = "Z:" + rootDir().replaceAll("/", "\\");
+sanitizers.push(function replaceWineRootDir(str) {
+  return str.replaceAll(wineRepoRoot, "<rootDir>");
+});
 
 // Strip `:LINE:COL` from stack-frame `at ...` lines so snapshots stay stable
 // when engine internals shift line/column positions. Matches both
@@ -11,7 +17,7 @@ sanitizers.push(function stripStackFrameLineCol(str) {
     .replaceAll(/^(\s*at\s[^(\n]+):\d+:\d+(\s*)$/gm, "$1$2");
 });
 
-// runs once per test file (after all tests in that file complete) — not once at
+// runs once per test file (after all tests in that file complete) - not once at
 // the end of the whole run. each test file gets its own module graph in vitest,
 // so the `allInflightRunContexts` Set only contains `RunContext`s spawned by
 // this file.

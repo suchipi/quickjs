@@ -6,7 +6,7 @@ const source = `
 `;
 
 const fakeName = "/virtual/throwing-async.js";
-const w = new Worker(fakeName, source);
+const w = new Worker(fakeName, { overrideCode: source });
 w.onerror = (event) => {
   console.log("error instanceof Error:", event.error instanceof Error);
   console.log("error.message:", event.error.message);

@@ -14,7 +14,7 @@ const source = `
   os.Worker.parent.postMessage(value);
 `;
 
-const w = new os.Worker(fakeName, source);
+const w = new os.Worker(fakeName, { overrideCode: source });
 w.onmessage = (event) => {
   console.log("imported value:", event.data);
   w.terminate();
