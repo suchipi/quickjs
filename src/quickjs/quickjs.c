@@ -868,7 +868,7 @@ struct JSModuleDef {
     /* temp use during js_module_link() & js_module_evaluate() */
     int dfs_index, dfs_ancestor_index;
     JSModuleDef *stack_prev;
-    /* temp use during js_check_sync_module_tree() — set to the per-walk
+    /* temp use during js_check_sync_module_tree() - set to the per-walk
        counter value when visited. Separate from dfs_index because the
        sync phase-1 walk runs before (and must not interfere with) the
        Tarjan-DFS evaluator that owns dfs_index. */
@@ -7598,7 +7598,7 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
     JSObject *p;
     /* Capture the first visible stack-frame's file/line/col so we can set
        them as own-props on the error even when the caller didn't pass an
-       explicit `filename` — e.g. runtime `throw new Error(...)`. The
+       explicit `filename` - e.g. runtime `throw new Error(...)`. The
        pre-existing explicit-filename path (parser errors, etc.) sets them
        early and skips this capture. */
     JSAtom first_frame_filename_atom = JS_ATOM_NULL;
@@ -18179,6 +18179,20 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             *sp++ = JS_DupValue(ctx, b->cpool[get_u32(pc)]);
             pc += 4;
             BREAK;
+        CASE(OP_push_array_buffer):
+            {
+                JSArrayBuffer *abuf = JS_GetOpaque(b->cpool[get_u32(pc)],
+                                                   JS_CLASS_ARRAY_BUFFER);
+                pc += 4;
+                if (unlikely(!abuf || abuf->detached)) {
+                    JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
+                    goto exception;
+                }
+                *sp++ = JS_NewArrayBufferCopy(ctx, abuf->data, abuf->byte_length);
+                if (unlikely(JS_IsException(sp[-1])))
+                    goto exception;
+            }
+            BREAK;
 #if SHORT_OPCODES
         CASE(OP_push_minus1):
         CASE(OP_push_0):
@@ -21447,7 +21461,7 @@ static JSValue js_async_function_resolve_call(JSContext *ctx,
 }
 
 /* If `mark_handled` is TRUE, the resulting promise is marked as
-   already-handled before js_async_function_resume runs — used by
+   already-handled before js_async_function_resume runs - used by
    internal callers (sync module evaluator) that fully consume the
    promise's result and rethrow rejections via JS_Throw, so the host's
    unhandled-rejection tracker should not fire for those. */
@@ -21936,6 +21950,7 @@ enum {
     TOK_TEMPLATE,
     TOK_IDENT,
     TOK_REGEXP,
+    TOK_ARRAY_BUFFER,
     /* warning: order matters (see js_parse_assign_expr) */
     TOK_MUL_ASSIGN,
     TOK_DIV_ASSIGN,
@@ -22276,6 +22291,9 @@ typedef struct JSToken {
             JSValue body;
             JSValue flags;
         } regexp;
+        struct {
+            JSValue val;
+        } array_buffer;
     } u;
 } JSToken;
 
@@ -22348,6 +22366,9 @@ static void free_token(JSParseState *s, JSToken *token)
     case TOK_REGEXP:
         JS_FreeValue(s->ctx, token->u.regexp.body);
         JS_FreeValue(s->ctx, token->u.regexp.flags);
+        break;
+    case TOK_ARRAY_BUFFER:
+        JS_FreeValue(s->ctx, token->u.array_buffer.val);
         break;
     case TOK_IDENT:
     case TOK_PRIVATE_NAME:
@@ -22742,6 +22763,64 @@ static __exception int js_parse_string(JSParseState *s, int sep,
     return -1;
 }
 
+/* Parse a non-standard binary ArrayBuffer literal. The framing is
+   SOH(0x01) <decimal byte-length N> STX(0x02) <N raw payload bytes> ETX(0x03).
+   'p' points just past the SOH. The payload is consumed by count, so it may
+   contain any byte (NUL included) without terminating the source early. */
+static __exception int js_parse_array_buffer_literal(JSParseState *s,
+                                                     const uint8_t *p,
+                                                     const uint8_t **pp)
+{
+    uint64_t len = 0;
+    int ndigits = 0;
+    const uint8_t *payload;
+    JSValue buf;
+
+    for(;;) {
+        int c;
+        if (p >= s->buf_end)
+            goto unexpected_eof;
+        c = *p;
+        if (c < '0' || c > '9')
+            break;
+        len = len * 10 + (c - '0');
+        if (len > INT32_MAX)
+            return js_parse_error(s, "binary ArrayBuffer literal length exceeds maximum");
+        ndigits++;
+        p++;
+    }
+    if (ndigits == 0)
+        return js_parse_error(s, "expected byte-length digit after \\x01 in binary ArrayBuffer literal");
+
+    if (p >= s->buf_end)
+        goto unexpected_eof;
+    if (*p != 0x02)
+        return js_parse_error(s, "expected \\x02 after byte-length in binary ArrayBuffer literal");
+    p++;
+
+    /* The payload plus its trailing ETX must fit; len <= INT32_MAX so len + 1
+       cannot overflow uint64_t and the subtraction stays non-negative. */
+    if ((uint64_t)(s->buf_end - p) < len + 1)
+        goto unexpected_eof;
+    payload = p;
+    p += len;
+    if (*p != 0x03)
+        return js_parse_error(s, "binary ArrayBuffer literal payload does not end at \\x03 terminator");
+    p++;
+
+    buf = JS_NewArrayBufferCopy(s->ctx, payload, len);
+    if (JS_IsException(buf))
+        return -1;
+
+    s->token.val = TOK_ARRAY_BUFFER;
+    s->token.u.array_buffer.val = buf;
+    *pp = p;
+    return 0;
+
+ unexpected_eof:
+    return js_parse_error(s, "unexpected end of input in binary ArrayBuffer literal");
+}
+
 static inline BOOL token_is_pseudo_keyword(JSParseState *s, JSAtom atom) {
     return s->token.val == TOK_IDENT && s->token.u.ident.atom == atom &&
         !s->token.u.ident.has_escape;
@@ -22998,6 +23077,10 @@ static __exception int next_token(JSParseState *s)
         } else {
             goto def_token;
         }
+        break;
+    case 0x01:
+        if (js_parse_array_buffer_literal(s, p + 1, &p))
+            goto fail;
         break;
     case '`':
         if (js_parse_template_part(s, p + 1))
@@ -23814,7 +23897,8 @@ static int match_identifier(const uint8_t *p, const char *s) {
    - TOK_IDENT is returned for other identifiers and keywords
    - otherwise the next character or unicode codepoint is returned.
  */
-static int simple_next_token(const uint8_t **pp, BOOL no_line_terminator)
+static int simple_next_token(const uint8_t **pp, const uint8_t *buf_end,
+                             BOOL no_line_terminator)
 {
     const uint8_t *p;
     uint32_t c;
@@ -23822,6 +23906,8 @@ static int simple_next_token(const uint8_t **pp, BOOL no_line_terminator)
     /* skip spaces and comments */
     p = *pp;
     for (;;) {
+        if (p >= buf_end)
+            return 0;
         switch(c = *p++) {
         case '\r':
         case '\n':
@@ -23833,16 +23919,39 @@ static int simple_next_token(const uint8_t **pp, BOOL no_line_terminator)
         case '\v':
         case '\f':
             continue;
+        case 0x01:
+            /* binary ArrayBuffer literal: SOH <digits> STX <N bytes> ETX.
+               Skip it by length so interior NUL or keyword-looking payload
+               bytes cannot confuse module detection. p is just past SOH. */
+            {
+                uint64_t n = 0;
+                int ndigits = 0;
+                while (p < buf_end && *p >= '0' && *p <= '9') {
+                    n = n * 10 + (*p - '0');
+                    ndigits++;
+                    p++;
+                    if (n > INT32_MAX)
+                        break;
+                }
+                if (ndigits > 0 && n <= INT32_MAX && p < buf_end && *p == 0x02) {
+                    p++;
+                    if ((uint64_t)(buf_end - p) >= n + 1 && p[n] == 0x03) {
+                        p += n + 1;
+                        continue;
+                    }
+                }
+            }
+            return c;
         case '/':
             if (*p == '/') {
                 if (no_line_terminator)
                     return '\n';
-                while (*p && *p != '\r' && *p != '\n')
+                while (p < buf_end && *p != '\r' && *p != '\n')
                     p++;
                 continue;
             }
             if (*p == '*') {
-                while (*++p) {
+                while (++p < buf_end) {
                     if ((*p == '\r' || *p == '\n') && no_line_terminator)
                         return '\n';
                     if (*p == '*' && p[1] == '/') {
@@ -23902,7 +24011,7 @@ static int simple_next_token(const uint8_t **pp, BOOL no_line_terminator)
 static int peek_token(JSParseState *s, BOOL no_line_terminator)
 {
     const uint8_t *p = s->buf_ptr;
-    return simple_next_token(&p, no_line_terminator);
+    return simple_next_token(&p, s->buf_end, no_line_terminator);
 }
 
 // find ending of one or more shebangs, if present. Some Nix tooling uses two shebang lines
@@ -23957,13 +24066,14 @@ static off_t shebangs_end_index(char *buf, size_t len)
 */
 BOOL JS_DetectModule(const char *input, size_t input_len)
 {
+    const uint8_t *buf_end = (const uint8_t *)input + input_len;
     off_t shebangs_offset = shebangs_end_index((char *)input, input_len);
     const uint8_t *p = (const uint8_t *)input + shebangs_offset;
     int tok;
 
-    switch(simple_next_token(&p, FALSE)) {
+    switch(simple_next_token(&p, buf_end, FALSE)) {
     case TOK_IMPORT:
-        tok = simple_next_token(&p, FALSE);
+        tok = simple_next_token(&p, buf_end, FALSE);
         return (tok != '.' && tok != '(');
     case TOK_EXPORT:
         return TRUE;
@@ -27037,6 +27147,17 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
     case TOK_STRING:
         if (emit_push_const(s, s->token.u.str.str, 1))
             return -1;
+        if (next_token(s))
+            return -1;
+        break;
+    case TOK_ARRAY_BUFFER:
+        {
+            int idx = cpool_add(s, JS_DupValue(s->ctx, s->token.u.array_buffer.val));
+            if (idx < 0)
+                return -1;
+            emit_op(s, OP_push_array_buffer);
+            emit_u32(s, idx);
+        }
         if (next_token(s))
             return -1;
         break;
@@ -30336,7 +30457,7 @@ static JSModuleDef *js_find_loaded_module(JSContext *ctx, JSAtom name,
 /* find-by-name-only variant; used by call sites that don't have the
    import-attributes context (eg `import.meta` resolution from inside a
    running module). Returns the first match. With same-name-different-
-   attributes modules in the registry, the first one wins — a known
+   attributes modules in the registry, the first one wins - a known
    limitation that mirrors the existing imprecision flagged by
    js_import_meta's "XXX: inefficient" comment. */
 static JSModuleDef *js_find_loaded_module_by_name(JSContext *ctx, JSAtom name)
@@ -31487,7 +31608,7 @@ static void JS_LoadModuleInternal(JSContext *ctx, const char *basename,
         goto fail;
     }
 
-    /* Evaluate the module code via the async evaluator — dynamic import
+    /* Evaluate the module code via the async evaluator - dynamic import
        is async-returning, so the target module fully supports TLA. */
     func_obj = JS_NewModuleValue(ctx, m);
     evaluate_promise = JS_EvalFunctionAsync(ctx, func_obj);
@@ -31703,7 +31824,7 @@ static JSValue js_dynamic_import_async_job(JSContext *ctx,
     return JS_UNDEFINED;
 }
 
-/* Note: upstream's js_dynamic_import() helper is not ported here — the fork
+/* Note: upstream's js_dynamic_import() helper is not ported here - the fork
    already exposes JS_DynamicImportAsync (above) that the OP_import opcode
    calls directly. Its body was essentially the same modulo naming, and it
    was retargeted to call js_dynamic_import_async_job (already adapted to
@@ -32077,7 +32198,7 @@ static int js_inner_module_evaluation(JSContext *ctx, JSModuleDef *m,
    modules. Return a promise or an exception. If mark_handled is TRUE,
    the module's promise is marked as already-handled at creation time so
    that a synchronous rejection during evaluation doesn't fire the host's
-   unhandled-rejection tracker — used by the sync wrapper which extracts
+   unhandled-rejection tracker - used by the sync wrapper which extracts
    the rejection value and rethrows it via JS_Throw. */
 /* forward declaration */
 static JSValue js_evaluate_module_async(JSContext *ctx, JSModuleDef *m,
@@ -32087,7 +32208,7 @@ static JSValue js_evaluate_module_async(JSContext *ctx, JSModuleDef *m,
    running any code; if any reachable module uses top-level await, throw
    a TypeError naming the offending module and return -1. Returns 0 if
    the graph is fully sync-safe. Uses a per-walk counter (rt->module_sync_check_counter)
-   stored in each module's sync_check_visit field — if it matches, we've
+   stored in each module's sync_check_visit field - if it matches, we've
    already visited this module in the current walk and can return. */
 static int js_check_sync_module_tree(JSContext *ctx, JSModuleDef *m,
                                      int visit_counter)
@@ -32159,7 +32280,7 @@ static BOOL js_module_tree_has_tla(JSContext *ctx, JSModuleDef *m,
    (QJMS_EvalBuf, require, engine.importModule).
 
    This path deliberately does NOT pump the event loop or observe any
-   promises — doing so would let unrelated microtasks run during what
+   promises - doing so would let unrelated microtasks run during what
    callers treat as a pure synchronous call (the Zalgo hazard). Modules
    that use top-level await (or whose transitive imports do) cannot
    complete synchronously; this function refuses them up front with a
@@ -32168,7 +32289,7 @@ static BOOL js_module_tree_has_tla(JSContext *ctx, JSModuleDef *m,
    Two-phase:
      1. Walk the import graph. If any reachable module has has_tla,
         throw TypeError naming it, return -1.
-     2. Only if phase 1 passed, run the async evaluator — which for a
+     2. Only if phase 1 passed, run the async evaluator - which for a
         TLA-free graph resolves its promise synchronously (via the
         microtask queue, but the resolving funcs fire before the outer
         JS_NewPromiseCapability call returns). We then inspect the
@@ -32190,7 +32311,7 @@ static int js_evaluate_module_sync(JSContext *ctx, JSModuleDef *m)
     /* Phase 2: run the async evaluator. For a TLA-free graph it settles
        immediately. Pass mark_handled=TRUE so that if the module body
        throws, the resulting rejection on m->promise doesn't fire the
-       host's unhandled-rejection tracker — we extract the rejection
+       host's unhandled-rejection tracker - we extract the rejection
        value below and rethrow it via JS_Throw, which the caller's
        try/catch will handle. */
     promise = js_evaluate_module_async(ctx, m, TRUE);
@@ -32206,7 +32327,7 @@ static int js_evaluate_module_sync(JSContext *ctx, JSModuleDef *m)
         JS_Throw(ctx, err);
         return -1;
     } else {
-        /* Should be unreachable after phase 1 — but belt-and-suspenders. */
+        /* Should be unreachable after phase 1 - but belt-and-suspenders. */
         char buf[ATOM_GET_STR_BUF_SIZE];
         JS_FreeValue(ctx, promise);
         JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__,
@@ -32268,7 +32389,7 @@ static JSValue js_evaluate_module_async(JSContext *ctx, JSModuleDef *m,
     if (mark_handled) {
         /* Mark the promise as already-handled before any rejection can
            fire. Used by the sync wrapper, which will extract the
-           rejection and rethrow it via JS_Throw — the host's
+           rejection and rethrow it via JS_Throw - the host's
            unhandled-rejection tracker should not fire for that. */
         js_promise_set_handled(m->promise);
     }
@@ -37954,7 +38075,7 @@ static JSValue JS_EvalFunctionInternal(JSContext *ctx, JSValue fun_obj,
             /* Sync evaluator. When async_modules was TRUE but the graph
                happens to be TLA-free, we use the sync path; that's the
                Zalgo-safe choice. When async_modules was FALSE, the sync
-               evaluator also refuses TLA up front — but since we gated
+               evaluator also refuses TLA up front - but since we gated
                needs_async=FALSE above, this path is only entered for
                TLA-free trees, so phase 1 trivially passes. */
             if (js_evaluate_module_sync(ctx, m) < 0)
@@ -37979,7 +38100,7 @@ static JSValue JS_EvalFunctionInternal(JSContext *ctx, JSValue fun_obj,
     return ret_val;
 }
 
-/* Synchronous eval-function. For module values, uses the sync evaluator —
+/* Synchronous eval-function. For module values, uses the sync evaluator -
    refuses modules that use top-level await with a TypeError. Zalgo-safe. */
 JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj)
 {
@@ -38345,7 +38466,7 @@ typedef enum BCTagEnum {
     BC_TAG_ERROR_OBJECT,
 } BCTagEnum;
 
-#define BC_BASE_VERSION 6
+#define BC_BASE_VERSION 7
 #define BC_BE_VERSION 0x40
 #ifdef WORDS_BIGENDIAN
 #define BC_VERSION (BC_BASE_VERSION | BC_BE_VERSION)
@@ -38972,7 +39093,7 @@ static int JS_WriteObjectTag(BCWriterState *s, JSValueConst obj)
 /* Determine which builtin Error class a JS_CLASS_ERROR object belongs to
    by walking its [[Prototype]] chain and matching against the well-known
    error prototypes. Returns the appropriate name string atom. Falls back
-   to "Error" if no specific native-error prototype matches — this covers
+   to "Error" if no specific native-error prototype matches - this covers
    both a bare `new Error()` and any user-defined subclass of Error (the
    reader will construct a base Error in that case, preserving the
    `name`/other own-props the user set). */
@@ -38982,7 +39103,7 @@ static const char *detect_native_error_name(JSContext *ctx, JSObject *p)
        this file (JS_EVAL_ERROR = 0, JS_RANGE_ERROR = 1, ...). The global
        `native_error_name` table is defined much later in this file;
        rather than forward-declaring it, we inline the name strings here
-       — they're a stable part of the language spec. */
+       - they're a stable part of the language spec. */
     static const char * const error_class_names[JS_NATIVE_ERROR_COUNT] = {
         "EvalError", "RangeError", "ReferenceError",
         "SyntaxError", "TypeError", "URIError",
@@ -39005,7 +39126,7 @@ static const char *detect_native_error_name(JSContext *ctx, JSObject *p)
 /* Emit BC_TAG_ERROR_OBJECT + class name atom + standard own-property
    stream. Cycles and shared references in property values are preserved
    by the shared object_list bookkeeping (we call BC_add_object_ref via
-   JS_WriteObjectRec's normal path — our caller already did that for us). */
+   JS_WriteObjectRec's normal path - our caller already did that for us). */
 static int JS_WriteErrorObject(BCWriterState *s, JSValueConst obj)
 {
     JSObject *p = JS_VALUE_GET_OBJ(obj);
@@ -39034,7 +39155,7 @@ static int JS_WriteErrorObject(BCWriterState *s, JSValueConst obj)
         for (i = 0, pr = get_shape_prop(sh); i < sh->prop_count; i++, pr++) {
             atom = pr->atom;
             /* Emit ALL string-keyed own-properties regardless of
-               enumerability — stack/fileName/lineNumber are defined as
+               enumerability - stack/fileName/lineNumber are defined as
                non-enumerable but must round-trip. Symbols are skipped
                (JS_WriteObject doesn't serialize symbol keys). */
             if (atom != JS_ATOM_NULL &&
@@ -40138,7 +40259,7 @@ static JSValue JS_ReadErrorObject(BCReaderState *s)
         goto fail;
 
     /* Pick the appropriate prototype. Unrecognized names fall back to the
-       base Error prototype — this covers user subclasses like MyError,
+       base Error prototype - this covers user subclasses like MyError,
        whose `name` own-prop will be restored by the property stream. */
     native_idx = -1;
     for (j = 0; j < JS_NATIVE_ERROR_COUNT; j++) {
@@ -40177,7 +40298,7 @@ static JSValue JS_ReadErrorObject(BCReaderState *s)
             atom = JS_ATOM_NULL;
             goto fail;
         }
-        /* Use JS_PROP_C_W_E here — simpler than trying to recover the
+        /* Use JS_PROP_C_W_E here - simpler than trying to recover the
            exact per-property attribute flags (e.g. Error.prototype defines
            `message` as W|C, and `stack`/`fileName`/`lineNumber` are added
            as W|C by build_backtrace). Writable/configurable/enumerable on
@@ -56528,9 +56649,9 @@ static JSValue set_date_field(JSContext *ctx, JSValueConst this_val,
     // _field(obj, first_field, end_field, args, is_local)
     double fields[9];
     // Spec ordering (e.g. sec-date.prototype.sethours):
-    //   1. thisTimeValue(this)                         — validates `this`, throws if not a Date
-    //   2. ToNumber on every provided argument         — side effects must fire
-    //   3. If the stored time is NaN, return NaN      — AFTER coercions
+    //   1. thisTimeValue(this)                         - validates `this`, throws if not a Date
+    //   2. ToNumber on every provided argument         - side effects must fire
+    //   3. If the stored time is NaN, return NaN      - AFTER coercions
     // So validation must precede coercion, but coercion must precede the
     // NaN short-circuit. We buffer the coerced values in `values[]` so we
     // can skip the NaN-short-circuit decision until after coercion.
@@ -56544,7 +56665,7 @@ static JSValue set_date_field(JSContext *ctx, JSValueConst this_val,
     end_field = (magic >> 4) & 0x0F;
     is_local = magic & 0x0F;
 
-    /* Step 1: validate `this` — throws TypeError if not a Date object. */
+    /* Step 1: validate `this` - throws TypeError if not a Date object. */
     res = get_date_fields(ctx, this_val, fields, is_local, first_field == 0);
     if (res < 0)
         return JS_EXCEPTION;
@@ -56564,7 +56685,7 @@ static JSValue set_date_field(JSContext *ctx, JSValueConst this_val,
 
     /* Step 3: if the stored time was NaN, return NaN without touching
        the Date's [[DateValue]]. A coercion in step 2 may have called
-       valueOf, which itself can mutate `this`'s time slot — and the
+       valueOf, which itself can mutate `this`'s time slot - and the
        spec says we must preserve that side effect rather than
        overwriting it via SetThisTimeValue. */
     if (!res)

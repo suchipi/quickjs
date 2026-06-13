@@ -10,6 +10,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
   - There's also markdown generated from these available [here](/meta/docs)
 - Hooks have been added to the module loader that make its functionality more customizable.
 - Some non-standard ECMAScript proposals and extensions have been added (`String.cooked`, `Object.toPrimitive`/`Object.isPrimitive`).
+- A non-standard binary ArrayBuffer literal syntax was added, for embedding raw binary data directly in source code (useful for bundlers that inline binary assets).
 - The way the project is organized and built was changed dramatically.
 - `quickjs-libc.c` was split into separate files: `quickjs-std.c`, `quickjs-os.c`, `quickjs-timers.c`, `quickjs-cmdline.c`, and `quickjs-eventloop.c`
 - Several new JS bindings for C APIs have been added, such as `strftime`, `access`, `fsync`, `setvbuf`, `getuid`...
@@ -41,6 +42,18 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - Added `JS_SetRuntimeOpaqueValue` and `JS_GetRuntimeOpaqueValue`, which let you associate a JSValue with a JSRuntime (similar to the Context versions above).
 - Non-standard `Object.toPrimitive` added (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
 - Non-standard `Object.isPrimitive` added (static method that returns a boolean indicating whether the given value is a primitive).
+
+### New syntax: binary ArrayBuffer literals
+
+A non-standard literal syntax for embedding arbitrary binary data directly in source code was added, intended for bundlers that want to inline binary assets (images, fonts, wasm, etc.) without base64-encoding them or shipping separate files. Evaluating the literal produces a new `ArrayBuffer`.
+
+The literal is framed as: an ASCII SOH byte (`0x01`), one or more ASCII decimal digits giving the payload length N in bytes, an ASCII STX byte (`0x02`), exactly N raw payload bytes, then an ASCII ETX byte (`0x03`). Because the length is given up front, the payload may contain any byte value, including NUL (`0x00`) and bytes equal to `0x02`/`0x03`.
+
+For example, the raw source bytes for a 16-byte PNG-header literal are equivalent to the JS string `"\x0116\x02\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x03"` (written as a quoted string only so the control and payload bytes are visible): SOH, the length `16`, STX, the 16 payload bytes (one of which is a NUL), then ETX.
+
+Each evaluation of the literal yields a fresh, independent `ArrayBuffer`, the same way an array or object literal produces a fresh value each time, so mutating one result never affects another.
+
+Because the payload can contain NUL bytes, these literals are only usable from inputs whose length is preserved rather than being treated as a NUL-terminated C string: source files (a loaded or imported `.js`/`.mjs` file) and precompiled bytecode. They cannot be supplied through the `qjs -e <code>` flag or typed into the REPL, since those channels are NUL-terminated C strings.
 
 ### Changes to `quickjs-libc`:
 
@@ -215,13 +228,13 @@ Top-level await (TLA) is supported, but only on entry paths that are inherently 
 - The main module passed to `qjs` / `quickjs-run` / `qjsbootstrap` / `qjsbootstrap-bytecode`
 - Dynamic `import()` expressions
 
-Synchronous module-loading APIs — `require`, `import.meta.require`, `engine.importModule`, and the underlying `JS_RunModule` C API — **refuse** to load any module whose body (or whose transitive imports) uses top-level await. Attempting to do so throws a `TypeError`:
+Synchronous module-loading APIs - `require`, `import.meta.require`, `engine.importModule`, and the underlying `JS_RunModule` C API - **refuse** to load any module whose body (or whose transitive imports) uses top-level await. Attempting to do so throws a `TypeError`:
 
 ```
 TypeError: cannot synchronously load module '<path>' because it uses top-level await
 ```
 
-The refusal happens up front, before any module body runs — the sync evaluator walks the target module's import graph looking for any module that uses top-level await, and bails before evaluation if it finds one.
+The refusal happens up front, before any module body runs - the sync evaluator walks the target module's import graph looking for any module that uses top-level await, and bails before evaluation if it finds one.
 
 ### Changes to project organization
 
@@ -272,10 +285,10 @@ The repo has stuff set up to compile quickjs binaries for:
     - Run the resulting `.wasm` files with [wasmtime](https://wasmtime.dev/) or any WASI P2-compatible runtime.
     - Functions which are not possible to implement in WASI P2 (like os.exec) will throw an error when called.
   - [Emscripten](https://emscripten.org/), with four target variants:
-    - `emscripten-generic` — works in both Node.js and browsers
-    - `emscripten-node` — Node.js-optimized with real filesystem access (NODERAWFS)
-    - `emscripten-web` — browser-optimized
-    - `emscripten-js` — JS-only output, no .wasm file (`-sWASM=0`)
+    - `emscripten-generic` - works in both Node.js and browsers
+    - `emscripten-node` - Node.js-optimized with real filesystem access (NODERAWFS)
+    - `emscripten-web` - browser-optimized
+    - `emscripten-js` - JS-only output, no .wasm file (`-sWASM=0`)
 - [Cosmopolitan Libc](https://github.com/jart/cosmopolitan) (cross-platform `*.com` binaries).
 - any arbitrary unix-like OS, if you set env vars for CC, CFLAGS, etc.
 

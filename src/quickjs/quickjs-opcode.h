@@ -256,6 +256,10 @@ DEF(             or, 1, 2, 1, none)
 DEF(is_undefined_or_null, 1, 1, 1, none)
 DEF(     private_in, 1, 2, 1, none)
 DEF(push_bigint_i32, 5, 0, 1, i32)
+/* Fresh ArrayBuffer copy from a cpool ArrayBuffer constant; reuses the
+   push_const operand format. Placed just before nop so it does not renumber
+   any opcode that appears in serialized bytecode. */
+DEF(push_array_buffer, 5, 0, 1, const)
 /* must be the last non short and non temporary opcode */
 DEF(            nop, 1, 0, 0, none)
 
