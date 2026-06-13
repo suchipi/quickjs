@@ -49,7 +49,7 @@ A non-standard literal syntax for embedding arbitrary binary data directly in so
 
 The literal is framed as: an ASCII SOH byte (`0x01`), one or more ASCII decimal digits giving the payload length N in bytes, an ASCII STX byte (`0x02`), exactly N raw payload bytes, then an ASCII ETX byte (`0x03`). Because the length is given up front, the payload may contain any byte value, including NUL (`0x00`) and bytes equal to `0x02`/`0x03`.
 
-For example, the raw source bytes for a 16-byte PNG-header literal are equivalent to the JS string `"\x0116\x02\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x03"` (written as a quoted string only so the control and payload bytes are visible): SOH, the length `16`, STX, the 16 payload bytes (one of which is a NUL), then ETX.
+For example, the raw source bytes for a 16-byte PNG-header literal are equivalent to the JS string `"\x0116\x02\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x03"` (written as a quoted string only so the control and payload bytes are visible): SOH, the length `16`, STX, the 16 payload bytes (three of which are NUL), then ETX.
 
 Each evaluation of the literal yields a fresh, independent `ArrayBuffer`, the same way an array or object literal produces a fresh value each time, so mutating one result never affects another.
 
