@@ -10684,8 +10684,22 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
                     if (pr->u.getset.setter)
                         JS_FreeValue(ctx, JS_MKPTR(JS_TAG_OBJECT, pr->u.getset.setter));
                     if (var_ref) {
+                        /* converting an accessor to a data property: the
+                           descriptor's writable defaults to false when
+                           absent (spec ValidateAndApplyPropertyDescriptor).
+                           Global-object data properties are stored as
+                           varrefs, which are otherwise "always writable", so
+                           honor a non-writable result by marking the varref
+                           const. */
                         prs->flags = (prs->flags & ~JS_PROP_TMASK) |
-                            JS_PROP_VARREF | JS_PROP_WRITABLE;
+                            JS_PROP_VARREF;
+                        if ((flags & (JS_PROP_HAS_WRITABLE | JS_PROP_WRITABLE)) ==
+                            (JS_PROP_HAS_WRITABLE | JS_PROP_WRITABLE)) {
+                            prs->flags |= JS_PROP_WRITABLE;
+                        } else {
+                            prs->flags &= ~JS_PROP_WRITABLE;
+                        }
+                        var_ref->is_const = !(prs->flags & JS_PROP_WRITABLE);
                         pr->u.var_ref = var_ref;
                     } else {
                         prs->flags &= ~(JS_PROP_TMASK | JS_PROP_WRITABLE);

@@ -1,2 +1,0 @@
-test262o/test/suite/ch15/15.2/15.2.3/15.2.3.6/15.2.3.6-4-538-3.js:45: Test262 Error: Test case returned non-true value!
-test262o/test/suite/ch15/15.2/15.2.3/15.2.3.6/15.2.3.6-4-538-7.js:45: Test262 Error: Test case returned non-true value!
