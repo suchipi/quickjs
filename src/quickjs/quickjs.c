@@ -38544,6 +38544,138 @@ typedef enum BCTagEnum {
     BC_TAG_ERROR_OBJECT,
 } BCTagEnum;
 
+static const char *JS_NameForClassId(int obj_class)
+{
+    switch (obj_class) {
+        case JS_CLASS_OBJECT:
+            return "OBJECT";
+        case JS_CLASS_ARRAY:
+            return "ARRAY";
+        case JS_CLASS_ERROR:
+            return "ERROR";
+        case JS_CLASS_NUMBER:
+            return "NUMBER";
+        case JS_CLASS_STRING:
+            return "STRING";
+        case JS_CLASS_BOOLEAN:
+            return "BOOLEAN";
+        case JS_CLASS_SYMBOL:
+            return "SYMBOL";
+        case JS_CLASS_ARGUMENTS:
+            return "ARGUMENTS";
+        case JS_CLASS_MAPPED_ARGUMENTS:
+            return "MAPPED_ARGUMENTS";
+        case JS_CLASS_DATE:
+            return "DATE";
+        case JS_CLASS_MODULE_NS:
+            return "MODULE_NS";
+        case JS_CLASS_C_FUNCTION:
+            return "C_FUNCTION";
+        case JS_CLASS_BYTECODE_FUNCTION:
+            return "BYTECODE_FUNCTION";
+        case JS_CLASS_BOUND_FUNCTION:
+            return "BOUND_FUNCTION";
+        case JS_CLASS_C_FUNCTION_DATA:
+            return "C_FUNCTION_DATA";
+        case JS_CLASS_GENERATOR_FUNCTION:
+            return "GENERATOR_FUNCTION";
+        case JS_CLASS_FOR_IN_ITERATOR:
+            return "FOR_IN_ITERATOR";
+        case JS_CLASS_REGEXP:
+            return "REGEXP";
+        case JS_CLASS_ARRAY_BUFFER:
+            return "ARRAY_BUFFER";
+        case JS_CLASS_SHARED_ARRAY_BUFFER:
+            return "SHARED_ARRAY_BUFFER";
+        case JS_CLASS_UINT8C_ARRAY:
+            return "UINT8C_ARRAY";
+        case JS_CLASS_INT8_ARRAY:
+            return "INT8_ARRAY";
+        case JS_CLASS_UINT8_ARRAY:
+            return "UINT8_ARRAY";
+        case JS_CLASS_INT16_ARRAY:
+            return "INT16_ARRAY";
+        case JS_CLASS_UINT16_ARRAY:
+            return "UINT16_ARRAY";
+        case JS_CLASS_INT32_ARRAY:
+            return "INT32_ARRAY";
+        case JS_CLASS_UINT32_ARRAY:
+            return "UINT32_ARRAY";
+        case JS_CLASS_BIG_INT64_ARRAY:
+            return "BIG_INT64_ARRAY";
+        case JS_CLASS_BIG_UINT64_ARRAY:
+            return "BIG_UINT64_ARRAY";
+        case JS_CLASS_FLOAT16_ARRAY:
+            return "FLOAT16_ARRAY";
+        case JS_CLASS_FLOAT32_ARRAY:
+            return "FLOAT32_ARRAY";
+        case JS_CLASS_FLOAT64_ARRAY:
+            return "FLOAT64_ARRAY";
+        case JS_CLASS_DATAVIEW:
+            return "DATAVIEW";
+        case JS_CLASS_BIG_INT:
+            return "BIG_INT";
+        case JS_CLASS_MAP:
+            return "MAP";
+        case JS_CLASS_SET:
+            return "SET";
+        case JS_CLASS_WEAKMAP:
+            return "WEAKMAP";
+        case JS_CLASS_WEAKSET:
+            return "WEAKSET";
+        case JS_CLASS_ITERATOR:
+            return "ITERATOR";
+        case JS_CLASS_ITERATOR_CONCAT:
+            return "ITERATOR_CONCAT";
+        case JS_CLASS_ITERATOR_HELPER:
+            return "ITERATOR_HELPER";
+        case JS_CLASS_ITERATOR_WRAP:
+            return "ITERATOR_WRAP";
+        case JS_CLASS_MAP_ITERATOR:
+            return "MAP_ITERATOR";
+        case JS_CLASS_SET_ITERATOR:
+            return "SET_ITERATOR";
+        case JS_CLASS_ARRAY_ITERATOR:
+            return "ARRAY_ITERATOR";
+        case JS_CLASS_STRING_ITERATOR:
+            return "STRING_ITERATOR";
+        case JS_CLASS_REGEXP_STRING_ITERATOR:
+            return "REGEXP_STRING_ITERATOR";
+        case JS_CLASS_GENERATOR:
+            return "GENERATOR";
+        case JS_CLASS_GLOBAL_OBJECT:
+            return "GLOBAL_OBJECT";
+        case JS_CLASS_RAWJSON:
+            return "RAWJSON";
+        case JS_CLASS_PROXY:
+            return "PROXY";
+        case JS_CLASS_PROMISE:
+            return "PROMISE";
+        case JS_CLASS_PROMISE_RESOLVE_FUNCTION:
+            return "PROMISE_RESOLVE_FUNCTION";
+        case JS_CLASS_PROMISE_REJECT_FUNCTION:
+            return "PROMISE_REJECT_FUNCTION";
+        case JS_CLASS_ASYNC_FUNCTION:
+            return "ASYNC_FUNCTION";
+        case JS_CLASS_ASYNC_FUNCTION_RESOLVE:
+            return "ASYNC_FUNCTION_RESOLVE";
+        case JS_CLASS_ASYNC_FUNCTION_REJECT:
+            return "ASYNC_FUNCTION_REJECT";
+        case JS_CLASS_ASYNC_FROM_SYNC_ITERATOR:
+            return "ASYNC_FROM_SYNC_ITERATOR";
+        case JS_CLASS_ASYNC_GENERATOR_FUNCTION:
+            return "ASYNC_GENERATOR_FUNCTION";
+        case JS_CLASS_ASYNC_GENERATOR:
+            return "ASYNC_GENERATOR";
+        case JS_CLASS_WEAK_REF:
+            return "WEAK_REF";
+        case JS_CLASS_FINALIZATION_REGISTRY:
+            return "FINALIZATION_REGISTRY";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 #define BC_BASE_VERSION 7
 #define BC_BE_VERSION 0x40
 #ifdef WORDS_BIGENDIAN
@@ -39422,7 +39554,7 @@ static int JS_WriteObjectRec(BCWriterState *s, JSValueConst obj)
                 } else if (p->class_id == JS_CLASS_ERROR && s->serialize_errors) {
                     ret = JS_WriteErrorObject(s, obj);
                 } else {
-                    JS_ThrowTypeError(s->ctx, "quickjs.c", __LINE__, "unsupported object class");
+                    JS_ThrowTypeError(s->ctx, "quickjs.c", __LINE__, "attempting to serialize unsupported object class: %s", JS_NameForClassId(p->class_id));
                     ret = -1;
                 }
                 break;

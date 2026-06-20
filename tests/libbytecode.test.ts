@@ -277,7 +277,7 @@ test("bytecode - fromValue with function", async () => {
     {
       "code": 1,
       "error": null,
-      "stderr": "TypeError: unsupported object class
+      "stderr": "TypeError: attempting to serialize unsupported object class: BYTECODE_FUNCTION
         at somewhere
 
     ",
@@ -313,7 +313,7 @@ test("bytecode - without serializeErrors, Error instances throw on write", async
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "caught: TypeError unsupported object class
+      "stdout": "caught: TypeError attempting to serialize unsupported object class: ERROR
     ",
     }
   `);
