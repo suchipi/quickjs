@@ -1259,7 +1259,7 @@ typedef enum JSStrictEqModeEnum {
     JS_EQ_SAME_VALUE_ZERO,
 } JSStrictEqModeEnum;
 
-static BOOL js_strict_eq2(JSContext *ctx, JSValue op1, JSValue op2,
+static BOOL js_strict_eq2(JSContext *ctx, JSValueConst op1, JSValueConst op2,
                           JSStrictEqModeEnum eq_mode);
 static BOOL js_strict_eq(JSContext *ctx, JSValueConst op1, JSValueConst op2);
 static BOOL js_same_value(JSContext *ctx, JSValueConst op1, JSValueConst op2);
@@ -16034,12 +16034,16 @@ static no_inline __exception int js_eq_slow(JSContext *ctx, JSValue *sp,
         }
     } else if (tag1 == tag2) {
         res = js_strict_eq2(ctx, op1, op2, JS_EQ_STRICT);
+        JS_FreeValue(ctx, op1);
+        JS_FreeValue(ctx, op2);
     } else if ((tag1 == JS_TAG_NULL && tag2 == JS_TAG_UNDEFINED) ||
                (tag2 == JS_TAG_NULL && tag1 == JS_TAG_UNDEFINED)) {
         res = TRUE;
     } else if (tag_is_string(tag1) && tag_is_string(tag2)) {
         /* needed when comparing strings and ropes */
         res = js_strict_eq2(ctx, op1, op2, JS_EQ_STRICT);
+        JS_FreeValue(ctx, op1);
+        JS_FreeValue(ctx, op2);
     } else if ((tag_is_string(tag1) && tag_is_number(tag2)) ||
                (tag_is_string(tag2) && tag_is_number(tag1))) {
 
@@ -16075,6 +16079,8 @@ static no_inline __exception int js_eq_slow(JSContext *ctx, JSValue *sp,
             }
         }
         res = js_strict_eq2(ctx, op1, op2, JS_EQ_STRICT);
+        JS_FreeValue(ctx, op1);
+        JS_FreeValue(ctx, op2);
     } else if (tag1 == JS_TAG_BOOL) {
         op1 = JS_NewInt32(ctx, JS_VALUE_GET_INT(op1));
         goto redo;
@@ -16156,9 +16162,7 @@ static no_inline int js_shr_slow(JSContext *ctx, JSValue *sp)
     return -1;
 }
 
-
-/* XXX: Should take JSValueConst arguments */
-static BOOL js_strict_eq2(JSContext *ctx, JSValue op1, JSValue op2,
+static BOOL js_strict_eq2(JSContext *ctx, JSValueConst op1, JSValueConst op2,
                           JSStrictEqModeEnum eq_mode)
 {
     BOOL res;
@@ -16173,7 +16177,6 @@ static BOOL js_strict_eq2(JSContext *ctx, JSValue op1, JSValue op2,
             res = FALSE;
         } else {
             res = JS_VALUE_GET_INT(op1) == JS_VALUE_GET_INT(op2);
-            goto done_no_free;
         }
         break;
     case JS_TAG_NULL:
@@ -16249,7 +16252,7 @@ static BOOL js_strict_eq2(JSContext *ctx, JSValue op1, JSValue op2,
         } else {
             res = (d1 == d2); /* if NaN return false and +0 == -0 */
         }
-        goto done_no_free;
+        break;
     case JS_TAG_SHORT_BIG_INT:
     case JS_TAG_BIG_INT:
         {
@@ -16277,17 +16280,12 @@ static BOOL js_strict_eq2(JSContext *ctx, JSValue op1, JSValue op2,
         res = FALSE;
         break;
     }
-    JS_FreeValue(ctx, op1);
-    JS_FreeValue(ctx, op2);
- done_no_free:
     return res;
 }
 
 static BOOL js_strict_eq(JSContext *ctx, JSValueConst op1, JSValueConst op2)
 {
-    return js_strict_eq2(ctx,
-                         JS_DupValue(ctx, op1), JS_DupValue(ctx, op2),
-                         JS_EQ_STRICT);
+    return js_strict_eq2(ctx, op1, op2, JS_EQ_STRICT);
 }
 
 BOOL JS_StrictEq(JSContext *ctx, JSValueConst op1, JSValueConst op2)
@@ -16297,9 +16295,7 @@ BOOL JS_StrictEq(JSContext *ctx, JSValueConst op1, JSValueConst op2)
 
 static BOOL js_same_value(JSContext *ctx, JSValueConst op1, JSValueConst op2)
 {
-    return js_strict_eq2(ctx,
-                         JS_DupValue(ctx, op1), JS_DupValue(ctx, op2),
-                         JS_EQ_SAME_VALUE);
+    return js_strict_eq2(ctx, op1, op2, JS_EQ_SAME_VALUE);
 }
 
 BOOL JS_SameValue(JSContext *ctx, JSValueConst op1, JSValueConst op2)
@@ -16309,9 +16305,7 @@ BOOL JS_SameValue(JSContext *ctx, JSValueConst op1, JSValueConst op2)
 
 static BOOL js_same_value_zero(JSContext *ctx, JSValueConst op1, JSValueConst op2)
 {
-    return js_strict_eq2(ctx,
-                         JS_DupValue(ctx, op1), JS_DupValue(ctx, op2),
-                         JS_EQ_SAME_VALUE_ZERO);
+    return js_strict_eq2(ctx, op1, op2, JS_EQ_SAME_VALUE_ZERO);
 }
 
 BOOL JS_SameValueZero(JSContext *ctx, JSValueConst op1, JSValueConst op2)
@@ -20833,6 +20827,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     JS_FreeValue(ctx, op2);                             \
                 } else {                                                \
                     res = js_strict_eq2(ctx, op1, op2, JS_EQ_STRICT);   \
+                    JS_FreeValue(ctx, op1);                             \
+                    JS_FreeValue(ctx, op2);                             \
                 }                                                       \
                 sp[-2] = JS_NewBool(ctx, res ^ inv);                    \
                 sp--;                                                   \
@@ -44234,8 +44230,7 @@ static JSValue js_array_includes(JSContext *ctx, JSValueConst this_val,
         }
         if (js_get_fast_array(ctx, obj, &arrp, &count)) {
             for (; n < count; n++) {
-                if (js_strict_eq2(ctx, JS_DupValue(ctx, argv[0]),
-                                  JS_DupValue(ctx, arrp[n]),
+                if (js_strict_eq2(ctx, argv[0], arrp[n],
                                   JS_EQ_SAME_VALUE_ZERO)) {
                     res = TRUE;
                     goto done;
@@ -44246,11 +44241,13 @@ static JSValue js_array_includes(JSContext *ctx, JSValueConst this_val,
             val = JS_GetPropertyInt64(ctx, obj, n);
             if (JS_IsException(val))
                 goto exception;
-            if (js_strict_eq2(ctx, JS_DupValue(ctx, argv[0]), val,
+            if (js_strict_eq2(ctx, argv[0], val,
                               JS_EQ_SAME_VALUE_ZERO)) {
+                JS_FreeValue(ctx, val);
                 res = TRUE;
                 break;
             }
+            JS_FreeValue(ctx, val);
         }
     }
  done:
@@ -44283,8 +44280,7 @@ static JSValue js_array_indexOf(JSContext *ctx, JSValueConst this_val,
         }
         if (js_get_fast_array(ctx, obj, &arrp, &count)) {
             for (; n < count; n++) {
-                if (js_strict_eq2(ctx, JS_DupValue(ctx, argv[0]),
-                                  JS_DupValue(ctx, arrp[n]), JS_EQ_STRICT)) {
+                if (js_strict_eq2(ctx, argv[0], arrp[n], JS_EQ_STRICT)) {
                     res = n;
                     goto done;
                 }
@@ -44295,10 +44291,12 @@ static JSValue js_array_indexOf(JSContext *ctx, JSValueConst this_val,
             if (present < 0)
                 goto exception;
             if (present) {
-                if (js_strict_eq2(ctx, JS_DupValue(ctx, argv[0]), val, JS_EQ_STRICT)) {
+                if (js_strict_eq2(ctx, argv[0], val, JS_EQ_STRICT)) {
+                    JS_FreeValue(ctx, val);
                     res = n;
                     break;
                 }
+                JS_FreeValue(ctx, val);
             }
         }
     }
@@ -44335,10 +44333,12 @@ static JSValue js_array_lastIndexOf(JSContext *ctx, JSValueConst this_val,
             if (present < 0)
                 goto exception;
             if (present) {
-                if (js_strict_eq2(ctx, JS_DupValue(ctx, argv[0]), val, JS_EQ_STRICT)) {
+                if (js_strict_eq2(ctx, argv[0], val, JS_EQ_STRICT)) {
+                    JS_FreeValue(ctx, val);
                     res = n;
                     break;
                 }
+                JS_FreeValue(ctx, val);
             }
         }
     }
