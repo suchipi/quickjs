@@ -20688,16 +20688,36 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
 
 
-#define OP_CMP(opcode, binary_op, slow_call)              \
-            CASE(opcode):                                 \
-                {                                         \
-                JSValue op1, op2;                         \
-                op1 = sp[-2];                             \
-                op2 = sp[-1];                                   \
+#define OP_CMP(opcode, binary_op, slow_call)                            \
+            CASE(opcode):                                               \
+                {                                                       \
+                JSValue op1, op2;                                       \
+                op1 = sp[-2];                                           \
+                op2 = sp[-1];                                           \
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {           \
                     sp[-2] = JS_NewBool(ctx, JS_VALUE_GET_INT(op1) binary_op JS_VALUE_GET_INT(op2)); \
                     sp--;                                               \
+                } else if (JS_TAG_IS_FLOAT64(JS_VALUE_GET_TAG(op1)) ||  \
+                           JS_TAG_IS_FLOAT64(JS_VALUE_GET_TAG(op2))) {  \
+                    double d1, d2;                                      \
+                    if (JS_TAG_IS_FLOAT64(JS_VALUE_GET_TAG(op1))) {     \
+                        d1 = JS_VALUE_GET_FLOAT64(op1);                 \
+                    } else if (JS_VALUE_GET_TAG(op1) == JS_TAG_INT) {   \
+                        d1 = JS_VALUE_GET_INT(op1);                     \
+                    } else {                                            \
+                        goto opcode ## _slow_case;                      \
+                    }                                                   \
+                    if (JS_TAG_IS_FLOAT64(JS_VALUE_GET_TAG(op2))) {     \
+                        d2 = JS_VALUE_GET_FLOAT64(op2);                 \
+                    } else if (JS_VALUE_GET_TAG(op2) == JS_TAG_INT) {   \
+                        d2 = JS_VALUE_GET_INT(op2);                     \
+                    } else {                                            \
+                        goto opcode ## _slow_case;                      \
+                    }                                                   \
+                    sp[-2] = JS_NewBool(ctx, d1 binary_op d2);          \
+                    sp--;                                               \
                 } else {                                                \
+                opcode ## _slow_case:                                   \
                     sf->cur_pc = pc;                                    \
                     if (slow_call)                                      \
                         goto exception;                                 \
