@@ -20837,7 +20837,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     }                                                   \
                     JS_FreeValue(ctx, op1);                             \
                     JS_FreeValue(ctx, op2);                             \
-                } else if (tag1 == JS_TAG_NULL || tag2 == JS_TAG_UNDEFINED) { \
+                } else if (tag1 == JS_TAG_NULL || tag1 == JS_TAG_UNDEFINED) { \
                     res = (tag1 == tag2);                               \
                     JS_FreeValue(ctx, op2);                             \
                 } else if (tag1 == JS_TAG_STRING && tag2 == JS_TAG_STRING) { \
