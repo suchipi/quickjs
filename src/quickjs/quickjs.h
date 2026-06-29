@@ -472,6 +472,16 @@ void JS_SetContextOpaque(JSContext *ctx, void *opaque);
 void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value);
 /* NOTE: you must free it! */
 JSValue JS_GetContextOpaqueValue(JSContext *ctx);
+/* Register a callback invoked for each backtrace frame to translate its
+   (filename, line, column) location (eg. for source-map support). The callback
+   receives (filename: string, line: number, column: number) with 1-based line
+   and column, and returns either an object {filename, line, column} (all three
+   required) to replace the location, or null/undefined to leave it unchanged.
+   Pass a function to register, or null/undefined to unregister. Takes
+   ownership of `mapper`. */
+void JS_SetStackFrameMapper(JSContext *ctx, JSValue mapper);
+/* NOTE: you must free it! */
+JSValue JS_GetStackFrameMapper(JSContext *ctx);
 JSRuntime *JS_GetRuntime(JSContext *ctx);
 void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj);
 JSValue JS_GetClassProto(JSContext *ctx, JSClassID class_id);

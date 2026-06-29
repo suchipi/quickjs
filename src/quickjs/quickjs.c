@@ -510,6 +510,13 @@ struct JSContext {
                              const char *filename, int flags, int scope_idx);
     void *user_opaque;
     JSValue user_opaque_val;
+
+    /* host-registered callback for translating backtrace frame locations
+       (filename/line/column), eg. for source-map support. JS_NULL when
+       unregistered. in_stack_frame_mapper guards against recursion when the
+       mapper itself throws while a backtrace is being built. */
+    JSValue stack_frame_mapper;
+    BOOL in_stack_frame_mapper;
 };
 
 typedef union JSFloat64Union {
@@ -2620,6 +2627,8 @@ JSContext *JS_NewContextRaw(JSRuntime *rt)
     ctx->regexp_ctor = JS_NULL;
     ctx->promise_ctor = JS_NULL;
     ctx->user_opaque_val = JS_NULL;
+    ctx->stack_frame_mapper = JS_NULL;
+    ctx->in_stack_frame_mapper = FALSE;
     init_list_head(&ctx->loaded_modules);
 
     if (JS_AddIntrinsicBasicObjects(ctx)) {
@@ -2673,6 +2682,26 @@ void JS_SetContextOpaqueValue(JSContext *ctx, JSValue value)
 JSValue JS_GetContextOpaqueValue(JSContext *ctx)
 {
     return JS_DupValue(ctx, ctx->user_opaque_val);
+}
+
+/* Register a callback invoked for each backtrace frame to translate its
+   (filename, line, column). Pass a function to register, or null/undefined to
+   unregister. Consumes `mapper`. */
+void JS_SetStackFrameMapper(JSContext *ctx, JSValue mapper)
+{
+    JS_FreeValue(ctx, ctx->stack_frame_mapper);
+    if (JS_IsFunction(ctx, mapper)) {
+        ctx->stack_frame_mapper = mapper;
+    } else {
+        ctx->stack_frame_mapper = JS_NULL;
+        JS_FreeValue(ctx, mapper);
+    }
+}
+
+/* NOTE: you must free it! */
+JSValue JS_GetStackFrameMapper(JSContext *ctx)
+{
+    return JS_DupValue(ctx, ctx->stack_frame_mapper);
 }
 
 /* set the new value and free the old value after (freeing the value
@@ -2785,6 +2814,7 @@ static void JS_MarkContextChildren(JSRuntime *rt, JSContext *ctx,
         mark_func(rt, &ctx->regexp_result_shape->header);
 
     JS_MarkValue(rt, ctx->user_opaque_val, mark_func);
+    JS_MarkValue(rt, ctx->stack_frame_mapper, mark_func);
 }
 
 void JS_FreeContext(JSContext *ctx)
@@ -2854,6 +2884,7 @@ void JS_FreeContext(JSContext *ctx)
     js_free_shape_null(ctx->rt, ctx->regexp_result_shape);
 
     JS_FreeValue(ctx, ctx->user_opaque_val);
+    JS_FreeValue(ctx, ctx->stack_frame_mapper);
 
     list_del(&ctx->link);
     remove_gc_object(&ctx->header);
@@ -7586,6 +7617,84 @@ static JSSyntheticStackFrame *push_synthetic_stack_frame(JSContext *ctx,
                                                          BOOL deferred_pop);
 static void free_synthetic_stack_frame(JSContext *ctx, JSSyntheticStackFrame *ssf);
 
+/* Translate a backtrace frame's (filename, line, col) through the host's
+   registered stack-frame mapper, if any. Returns a freshly js_strdup'd
+   filename (a copy of the original when no mapping occurs - so the caller
+   always frees the result with js_free) and updates *line / *col in place.
+   line/col are 1-based. Never throws and never disturbs the in-flight
+   exception: any error raised by the mapper is swallowed and the original
+   values are kept. Skipped (returns a copy unchanged) when no mapper is
+   registered or when already inside the mapper, preventing recursion if the
+   mapper throws while a backtrace is being built. */
+static char *map_stack_frame(JSContext *ctx, const char *filename,
+                             int *line, int *col)
+{
+    JSRuntime *rt = ctx->rt;
+    JSValue mapper, saved_exception, result, argv[3];
+    JSValue fn_val, line_val, col_val;
+    const char *new_filename_cstr;
+    char *ret;
+    int new_line, new_col;
+
+    if (filename == NULL)
+        return NULL;
+
+    if (!JS_IsFunction(ctx, ctx->stack_frame_mapper) || ctx->in_stack_frame_mapper)
+        return js_strdup(ctx, filename);
+
+    /* Hold our own reference across the call: the mapper may unregister or
+       replace itself (setStackFrameMapper) mid-call, which would otherwise
+       free the function object we're still executing. */
+    mapper = JS_DupValue(ctx, ctx->stack_frame_mapper);
+
+    ctx->in_stack_frame_mapper = TRUE;
+    saved_exception = rt->current_exception;
+    rt->current_exception = JS_UNINITIALIZED;
+
+    argv[0] = JS_NewString(ctx, filename);
+    argv[1] = JS_NewInt32(ctx, *line);
+    argv[2] = JS_NewInt32(ctx, *col);
+    result = JS_Call(ctx, mapper, JS_UNDEFINED, 3, (JSValueConst *)argv);
+    JS_FreeValue(ctx, argv[0]);
+    JS_FreeValue(ctx, mapper);
+
+    ret = NULL;
+    if (!JS_IsException(result) && JS_IsObject(result)) {
+        fn_val = JS_GetPropertyStr(ctx, result, "filename");
+        line_val = JS_GetPropertyStr(ctx, result, "line");
+        col_val = JS_GetPropertyStr(ctx, result, "column");
+
+        if (JS_IsString(fn_val) &&
+            !JS_ToInt32(ctx, &new_line, line_val) &&
+            !JS_ToInt32(ctx, &new_col, col_val)) {
+            new_filename_cstr = JS_ToCString(ctx, fn_val);
+            if (new_filename_cstr) {
+                ret = js_strdup(ctx, new_filename_cstr);
+                JS_FreeCString(ctx, new_filename_cstr);
+                if (ret) {
+                    *line = new_line;
+                    *col = new_col;
+                }
+            }
+        }
+
+        JS_FreeValue(ctx, fn_val);
+        JS_FreeValue(ctx, line_val);
+        JS_FreeValue(ctx, col_val);
+    }
+    JS_FreeValue(ctx, result);
+
+    /* Drop anything the mapper left pending and restore the exception that
+       was in flight before we called it. */
+    JS_FreeValue(ctx, rt->current_exception);
+    rt->current_exception = saved_exception;
+    ctx->in_stack_frame_mapper = FALSE;
+
+    if (ret == NULL)
+        ret = js_strdup(ctx, filename);
+    return ret;
+}
+
 /* if filename != NULL, an additional level is added with the filename
    and line/column number information (used for parse error). */
 static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
@@ -7602,9 +7711,11 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
        them as own-props on the error even when the caller didn't pass an
        explicit `filename` - e.g. runtime `throw new Error(...)`. The
        pre-existing explicit-filename path (parser errors, etc.) sets them
-       early and skips this capture. */
-    JSAtom first_frame_filename_atom = JS_ATOM_NULL;
-    const char *first_frame_filename_cstr = NULL; /* non-NULL only for the "filename" arg path */
+       early and skips this capture. The filename is held as a single owned
+       (js_strdup'd) string regardless of which frame path produced it, so the
+       own-props inherit whatever the stack-frame mapper substituted for that
+       frame. */
+    char *first_frame_filename_owned = NULL;
     int first_frame_line_num = -1;
     int first_frame_col_num = 0;
     BOOL have_first_frame_info = FALSE;
@@ -7614,11 +7725,14 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
 
     js_dbuf_init(ctx, &dbuf);
     if (filename) {
-        dbuf_printf(&dbuf, "    at %s", filename);
+        char *mapped_filename = map_stack_frame(ctx, filename, &line_num, &col_num);
+        const char *render = mapped_filename ? mapped_filename : filename;
+        dbuf_printf(&dbuf, "    at %s", render);
         if (line_num != -1)
             dbuf_printf(&dbuf, ":%d:%d", line_num, col_num);
         dbuf_putc(&dbuf, '\n');
-        first_frame_filename_cstr = filename;
+        first_frame_filename_owned = mapped_filename ? mapped_filename
+                                                     : js_strdup(ctx, filename);
         first_frame_line_num = line_num;
         first_frame_col_num = col_num;
         have_first_frame_info = TRUE;
@@ -7635,28 +7749,37 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
             JSSyntheticStackFrame *ssf = (JSSyntheticStackFrame *)sf;
             const char *name = ssf->func_name;
             const char *atom_str;
+            char *mapped_filename = NULL;
+            int line_num1 = ssf->line_num;
+            int col_num1 = ssf->col_num;
             atom_str = JS_AtomToCString(ctx, ssf->filename);
+            if (ssf->line_num != -1)
+                mapped_filename = map_stack_frame(ctx, atom_str, &line_num1, &col_num1);
+            const char *render = mapped_filename ? mapped_filename
+                                                 : (atom_str ? atom_str : "<null>");
             if (name && name[0] != '\0') {
                 /* Named synthetic frame: render as `at NAME (file:line:col)` */
                 dbuf_printf(&dbuf, "    at %s", name);
-                dbuf_printf(&dbuf, " (%s", atom_str ? atom_str : "<null>");
+                dbuf_printf(&dbuf, " (%s", render);
                 if (ssf->line_num != -1)
-                    dbuf_printf(&dbuf, ":%d:%d", ssf->line_num, ssf->col_num);
+                    dbuf_printf(&dbuf, ":%d:%d", line_num1, col_num1);
                 dbuf_putc(&dbuf, ')');
             } else {
                 /* Unnamed (engine-origin) frame: render as `at file:line:col` */
-                dbuf_printf(&dbuf, "    at %s", atom_str ? atom_str : "<null>");
+                dbuf_printf(&dbuf, "    at %s", render);
                 if (ssf->line_num != -1)
-                    dbuf_printf(&dbuf, ":%d:%d", ssf->line_num, ssf->col_num);
+                    dbuf_printf(&dbuf, ":%d:%d", line_num1, col_num1);
             }
-            JS_FreeCString(ctx, atom_str);
             dbuf_putc(&dbuf, '\n');
             if (!have_first_frame_info) {
-                first_frame_filename_atom = JS_DupAtom(ctx, ssf->filename);
-                first_frame_line_num = ssf->line_num;
-                first_frame_col_num = ssf->col_num;
+                first_frame_filename_owned = mapped_filename
+                    ? js_strdup(ctx, mapped_filename) : (atom_str ? js_strdup(ctx, atom_str) : NULL);
+                first_frame_line_num = line_num1;
+                first_frame_col_num = col_num1;
                 have_first_frame_info = TRUE;
             }
+            js_free(ctx, mapped_filename);
+            JS_FreeCString(ctx, atom_str);
             continue;
         }
 
@@ -7676,22 +7799,30 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
 
             b = p->u.func.function_bytecode;
             if (b->has_debug) {
+                char *mapped_filename = NULL;
+                const char *render;
                 line_num1 = find_line_num(ctx, b,
                                           sf->cur_pc - b->byte_code_buf - 1,
                                           &col_num1);
                 atom_str = JS_AtomToCString(ctx, b->debug.filename);
-                dbuf_printf(&dbuf, " (%s",
-                            atom_str ? atom_str : "<null>");
-                JS_FreeCString(ctx, atom_str);
+                if (line_num1 != 0)
+                    mapped_filename = map_stack_frame(ctx, atom_str, &line_num1, &col_num1);
+                render = mapped_filename ? mapped_filename
+                                         : (atom_str ? atom_str : "<null>");
+                dbuf_printf(&dbuf, " (%s", render);
                 if (line_num1 != 0)
                     dbuf_printf(&dbuf, ":%d:%d", line_num1, col_num1);
                 dbuf_putc(&dbuf, ')');
                 if (!have_first_frame_info) {
-                    first_frame_filename_atom = JS_DupAtom(ctx, b->debug.filename);
+                    first_frame_filename_owned = mapped_filename
+                        ? js_strdup(ctx, mapped_filename)
+                        : (atom_str ? js_strdup(ctx, atom_str) : NULL);
                     first_frame_line_num = line_num1;
                     first_frame_col_num = col_num1;
                     have_first_frame_info = TRUE;
                 }
+                js_free(ctx, mapped_filename);
+                JS_FreeCString(ctx, atom_str);
             }
         } else {
             dbuf_printf(&dbuf, " (native)");
@@ -7704,10 +7835,8 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
        carry structured origin info. */
     if (have_first_frame_info) {
         JSValue fn_val;
-        if (first_frame_filename_cstr) {
-            fn_val = JS_NewString(ctx, first_frame_filename_cstr);
-        } else if (first_frame_filename_atom != JS_ATOM_NULL) {
-            fn_val = JS_AtomToString(ctx, first_frame_filename_atom);
+        if (first_frame_filename_owned) {
+            fn_val = JS_NewString(ctx, first_frame_filename_owned);
         } else {
             fn_val = JS_UNDEFINED;
         }
@@ -7731,9 +7860,7 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
         }
     }
  skip_first_frame_info:
-    if (first_frame_filename_atom != JS_ATOM_NULL) {
-        JS_FreeAtom(ctx, first_frame_filename_atom);
-    }
+    js_free(ctx, first_frame_filename_owned);
 
     dbuf_putc(&dbuf, '\0');
     if (dbuf_error(&dbuf))

@@ -466,6 +466,25 @@ static JSValue js_engine_gc(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+static JSValue js_engine_setStackFrameMapper(JSContext *ctx, JSValueConst this_val,
+                                             int argc, JSValueConst *argv)
+{
+    JSValueConst mapper = argc >= 1 ? argv[0] : JS_UNDEFINED;
+
+    if (!JS_IsFunction(ctx, mapper) && !JS_IsNull(mapper) && !JS_IsUndefined(mapper)) {
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "setStackFrameMapper requires a function, null, or undefined");
+    }
+
+    JS_SetStackFrameMapper(ctx, JS_DupValue(ctx, mapper));
+    return JS_UNDEFINED;
+}
+
+static JSValue js_engine_getStackFrameMapper(JSContext *ctx, JSValueConst this_val,
+                                             int argc, JSValueConst *argv)
+{
+    return JS_GetStackFrameMapper(ctx);
+}
+
 /* Helper: read an optional bool/uint32 property from an options object.
    Returns 1 if present and valid (caller writes to its dst), 0 if
    absent (no write), -1 on error. Frees the JS_GetProperty result
@@ -617,6 +636,8 @@ static const JSCFunctionListEntry js_engine_funcs[] = {
   JS_CFUNC_DEF("isModuleNamespace", 1, js_engine_isModuleNamespace ),
   JS_CFUNC_DEF("defineBuiltinModule", 2, js_engine_defineBuiltinModule ),
   JS_CFUNC_DEF("gc", 0, js_engine_gc ),
+  JS_CFUNC_DEF("setStackFrameMapper", 1, js_engine_setStackFrameMapper ),
+  JS_CFUNC_DEF("getStackFrameMapper", 0, js_engine_getStackFrameMapper ),
   JS_CFUNC_DEF("formatValue", 2, js_engine_formatValue ),
   JS_CFUNC_DEF("__printObject", 1, js_engine_printObject ),
 };

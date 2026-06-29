@@ -1,7 +1,7 @@
 import path from "path";
 import { spawn as childSpawn } from "child_process";
 import { pathMarker } from "path-less-traveled";
-import { spawn } from "first-base";
+import { spawn, sanitizers } from "first-base";
 import { beforeAll, vi } from "vitest";
 
 export const rootDir = pathMarker(path.resolve(__dirname, ".."));
@@ -32,6 +32,42 @@ export function wineSpawn(
       MVK_CONFIG_LOG_LEVEL: "0",
     },
   });
+}
+
+const removedSanitizers: Record<
+  string,
+  { index: number; sanitizer: (str: string) => string }
+> = {};
+
+export function removeSanitizer(sanitizerName: string) {
+  const index = sanitizers.findIndex(
+    (sanitizer) => sanitizer.name === sanitizerName
+  );
+  if (index === -1) {
+    throw new Error(`Couldn't find ${JSON.stringify(sanitizerName)} sanitizer`);
+  }
+
+  removedSanitizers[sanitizerName] = {
+    index,
+    sanitizer: sanitizers[index],
+  };
+
+  sanitizers[index] = function noop(str: string) {
+    return str;
+  };
+}
+
+export function restoreSanitizer(sanitizerName: string) {
+  const skipped = removedSanitizers[sanitizerName];
+  if (skipped == null) {
+    throw new Error(
+      `Sanitizer ${JSON.stringify(
+        sanitizerName
+      )} isn't in the list of sanitizers removed by 'removeSanitizer'.`
+    );
+  }
+
+  sanitizers[skipped.index] = skipped.sanitizer;
 }
 
 export function setupWineHooks() {
