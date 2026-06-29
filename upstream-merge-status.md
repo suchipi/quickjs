@@ -467,3 +467,9 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 8b04550 | SKIP-NA | Add fuzz targets for ES6 modules, JSON, RegExp, and bytecode (#512) | Adds 4 new files under fuzz/ (fuzz_bytecode.c, fuzz_json.c, fuzz_module_export.c, fuzz_regexp_compile.c) plus fuzz/Makefile + build.sh integration. The fork does not vendor the fuzz/ directory (per the protocol's not-vendored list). No code change. |  |
 | ccfe076 | PORT | Check return values of fallible functions (#518) | Clean apply to src/quickjs/quickjs.c (byte-for-byte upstream's +8/-3). Three OOM-resilience checks: (1) js_parse_for_in_of checks dbuf_claim and returns -1 on failure; (2) js_parse_statement_or_decl checks dbuf_claim and goto fail (the fork-author-of-the-upstream-commit's atom-leak-safe variant; the fork has a matching fail: label in that function); (3) JS_WriteObjectRec's JS_TAG_STRING_ROPE case captures the recursive JS_WriteObjectRec return and goto fail on error. Only fires on allocation failure; no behavior change in normal operation. test262 baselines unchanged. |  |
 | 3d5e064 | SKIP-NA | new release | Changelog / VERSION / release.sh only, none of which the fork tracks (fork uses npm versioning, no Makefile, no upstream release tooling). Same classification as 19abf18. No code change. This is the final upstream commit; its merge marker brings GitHub's "behind" counter to 0. |  |
+| 445624b | PENDING | inlined more cases for equality operators |  |
+| 8f0c037 | PENDING | use JSValueConst arguments for js_strict_eq2() |  |
+| 088cf5e | PENDING | inlined the float case in relational operators |  |
+| 762e6fc | PENDING | fixed typo in commit 445624b |  |
+| 42d08be | PENDING | optimized Array.prototype.slice and Array.prototype.splice |  |
+| 04be246 | PENDING | run-test262: when updating errors, sort them so that it gives the same result with several threads |  |
