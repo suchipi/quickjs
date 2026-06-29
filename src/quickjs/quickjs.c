@@ -16319,15 +16319,6 @@ BOOL JS_SameValueZero(JSContext *ctx, JSValueConst op1, JSValueConst op2)
     return js_same_value_zero(ctx, op1, op2);
 }
 
-static no_inline int js_strict_eq_slow(JSContext *ctx, JSValue *sp,
-                                       BOOL is_neq)
-{
-    BOOL res;
-    res = js_strict_eq2(ctx, sp[-2], sp[-1], JS_EQ_STRICT);
-    sp[-2] = JS_NewBool(ctx, res ^ is_neq);
-    return 0;
-}
-
 static __exception int js_operator_in(JSContext *ctx, JSValue *sp)
 {
     JSValue op1, op2;
@@ -20725,10 +20716,131 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             OP_CMP(OP_lte, <=, js_relational_slow(ctx, sp, opcode));
             OP_CMP(OP_gt, >, js_relational_slow(ctx, sp, opcode));
             OP_CMP(OP_gte, >=, js_relational_slow(ctx, sp, opcode));
-            OP_CMP(OP_eq, ==, js_eq_slow(ctx, sp, 0));
-            OP_CMP(OP_neq, !=, js_eq_slow(ctx, sp, 1));
-            OP_CMP(OP_strict_eq, ==, js_strict_eq_slow(ctx, sp, 0));
-            OP_CMP(OP_strict_neq, !=, js_strict_eq_slow(ctx, sp, 1));
+
+#define OP_CMP_EQ(opcode, inv)                                          \
+            CASE(opcode):                                               \
+                {                                                       \
+                JSValue op1, op2;                                       \
+                int res;                                                \
+                uint32_t tag1, tag2;                                    \
+                op1 = sp[-2];                                           \
+                op2 = sp[-1];                                           \
+                tag1 = JS_VALUE_GET_TAG(op1);                           \
+                tag2 = JS_VALUE_GET_TAG(op2);                           \
+                if (likely(tag1 == JS_TAG_INT)) {                       \
+                    if (tag2 == JS_TAG_INT) {                           \
+                        res = JS_VALUE_GET_INT(op1) == JS_VALUE_GET_INT(op2); \
+                    } else if (JS_TAG_IS_FLOAT64(tag2)) {               \
+                        res = (JS_VALUE_GET_INT(op1) == JS_VALUE_GET_FLOAT64(op2)); \
+                    } else {                                            \
+                        goto slow_eq ## inv;                            \
+                    }                                                   \
+                } else if (JS_TAG_IS_FLOAT64(tag1)) {                   \
+                    if (tag2 == JS_TAG_INT) {                           \
+                        res = JS_VALUE_GET_FLOAT64(op1) == JS_VALUE_GET_INT(op2); \
+                    } else if (JS_TAG_IS_FLOAT64(tag2)) {               \
+                        res = (JS_VALUE_GET_FLOAT64(op1) == JS_VALUE_GET_FLOAT64(op2)); \
+                    } else {                                            \
+                        goto slow_eq ## inv;                            \
+                    }                                                   \
+                } else if (tag1 == JS_TAG_OBJECT) {                     \
+                    if (tag2 == JS_TAG_NULL || tag2 == JS_TAG_UNDEFINED) { \
+                        JSObject *p = JS_VALUE_GET_OBJ(op1);            \
+                        res = p->is_HTMLDDA;                            \
+                        JS_FreeValue(ctx, op1);                         \
+                    } else if (tag2 == JS_TAG_OBJECT) {                 \
+                        res = JS_VALUE_GET_OBJ(op1) == JS_VALUE_GET_OBJ(op2); \
+                        JS_FreeValue(ctx, op1);                         \
+                        JS_FreeValue(ctx, op2);                         \
+                    } else {                                            \
+                        goto slow_eq ## inv;                            \
+                    }                                                   \
+                } else if (tag1 == JS_TAG_NULL || tag1 == JS_TAG_UNDEFINED) { \
+                    if (tag2 == JS_TAG_NULL || tag2 == JS_TAG_UNDEFINED) { \
+                        res = TRUE;                                     \
+                    } else if (tag2 == JS_TAG_OBJECT) {                 \
+                        JSObject *p = JS_VALUE_GET_OBJ(op2);            \
+                        res = p->is_HTMLDDA;                            \
+                        JS_FreeValue(ctx, op2);                         \
+                    } else {                                            \
+                        goto slow_eq ## inv;                            \
+                    }                                                   \
+                } else if (tag1 == JS_TAG_STRING && tag2 == JS_TAG_STRING) { \
+                    res = js_string_eq(ctx, JS_VALUE_GET_STRING(op1),   \
+                                       JS_VALUE_GET_STRING(op2));       \
+                    JS_FreeValue(ctx, op1);                             \
+                    JS_FreeValue(ctx, op2);                             \
+                } else {                                                \
+                    slow_eq ## inv:                                     \
+                    sf->cur_pc = pc;                                    \
+                    if (js_eq_slow(ctx, sp, inv))                       \
+                        goto exception;                                 \
+                    sp--;                                               \
+                    goto slow_eq_done ## inv;                           \
+                }                                                       \
+                sp[-2] = JS_NewBool(ctx, res ^ inv);                    \
+                sp--;                                                   \
+                slow_eq_done ## inv: ;                                  \
+                }                                                       \
+            BREAK
+
+            OP_CMP_EQ(OP_eq, 0);
+            OP_CMP_EQ(OP_neq, 1);
+
+#define OP_CMP_STRICT_EQ(opcode, inv)                                   \
+            CASE(opcode):                                               \
+                {                                                       \
+                JSValue op1, op2;                                       \
+                int res;                                                \
+                uint32_t tag1, tag2;                                    \
+                op1 = sp[-2];                                           \
+                op2 = sp[-1];                                           \
+                tag1 = JS_VALUE_GET_TAG(op1);                           \
+                tag2 = JS_VALUE_GET_TAG(op2);                           \
+                if (likely(tag1 == JS_TAG_INT)) {                       \
+                    if (tag2 == JS_TAG_INT) {                           \
+                        res = JS_VALUE_GET_INT(op1) == JS_VALUE_GET_INT(op2); \
+                    } else if (JS_TAG_IS_FLOAT64(tag2)) {               \
+                        res = (JS_VALUE_GET_INT(op1) == JS_VALUE_GET_FLOAT64(op2)); \
+                    } else {                                            \
+                        JS_FreeValue(ctx, op2);                         \
+                        res = FALSE;                                    \
+                    }                                                   \
+                } else if (JS_TAG_IS_FLOAT64(tag1)) {                   \
+                    if (tag2 == JS_TAG_INT) {                           \
+                        res = JS_VALUE_GET_FLOAT64(op1) == JS_VALUE_GET_INT(op2); \
+                    } else if (JS_TAG_IS_FLOAT64(tag2)) {               \
+                        res = (JS_VALUE_GET_FLOAT64(op1) == JS_VALUE_GET_FLOAT64(op2)); \
+                    } else {                                            \
+                        JS_FreeValue(ctx, op2);                         \
+                        res = FALSE;                                    \
+                    }                                                   \
+                } else if (tag1 == JS_TAG_OBJECT) {                     \
+                    if (tag2 == JS_TAG_OBJECT) {                        \
+                        res = JS_VALUE_GET_OBJ(op1) == JS_VALUE_GET_OBJ(op2); \
+                    } else {                                            \
+                        res = FALSE;                                    \
+                    }                                                   \
+                    JS_FreeValue(ctx, op1);                             \
+                    JS_FreeValue(ctx, op2);                             \
+                } else if (tag1 == JS_TAG_NULL || tag2 == JS_TAG_UNDEFINED) { \
+                    res = (tag1 == tag2);                               \
+                    JS_FreeValue(ctx, op2);                             \
+                } else if (tag1 == JS_TAG_STRING && tag2 == JS_TAG_STRING) { \
+                    res = js_string_eq(ctx, JS_VALUE_GET_STRING(op1),   \
+                                       JS_VALUE_GET_STRING(op2));       \
+                    JS_FreeValue(ctx, op1);                             \
+                    JS_FreeValue(ctx, op2);                             \
+                } else {                                                \
+                    res = js_strict_eq2(ctx, op1, op2, JS_EQ_STRICT);   \
+                }                                                       \
+                sp[-2] = JS_NewBool(ctx, res ^ inv);                    \
+                sp--;                                                   \
+                }                                                       \
+            BREAK
+
+            OP_CMP_STRICT_EQ(OP_strict_eq, 0);
+            OP_CMP_STRICT_EQ(OP_strict_neq, 1);
 
         CASE(OP_in):
             sf->cur_pc = pc;
