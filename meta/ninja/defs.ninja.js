@@ -2,6 +2,7 @@ const path = require("path");
 
 const headerFiles = glob("**/*.h", {
   cwd: path.resolve(__dirname, "../.."),
+  ignore: ["build/**", "node_modules/**"],
 });
 
 const dirsWithHeaderFiles = Array.from(
