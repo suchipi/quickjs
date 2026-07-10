@@ -1227,6 +1227,15 @@ JSValue JS_EvalFunctionAsync(JSContext *ctx, JSValue fun_obj);
 int JS_ResolveModule(JSContext *ctx, JSValueConst obj);
 
 JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels);
+/* Capture the current call stack as an Array of
+   { fileName, lineNumber, columnNumber } objects, one per visible frame,
+   innermost first. `skip` frames are skipped from the top (0 = start at the
+   caller's frame). fileName is a string or null; lineNumber/columnNumber are
+   1-based numbers or null when the frame has no source location. Frame
+   locations are passed through the registered stack-frame mapper (see
+   JS_SetStackFrameMapper). Honors JS_MODE_BACKTRACE_BARRIER. Returns a JS
+   exception value on allocation failure. */
+JSValue JS_CaptureStackFrames(JSContext *ctx, int skip);
 /* Synchronously load + evaluate a module. Returns the module def on success,
    or NULL with a pending exception on failure (including when the target
    module or any of its transitive imports uses top-level await — the fork

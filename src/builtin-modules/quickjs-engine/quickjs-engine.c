@@ -145,6 +145,25 @@ static JSValue js_engine_getFileNameFromStack(JSContext *ctx, JSValueConst this_
   }
 }
 
+/* return the current call stack as an array of
+   { fileName, lineNumber, columnNumber } frame objects */
+static JSValue js_engine_getStackFrames(JSContext *ctx, JSValueConst this_val,
+                                        int argc, JSValueConst *argv)
+{
+  int skip = 0;
+
+  if (argc >= 1 && !JS_IsUndefined(argv[0])) {
+    if (JS_ToInt32(ctx, &skip, argv[0])) {
+      return JS_EXCEPTION;
+    }
+    if (skip < 0) {
+      return JS_ThrowRangeError(ctx, "<internal>/quickjs-engine.c", __LINE__, "skip must be a non-negative number");
+    }
+  }
+
+  return JS_CaptureStackFrames(ctx, skip + 1);
+}
+
 /* resolve the absolute path to a module */
 static JSValue js_engine_resolveModule(JSContext *ctx, JSValueConst this_val,
                                        int argc, JSValueConst *argv)
@@ -631,6 +650,7 @@ static const JSCFunctionListEntry js_engine_funcs[] = {
   JS_CFUNC_DEF("runScript", 1, js_engine_runScript ),
   JS_CFUNC_DEF("importModule", 2, js_engine_importModule ),
   JS_CFUNC_DEF("getFileNameFromStack", 1, js_engine_getFileNameFromStack ),
+  JS_CFUNC_DEF("getStackFrames", 1, js_engine_getStackFrames ),
   JS_CFUNC_DEF("resolveModule", 2, js_engine_resolveModule ),
   JS_CFUNC_DEF("evalScript", 2, js_engine_evalScript ),
   JS_CFUNC_DEF("isModuleNamespace", 1, js_engine_isModuleNamespace ),

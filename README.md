@@ -185,7 +185,7 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 
 ### New module: "quickjs:engine"
 
-This module contains APIs related to engine internals like script execution, module loading, code eval, filename reflection, and garbage collection. Several parts of quickjs-libc were moved here so that quickjs-libc could be focused on "C standard library" bindings.
+This module contains APIs related to engine internals like script execution, module loading, code eval, call stack reflection, and garbage collection. Several parts of quickjs-libc were moved here so that quickjs-libc could be focused on "C standard library" bindings.
 
 A newly-added Error stack frame generation hook `setStackFrameMapper` is exposed via this module, which can be used to apply source maps to Error stack frames at runtime.
 

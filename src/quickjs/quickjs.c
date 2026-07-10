@@ -7872,6 +7872,102 @@ static void build_backtrace(JSContext *ctx, JSValueConst error_obj,
                            JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
 }
 
+/* Build one { fileName, lineNumber, columnNumber } frame object. Takes
+   ownership of `filename` (frees it). located == FALSE means the frame has no
+   source location, in which case all three fields are null. Returns
+   JS_EXCEPTION on allocation failure. */
+static JSValue new_stack_frame_object(JSContext *ctx, char *filename,
+                                      int line, int col, BOOL located)
+{
+    JSValue obj = JS_NewObject(ctx);
+    if (JS_IsException(obj)) {
+        js_free(ctx, filename);
+        return JS_EXCEPTION;
+    }
+    JS_DefinePropertyValueStr(ctx, obj, "fileName",
+                              (located && filename) ? JS_NewString(ctx, filename)
+                                                    : JS_NULL,
+                              JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "lineNumber",
+                              located ? JS_NewInt32(ctx, line) : JS_NULL,
+                              JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, obj, "columnNumber",
+                              located ? JS_NewInt32(ctx, col) : JS_NULL,
+                              JS_PROP_C_W_E);
+    js_free(ctx, filename);
+    return obj;
+}
+
+JSValue JS_CaptureStackFrames(JSContext *ctx, int skip)
+{
+    JSStackFrame *sf;
+    JSValue arr;
+    JSObject *p;
+    uint32_t array_index = 0;
+
+    arr = JS_NewArray(ctx);
+    if (JS_IsException(arr))
+        return JS_EXCEPTION;
+
+    for (sf = ctx->rt->current_stack_frame; sf != NULL; sf = sf->prev_frame) {
+        JSValue frame_obj;
+        char *filename = NULL;
+        int line = 0, col = 0;
+        BOOL located = FALSE;
+
+        if (sf->js_mode & JS_MODE_BACKTRACE_BARRIER)
+            break;
+        if (skip > 0) {
+            skip--;
+            continue;
+        }
+
+        if (JS_VALUE_GET_TAG(sf->cur_func) == JS_TAG_NULL) {
+            /* synthetic frame */
+            JSSyntheticStackFrame *ssf = (JSSyntheticStackFrame *)sf;
+            const char *atom_str = JS_AtomToCString(ctx, ssf->filename);
+            if (ssf->line_num != -1) {
+                line = ssf->line_num;
+                col = ssf->col_num;
+                filename = map_stack_frame(ctx, atom_str, &line, &col);
+                located = TRUE;
+            }
+            JS_FreeCString(ctx, atom_str);
+        } else {
+            p = JS_VALUE_GET_OBJ(sf->cur_func);
+            if (js_class_has_bytecode(p->class_id)) {
+                JSFunctionBytecode *b = p->u.func.function_bytecode;
+                if (b->has_debug) {
+                    const char *atom_str;
+                    line = find_line_num(ctx, b,
+                                         sf->cur_pc - b->byte_code_buf - 1,
+                                         &col);
+                    atom_str = JS_AtomToCString(ctx, b->debug.filename);
+                    if (line != 0) {
+                        filename = map_stack_frame(ctx, atom_str, &line, &col);
+                        located = TRUE;
+                    }
+                    JS_FreeCString(ctx, atom_str);
+                }
+            }
+            /* native frames and stripped-debug frames stay unlocated */
+        }
+
+        frame_obj = new_stack_frame_object(ctx, filename, line, col, located);
+        if (JS_IsException(frame_obj)) {
+            JS_FreeValue(ctx, arr);
+            return JS_EXCEPTION;
+        }
+        if (JS_DefinePropertyValueUint32(ctx, arr, array_index++, frame_obj,
+                                         JS_PROP_C_W_E) < 0) {
+            JS_FreeValue(ctx, arr);
+            return JS_EXCEPTION;
+        }
+    }
+
+    return arr;
+}
+
 /* Note: it is important that no exception is returned by this function */
 static BOOL is_backtrace_needed(JSContext *ctx, JSValueConst obj)
 {
