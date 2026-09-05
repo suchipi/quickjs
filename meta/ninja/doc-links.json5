@@ -22,4 +22,8 @@
   "Number.MAX_VALUE": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_VALUE",
   "Number.EPSILON": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/EPSILON",
   "BigFloatEnv.RNDNA": "/meta/docs/quickjs.md#bigfloatenvconstructor-rndna-readonly-bigfloatroundingmode-property",
+  getStackFrames: "/meta/docs/quickjs-engine.md#quickjs-engine-getstackframes-exported-function",
+  setStackFrameMapper: "/meta/docs/quickjs-engine.md#quickjs-engine-setstackframemapper-exported-function",
+  StackFrame: "/meta/docs/quickjs-engine.md#quickjs-engine-stackframe-exported-type",
+  evalScript: "/meta/docs/quickjs-engine.md#quickjs-engine-evalscript-exported-function",
 }

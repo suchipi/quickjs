@@ -194,7 +194,7 @@ export function getFileNameFromStack(stackLevels?: number): string;
 
 ## "quickjs:engine".StackFrame (exported type)
 
-A single stack frame captured by [getStackFrames](#).
+A single stack frame captured by [getStackFrames](/meta/docs/quickjs-engine.md#quickjs-engine-getstackframes-exported-function).
 
 A frame either has a source location (all three of `fileName`,
 `lineNumber`, and `columnNumber` are present) or has none (all three are
@@ -211,7 +211,7 @@ for (const frame of getStackFrames()) {
 ```
 
 `lineNumber` and `columnNumber` are 1-based, matching the values used by
-the stack frame mapper (see [setStackFrameMapper](#)) and by an
+the stack frame mapper (see [setStackFrameMapper](/meta/docs/quickjs-engine.md#quickjs-engine-setstackframemapper-exported-function)) and by an
 Error's `lineNumber` / `columnNumber` own properties.
 
 ```ts
@@ -230,14 +230,14 @@ type StackFrame =
 
 ## "quickjs:engine".getStackFrames (exported function)
 
-Capture the current call stack as an array of [StackFrame](#) objects,
+Capture the current call stack as an array of [StackFrame](/meta/docs/quickjs-engine.md#quickjs-engine-stackframe-exported-type) objects,
 ordered from the innermost (most recent) frame outward.
 
 Frame locations are passed through the registered stack frame mapper (see
-[setStackFrameMapper](#)), so a frame's `fileName` / `lineNumber` /
+[setStackFrameMapper](/meta/docs/quickjs-engine.md#quickjs-engine-setstackframemapper-exported-function)), so a frame's `fileName` / `lineNumber` /
 `columnNumber` match what an Error thrown at that point would report.
 
-Frames beyond a `backtraceBarrier` (see [evalScript](#)) are not
+Frames beyond a `backtraceBarrier` (see [evalScript](/meta/docs/quickjs-engine.md#quickjs-engine-evalscript-exported-function)) are not
 included, exactly as they are omitted from `error.stack`.
 
 - `@param` _skip_ — How many innermost frames to omit from the result. Defaults
@@ -292,7 +292,7 @@ export function gc(): void;
 ## "quickjs:engine".StackFrameMapper (exported type)
 
 A callback that translates the location of a stack frame as an error's
-backtrace is built. See [setStackFrameMapper](#) for details.
+backtrace is built. See [setStackFrameMapper](/meta/docs/quickjs-engine.md#quickjs-engine-setstackframemapper-exported-function) for details.
 
 `line` and `column` are 1-based, both for the values passed in and for the
 values returned. To change the frame's location, return an object
@@ -358,7 +358,7 @@ export function setStackFrameMapper(
 ## "quickjs:engine".getStackFrameMapper (exported function)
 
 Return the stack frame mapper currently registered via
-[setStackFrameMapper](#), or `null` if none is registered.
+[setStackFrameMapper](/meta/docs/quickjs-engine.md#quickjs-engine-setstackframemapper-exported-function), or `null` if none is registered.
 
 This is useful for composing mappers: read the existing one, then register
 a new mapper that adds your own behavior and delegates to the previous one.
