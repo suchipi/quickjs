@@ -28202,6 +28202,13 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
             op_token_ptr = s->token.ptr;
         parse_array_access:
             prev_op = get_prev_opcode(fd);
+            if (prev_op == OP_get_super && !has_optional_chain) {
+                /* the home object's prototype is only read once the property
+                   expression has been evaluated, so take OP_get_super back
+                   out and re-emit it below */
+                fd->byte_code.size = fd->last_opcode_pos;
+                fd->last_opcode_pos = -1;
+            }
             if (has_optional_chain) {
                 optional_chain_test(s, &optional_chaining_label, 1);
             }
@@ -28213,6 +28220,11 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                 return -1;
             emit_source_pos(s, op_token_ptr);
             if (prev_op == OP_get_super) {
+                if (!has_optional_chain) {
+                    emit_op(s, OP_swap);
+                    emit_op(s, OP_get_super);
+                    emit_op(s, OP_swap);
+                }
                 emit_op(s, OP_get_super_value);
             } else {
                 emit_op(s, OP_get_array_el);
