@@ -29,11 +29,11 @@ test("bytecode - normal values", async () => {
       "error": null,
       "stderr": "",
       "stdout": "fromValue 7 ArrayBuffer {
-    	│0x00000000│ 07 00 05 0E
+    	│0x00000000│ 08 00 05 0E
     }
     back toValue 7
     fromValue { a: 5 } ArrayBuffer {
-    	│0x00000000│ 07 01 02 61 08 01 E6 03 05 0A
+    	│0x00000000│ 08 01 02 61 08 01 E6 03 05 0A
     }
     back toValue {
     	a: 5
@@ -69,12 +69,12 @@ test("bytecode - script file", async () => {
       "error": null,
       "stderr": "",
       "stdout": "fromFile ArrayBuffer {
-    	│0x00000000│ 07 03 0E 63 6F 6E 73 6F 6C 65 06 6C 6F 67 34 74
+    	│0x00000000│ 08 03 0E 63 6F 6E 73 6F 6C 65 06 6C 6F 67 34 74
     	│0x00000010│ 65 73 74 73 2F 66 69 78 74 75 72 65 73 2F 6C 6F
     	│0x00000020│ 67 2D 66 6F 75 72 2E 6A 73 0C 00 06 00 A8 01 00
     	│0x00000030│ 01 00 04 00 01 00 10 01 AA 01 00 00 00 E6 03 00
-    	│0x00000040│ 05 00 38 00 00 3E F4 00 00 00 B6 B6 9B 24 01 00
-    	│0x00000050│ CC 28 EA 03 08 00 00 11 0E 25 0E 07 05 00
+    	│0x00000040│ 05 00 38 00 00 3E F4 00 00 00 B7 B7 9B 24 01 00
+    	│0x00000050│ CD 28 EA 03 08 00 00 11 0E 25 0E 07 05 00
     }
     toValue Function "bound bytecode" {
     	│1│ function bound bytecode() {
@@ -114,14 +114,14 @@ test("bytecode - module file", async () => {
       "error": null,
       "stderr": "",
       "stdout": "fromFile ArrayBuffer {
-    	│0x00000000│ 07 05 3C 74 65 73 74 73 2F 66 69 78 74 75 72 65
+    	│0x00000000│ 08 05 3C 74 65 73 74 73 2F 66 69 78 74 75 72 65
     	│0x00000010│ 73 2F 65 78 70 6F 72 74 73 2D 66 69 76 65 2E 6A
     	│0x00000020│ 73 08 66 69 76 65 0E 63 6F 6E 73 6F 6C 65 06 6C
     	│0x00000030│ 6F 67 16 65 78 70 6F 72 74 69 6E 67 20 35 0D E6
     	│0x00000040│ 03 00 01 00 00 E8 03 00 00 00 0C 20 06 01 A8 01
     	│0x00000050│ 00 00 00 03 00 02 00 19 00 E8 03 00 1E 00 EA 03
-    	│0x00000060│ 00 05 00 08 E9 02 29 38 01 00 3E F6 00 00 00 04
-    	│0x00000070│ F7 00 00 00 24 01 00 0E B9 E0 06 2F E6 03 08 00
+    	│0x00000060│ 00 05 00 08 EA 02 29 38 01 00 3E F6 00 00 00 04
+    	│0x00000070│ F7 00 00 00 24 01 00 0E BA E1 06 2F E6 03 08 00
     	│0x00000080│ 00 25 0E 34 08 1C 0E 00
     }
     toValue Function "bound bytecode" {

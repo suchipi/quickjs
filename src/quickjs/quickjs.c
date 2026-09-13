@@ -18963,6 +18963,16 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             }
             BREAK;
 
+        CASE(OP_set_strict):
+            {
+                int on = *pc++;
+                if (on)
+                    sf->js_mode |= JS_MODE_STRICT;
+                else
+                    sf->js_mode &= ~JS_MODE_STRICT;
+            }
+            BREAK;
+
         CASE(OP_get_super):
             {
                 JSValue proto;
@@ -25325,10 +25335,53 @@ static BOOL token_is_ident(int tok)
 }
 
 /* if the property is an expression, name = JS_ATOM_NULL */
+/* Class definitions are strict mode code, but the heritage expression and
+   computed property names are compiled into the enclosing function, whose
+   frame carries the mode at run time. These bracket such an expression so
+   that the mode is restored however it ends. */
+typedef struct StrictRegion {
+    int label_restore;
+    int label_done;
+} StrictRegion;
+
+static __exception int enter_strict_region(JSParseState *s, StrictRegion *sr,
+                                           int saved_js_mode)
+{
+    sr->label_restore = -1;
+    sr->label_done = -1;
+    if (saved_js_mode & JS_MODE_STRICT)
+        return 0;
+    sr->label_restore = new_label(s);
+    sr->label_done = new_label(s);
+    if (sr->label_restore < 0 || sr->label_done < 0)
+        return -1;
+    emit_goto(s, OP_catch, sr->label_restore);
+    emit_op(s, OP_set_strict);
+    emit_u8(s, TRUE);
+    return 0;
+}
+
+/* the region must have left exactly one value on the stack */
+static void leave_strict_region(JSParseState *s, StrictRegion *sr)
+{
+    if (sr->label_restore < 0)
+        return;
+    emit_op(s, OP_set_strict);
+    emit_u8(s, FALSE);
+    emit_op(s, OP_nip); /* drop the catch offset from under the value */
+    emit_goto(s, OP_goto, sr->label_done);
+    emit_label(s, sr->label_restore);
+    emit_op(s, OP_set_strict);
+    emit_u8(s, FALSE);
+    emit_op(s, OP_throw);
+    emit_label(s, sr->label_done);
+}
+
 static int __exception js_parse_property_name(JSParseState *s,
                                               JSAtom *pname,
                                               BOOL allow_method, BOOL allow_var,
-                                              BOOL allow_private)
+                                              BOOL allow_private,
+                                              int class_js_mode)
 {
     int is_private = 0;
     BOOL is_non_reserved_ident;
@@ -25415,10 +25468,15 @@ static int __exception js_parse_property_name(JSParseState *s,
         if (next_token(s))
             goto fail1;
     } else if (s->token.val == '[') {
+        StrictRegion sr;
         if (next_token(s))
+            goto fail;
+        if (class_js_mode >= 0 && enter_strict_region(s, &sr, class_js_mode))
             goto fail;
         if (js_parse_assign_expr(s))
             goto fail;
+        if (class_js_mode >= 0)
+            leave_strict_region(s, &sr);
         if (js_parse_expect(s, ']'))
             goto fail;
         name = JS_ATOM_NULL;
@@ -25701,7 +25759,7 @@ static __exception int js_parse_object_literal(JSParseState *s)
             goto next;
         }
 
-        prop_type = js_parse_property_name(s, &name, TRUE, TRUE, FALSE);
+        prop_type = js_parse_property_name(s, &name, TRUE, TRUE, FALSE, -1);
         if (prop_type < 0)
             goto fail;
 
@@ -26022,11 +26080,15 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
     push_scope(s);
 
     if (s->token.val == TOK_EXTENDS) {
+        StrictRegion sr;
         class_flags = JS_DEFINE_CLASS_HAS_HERITAGE;
         if (next_token(s))
             goto fail;
+        if (enter_strict_region(s, &sr, saved_js_mode))
+            goto fail;
         if (js_parse_left_hand_side_expr(s))
             goto fail;
+        leave_strict_region(s, &sr);
     } else {
         emit_op(s, OP_undefined);
     }
@@ -26134,7 +26196,8 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
             emit_op(s, OP_swap);
         start_ptr = s->token.ptr;
         if (prop_type < 0) {
-            prop_type = js_parse_property_name(s, &name, TRUE, FALSE, TRUE);
+            prop_type = js_parse_property_name(s, &name, TRUE, FALSE, TRUE,
+                                               saved_js_mode);
             if (prop_type < 0)
                 goto fail;
         }
@@ -27160,7 +27223,7 @@ static int js_parse_destructuring_element(JSParseState *s, int tok, int is_arg,
                 emit_u8(s, 0 | ((depth_lvalue + 1) << 2) | ((depth_lvalue + 2) << 5));
                 goto set_val;
             }
-            prop_type = js_parse_property_name(s, &prop_name, FALSE, TRUE, FALSE);
+            prop_type = js_parse_property_name(s, &prop_name, FALSE, TRUE, FALSE, -1);
             if (prop_type < 0)
                 return -1;
             var_name = JS_ATOM_NULL;
@@ -39267,7 +39330,7 @@ static const char *JS_NameForClassId(int obj_class)
     }
 }
 
-#define BC_BASE_VERSION 7
+#define BC_BASE_VERSION 8
 #define BC_BE_VERSION 0x40
 #ifdef WORDS_BIGENDIAN
 #define BC_VERSION (BC_BASE_VERSION | BC_BE_VERSION)

@@ -260,6 +260,9 @@ DEF(push_bigint_i32, 5, 0, 1, i32)
    push_const operand format. Placed just before nop so it does not renumber
    any opcode that appears in serialized bytecode. */
 DEF(push_array_buffer, 5, 0, 1, const)
+/* set or clear JS_MODE_STRICT on the running frame, for the parts of a class
+   definition that are strict but are compiled into a sloppy function */
+DEF(     set_strict, 2, 0, 0, u8)
 /* must be the last non short and non temporary opcode */
 DEF(            nop, 1, 0, 0, none)
 
