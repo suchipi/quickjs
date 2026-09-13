@@ -13,3 +13,4 @@ cmake-build-debug
 .claude/scheduled_tasks.lock
 compile_commands.json
 .cache
+meta/compat/output

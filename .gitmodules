@@ -4,3 +4,6 @@
 [submodule "src/run-test262/test262o"]
 	path = src/run-test262/test262o
 	url = https://github.com/tc39/test262.git
+[submodule "meta/compat/compat-table"]
+	path = meta/compat/compat-table
+	url = https://github.com/compat-table/compat-table.git

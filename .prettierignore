@@ -8,6 +8,7 @@ meta/docs/
 # submodules
 src/run-test262/test262/
 src/run-test262/test262o/
+meta/compat/compat-table/
 
 # intentionally-invalid syntax used in some test inputs
 tests/fixtures/
