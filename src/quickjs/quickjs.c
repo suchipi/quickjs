@@ -22719,6 +22719,7 @@ typedef struct JSParseState {
     /* current function code */
     JSFunctionDef *cur_func;
     BOOL is_module; /* parsing a module */
+    BOOL no_func_self_binding; /* consumed by the next function expression */
     BOOL allow_html_comments;
     BOOL ext_json; /* JSON parsing: true if accepting JSON superset */
     GetLineColCache get_line_col_cache;
@@ -38116,6 +38117,10 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     if (pfd)
         *pfd = fd;
     s->cur_func = fd;
+    if (s->no_func_self_binding && func_type == JS_PARSE_FUNC_EXPR) {
+        s->no_func_self_binding = FALSE;
+        fd->is_func_expr = FALSE;
+    }
     fd->func_name = func_name;
     /* XXX: test !fd->is_generator is always false */
     fd->has_prototype = (func_type == JS_PARSE_FUNC_STATEMENT ||
@@ -38843,6 +38848,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
         fd->func_kind = JS_FUNC_ASYNC;
     }
     s->is_module = (m != NULL);
+    s->no_func_self_binding = ((flags & JS_EVAL_FLAG_NO_FUNC_SELF_BINDING) != 0);
     s->allow_html_comments = !s->is_module;
 
     push_scope(s); /* body scope */
@@ -43263,7 +43269,9 @@ static JSValue js_function_constructor(JSContext *ctx, JSValueConst new_target,
     if (!JS_IsString(s))
         return JS_EXCEPTION;
 
-    obj = JS_EvalObject(ctx, ctx->global_obj, s, JS_EVAL_TYPE_INDIRECT, -1);
+    obj = JS_EvalObject(ctx, ctx->global_obj, s,
+                        JS_EVAL_TYPE_INDIRECT |
+                        JS_EVAL_FLAG_NO_FUNC_SELF_BINDING, -1);
     JS_FreeValue(ctx, s);
     if (JS_IsException(obj))
         goto fail1;

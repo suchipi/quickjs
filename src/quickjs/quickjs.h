@@ -407,6 +407,9 @@ JSClassID JS_VALUE_GET_CLASS_ID(JSValue v);
 #define JS_EVAL_TYPE_MASK     (3 << 0)
 
 #define JS_EVAL_FLAG_STRICT   (1 << 3) /* force 'strict' mode */
+/* the outermost function expression does not bind its own name, as
+   CreateDynamicFunction requires (internal use) */
+#define JS_EVAL_FLAG_NO_FUNC_SELF_BINDING (1 << 4)
 /* compile but do not run. The result is an object with a
    JS_TAG_FUNCTION_BYTECODE or JS_TAG_MODULE tag. It can be executed
    with JS_EvalFunction(). */
