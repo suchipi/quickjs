@@ -18862,6 +18862,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 #define JS_THROW_VAR_UNINITIALIZED  2
 #define JS_THROW_ERROR_DELETE_SUPER   3
 #define JS_THROW_ERROR_ITERATOR_THROW 4
+#define JS_THROW_ERROR_INVALID_ASSIGN_TARGET 5
             {
                 JSAtom atom;
                 int type;
@@ -18882,6 +18883,9 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 else
                 if (type == JS_THROW_ERROR_ITERATOR_THROW)
                     JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "iterator does not have a throw method");
+                else
+                if (type == JS_THROW_ERROR_INVALID_ASSIGN_TARGET)
+                    JS_ThrowReferenceError(ctx, "<internal>/quickjs.c", __LINE__, "invalid assignment left-hand side");
                 else
                     JS_ThrowInternalError(ctx, "<internal>/quickjs.c", __LINE__, "invalid throw var type %d", type);
             }
@@ -22624,6 +22628,9 @@ typedef struct JSFunctionDef {
 
     DynBuf byte_code;
     int last_opcode_pos; /* -1 if no last opcode */
+    int call_expr_pos; /* -1 if none. `new f()` and tagged templates also
+                          compile to OP_call, so the opcode alone does not
+                          say whether the production was a CallExpression */
     const uint8_t *last_opcode_source_ptr;
     BOOL use_short_opcodes; /* true if short opcodes are used in byte_code */
 
@@ -26648,6 +26655,30 @@ static __exception int get_lvalue(JSParseState *s, int *popcode, int *pscope,
         depth = 3;
         break;
     default:
+        if (!(fd->js_mode & JS_MODE_STRICT) && tok != '[' && tok != '{' &&
+            !(tok >= TOK_LAND_ASSIGN && tok <= TOK_DOUBLE_QUESTION_MARK_ASSIGN) &&
+            fd->last_opcode_pos >= 0 &&
+            fd->last_opcode_pos == fd->call_expr_pos &&
+            (opcode == OP_call || opcode == OP_call_method ||
+             opcode == OP_eval || opcode == OP_apply ||
+             opcode == OP_apply_eval)) {
+            /* Annex B: a call is a ReferenceError at run time here, not an
+               early error. What the caller goes on to emit is unreachable,
+               so it only has to leave the stack balanced. */
+            emit_op(s, OP_drop);
+            emit_op(s, OP_throw_error);
+            emit_atom(s, JS_ATOM_NULL);
+            emit_u8(s, JS_THROW_ERROR_INVALID_ASSIGN_TARGET);
+            if (keep)
+                emit_op(s, OP_undefined);
+            *popcode = OP_invalid;
+            *pscope = 0;
+            *pname = JS_ATOM_NULL;
+            *plabel = -1;
+            if (pdepth)
+                *pdepth = 0;
+            return 0;
+        }
     invalid_lvalue:
         if (tok == TOK_FOR) {
             return js_parse_error(s, "invalid for in/of left hand-side");
@@ -26752,6 +26783,7 @@ static void put_lvalue(JSParseState *s, int opcode, int scope,
 {
     switch(opcode) {
     case OP_scope_get_var:
+    case OP_invalid: /* an already-rejected assignment target; see get_lvalue() */
         /* depth = 0 */
         switch(special) {
         case PUT_LVALUE_NOKEEP:
@@ -26858,6 +26890,9 @@ static void put_lvalue(JSParseState *s, int opcode, int scope,
         break;
     case OP_get_super_value:
         emit_op(s, OP_put_super_value);
+        break;
+    case OP_invalid:
+        emit_op(s, OP_drop);
         break;
     default:
         abort();
@@ -28094,6 +28129,9 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                     break;
                 }
             }
+            if (call_type == FUNC_CALL_NORMAL && !has_optional_chain &&
+                optional_chaining_label < 0)
+                fd->call_expr_pos = fd->last_opcode_pos;
             call_type = FUNC_CALL_NORMAL;
         } else if (s->token.val == '.') {
             op_token_ptr = s->token.ptr;
@@ -33468,6 +33506,7 @@ static JSFunctionDef *js_new_function_def(JSContext *ctx,
     fd->is_func_expr = is_func_expr;
     js_dbuf_bytecode_init(ctx, &fd->byte_code);
     fd->last_opcode_pos = -1;
+    fd->call_expr_pos = -1;
     fd->func_name = JS_ATOM_NULL;
     fd->var_object_idx = -1;
     fd->arg_var_object_idx = -1;
