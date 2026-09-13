@@ -43,7 +43,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - Non-standard `Object.toPrimitive` added (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
 - Non-standard `Object.isPrimitive` added (static method that returns a boolean indicating whether the given value is a primitive).
 - Non-standard binary ArrayBuffer literal syntax added
-  - Syntax is: SOH (`0x01`), byte length via `0-9`, STX (`0x02`), the same length of binary data as specified earlier, ETX (`0x03`).
+  - Syntax is: SOH (`\x01`), byte length via `0-9`, STX (`\x02`), the same length of binary data as specified earlier, ETX (`\x03`).
   - Example (in string literal format; real usage is placed raw into the source): "\x0116\x02\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x03"
 
 ### Changes to `quickjs-libc`:
