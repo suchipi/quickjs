@@ -42,18 +42,9 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - Added `JS_SetRuntimeOpaqueValue` and `JS_GetRuntimeOpaqueValue`, which let you associate a JSValue with a JSRuntime (similar to the Context versions above).
 - Non-standard `Object.toPrimitive` added (static method that invokes ToPrimitive on the given value, using the optionally-provided hint).
 - Non-standard `Object.isPrimitive` added (static method that returns a boolean indicating whether the given value is a primitive).
-
-### New syntax: binary ArrayBuffer literals
-
-A non-standard literal syntax for embedding arbitrary binary data directly in source code was added, intended for bundlers that want to inline binary assets (images, fonts, wasm, etc.) without base64-encoding them or shipping separate files. Evaluating the literal produces a new `ArrayBuffer`.
-
-The literal is framed as: an ASCII SOH byte (`0x01`), one or more ASCII decimal digits giving the payload length N in bytes, an ASCII STX byte (`0x02`), exactly N raw payload bytes, then an ASCII ETX byte (`0x03`). Because the length is given up front, the payload may contain any byte value, including NUL (`0x00`) and bytes equal to `0x02`/`0x03`.
-
-For example, the raw source bytes for a 16-byte PNG-header literal are equivalent to the JS string `"\x0116\x02\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x03"` (written as a quoted string only so the control and payload bytes are visible): SOH, the length `16`, STX, the 16 payload bytes (three of which are NUL), then ETX.
-
-Each evaluation of the literal yields a fresh, independent `ArrayBuffer`, the same way an array or object literal produces a fresh value each time, so mutating one result never affects another.
-
-Because the payload can contain NUL bytes, these literals are only usable from inputs whose length is preserved rather than being treated as a NUL-terminated C string: source files (a loaded or imported `.js`/`.mjs` file) and precompiled bytecode. They cannot be supplied through the `qjs -e <code>` flag or typed into the REPL, since those channels are NUL-terminated C strings.
+- Non-standard binary ArrayBuffer literal syntax added
+  - Syntax is: SOH (`0x01`), byte length via `0-9`, STX (`0x02`), the same length of binary data as specified earlier, ETX (`0x03`).
+  - Example (in string literal format; real usage is placed raw into the source): "\x0116\x02\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x03"
 
 ### Changes to `quickjs-libc`:
 
