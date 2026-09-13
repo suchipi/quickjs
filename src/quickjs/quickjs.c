@@ -32896,6 +32896,7 @@ static JSValue js_parse_with_clause(JSParseState *s)
     JSContext *ctx = s->ctx;
     JSValue obj, str_val;
     JSAtom prop_atom;
+    int has_key;
 
     if (s->token.val != TOK_WITH) {
         return JS_UNDEFINED;
@@ -32925,6 +32926,13 @@ static JSValue js_parse_with_clause(JSParseState *s)
         }
         if (prop_atom == JS_ATOM_NULL)
             goto fail;
+        has_key = JS_GetOwnProperty(ctx, NULL, obj, prop_atom);
+        if (has_key < 0)
+            goto fail_atom;
+        if (has_key) {
+            js_parse_error(s, "duplicate import attribute key");
+            goto fail_atom;
+        }
         if (next_token(s))
             goto fail_atom;
         if (s->token.val != ':') {
