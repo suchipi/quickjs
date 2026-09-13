@@ -81,7 +81,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - Most module-loading-related code was moved into `quickjs-modulesys`.
 - `setTimeout` and `clearTimeout` are now available as globals (previously they were only available as exports).
 - `setInterval` and `clearInterval` are added, available as globals.
-- Several C-side helper functions were moved out of quickjs-libc and into quickjs-utils.
+- Several C-side helper functions previously in quickjs-libc were moved into quickjs-utils.
 - Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
 - The manual garbage collection function `std.gc()` was moved to `"quickjs:engine"`.
 - `std.urlGet` now uses libcurl (via `dlopen`) instead of shelling out to `curl`.
@@ -176,7 +176,7 @@ Helper structs, functions, and macros that make it easier to work with QuickJS i
 
 ### New module: "quickjs:engine"
 
-This module contains APIs related to engine internals like script execution, module loading, code eval, call stack reflection, and garbage collection. Several parts of quickjs-libc were moved here so that quickjs-libc could be focused on "C standard library" bindings.
+This module contains APIs related to engine internals like script execution, module loading, code eval, call stack reflection, and garbage collection. Several parts of the `std` module (previously in quickjs-libc, now in quickjs-std) were moved here.
 
 A newly-added Error stack frame generation hook `setStackFrameMapper` is exposed via this module, which can be used to apply source maps to Error stack frames at runtime.
 
@@ -235,7 +235,7 @@ The refusal happens up front, before any module body runs - the sync evaluator w
 - Ninja is used instead of make. Ninja build config is generated via `.ninja.js` files which get loaded into [@suchipi/shinobi](https://github.com/suchipi/shinobi).
 - Line endings have been made consistent and trailing whitespace has been removed
 - The tests are authored in a new format which leverages vitest snapshot testing.
-- Some parts of `quickjs-libc` were moved into `quickjs-modulesys` and `quickjs-engine`.
+- quickjs-libc.c was split into separate files: quickjs-std.c, quickjs-os.c, quickjs-timers.c, quickjs-cmdline.c, and quickjs-eventloop.c.
 - The `eval_*` functions that were duplicated in each of the programs (`eval_buf`, `eval_file`, and `eval_binary`) were deduplicated and moved into `quickjs-modulesys`.
 
 ### More target OSes/runtimes
