@@ -34381,9 +34381,12 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
     int label_done;
     JSFunctionDef *fd;
     JSVarDef *vd;
-    BOOL is_pseudo_var, is_arg_scope;
+    BOOL is_pseudo_var, is_arg_scope, skip_with;
 
     label_done = -1;
+    skip_with = (op == OP_scope_put_var_var_env);
+    if (skip_with)
+        op = OP_scope_put_var;
 
     /* XXX: could be simpler to use a specific function to
        resolve the pseudo variables */
@@ -34408,7 +34411,7 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
             var_idx = idx;
             break;
         } else
-        if (vd->var_name == JS_ATOM__with_ && !is_pseudo_var) {
+        if (vd->var_name == JS_ATOM__with_ && !is_pseudo_var && !skip_with) {
             dbuf_putc(bc, OP_get_loc);
             dbuf_put_u16(bc, idx);
             var_object_test(ctx, s, var_name, op, bc, &label_done, 1);
@@ -34578,7 +34581,8 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
                 }
                 var_idx = idx;
                 break;
-            } else if (vd->var_name == JS_ATOM__with_ && !is_pseudo_var) {
+            } else if (vd->var_name == JS_ATOM__with_ && !is_pseudo_var &&
+                       !skip_with) {
                 capture_var(fd, vd);
                 idx = get_closure_var(ctx, s, fd, JS_CLOSURE_LOCAL, idx, vd->var_name, FALSE, FALSE, JS_VAR_NORMAL);
                 if (idx >= 0) {
@@ -34674,7 +34678,8 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
                     goto has_idx;
             } else if ((cv->var_name == JS_ATOM__var_ ||
                         cv->var_name == JS_ATOM__arg_var_ ||
-                        cv->var_name == JS_ATOM__with_) && !is_pseudo_var) {
+                        (cv->var_name == JS_ATOM__with_ && !skip_with)) &&
+                       !is_pseudo_var) {
                 int is_with = (cv->var_name == JS_ATOM__with_);
                 if (fd != s) {
                     idx = get_closure_var(ctx, s, fd,
@@ -35732,6 +35737,7 @@ static __exception int resolve_variables(JSContext *ctx, JSFunctionDef *s)
         case OP_scope_get_var_undef:
         case OP_scope_get_var:
         case OP_scope_put_var:
+        case OP_scope_put_var_var_env:
         case OP_scope_delete_var:
         case OP_scope_get_ref:
         case OP_scope_put_var_init:
@@ -38488,7 +38494,7 @@ static __exception int js_parse_function_decl2(JSParseState *s,
                     hf->force_init = ((s->cur_func->js_mode & JS_MODE_STRICT) != 0);
                     /* store directly into global var, bypass lexical scope */
                     emit_op(s, OP_dup);
-                    emit_op(s, OP_scope_put_var);
+                    emit_op(s, OP_scope_put_var_var_env);
                     emit_atom(s, func_name);
                     emit_u16(s, 0);
                 } else {
@@ -38501,7 +38507,7 @@ static __exception int js_parse_function_decl2(JSParseState *s,
                     }
                     /* store directly into local var, bypass lexical catch scope */
                     emit_op(s, OP_dup);
-                    emit_op(s, OP_scope_put_var);
+                    emit_op(s, OP_scope_put_var_var_env);
                     emit_atom(s, func_name);
                     emit_u16(s, 0);
                 }

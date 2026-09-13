@@ -280,6 +280,7 @@ def( scope_make_ref, 11, 0, 2, atom_label_u16) /* emitted in phase 1, removed in
 def(  scope_get_ref, 7, 0, 2, atom_u16) /* emitted in phase 1, removed in phase 2 */
 def(scope_put_var_init, 7, 0, 2, atom_u16) /* emitted in phase 1, removed in phase 2 */
 def(scope_get_var_checkthis, 7, 0, 1, atom_u16) /* emitted in phase 1, removed in phase 2, only used to return 'this' in derived class constructors */
+def(scope_put_var_var_env, 7, 1, 0, atom_u16) /* like scope_put_var but skips 'with' objects, which are never variable environments; emitted in phase 1, removed in phase 2 */
 def(scope_get_private_field, 7, 1, 1, atom_u16) /* obj -> value, emitted in phase 1, removed in phase 2 */
 def(scope_get_private_field2, 7, 1, 2, atom_u16) /* obj -> obj value, emitted in phase 1, removed in phase 2 */
 def(scope_put_private_field, 7, 2, 0, atom_u16) /* obj value ->, emitted in phase 1, removed in phase 2 */
