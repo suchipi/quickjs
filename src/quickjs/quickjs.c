@@ -35520,7 +35520,11 @@ static void instantiate_hoisted_definitions(JSContext *ctx, JSFunctionDef *s, Dy
            create a property for the variable there */
         for(idx = 0; idx < s->closure_var_count; idx++) {
             JSClosureVar *cv = &s->closure_var[idx];
-            if (cv->var_name == hf->var_name) {
+            if (cv->var_name == hf->var_name &&
+                cv->var_kind != JS_VAR_CATCH) {
+                /* a simple catch parameter is the one binding B.3.4 lets a
+                   var declaration through, and the declaration then belongs
+                   to the variable environment behind it */
                 force_init = FALSE;
                 goto closure_found;
             }
