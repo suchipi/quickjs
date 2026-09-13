@@ -41866,38 +41866,74 @@ static __exception int JS_ObjectDefineProperties(JSContext *ctx,
                                                  JSValueConst obj,
                                                  JSValueConst properties)
 {
-    JSValue props, desc;
+    JSValue props, desc_obj;
     JSObject *p;
     JSPropertyEnum *atoms;
-    uint32_t len, i;
-    int ret = -1;
+    JSAtom *desc_atoms;
+    JSPropertyDescriptor *descs;
+    uint32_t len, i, desc_count;
+    int ret = -1, res;
 
     if (!JS_IsObject(obj)) {
         JS_ThrowTypeErrorNotAnObject(ctx);
         return -1;
     }
-    desc = JS_UNDEFINED;
+    desc_obj = JS_UNDEFINED;
+    atoms = NULL;
+    desc_atoms = NULL;
+    descs = NULL;
+    len = 0;
+    desc_count = 0;
     props = JS_ToObject(ctx, properties);
     if (JS_IsException(props))
         return -1;
     p = JS_VALUE_GET_OBJ(props);
-    /* XXX: not done in the same order as the spec */
-    if (JS_GetOwnPropertyNamesInternal(ctx, &atoms, &len, p, JS_GPN_ENUM_ONLY | JS_GPN_STRING_MASK | JS_GPN_SYMBOL_MASK) < 0)
+    if (JS_GetOwnPropertyNamesInternal(ctx, &atoms, &len, p, JS_GPN_STRING_MASK | JS_GPN_SYMBOL_MASK) < 0)
         goto exception;
-    for(i = 0; i < len; i++) {
-        JS_FreeValue(ctx, desc);
-        desc = JS_GetProperty(ctx, props, atoms[i].atom);
-        if (JS_IsException(desc))
+    if (len != 0) {
+        descs = js_malloc(ctx, sizeof(*descs) * len);
+        desc_atoms = js_malloc(ctx, sizeof(*desc_atoms) * len);
+        if (!descs || !desc_atoms)
             goto exception;
-        if (JS_DefinePropertyDesc(ctx, obj, atoms[i].atom, desc, JS_PROP_THROW) < 0)
+    }
+    for(i = 0; i < len; i++) {
+        JSPropertyDescriptor src_desc;
+        res = JS_GetOwnPropertyInternal(ctx, &src_desc, p, atoms[i].atom);
+        if (res < 0)
+            goto exception;
+        if (!res)
+            continue;
+        res = src_desc.flags & JS_PROP_ENUMERABLE;
+        js_free_desc(ctx, &src_desc);
+        if (!res)
+            continue;
+        desc_obj = JS_GetProperty(ctx, props, atoms[i].atom);
+        if (JS_IsException(desc_obj))
+            goto exception;
+        res = js_obj_to_desc(ctx, &descs[desc_count], desc_obj);
+        JS_FreeValue(ctx, desc_obj);
+        desc_obj = JS_UNDEFINED;
+        if (res < 0)
+            goto exception;
+        desc_atoms[desc_count] = atoms[i].atom;
+        desc_count++;
+    }
+    for(i = 0; i < desc_count; i++) {
+        if (JS_DefineProperty(ctx, obj, desc_atoms[i], descs[i].value,
+                              descs[i].getter, descs[i].setter,
+                              descs[i].flags | JS_PROP_THROW) < 0)
             goto exception;
     }
     ret = 0;
 
 exception:
+    for(i = 0; i < desc_count; i++)
+        js_free_desc(ctx, &descs[i]);
+    js_free(ctx, descs);
+    js_free(ctx, desc_atoms);
     JS_FreePropertyEnum(ctx, atoms, len);
     JS_FreeValue(ctx, props);
-    JS_FreeValue(ctx, desc);
+    JS_FreeValue(ctx, desc_obj);
     return ret;
 }
 
