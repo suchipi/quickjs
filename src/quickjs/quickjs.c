@@ -43398,7 +43398,13 @@ static JSValue js_function_toString(JSContext *ctx, JSValueConst this_val,
             break;
         }
         suff = "() {\n    [native code]\n}";
-        name = JS_GetProperty(ctx, this_val, JS_ATOM_name);
+        if (p->class_id == JS_CLASS_BOUND_FUNCTION) {
+            /* "bound f" is not a PropertyName, so it cannot go in the
+               NativeFunction syntax the result has to match */
+            name = JS_UNDEFINED;
+        } else {
+            name = JS_GetProperty(ctx, this_val, JS_ATOM_name);
+        }
         if (JS_IsUndefined(name))
             name = JS_AtomToString(ctx, JS_ATOM_empty_string);
         return JS_ConcatString3(ctx, pref, name, suff);
