@@ -29193,6 +29193,23 @@ static __exception int js_parse_statement(JSParseState *s)
     return js_parse_statement_or_decl(s, 0);
 }
 
+/* Annex B.3.4: a FunctionDeclaration as an `if` clause behaves as if it were
+   wrapped in a block, so each clause needs its own scope. Without it, two
+   same-named declarations share a scope and the second one is treated as a
+   redeclaration, suppressing its B.3.3 var-scoped alias. */
+static __exception int js_parse_if_clause(JSParseState *s, int decl_mask)
+{
+    BOOL scoped = (decl_mask & DECL_MASK_FUNC) && s->token.val == TOK_FUNCTION;
+
+    if (scoped)
+        push_scope(s);
+    if (js_parse_statement_or_decl(s, decl_mask))
+        return -1;
+    if (scoped)
+        pop_scope(s);
+    return 0;
+}
+
 static __exception int js_parse_block(JSParseState *s)
 {
     if (js_parse_expect(s, '{'))
@@ -29732,7 +29749,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
             else
                 mask = DECL_MASK_FUNC; /* Annex B.3.4 */
 
-            if (js_parse_statement_or_decl(s, mask))
+            if (js_parse_if_clause(s, mask))
                 goto fail;
 
             if (s->token.val == TOK_ELSE) {
@@ -29741,7 +29758,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
                     goto fail;
 
                 emit_label(s, label1);
-                if (js_parse_statement_or_decl(s, mask))
+                if (js_parse_if_clause(s, mask))
                     goto fail;
 
                 label1 = label2;
