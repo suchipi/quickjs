@@ -34385,8 +34385,18 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
 
     label_done = -1;
     skip_with = (op == OP_scope_put_var_var_env);
-    if (skip_with)
+    if (skip_with) {
         op = OP_scope_put_var;
+        /* B.3.3 only applies where a `var` of the same name at the
+           declaration site would have been legal, and a lexical binding in an
+           enclosing scope can be declared after the function was parsed */
+        if (find_lexical_decl(ctx, s, var_name,
+                              s->scopes[scope_level].first, FALSE) >= 0) {
+            dbuf_putc(bc, OP_drop);
+            goto done;
+        }
+        scope_level = 0;
+    }
 
     /* XXX: could be simpler to use a specific function to
        resolve the pseudo variables */
@@ -38480,6 +38490,8 @@ static __exception int js_parse_function_decl2(JSParseState *s,
                 emit_u32(s, idx);
             }
             if (create_func_var) {
+                int enclosing_scope =
+                    s->cur_func->scopes[s->cur_func->scope_level].parent;
                 if (s->cur_func->is_global_var) {
                     JSGlobalVar *hf;
                     /* the global variable must be defined at the start of the
@@ -38496,7 +38508,7 @@ static __exception int js_parse_function_decl2(JSParseState *s,
                     emit_op(s, OP_dup);
                     emit_op(s, OP_scope_put_var_var_env);
                     emit_atom(s, func_name);
-                    emit_u16(s, 0);
+                    emit_u16(s, enclosing_scope);
                 } else {
                     /* do not call define_var to bypass lexical scope check */
                     func_idx = find_var(ctx, s->cur_func, func_name);
@@ -38509,7 +38521,7 @@ static __exception int js_parse_function_decl2(JSParseState *s,
                     emit_op(s, OP_dup);
                     emit_op(s, OP_scope_put_var_var_env);
                     emit_atom(s, func_name);
-                    emit_u16(s, 0);
+                    emit_u16(s, enclosing_scope);
                 }
             }
             if (lexical_func_idx >= 0) {
