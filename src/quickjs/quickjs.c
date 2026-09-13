@@ -48825,7 +48825,7 @@ static JSValue js_string_CreateHTML(JSContext *ctx, JSValueConst this_val,
         string_buffer_putc8(b, ' ');
         string_buffer_puts8(b, defs[magic].attr);
         string_buffer_puts8(b, "=\"");
-        value = JS_ToStringCheckObject(ctx, argv[0]);
+        value = JS_ToString(ctx, argv[0]);
         if (JS_IsException(value)) {
             JS_FreeValue(ctx, str);
             string_buffer_free(b);
