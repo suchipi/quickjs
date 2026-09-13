@@ -29510,6 +29510,7 @@ static __exception int js_parse_for_in_of(JSParseState *s, int label_name,
             return -1;
         }
         if (var_name != JS_ATOM_NULL) {
+            set_object_name(s, var_name);
             emit_op(s, OP_scope_put_var);
             emit_atom(s, var_name);
             emit_u16(s, fd->scope_level);
