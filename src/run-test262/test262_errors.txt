@@ -14,6 +14,7 @@ test262/test/language/expressions/compound-assignment/S11.13.2_A6.11_T1.js:24: T
 test262/test/language/identifier-resolution/assign-to-global-undefined.js:20: strict mode: expected error
 test262/test/staging/sm/Function/arguments-parameter-shadowing.js:14: Test262Error: Expected SameValue(«true», «false») to be true
 test262/test/staging/sm/Function/constructor-binding.js:11: Test262Error: Expected SameValue(«"function"», «"undefined"») to be true
+test262/test/staging/sm/Function/function-bind.js:24: Test262Error: Conforms to NativeFunction Syntax: "function bound unbound() {\n    [native code]\n}"
 test262/test/staging/sm/String/string-upper-lower-mapping.js:16: Test262Error: Expected SameValue(«"꟏"», «"꟎"») to be true
 test262/test/staging/sm/class/strictExecution.js:13: Test262Error: Expected a TypeError to be thrown but no exception was thrown at all
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-arguments.js:13: Test262Error: Expected SameValue(«"object"», «"function"») to be true
