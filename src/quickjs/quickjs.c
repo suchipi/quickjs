@@ -38338,6 +38338,22 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     if (fd->has_parameter_expressions) {
         int idx;
 
+        if (fd->has_arguments_binding &&
+            find_arg(ctx, fd, JS_ATOM_arguments) < 0 &&
+            find_var_in_scope(ctx, fd, JS_ATOM_arguments, ARG_SCOPE_INDEX) < 0) {
+            /* the parameter scope holds its own 'arguments' so that a
+               `var arguments` in the body is a separate binding, which
+               closures over the parameters do not see. Added once the
+               parameters are known, since a parameter of that name means
+               there is no arguments object at all. */
+            int args_idx = add_scope_var(ctx, fd, JS_ATOM_arguments,
+                                         JS_VAR_NORMAL);
+            if (args_idx < 0)
+                goto fail;
+            fd->vars[args_idx].is_lexical = TRUE;
+            fd->arguments_arg_idx = args_idx;
+        }
+
         /* Copy the variables in the argument scope to the variable
            scope (see FunctionDeclarationInstantiation() in spec). The
            normal arguments are already present, so no need to copy
@@ -38348,8 +38364,13 @@ static __exception int js_parse_function_decl2(JSParseState *s,
             if (vd->scope_level != fd->scope_level)
                 break;
             if (find_var(ctx, fd, vd->var_name) < 0) {
-                if (add_var(ctx, fd, vd->var_name) < 0)
+                if (vd->var_name == JS_ATOM_arguments &&
+                    fd->has_arguments_binding) {
+                    if (add_arguments_var(ctx, fd) < 0)
+                        goto fail;
+                } else if (add_var(ctx, fd, vd->var_name) < 0) {
                     goto fail;
+                }
                 vd = &fd->vars[idx]; /* fd->vars may have been reallocated */
                 emit_op(s, OP_scope_get_var);
                 emit_atom(s, vd->var_name);
