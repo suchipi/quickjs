@@ -21106,6 +21106,12 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                             if (unlikely(JS_IsException(val)))
                                 goto exception;
                         }
+                        if (!is_with) {
+                            /* an eval's variable object stands in for a
+                               declarative environment record, which has no
+                               base object to pass as 'this' */
+                            set_value(ctx, &sp[-1], JS_UNDEFINED);
+                        }
                         *sp++ = val;
                         break;
                     }
