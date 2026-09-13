@@ -23364,6 +23364,23 @@ static __exception int ident_realloc(JSContext *ctx, char **pbuf, size_t *psize,
     return 0;
 }
 
+/* an arrow's parameters take [Yield] and [Await] from where the arrow
+   appears, so an arrow head nested in another arrow head looks past it */
+static JSFunctionDef *arrow_head_context(JSFunctionDef *fd)
+{
+    JSFunctionDef *outer = fd;
+
+    while (outer->parent) {
+        outer = outer->parent;
+        if (outer->func_kind != JS_FUNC_NORMAL ||
+            outer->func_type != JS_PARSE_FUNC_ARROW ||
+            outer->in_function_body) {
+            break;
+        }
+    }
+    return outer;
+}
+
 /* convert a TOK_IDENT to a keyword when needed */
 static void update_token_ident(JSParseState *s)
 {
@@ -23373,16 +23390,16 @@ static void update_token_ident(JSParseState *s)
         (s->token.u.ident.atom == JS_ATOM_yield &&
          ((s->cur_func->func_kind & JS_FUNC_GENERATOR) ||
           (s->cur_func->func_type == JS_PARSE_FUNC_ARROW &&
-           !s->cur_func->in_function_body && s->cur_func->parent &&
-           (s->cur_func->parent->func_kind & JS_FUNC_GENERATOR)))) ||
+           !s->cur_func->in_function_body &&
+           (arrow_head_context(s->cur_func)->func_kind & JS_FUNC_GENERATOR)))) ||
         (s->token.u.ident.atom == JS_ATOM_await &&
          (s->is_module ||
           (s->cur_func->func_kind & JS_FUNC_ASYNC) ||
           s->cur_func->func_type == JS_PARSE_FUNC_CLASS_STATIC_INIT ||
           (s->cur_func->func_type == JS_PARSE_FUNC_ARROW &&
-           !s->cur_func->in_function_body && s->cur_func->parent &&
-           ((s->cur_func->parent->func_kind & JS_FUNC_ASYNC) ||
-            s->cur_func->parent->func_type == JS_PARSE_FUNC_CLASS_STATIC_INIT))))) {
+           !s->cur_func->in_function_body &&
+           ((arrow_head_context(s->cur_func)->func_kind & JS_FUNC_ASYNC) ||
+            arrow_head_context(s->cur_func)->func_type == JS_PARSE_FUNC_CLASS_STATIC_INIT))))) {
         if (s->token.u.ident.has_escape) {
             s->token.u.ident.is_reserved = TRUE;
             s->token.val = TOK_IDENT;
@@ -38102,7 +38119,11 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     has_opt_arg = FALSE;
     if (func_type == JS_PARSE_FUNC_ARROW && s->token.val == TOK_IDENT) {
         JSAtom name;
-        if (s->token.u.ident.is_reserved) {
+        /* the name was scanned before this arrow's kind was known, so
+           is_reserved does not yet account for 'await' */
+        if (s->token.u.ident.is_reserved ||
+            (s->token.u.ident.atom == JS_ATOM_await &&
+             (func_kind & JS_FUNC_ASYNC))) {
             js_parse_error_reserved_identifier(s);
             goto fail;
         }
