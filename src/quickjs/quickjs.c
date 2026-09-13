@@ -43131,28 +43131,69 @@ static JSValue js_function_proto(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
-/* XXX: add a specific eval mode so that Function("}), ({") is rejected */
+static JSValue js_dynamic_function_source(JSContext *ctx,
+                                          JSFunctionKindEnum func_kind,
+                                          JSValueConst params,
+                                          JSValueConst body,
+                                          BOOL as_expr)
+{
+    StringBuffer b_s, *b = &b_s;
+
+    string_buffer_init(ctx, b, 0);
+    if (as_expr) {
+        string_buffer_putc8(b, '(');
+    }
+    if (func_kind == JS_FUNC_ASYNC || func_kind == JS_FUNC_ASYNC_GENERATOR) {
+        string_buffer_puts8(b, "async ");
+    }
+    string_buffer_puts8(b, "function");
+    if (func_kind == JS_FUNC_GENERATOR || func_kind == JS_FUNC_ASYNC_GENERATOR) {
+        string_buffer_putc8(b, '*');
+    }
+    string_buffer_puts8(b, " anonymous(");
+    if (string_buffer_concat_value(b, params))
+        goto fail;
+    string_buffer_puts8(b, "\n) {\n");
+    if (string_buffer_concat_value(b, body))
+        goto fail;
+    string_buffer_puts8(b, as_expr ? "\n})" : "\n}");
+    return string_buffer_end(b);
+ fail:
+    string_buffer_free(b);
+    return JS_EXCEPTION;
+}
+
+/* CreateDynamicFunction parses each half on its own so that neither can be
+   closed off by the other. The declaration form is load-bearing: wrapped in
+   parentheses, Function("}), ({") still parses, as a comma expression. */
+static int js_check_dynamic_function_part(JSContext *ctx,
+                                          JSFunctionKindEnum func_kind,
+                                          JSValueConst params,
+                                          JSValueConst body)
+{
+    JSValue src, ret;
+
+    src = js_dynamic_function_source(ctx, func_kind, params, body, FALSE);
+    if (JS_IsException(src))
+        return -1;
+    ret = JS_EvalObject(ctx, ctx->global_obj, src,
+                        JS_EVAL_TYPE_INDIRECT | JS_EVAL_FLAG_COMPILE_ONLY, -1);
+    JS_FreeValue(ctx, src);
+    if (JS_IsException(ret))
+        return -1;
+    JS_FreeValue(ctx, ret);
+    return 0;
+}
+
 static JSValue js_function_constructor(JSContext *ctx, JSValueConst new_target,
                                        int argc, JSValueConst *argv, int magic)
 {
     JSFunctionKindEnum func_kind = magic;
     int i, n, ret;
-    JSValue s, proto, obj = JS_UNDEFINED;
+    JSValue s, proto, params, body, empty, obj = JS_UNDEFINED;
     StringBuffer b_s, *b = &b_s;
 
     string_buffer_init(ctx, b, 0);
-    string_buffer_putc8(b, '(');
-
-    if (func_kind == JS_FUNC_ASYNC || func_kind == JS_FUNC_ASYNC_GENERATOR) {
-        string_buffer_puts8(b, "async ");
-    }
-    string_buffer_puts8(b, "function");
-
-    if (func_kind == JS_FUNC_GENERATOR || func_kind == JS_FUNC_ASYNC_GENERATOR) {
-        string_buffer_putc8(b, '*');
-    }
-    string_buffer_puts8(b, " anonymous(");
-
     n = argc - 1;
     for(i = 0; i < n; i++) {
         if (i != 0) {
@@ -43161,15 +43202,26 @@ static JSValue js_function_constructor(JSContext *ctx, JSValueConst new_target,
         if (string_buffer_concat_value(b, argv[i]))
             goto fail;
     }
-    string_buffer_puts8(b, "\n) {\n");
+    params = string_buffer_end(b);
+    if (JS_IsException(params))
+        return JS_EXCEPTION;
     if (n >= 0) {
-        if (string_buffer_concat_value(b, argv[n]))
-            goto fail;
+        body = JS_ToString(ctx, argv[n]);
+    } else {
+        body = JS_AtomToString(ctx, JS_ATOM_empty_string);
     }
-    string_buffer_puts8(b, "\n})");
-    s = string_buffer_end(b);
-    if (JS_IsException(s))
-        goto fail1;
+    empty = JS_AtomToString(ctx, JS_ATOM_empty_string);
+    s = JS_UNDEFINED;
+    if (!JS_IsException(body) && !JS_IsException(empty) &&
+        !js_check_dynamic_function_part(ctx, func_kind, params, empty) &&
+        !js_check_dynamic_function_part(ctx, func_kind, empty, body)) {
+        s = js_dynamic_function_source(ctx, func_kind, params, body, TRUE);
+    }
+    JS_FreeValue(ctx, params);
+    JS_FreeValue(ctx, body);
+    JS_FreeValue(ctx, empty);
+    if (!JS_IsString(s))
+        return JS_EXCEPTION;
 
     obj = JS_EvalObject(ctx, ctx->global_obj, s, JS_EVAL_TYPE_INDIRECT, -1);
     JS_FreeValue(ctx, s);
