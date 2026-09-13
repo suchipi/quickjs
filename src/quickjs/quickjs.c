@@ -1322,6 +1322,7 @@ static void js_mark_module_def(JSRuntime *rt, JSModuleDef *m,
                                JS_MarkFunc *mark_func);
 static JSValue js_import_meta(JSContext *ctx);
 JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier, JSValueConst attributes);
+static JSValue js_import_call(JSContext *ctx, JSValueConst specifier, JSValueConst options);
 JSValue JS_DynamicImportSync(JSContext *ctx, JSValueConst specifier, JSValueConst attributes);
 JSValue JS_DynamicImportSync2(JSContext *ctx, JSValueConst specifier, JSValueConst basename, JSValueConst attributes);
 static JSValue js_dynamic_import_run(JSContext *ctx, JSValueConst basename_val, JSValueConst specifier, JSValueConst attributes);
@@ -18973,28 +18974,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_import):
             {
                 JSValue val;
-                JSValue attributes = JS_UNDEFINED;
-                JSValueConst options = sp[-1];
-                JSValueConst specifier = sp[-2];
                 sf->cur_pc = pc;
-                if (!JS_IsUndefined(options)) {
-                    if (!JS_IsObject(options)) {
-                        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__,
-                                          "import() options must be an object");
-                        goto exception;
-                    }
-                    attributes = JS_GetProperty(ctx, options, JS_ATOM_with);
-                    if (JS_IsException(attributes))
-                        goto exception;
-                    if (!JS_IsUndefined(attributes) && !JS_IsObject(attributes)) {
-                        JS_FreeValue(ctx, attributes);
-                        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__,
-                                          "import() 'with' option must be an object");
-                        goto exception;
-                    }
-                }
-                val = JS_DynamicImportAsync(ctx, specifier, attributes);
-                JS_FreeValue(ctx, attributes);
+                val = js_import_call(ctx, sp[-2], sp[-1]);
                 if (JS_IsException(val))
                     goto exception;
                 JS_FreeValue(ctx, sp[-1]);
@@ -32119,6 +32100,88 @@ JSValue JS_DynamicImportAsync(JSContext *ctx, JSValueConst specifier, JSValueCon
     JS_FreeValue(ctx, basename_val);
     JS_FreeValue(ctx, promise_funcs[0]);
     JS_FreeValue(ctx, promise_funcs[1]);
+    return promise;
+}
+
+static JSValue js_import_call_attributes(JSContext *ctx, JSValueConst options)
+{
+    JSValue with_val, attributes, value;
+    JSPropertyEnum *atoms;
+    uint32_t len, i;
+
+    if (JS_IsUndefined(options))
+        return JS_UNDEFINED;
+    if (!JS_IsObject(options)) {
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__,
+                                 "import() options must be an object");
+    }
+    with_val = JS_GetProperty(ctx, options, JS_ATOM_with);
+    if (JS_IsException(with_val))
+        return JS_EXCEPTION;
+    if (JS_IsUndefined(with_val))
+        return JS_UNDEFINED;
+    if (!JS_IsObject(with_val)) {
+        JS_FreeValue(ctx, with_val);
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__,
+                                 "import() 'with' option must be an object");
+    }
+    attributes = JS_UNDEFINED;
+    if (JS_GetOwnPropertyNames(ctx, &atoms, &len, with_val,
+                               JS_GPN_ENUM_ONLY | JS_GPN_STRING_MASK) < 0)
+        goto fail;
+    attributes = JS_NewObject(ctx);
+    if (JS_IsException(attributes))
+        goto fail_atoms;
+    for(i = 0; i < len; i++) {
+        value = JS_GetProperty(ctx, with_val, atoms[i].atom);
+        if (JS_IsException(value))
+            goto fail_atoms;
+        if (!JS_IsString(value)) {
+            JS_FreeValue(ctx, value);
+            JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__,
+                              "import() attribute values must be strings");
+            goto fail_atoms;
+        }
+        if (JS_DefinePropertyValue(ctx, attributes, atoms[i].atom, value,
+                                   JS_PROP_C_W_E) < 0)
+            goto fail_atoms;
+    }
+    JS_FreePropertyEnum(ctx, atoms, len);
+    JS_FreeValue(ctx, with_val);
+    return attributes;
+
+ fail_atoms:
+    JS_FreePropertyEnum(ctx, atoms, len);
+ fail:
+    JS_FreeValue(ctx, attributes);
+    JS_FreeValue(ctx, with_val);
+    return JS_EXCEPTION;
+}
+
+static JSValue js_import_call(JSContext *ctx, JSValueConst specifier,
+                              JSValueConst options)
+{
+    JSValue attributes, promise, resolving_funcs[2], err, ret;
+
+    attributes = js_import_call_attributes(ctx, options);
+    if (!JS_IsException(attributes)) {
+        promise = JS_DynamicImportAsync(ctx, specifier, attributes);
+        JS_FreeValue(ctx, attributes);
+        return promise;
+    }
+    promise = JS_NewPromiseCapability(ctx, resolving_funcs);
+    if (JS_IsException(promise))
+        return JS_EXCEPTION;
+    err = JS_GetException(ctx);
+    ret = JS_Call(ctx, resolving_funcs[1], JS_UNDEFINED, 1, (JSValueConst *)&err);
+    JS_FreeValue(ctx, err);
+    JS_FreeValue(ctx, resolving_funcs[0]);
+    JS_FreeValue(ctx, resolving_funcs[1]);
+    if (JS_IsException(ret)) {
+        JS_FreeValue(ctx, promise);
+        return JS_EXCEPTION;
+    }
+    JS_FreeValue(ctx, ret);
     return promise;
 }
 

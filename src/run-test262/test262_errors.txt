@@ -18,13 +18,6 @@ test262/test/language/expressions/compound-assignment/S11.13.2_A6.8_T1.js:24: Te
 test262/test/language/expressions/compound-assignment/S11.13.2_A6.9_T1.js:24: Test262Error: #1: innerX === 2. Actual: 1
 test262/test/language/expressions/compound-assignment/S11.13.2_A6.10_T1.js:24: Test262Error: #1: innerX === 2. Actual: 5
 test262/test/language/expressions/compound-assignment/S11.13.2_A6.11_T1.js:24: Test262Error: #1: innerX === 2. Actual: 5
-test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-get-with-error.js:23: Test262Error: 
-test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-non-object.js:32: TypeError: import() options must be an object
-test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-enumeration-abrupt.js:28: TypeError: $DONE() not called
-test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-enumeration-enumerable.js:53: Test262Error: Expected SameValue(«0», «1») to be true
-test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-non-object.js:39: TypeError: import() 'with' option must be an object
-test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-value-abrupt.js:26: TypeError: $DONE() not called
-test262/test/language/expressions/dynamic-import/import-attributes/2nd-param-with-value-non-string.js:33: TypeError: $DONE() not called
 test262/test/language/identifier-resolution/assign-to-global-undefined.js:20: strict mode: expected error
 test262/test/staging/sm/Function/arguments-parameter-shadowing.js:14: Test262Error: Expected SameValue(«true», «false») to be true
 test262/test/staging/sm/Function/constructor-binding.js:11: Test262Error: Expected SameValue(«"function"», «"undefined"») to be true
