@@ -37985,6 +37985,12 @@ static __exception int js_parse_function_decl2(JSParseState *s,
                 return js_parse_error_reserved_identifier(s);
             }
         }
+        /* an enclosing generator or async function already turned the name
+           into a keyword token, so it never reaches the check above */
+        if ((s->token.val == TOK_YIELD && (func_kind & JS_FUNC_GENERATOR)) ||
+            (s->token.val == TOK_AWAIT && (func_kind & JS_FUNC_ASYNC))) {
+            return js_parse_error_reserved_identifier(s);
+        }
         if (s->token.val == TOK_IDENT ||
             (((s->token.val == TOK_YIELD && !(fd->js_mode & JS_MODE_STRICT)) ||
              (s->token.val == TOK_AWAIT && !s->is_module)) &&
