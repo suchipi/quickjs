@@ -701,6 +701,7 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
         JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(err), err, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
         JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
+        JS_FreeValue(ctx, array);
         JS_FreeCString(ctx, path);
         return JS_EXCEPTION;
     }
@@ -714,6 +715,8 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
                 JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(errno), errno, path);
                 JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
                 JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
+                closedir(dirstream);
+                JS_FreeValue(ctx, array);
                 JS_FreeCString(ctx, path);
                 return JS_EXCEPTION;
             } else {
@@ -731,6 +734,7 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
         JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "%s (errno = %d, path = %s)", strerror(errno), errno, path);
         JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, errno));
         JS_AddPropertyToException(ctx, "path", JS_NewString(ctx, path));
+        JS_FreeValue(ctx, array);
         JS_FreeCString(ctx, path);
         return JS_EXCEPTION;
     }

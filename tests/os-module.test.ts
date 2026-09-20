@@ -1004,6 +1004,33 @@ test("os.readdir - lists directory entries", async () => {
   `);
 });
 
+test("os.readdir - caught error does not leak the result array", async () => {
+  const missingDir = workDir("readdir-does-not-exist");
+
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      const os = require("quickjs:os");
+      try {
+        os.readdir(${JSON.stringify(missingDir)});
+        console.log("no error thrown");
+      } catch (err) {
+        console.log("caught errno", err.errno);
+      }
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "caught errno 2
+    ",
+    }
+  `);
+});
+
 // =========== setReadHandler, setWriteHandler ===========
 
 test("os.setReadHandler - detects data on pipe", async () => {

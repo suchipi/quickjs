@@ -68,6 +68,25 @@ if (JS_HasProperty(ctx, options, atom)) {
 ### Error paths must free too
 Every `goto fail` path must free any `JS_GetProperty` return values that are still live. Be thorough -- add `JS_FreeValue` beside every error case, not just the success path.
 
+### Build the result container after the fallible work, not before
+`JS_NewArray` / `JS_NewObject` before the syscalls that can fail gives every throw path a live value it has to free. Do the fallible work first and allocate once you know you're returning a result; if the container must exist first, `JS_FreeValue` it on every `return JS_EXCEPTION`.
+
+```c
+// WRONG -- each failure leaks `array` and aborts at JS_FreeRuntime
+array = JS_NewArray(ctx);
+dirstream = opendir(path);
+if (!dirstream)
+    return JS_EXCEPTION;
+
+// RIGHT
+dirstream = opendir(path);
+if (!dirstream)
+    return JS_EXCEPTION;
+array = JS_NewArray(ctx);
+```
+
+Native handles need the same treatment: a throw from inside a loop must also close whatever the function opened.
+
 ## Class Finalizers for Native Resources
 
 When wrapping native resources (file handles, pointers, etc.) that need cleanup, use a JSClassDef with a `.finalizer`:
