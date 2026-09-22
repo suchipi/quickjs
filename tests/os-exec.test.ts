@@ -1,6 +1,6 @@
 import { test, expect } from "vitest";
 import { spawn } from "first-base";
-import { binDir } from "./_utils";
+import { binDir, fixturesDir } from "./_utils";
 
 test("os.exec - run a command with block: true", async () => {
   const run = spawn(binDir("qjs"), [
@@ -256,6 +256,232 @@ test("os.exec - stdin option feeds data to child process", async () => {
       "stderr": "",
       "stdout": "hello from stdin
     exit code: 0
+    ",
+    }
+  `);
+});
+
+const tryExecSource = `
+  function tryExec(args, options = {}) {
+    try {
+      print("returned", exec(args, options));
+    } catch (error) {
+      print(error.name + ": " + error.message);
+      print(Object.fromEntries(Object.entries(error)));
+    }
+  }
+`;
+
+test("os.exec - throws when the program can't be found", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { exec, waitpid } from "quickjs:os";
+      ${tryExecSource}
+      tryExec(["no-such-program-xyz"]);
+      tryExec(["no-such-program-xyz"], { block: false });
+      tryExec([${JSON.stringify(
+        fixturesDir("no-such-program-xyz")
+      )}], { usePath: false });
+
+      // Not WNOHANG: macOS briefly lists a child after a failed posix_spawn
+      try {
+        waitpid(-1, 0);
+        print("a child process was left behind");
+      } catch (error) {
+        print("waitpid errno:", error.errno);
+      }
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "Error: No such file or directory (errno = 2, file = no-such-program-xyz)
+    { errno: 2, file: "no-such-program-xyz" }
+    Error: No such file or directory (errno = 2, file = no-such-program-xyz)
+    { errno: 2, file: "no-such-program-xyz" }
+    Error: No such file or directory (errno = 2, file = <rootDir>/tests/fixtures/no-such-program-xyz)
+    { errno: 2, file: "<rootDir>/tests/fixtures/no-such-program-xyz" }
+    waitpid errno: 10
+    ",
+    }
+  `);
+});
+
+test("os.exec - throws when the program isn't executable", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { exec } from "quickjs:os";
+      ${tryExecSource}
+      tryExec([${JSON.stringify(fixturesDir("ah.txt"))}]);
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "Error: Permission denied (errno = 13, file = <rootDir>/tests/fixtures/ah.txt)
+    { errno: 13, file: "<rootDir>/tests/fixtures/ah.txt" }
+    ",
+    }
+  `);
+});
+
+test("os.exec - throws when the cwd can't be used", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { exec } from "quickjs:os";
+      ${tryExecSource}
+      tryExec(["true"], { cwd: ${JSON.stringify(
+        fixturesDir("no-such-dir-xyz")
+      )} });
+      tryExec(["true"], { cwd: ${JSON.stringify(fixturesDir("ah.txt"))} });
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "Error: No such file or directory (errno = 2, cwd = <rootDir>/tests/fixtures/no-such-dir-xyz)
+    { errno: 2, cwd: "<rootDir>/tests/fixtures/no-such-dir-xyz" }
+    Error: Not a directory (errno = 20, cwd = <rootDir>/tests/fixtures/ah.txt)
+    { errno: 20, cwd: "<rootDir>/tests/fixtures/ah.txt" }
+    ",
+    }
+  `);
+});
+
+test("os.exec - throws when a stdio fd isn't open", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { exec } from "quickjs:os";
+      ${tryExecSource}
+      tryExec(["true"], { stdout: 999 });
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "Error: Bad file descriptor (errno = 9, stdout = 999)
+    { errno: 9, stdout: 999 }
+    ",
+    }
+  `);
+});
+
+// On macOS, setting uid switches os.exec from posix_spawn to vfork.
+test("os.exec - throws the same errors when uid is set", async () => {
+  const ownUid = process.getuid!();
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { exec, waitpid } from "quickjs:os";
+      ${tryExecSource}
+      tryExec(["no-such-program-xyz"], { uid: ${ownUid} });
+      tryExec(["no-such-program-xyz"], { uid: ${ownUid}, block: false });
+      tryExec([${JSON.stringify(fixturesDir("no-such-program-xyz"))}], {
+        uid: ${ownUid},
+        usePath: false,
+      });
+      tryExec([${JSON.stringify(fixturesDir("ah.txt"))}], { uid: ${ownUid} });
+      tryExec(["true"], {
+        uid: ${ownUid},
+        cwd: ${JSON.stringify(fixturesDir("no-such-dir-xyz"))},
+      });
+      tryExec(["true"], {
+        uid: ${ownUid},
+        cwd: ${JSON.stringify(fixturesDir("ah.txt"))},
+      });
+      tryExec(["true"], { uid: ${ownUid}, stdout: 999 });
+
+      try {
+        waitpid(-1, 0);
+        print("a child process was left behind");
+      } catch (error) {
+        print("waitpid errno:", error.errno);
+      }
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "Error: No such file or directory (errno = 2, file = no-such-program-xyz)
+    { errno: 2, file: "no-such-program-xyz" }
+    Error: No such file or directory (errno = 2, file = no-such-program-xyz)
+    { errno: 2, file: "no-such-program-xyz" }
+    Error: No such file or directory (errno = 2, file = <rootDir>/tests/fixtures/no-such-program-xyz)
+    { errno: 2, file: "<rootDir>/tests/fixtures/no-such-program-xyz" }
+    Error: Permission denied (errno = 13, file = <rootDir>/tests/fixtures/ah.txt)
+    { errno: 13, file: "<rootDir>/tests/fixtures/ah.txt" }
+    Error: No such file or directory (errno = 2, cwd = <rootDir>/tests/fixtures/no-such-dir-xyz)
+    { errno: 2, cwd: "<rootDir>/tests/fixtures/no-such-dir-xyz" }
+    Error: Not a directory (errno = 20, cwd = <rootDir>/tests/fixtures/ah.txt)
+    { errno: 20, cwd: "<rootDir>/tests/fixtures/ah.txt" }
+    Error: Bad file descriptor (errno = 9, stdout = 999)
+    { errno: 9, stdout: 999 }
+    waitpid errno: 10
+    ",
+    }
+  `);
+});
+
+test.skipIf(process.getuid!() === 0)(
+  "os.exec - throws when the process can't switch to uid",
+  async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        import { exec } from "quickjs:os";
+        ${tryExecSource}
+        tryExec(["true"], { uid: 0 });
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "Error: Operation not permitted (errno = 1, uid = 0)
+      { errno: 1, uid: 0 }
+      ",
+      }
+    `);
+  }
+);
+
+test("os.exec - a program that exits with 127 returns 127", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { exec } from "quickjs:os";
+
+      print("returned", exec(["sh", "-c", "exit 127"]));
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "returned 127
     ",
     }
   `);

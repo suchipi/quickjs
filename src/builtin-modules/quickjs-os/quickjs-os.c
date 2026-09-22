@@ -2078,13 +2078,79 @@ static JSValue js_os_CreatePipe(JSContext *ctx, JSValueConst this_val,
     return result;
 }
 
+static int win32_error_to_errno(DWORD error_code)
+{
+    switch (error_code) {
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+    case ERROR_INVALID_NAME:
+        return ENOENT;
+    case ERROR_ACCESS_DENIED:
+        return EACCES;
+    case ERROR_BAD_EXE_FORMAT:
+        return ENOEXEC;
+    case ERROR_DIRECTORY:
+        return ENOTDIR;
+    case ERROR_FILENAME_EXCED_RANGE:
+        return ENAMETOOLONG;
+    case ERROR_NOT_ENOUGH_MEMORY:
+    case ERROR_OUTOFMEMORY:
+        return ENOMEM;
+    default:
+        return EINVAL;
+    }
+}
+
+static JSValue js_throw_create_process_error(JSContext *ctx, DWORD error_code,
+                                             const char *file,
+                                             const char *cwd,
+                                             const WCHAR *cwd_wide)
+{
+    DWORD cwd_attributes;
+    const char *option = "file", *value = file;
+    int err = win32_error_to_errno(error_code);
+
+    /* CreateProcess's error doesn't say whether the cwd was the problem */
+    if (cwd_wide) {
+        cwd_attributes = GetFileAttributesW(cwd_wide);
+        if (cwd_attributes == INVALID_FILE_ATTRIBUTES) {
+            err = win32_error_to_errno(GetLastError());
+            option = "cwd";
+            value = cwd;
+        } else if (!(cwd_attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            err = ENOTDIR;
+            option = "cwd";
+            value = cwd;
+        }
+    }
+    if (err == ENOMEM)
+        option = NULL;
+
+    if (option) {
+        JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                      "%s (errno = %d, %s = %s, win32Error = %lu)",
+                      strerror(err), err, option, value,
+                      (unsigned long)error_code);
+    } else {
+        JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                      "%s (errno = %d, win32Error = %lu)", strerror(err), err,
+                      (unsigned long)error_code);
+    }
+    JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+    if (option)
+        JS_AddPropertyToException(ctx, option, JS_NewString(ctx, value));
+    JS_AddPropertyToException(ctx, "win32Error",
+                              JS_NewUint32(ctx, error_code));
+    return JS_EXCEPTION;
+}
+
 /* Windows os.exec */
 static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
 {
     JSValueConst options, args = argv[0];
     JSValue val, ret_val;
-    const char *file = NULL, *str, *cwd_str = NULL;
+    const char *file = NULL, *str, *cwd_str = NULL, *first_arg = NULL;
     uint32_t exec_argc, i;
     int ret;
     BOOL block_flag = TRUE;
@@ -2125,7 +2191,10 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
         if (i > 0)
             dbuf_putc(&cmd_buf, ' ');
         win32_quote_arg(&cmd_buf, str);
-        JS_FreeCString(ctx, str);
+        if (i == 0)
+            first_arg = str;
+        else
+            JS_FreeCString(ctx, str);
     }
     dbuf_putc(&cmd_buf, '\0');
 
@@ -2286,7 +2355,9 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                         NULL, NULL, inherit_handles, create_flags,
                         env_block, current_dir_wide,
                         &startup_info, &process_info)) {
-        js_throw_win32_error(ctx, "CreateProcess failed", GetLastError());
+        js_throw_create_process_error(ctx, GetLastError(),
+                                      file ? file : first_arg, cwd_str,
+                                      current_dir_wide);
         goto exception;
     }
 
@@ -2306,6 +2377,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
     ret_val = JS_NewInt32(ctx, ret);
  done:
     dbuf_free(&cmd_buf);
+    JS_FreeCString(ctx, first_arg);
     JS_FreeCString(ctx, file);
     JS_FreeCString(ctx, cwd_str);
     if (command_line_wide) js_free(ctx, command_line_wide);
@@ -2743,6 +2815,128 @@ static int my_execvpe(const char *filename, char **argv, char **envp)
 }
 #endif
 
+typedef enum {
+    EXEC_CULPRIT_NONE,
+    EXEC_CULPRIT_FILE,
+    EXEC_CULPRIT_CWD,
+    EXEC_CULPRIT_STDIN, /* STDOUT and STDERR must follow, in fd order */
+    EXEC_CULPRIT_STDOUT,
+    EXEC_CULPRIT_STDERR,
+    EXEC_CULPRIT_UID,
+    EXEC_CULPRIT_GID,
+} ExecCulprit;
+
+typedef struct {
+    ExecCulprit culprit;
+    int err;
+} ExecFailure;
+
+/* Takes ownership of `value`. */
+static JSValue js_os_throw_exec_error(JSContext *ctx, int err,
+                                      const char *option, JSValue value)
+{
+    const char *value_str;
+
+    if (!option) {
+        JS_FreeValue(ctx, value);
+        JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                      "%s (errno = %d)", strerror(err), err);
+        JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+        return JS_EXCEPTION;
+    }
+    value_str = JS_ToCString(ctx, value);
+    if (!value_str) {
+        JS_FreeValue(ctx, value);
+        return JS_EXCEPTION;
+    }
+    JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__,
+                  "%s (errno = %d, %s = %s)", strerror(err), err, option,
+                  value_str);
+    JS_FreeCString(ctx, value_str);
+    JS_AddPropertyToException(ctx, "errno", JS_NewInt32(ctx, err));
+    JS_AddPropertyToException(ctx, option, value);
+    return JS_EXCEPTION;
+}
+
+/* The child writes an ExecFailure to the write end if it can't exec. A
+   successful exec closes it (O_CLOEXEC), so the parent reads EOF. */
+static int open_exec_report_pipe(int fds[2])
+{
+    int moved, err;
+
+#if defined(__APPLE__)
+    /* no pipe2 on macOS */
+    if (pipe(fds) < 0)
+        return -1;
+    fcntl(fds[0], F_SETFD, FD_CLOEXEC);
+    fcntl(fds[1], F_SETFD, FD_CLOEXEC);
+#else
+    if (pipe2(fds, O_CLOEXEC) < 0)
+        return -1;
+#endif
+    /* the child dup2()s over fds 0-2, which must not take the write end */
+    if (fds[1] < 3) {
+        moved = fcntl(fds[1], F_DUPFD_CLOEXEC, 3);
+        if (moved < 0) {
+            err = errno;
+            close(fds[0]);
+            close(fds[1]);
+            errno = err;
+            return -1;
+        }
+        close(fds[1]);
+        fds[1] = moved;
+    }
+    return 0;
+}
+
+/* async-signal-safe, for the child between fork and exec */
+static void exit_with_exec_failure(int report_fd, ExecCulprit culprit)
+{
+    ExecFailure failure;
+
+    failure.culprit = culprit;
+    failure.err = errno;
+    while (write(report_fd, &failure, sizeof(failure)) < 0 && errno == EINTR)
+        continue;
+    _exit(127);
+}
+
+/* Closes both ends of report_pipe, and reaps the child if it failed. */
+static BOOL child_failed_to_exec(int pid, int report_pipe[2],
+                                 ExecFailure *failure)
+{
+    ssize_t len;
+    int status;
+
+    close(report_pipe[1]);
+    do {
+        len = read(report_pipe[0], failure, sizeof(*failure));
+    } while (len < 0 && errno == EINTR);
+    close(report_pipe[0]);
+    if (len != sizeof(*failure))
+        return FALSE;
+    while (waitpid(pid, &status, 0) < 0 && errno == EINTR)
+        continue;
+    return TRUE;
+}
+
+#if defined(__APPLE__)
+/* The errno chdir(path) would fail with, or 0 */
+static int dir_access_error(const char *path)
+{
+    struct stat st;
+
+    if (stat(path, &st) < 0)
+        return errno;
+    if (!S_ISDIR(st.st_mode))
+        return ENOTDIR;
+    if (access(path, X_OK) < 0)
+        return errno;
+    return 0;
+}
+#endif
+
 /* exec(args[, options]) -> exitcode */
 static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
@@ -2757,6 +2951,8 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
     static const char *std_name[3] = { "stdin", "stdout", "stderr" };
     int std_fds[3];
     uint32_t uid = -1, gid = -1;
+    ExecFailure failure;
+    int report_pipe[2];
 
     val = JS_GetPropertyStr(ctx, args, "length");
     if (JS_IsException(val))
@@ -2862,6 +3058,16 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
         }
     }
 
+    /* Checked here so a closed fd number can't be taken by the report pipe
+       before the child dup2()s it */
+    for (i = 0; i < 3; i++) {
+        if (std_fds[i] != (int)i && fcntl(std_fds[i], F_GETFD) < 0) {
+            failure.culprit = EXEC_CULPRIT_STDIN + i;
+            failure.err = errno;
+            goto spawn_failed;
+        }
+    }
+
 #if defined(__APPLE__)
     {
         /* Check if posix_spawn_file_actions_addchdir_np is available at
@@ -2913,9 +3119,27 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             posix_spawnattr_destroy(&spawn_attr);
 
             if (ret != 0) {
-                JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
-                                  "posix_spawn error: %s", strerror(ret));
-                goto exception;
+                /* posix_spawn only returns an errno (ENOENT for a missing
+                   cwd and for a missing program alike), so find the cause */
+                failure.culprit = EXEC_CULPRIT_FILE;
+                failure.err = ret;
+                if (ret == EAGAIN) {
+                    failure.culprit = EXEC_CULPRIT_NONE;
+                } else if (ret == EBADF) {
+                    for (i = 0; i < 3; i++) {
+                        if (fcntl(std_fds[i], F_GETFD) < 0) {
+                            failure.culprit = EXEC_CULPRIT_STDIN + i;
+                            break;
+                        }
+                    }
+                } else if (cwd) {
+                    int cwd_err = dir_access_error(cwd);
+                    if (cwd_err != 0) {
+                        failure.culprit = EXEC_CULPRIT_CWD;
+                        failure.err = cwd_err;
+                    }
+                }
+                goto spawn_failed;
             }
         } else {
             /* uid/gid specified or cwd specified and addchdir_np unavailable:
@@ -2933,12 +3157,9 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                                                   resolved_path_buf,
                                                   sizeof(resolved_path_buf));
                 if (!resolved_file) {
-                    JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
-                                      errno == EACCES
-                                      ? "command not executable: %s"
-                                      : "command not found: %s",
-                                      file ? file : exec_argv[0]);
-                    goto exception;
+                    failure.culprit = EXEC_CULPRIT_FILE;
+                    failure.err = errno;
+                    goto spawn_failed;
                 }
             }
 
@@ -2950,20 +3171,28 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             if (fd_max < 0 || fd_max > 1024)
                 fd_max = 1024;
 
+            if (open_exec_report_pipe(report_pipe) < 0) {
+                failure.culprit = EXEC_CULPRIT_NONE;
+                failure.err = errno;
+                goto spawn_failed;
+            }
             suppress_warning("-Wdeprecated-declarations")
             pid = vfork();
             unsuppress_warning
             if (pid < 0) {
-                JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
-                                  "vfork error: %s", strerror(errno));
-                goto exception;
+                failure.culprit = EXEC_CULPRIT_NONE;
+                failure.err = errno;
+                close(report_pipe[0]);
+                close(report_pipe[1]);
+                goto spawn_failed;
             }
             if (pid == 0) {
                 /* child (async-signal-safe only) */
                 for (i = 0; i < 3; i++) {
                     if (std_fds[i] != (int)i) {
                         if (dup2(std_fds[i], i) < 0)
-                            _exit(127);
+                            exit_with_exec_failure(report_pipe[1],
+                                                   EXEC_CULPRIT_STDIN + i);
                     }
                 }
 #if defined(HAVE_CLOSEFROM)
@@ -2971,34 +3200,50 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                    Linux with glibc 2.34+, Solaris 9+, FreeBSD 7.3+,
                    NetBSD 3.0+, OpenBSD 3.5+.
                    Linux with the musl libc and macOS don't have it. */
-                closefrom(3);
-#else
-                for (i = 3; i < (uint32_t)fd_max; i++)
+                for (i = 3; i < (uint32_t)report_pipe[1]; i++)
                     close(i);
+                closefrom(report_pipe[1] + 1);
+#else
+                for (i = 3; i < (uint32_t)fd_max; i++) {
+                    if (i != (uint32_t)report_pipe[1])
+                        close(i);
+                }
 #endif
                 if (cwd) {
                     if (chdir(cwd) < 0)
-                        _exit(127);
+                        exit_with_exec_failure(report_pipe[1],
+                                               EXEC_CULPRIT_CWD);
                 }
                 if (gid != (uint32_t)-1) {
                     if (setgid(gid) < 0)
-                        _exit(127);
+                        exit_with_exec_failure(report_pipe[1],
+                                               EXEC_CULPRIT_GID);
                 }
                 if (uid != (uint32_t)-1) {
                     if (setuid(uid) < 0)
-                        _exit(127);
+                        exit_with_exec_failure(report_pipe[1],
+                                               EXEC_CULPRIT_UID);
                 }
                 execve(resolved_file, (char **)exec_argv, envp);
-                _exit(127);
+                exit_with_exec_failure(report_pipe[1], EXEC_CULPRIT_FILE);
             }
+            if (child_failed_to_exec(pid, report_pipe, &failure))
+                goto spawn_failed;
         }
     }
 #else /* !__APPLE__ */
+    if (open_exec_report_pipe(report_pipe) < 0) {
+        failure.culprit = EXEC_CULPRIT_NONE;
+        failure.err = errno;
+        goto spawn_failed;
+    }
     pid = fork();
     if (pid < 0) {
-        JS_ThrowTypeError(ctx, "<internal>/quickjs-os.c", __LINE__,
-                          "fork error: %s", strerror(errno));
-        goto exception;
+        failure.culprit = EXEC_CULPRIT_NONE;
+        failure.err = errno;
+        close(report_pipe[0]);
+        close(report_pipe[1]);
+        goto spawn_failed;
     }
     if (pid == 0) {
         /* child */
@@ -3007,7 +3252,8 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
         for(i = 0; i < 3; i++) {
             if (std_fds[i] != (int)i) {
                 if (dup2(std_fds[i], i) < 0)
-                    _exit(127);
+                    exit_with_exec_failure(report_pipe[1],
+                                           EXEC_CULPRIT_STDIN + i);
             }
         }
 
@@ -3019,7 +3265,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                 struct dirent *entry;
                 while ((entry = readdir(dir)) != NULL) {
                     int fd = atoi(entry->d_name);
-                    if (fd >= 3 && fd != dir_fd)
+                    if (fd >= 3 && fd != dir_fd && fd != report_pipe[1])
                         close(fd);
                 }
                 closedir(dir);
@@ -3028,21 +3274,23 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
                 int fd_max = (int)sysconf(_SC_OPEN_MAX);
                 if (fd_max < 0 || fd_max > 65536)
                     fd_max = 65536;
-                for(i = 3; i < (uint32_t)fd_max; i++)
-                    close(i);
+                for(i = 3; i < (uint32_t)fd_max; i++) {
+                    if (i != (uint32_t)report_pipe[1])
+                        close(i);
+                }
             }
         }
         if (cwd) {
             if (chdir(cwd) < 0)
-                _exit(127);
+                exit_with_exec_failure(report_pipe[1], EXEC_CULPRIT_CWD);
         }
         if (gid != (uint32_t)-1) {
             if (setgid(gid) < 0)
-                _exit(127);
+                exit_with_exec_failure(report_pipe[1], EXEC_CULPRIT_GID);
         }
         if (uid != (uint32_t)-1) {
             if (setuid(uid) < 0)
-                _exit(127);
+                exit_with_exec_failure(report_pipe[1], EXEC_CULPRIT_UID);
         }
 
         if (!file)
@@ -3051,8 +3299,10 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             ret = my_execvpe(file, (char **)exec_argv, envp);
         else
             ret = execve(file, (char **)exec_argv, envp);
-        _exit(127);
+        exit_with_exec_failure(report_pipe[1], EXEC_CULPRIT_FILE);
     }
+    if (child_failed_to_exec(pid, report_pipe, &failure))
+        goto spawn_failed;
 #endif /* __APPLE__ */
     /* parent */
     if (block_flag) {
@@ -3088,6 +3338,35 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
         js_free(ctx, envp);
     }
     return ret_val;
+ spawn_failed:
+    switch (failure.culprit) {
+    case EXEC_CULPRIT_FILE:
+        js_os_throw_exec_error(ctx, failure.err, "file",
+                               JS_NewString(ctx, file ? file : exec_argv[0]));
+        break;
+    case EXEC_CULPRIT_CWD:
+        js_os_throw_exec_error(ctx, failure.err, "cwd",
+                               JS_NewString(ctx, cwd));
+        break;
+    case EXEC_CULPRIT_STDIN:
+    case EXEC_CULPRIT_STDOUT:
+    case EXEC_CULPRIT_STDERR:
+        i = failure.culprit - EXEC_CULPRIT_STDIN;
+        js_os_throw_exec_error(ctx, failure.err, std_name[i],
+                               JS_NewInt32(ctx, std_fds[i]));
+        break;
+    case EXEC_CULPRIT_UID:
+        js_os_throw_exec_error(ctx, failure.err, "uid",
+                               JS_NewUint32(ctx, uid));
+        break;
+    case EXEC_CULPRIT_GID:
+        js_os_throw_exec_error(ctx, failure.err, "gid",
+                               JS_NewUint32(ctx, gid));
+        break;
+    default:
+        js_os_throw_exec_error(ctx, failure.err, NULL, JS_UNDEFINED);
+        break;
+    }
  exception:
     ret_val = JS_EXCEPTION;
     goto done;

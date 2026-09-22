@@ -1,5 +1,10 @@
 import { test as baseTest, expect } from "vitest";
-import { setupWineHooks, shouldRunWineTests, wineSpawn } from "./_utils";
+import {
+  fixturesDir,
+  setupWineHooks,
+  shouldRunWineTests,
+  wineSpawn,
+} from "./_utils";
 
 const test = baseTest.runIf(shouldRunWineTests);
 
@@ -334,6 +339,100 @@ test("os.exec block:false returns pid, waitpid gets status", async () => {
     ret === pid: true
     WIFEXITED: true
     WEXITSTATUS: 7
+    ",
+    }
+  `);
+});
+
+test("os.exec throws when the program can't be found", async () => {
+  const run = wineSpawn([
+    "-e",
+    `
+        const os = require("quickjs:os");
+        try {
+          os.exec(["no-such-program-xyz.exe"]);
+        } catch (error) {
+          console.log(error.name + ": " + error.message);
+          console.log(
+            "errno:", error.errno,
+            "file:", error.file,
+            "win32Error:", error.win32Error
+          );
+        }
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "Error: No such file or directory (errno = 2, file = no-such-program-xyz.exe, win32Error = 2)
+    errno: 2 file: no-such-program-xyz.exe win32Error: 2
+    ",
+    }
+  `);
+});
+
+test("os.exec throws when the cwd doesn't exist", async () => {
+  const run = wineSpawn([
+    "-e",
+    `
+        const os = require("quickjs:os");
+        try {
+          os.exec(["cmd.exe", "/c", "echo hi"], {
+            cwd: ${JSON.stringify(fixturesDir("no-such-dir-xyz"))},
+          });
+        } catch (error) {
+          console.log(error.name + ": " + error.message);
+          console.log(
+            "errno:", error.errno,
+            "cwd:", error.cwd,
+            "win32Error:", error.win32Error
+          );
+        }
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "Error: No such file or directory (errno = 2, cwd = <rootDir>/tests/fixtures/no-such-dir-xyz, win32Error = 267)
+    errno: 2 cwd: <rootDir>/tests/fixtures/no-such-dir-xyz win32Error: 267
+    ",
+    }
+  `);
+});
+
+test("os.exec error names the program it tried to run", async () => {
+  const run = wineSpawn([
+    "-e",
+    `
+        const os = require("quickjs:os");
+        let reads = 0;
+        const args = ["placeholder"];
+        Object.defineProperty(args, 0, {
+          get() {
+            reads++;
+            return reads === 1 ? "no-such-program-xyz.exe" : "wrong-name.exe";
+          },
+        });
+        try {
+          os.exec(args);
+        } catch (error) {
+          console.log("file:", error.file, "reads:", reads);
+        }
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "file: no-such-program-xyz.exe reads: 1
     ",
     }
   `);
