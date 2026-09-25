@@ -1,0 +1,5 @@
+import { ModuleDelegate } from "quickjs:engine";
+
+ModuleDelegate.compilers[""] = (filename, content) => {
+  return `export default ${JSON.stringify(content.trim())};`;
+};

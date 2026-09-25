@@ -50,7 +50,7 @@ globalThis.__qjms_temp_ModuleDelegate_init =
         }
       }
       if (userCompiler == null) {
-        const matches = moduleName.match(/(\.[^.]+)$/);
+        const matches = moduleName.match(/(\.[^.\/\\]+)$/);
         const ext = matches ? matches[1] : "";
         const candidate = compilers[ext];
         if (candidate != null) {
