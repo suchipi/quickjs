@@ -1,16 +1,3 @@
-test262/test/language/expressions/assignment/S11.13.1_A6_T1.js:23: Test262Error: #1: innerX === undefined. Actual: 1
-test262/test/language/expressions/assignment/S11.13.1_A6_T2.js:23: Test262Error: #1: innerX === 2. Actual: 1
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.1_T1.js:24: Test262Error: #1: innerX === 2. Actual: 12
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.2_T1.js:24: Test262Error: #1: innerX === 2. Actual: 5
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.3_T1.js:24: Test262Error: #1: innerX === 2. Actual: 3
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.4_T1.js:24: Test262Error: #1: innerX === 2. Actual: 4
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.5_T1.js:24: Test262Error: #1: innerX === 2. Actual: 4
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.6_T1.js:24: Test262Error: #1: innerX === 2. Actual: 8
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.7_T1.js:24: Test262Error: #1: innerX === 2. Actual: 4
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.8_T1.js:24: Test262Error: #1: innerX === 2. Actual: 4
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.9_T1.js:24: Test262Error: #1: innerX === 2. Actual: 1
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.10_T1.js:24: Test262Error: #1: innerX === 2. Actual: 5
-test262/test/language/expressions/compound-assignment/S11.13.2_A6.11_T1.js:24: Test262Error: #1: innerX === 2. Actual: 5
 test262/test/staging/sm/Function/function-bind.js:24: Test262Error: Conforms to NativeFunction Syntax: "function bound unbound() {\n    [native code]\n}"
 test262/test/staging/sm/lexical-environment/block-scoped-functions-annex-b-arguments.js:13: Test262Error: Expected SameValue(«"object"», «"function"») to be true
 test262/test/staging/sm/regress/regress-602621.js:13: Test262Error: function sub-statement must override arguments Expected SameValue(«"function"», «"object"») to be true
