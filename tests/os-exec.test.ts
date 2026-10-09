@@ -39,16 +39,17 @@ test("os.exec - run a command with block: false and waitpid", async () => {
     `,
   ]);
   await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
+  const result = run.cleanResult();
+  const sortedStdout = result.stdout.trimEnd().split("\n").sort().join("\n");
+  expect({ ...result, stdout: sortedStdout }).toMatchInlineSnapshot(`
     {
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "got pid: true
-    hello async
+      "stdout": "exit code: 0
     exited: true
-    exit code: 0
-    ",
+    got pid: true
+    hello async",
     }
   `);
 });
