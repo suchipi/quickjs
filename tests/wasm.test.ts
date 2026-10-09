@@ -114,6 +114,108 @@ test("relative import resolves a sibling file", async () => {
   `);
 });
 
+test("os.dup", async () => {
+  const run = spawn(
+    "wasmtime",
+    [
+      "run",
+      "--dir=.",
+      qjsWasm,
+      "-e",
+      `
+      import * as os from "quickjs:os";
+      import * as enc from "quickjs:encoding";
+
+      const fd = os.open("tests/fixtures/ah.txt", os.O_RDONLY);
+      const duplicate = os.dup(fd);
+      console.log("new fd:", duplicate !== fd);
+
+      const buffer = new ArrayBuffer(16);
+      const bytesRead = os.read(duplicate, buffer, 0, buffer.byteLength);
+      console.log("content:", enc.toUtf8(buffer.slice(0, bytesRead)).trim());
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "new fd: true
+    content: あ
+    ",
+    }
+  `);
+});
+
+test("os.dup2", async () => {
+  const run = spawn(
+    "wasmtime",
+    [
+      "run",
+      "--dir=.",
+      qjsWasm,
+      "-e",
+      `
+      import * as os from "quickjs:os";
+      import * as enc from "quickjs:encoding";
+
+      const fd = os.open("tests/fixtures/ah.txt", os.O_RDONLY);
+      const target = os.dup(fd);
+      os.close(target);
+      console.log("returns target:", os.dup2(fd, target) === target);
+
+      const buffer = new ArrayBuffer(16);
+      const bytesRead = os.read(target, buffer, 0, buffer.byteLength);
+      console.log("content:", enc.toUtf8(buffer.slice(0, bytesRead)).trim());
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "returns target: true
+    content: あ
+    ",
+    }
+  `);
+});
+
+test("os.gethostname", async () => {
+  const run = spawn(
+    "wasmtime",
+    [
+      "run",
+      qjsWasm,
+      "-e",
+      `
+      import * as os from "quickjs:os";
+      const hostname = os.gethostname();
+      console.log("type:", typeof hostname);
+      console.log("non-empty:", hostname.length > 0);
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "type: string
+    non-empty: true
+    ",
+    }
+  `);
+});
+
 test("unsupported functions throw errors", async () => {
   const run = spawn(
     "wasmtime",

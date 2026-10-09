@@ -1,5 +1,5 @@
 FROM node:22.15.0 AS node
-FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-25
+FROM ghcr.io/webassembly/wasi-sdk:wasi-sdk-34
 
 COPY --from=node /usr/local /usr/local
 

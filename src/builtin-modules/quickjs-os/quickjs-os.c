@@ -1332,16 +1332,12 @@ static JSValue js_os_chmod(JSContext *ctx, JSValueConst this_val,
 static JSValue js_os_gethostname(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
-#if defined(__wasi__)
-    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "gethostname is not supported on wasm");
-#else
     char buf[HOST_NAME_MAX + 1];
     if (gethostname(buf, sizeof(buf)) < 0) {
         JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
         return JS_EXCEPTION;
     }
     return JS_NewString(ctx, buf);
-#endif
 }
 
 /**********************************************************/
@@ -2447,18 +2443,36 @@ static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val,
     return obj;
 }
 
-#elif defined(__wasi__) /* WASI implementations - stubs for unavailable process APIs */
+#elif defined(__wasi__) /* WASI implementations - process APIs are unavailable and throw */
 
 static JSValue js_os_dup(JSContext *ctx, JSValueConst this_val,
                          int argc, JSValueConst *argv)
 {
-    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "dup is not supported on wasm");
+    int fd, ret;
+    if (JS_ToInt32(ctx, &fd, argv[0]))
+        return JS_EXCEPTION;
+    ret = dup(fd);
+    if (ret < 0) {
+        JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
+        return JS_EXCEPTION;
+    }
+    return JS_NewInt32(ctx, ret);
 }
 
 static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
 {
-    return JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "dup2 is not supported on wasm");
+    int fd, fd2, ret;
+    if (JS_ToInt32(ctx, &fd, argv[0]))
+        return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &fd2, argv[1]))
+        return JS_EXCEPTION;
+    ret = dup2(fd, fd2);
+    if (ret < 0) {
+        JS_ThrowError(ctx, "<internal>/quickjs-os.c", __LINE__, "%s (errno = %d)", strerror(errno), errno);
+        return JS_EXCEPTION;
+    }
+    return JS_NewInt32(ctx, ret);
 }
 
 static JSValue js_os_pipe(JSContext *ctx, JSValueConst this_val,
