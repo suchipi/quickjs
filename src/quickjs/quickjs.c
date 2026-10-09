@@ -3573,7 +3573,7 @@ static JSAtom JS_NewAtomInt64(JSContext *ctx, int64_t n)
 }
 
 /* 'p' is freed */
-static JSValue JS_NewSymbol(JSContext *ctx, JSString *p, int atom_type)
+static JSValue JS_NewSymbolInternal(JSContext *ctx, JSString *p, int atom_type)
 {
     JSRuntime *rt = ctx->rt;
     JSAtom atom;
@@ -3581,6 +3581,28 @@ static JSValue JS_NewSymbol(JSContext *ctx, JSString *p, int atom_type)
     if (atom == JS_ATOM_NULL)
         return JS_ThrowOutOfMemory(ctx);
     return JS_MKPTR(JS_TAG_SYMBOL, rt->atom_array[atom]);
+}
+
+/* description is UTF-8 encoded or NULL */
+JSValue JS_NewSymbol(JSContext *ctx, const char *description, BOOL is_global)
+{
+    JSValue str;
+    int atom_type;
+
+    if (description == NULL) {
+        if (!is_global) {
+            /* Local symbol without description: Symbol() */
+            return JS_NewSymbolInternal(ctx, NULL, JS_ATOM_TYPE_SYMBOL);
+        }
+        /* Global symbol without description: Symbol.for()
+           Per ES spec, ToString(undefined) becomes "undefined" */
+        description = "undefined";
+    }
+    str = JS_NewString(ctx, description);
+    if (JS_IsException(str))
+        return JS_EXCEPTION;
+    atom_type = is_global ? JS_ATOM_TYPE_GLOBAL_SYMBOL : JS_ATOM_TYPE_SYMBOL;
+    return JS_NewSymbolInternal(ctx, JS_VALUE_GET_STRING(str), atom_type);
 }
 
 /* descr must be a non-numeric string atom */
@@ -3594,7 +3616,7 @@ static JSValue JS_NewSymbolFromAtom(JSContext *ctx, JSAtom descr,
     assert(descr < rt->atom_size);
     p = rt->atom_array[descr];
     JS_DupValue(ctx, JS_MKPTR(JS_TAG_STRING, p));
-    return JS_NewSymbol(ctx, p, atom_type);
+    return JS_NewSymbolInternal(ctx, p, atom_type);
 }
 
 #define ATOM_GET_STR_BUF_SIZE 64
@@ -54013,7 +54035,7 @@ static JSValue js_symbol_constructor(JSContext *ctx, JSValueConst new_target,
             return JS_EXCEPTION;
         p = JS_VALUE_GET_STRING(str);
     }
-    return JS_NewSymbol(ctx, p, JS_ATOM_TYPE_SYMBOL);
+    return JS_NewSymbolInternal(ctx, p, JS_ATOM_TYPE_SYMBOL);
 }
 
 static JSValue js_thisSymbolValue(JSContext *ctx, JSValueConst this_val)
@@ -54085,7 +54107,7 @@ static JSValue js_symbol_for(JSContext *ctx, JSValueConst this_val,
     str = JS_ToString(ctx, argv[0]);
     if (JS_IsException(str))
         return JS_EXCEPTION;
-    return JS_NewSymbol(ctx, JS_VALUE_GET_STRING(str), JS_ATOM_TYPE_GLOBAL_SYMBOL);
+    return JS_NewSymbolInternal(ctx, JS_VALUE_GET_STRING(str), JS_ATOM_TYPE_GLOBAL_SYMBOL);
 }
 
 static JSValue js_symbol_keyFor(JSContext *ctx, JSValueConst this_val,
