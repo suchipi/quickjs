@@ -844,6 +844,12 @@ int JS_ToFloat64(JSContext *ctx, double *pres, JSValueConst val);
 int JS_ToBigInt64(JSContext *ctx, int64_t *pres, JSValueConst val);
 /* same as JS_ToInt64() but allows BigInt. returns -1 when exception has been thrown, 0 when ok */
 int JS_ToInt64Ext(JSContext *ctx, int64_t *pres, JSValueConst val);
+/* creates a BigInt from a signed 128 bit value given as its low and high 64 bit halves */
+JSValue JS_NewBigInt128(JSContext *ctx, uint64_t low, uint64_t high);
+/* reads a BigInt as a signed 128 bit value. returns -1 when exception has been thrown, 0 when ok. throws an exception if 'val' is a Number or does not fit in 128 bits */
+int JS_ToBigInt128(JSContext *ctx, uint64_t *plow, uint64_t *phigh, JSValueConst val);
+/* same as JS_ToBigInt128() but clamps a value that does not fit in 128 bits instead of throwing. returns -1 when exception has been thrown, 0 when ok, 1 when the value was clamped */
+int JS_ToBigInt128Sat(JSContext *ctx, uint64_t *plow, uint64_t *phigh, JSValueConst val);
 
 /* creates a string from a UTF-8 buffer. the buffer is copied. */
 JSValue JS_NewStringLen(JSContext *ctx, const char *str1, size_t len1);
