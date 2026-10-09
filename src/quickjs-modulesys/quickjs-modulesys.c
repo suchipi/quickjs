@@ -1133,7 +1133,7 @@ static JSValue QJMS_MakeModuleDelegateObject(JSContext *ctx)
       JSValue js_loadFile = JS_NewCFunction(ctx, js_std_loadFile, "loadFile", 1);
       JSValue js_realpath = JS_NewCFunction(ctx, js_os_realpath, "realpath", 1);
       JSValue js_access = JS_NewCFunction(ctx, js_os_access, "access", 2);
-      JSValue js_stat = JS_NewCFunctionMagic(ctx, js_os_stat, "stat", 2, JS_CFUNC_generic, 0);
+      JSValue js_stat = JS_NewCFunctionMagic(ctx, js_os_stat, "stat", 2, JS_CFUNC_generic_magic, 0);
       JSValue JS_F_OK = JS_NewInt32(ctx, F_OK);
       JSValue JS_S_IFMT = JS_NewInt32(ctx, S_IFMT);
       JSValue JS_S_IFREG = JS_NewInt32(ctx, S_IFREG);

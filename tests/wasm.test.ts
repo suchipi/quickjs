@@ -96,6 +96,24 @@ test("file I/O via quickjs:std", async () => {
   `);
 });
 
+test("relative import resolves a sibling file", async () => {
+  const run = spawn(
+    "wasmtime",
+    ["run", "--dir=.", qjsWasm, "tests/fixtures/subdir/reaches-over.js"],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "5
+    ",
+    }
+  `);
+});
+
 test("unsupported functions throw errors", async () => {
   const run = spawn(
     "wasmtime",
