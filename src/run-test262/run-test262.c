@@ -1473,21 +1473,35 @@ int longest_match(const char *str, const char *find, int pos, int *ppos, int lin
 
 static __attribute__((__format__(__printf__, 1, 2))) void print_error(const char *fmt, ...)
 {
-    char buf[1024];
     va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, ap);
-    va_end(ap);
     if (update_errors) {
+        char buf[256], *str;
+        int len;
+
+        va_start(ap, fmt);
+        len = vsnprintf(buf, sizeof(buf), fmt, ap);
+        va_end(ap);
+        if (len >= sizeof(buf)) {
+            str = malloc(len + 1);
+            va_start(ap, fmt);
+            vsnprintf(str, len + 1, fmt, ap);
+            va_end(ap);
+        } else {
+            str = buf;
+        }
 #ifdef CONFIG_AGENT
         pthread_mutex_lock(&error_list_mutex);
 #endif
-        namelist_add(&error_list, NULL, buf);
+        namelist_add(&error_list, NULL, str);
 #ifdef CONFIG_AGENT
         pthread_mutex_unlock(&error_list_mutex);
 #endif
+        if (str != buf)
+            free(str);
     } else {
-        fputs(buf, stdout);
+        va_start(ap, fmt);
+        vprintf(fmt, ap);
+        va_end(ap);
     }
 }
 
@@ -1897,15 +1911,6 @@ int run_test_buf(ThreadLocalStorage *tls,
 #endif
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
-
-    atomic_inc(&test_count);
-    if (ret) {
-        atomic_inc(&test_failed);
-        if (outfile) {
-            /* do not output a failure number to minimize diff */
-            fprintf(outfile, "  FAILED\n");
-        }
-    }
     return ret;
 }
 
@@ -2132,12 +2137,25 @@ int run_test(ThreadLocalStorage *tls, const char *filename, int index)
                                error_type, eval_flags, is_negative, is_async,
                                can_block);
         }
-        if (use_strict) {
+        /* we avoid running the strict mode test if there was an error
+           in the nostrict case to have a single error report per
+           test */
+        if (use_strict && ret == 0) {
             ret |= run_test_buf(tls, filename, harness, ip, buf, buf_len,
                                 error_type, eval_flags | JS_EVAL_FLAG_STRICT,
                                 is_negative, is_async, can_block);
         }
         clocks = clock() - clocks;
+
+        atomic_inc(&test_count);
+        if (ret) {
+            atomic_inc(&test_failed);
+            if (outfile) {
+                /* do not output a failure number to minimize diff */
+                fprintf(outfile, "  FAILED\n");
+            }
+        }
+
         if (outfile && index >= 0 && clocks >= CLOCKS_PER_SEC / 10) {
             /* output timings for tests that take more than 100 ms */
             fprintf(outfile, " time: %d ms\n", (int)(clocks * 1000LL / CLOCKS_PER_SEC));
@@ -2372,7 +2390,8 @@ static void show_progress(int force)
     }
 }
 
-static void run_test_dir_list_single(ThreadLocalStorage *tls)
+static void run_test_dir_list_single(ThreadLocalStorage *tls,
+                                     BOOL enable_progress)
 {
     namelist_t *lp = &test_list;
     int i;
@@ -2394,9 +2413,11 @@ static void run_test_dir_list_single(ThreadLocalStorage *tls)
             if (ti >= slow_test_threshold)
                 fprintf(stderr, "\n%s (%d ms)\n", p, ti);
         }
-        show_progress(FALSE);
+        if (enable_progress)
+            show_progress(FALSE);
     }
-    show_progress(TRUE);
+    if (enable_progress)
+        show_progress(TRUE);
 }
 
 #endif /* CONFIG_AGENT */
@@ -2413,6 +2434,7 @@ void help(void)
            "-s             run tests in strict mode, skip @nostrict tests\n"
            "-E             only run tests from the error file\n"
            "-C             use compact progress indicator\n"
+           "-q             no progress indicator\n"
            "-t             show timings\n"
            "-u             update error file\n"
            "-v             verbose: output error messages\n"
@@ -2448,6 +2470,7 @@ int main(int argc, char **argv)
     BOOL is_module = FALSE;
     BOOL can_block = TRUE;
     BOOL count_skipped_features = FALSE;
+    int enable_progress = -1;
     clock_t clocks;
 
     init_thread_local_storage(tls);
@@ -2457,7 +2480,6 @@ int main(int argc, char **argv)
 #endif
 
 #if !defined(_WIN32)
-    compact = !isatty(STDERR_FILENO);
     /* Date tests assume California local time */
     setenv("TZ", "America/Los_Angeles", 1);
 #endif
@@ -2500,7 +2522,10 @@ int main(int argc, char **argv)
         } else if (str_equal(arg, "-v")) {
             verbose++;
         } else if (str_equal(arg, "-C")) {
+            enable_progress = 1;
             compact = 1;
+        } else if (str_equal(arg, "-q")) {
+            enable_progress = 0;
         } else if (str_equal(arg, "-c")) {
             load_config(get_opt_arg(arg, argv[optind++]), ignore);
         } else if (str_equal(arg, "-d")) {
@@ -2567,6 +2592,14 @@ int main(int argc, char **argv)
 
     update_exclude_dirs();
 
+    if (enable_progress < 0) {
+#if defined(_WIN32)
+        enable_progress = 1;
+#else
+        enable_progress = (isatty(STDERR_FILENO) != 0);
+#endif
+    }
+
     clocks = clock();
 
     if (count_skipped_features) {
@@ -2626,7 +2659,9 @@ int main(int argc, char **argv)
 
             pthread_cond_init(&progress_cond, NULL);
             pthread_mutex_init(&progress_mutex, NULL);
-            pthread_create(&progress_thread, NULL, show_progress, NULL);
+            if (enable_progress) {
+                pthread_create(&progress_thread, NULL, show_progress, NULL);
+            }
 
             threads = malloc(sizeof(threads[0]) * nthreads);
             for (i = 0; i < nthreads; i++) {
@@ -2644,23 +2679,27 @@ int main(int argc, char **argv)
                 pthread_join(threads[i].tid, NULL);
             free(threads);
 
-            pthread_mutex_lock(&progress_mutex);
-            progress_exit_request = TRUE;
-            pthread_cond_signal(&progress_cond);
-            pthread_mutex_unlock(&progress_mutex);
-            pthread_join(progress_thread, NULL);
-
+            if (enable_progress) {
+                pthread_mutex_lock(&progress_mutex);
+                progress_exit_request = TRUE;
+                pthread_cond_signal(&progress_cond);
+                pthread_mutex_unlock(&progress_mutex);
+                pthread_join(progress_thread, NULL);
+            }
             pthread_mutex_destroy(&progress_mutex);
             pthread_cond_destroy(&progress_cond);
         }
 #else
-        run_test_dir_list_single(tls);
+        run_test_dir_list_single(tls, enable_progress);
 #endif
 
         if (outfile && outfile != stdout) {
             fclose(outfile);
             outfile = NULL;
         }
+        /* useful to have the report at the end in case stdout and
+           stderr are redirected to a single file */
+        fflush(stdout);
     } else {
         outfile = stdout;
         while (optind < argc) {
@@ -2753,5 +2792,9 @@ int main(int argc, char **argv)
     free(error_file);
 
     /* Signal that the error file is out of date. */
-    return new_errors || changed_errors || fixed_errors;
+    if (update_errors) {
+        return 0;
+    } else {
+        return new_errors || changed_errors || fixed_errors;
+    }
 }
