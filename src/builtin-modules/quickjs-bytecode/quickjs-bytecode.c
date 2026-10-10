@@ -14,12 +14,13 @@ static JSValue js_call_bytecode_func(JSContext *ctx, JSValueConst this_val,
 
     if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
         if (JS_ResolveModule(ctx, obj) < 0) {
-            JS_FreeValue(ctx, obj);
             return JS_EXCEPTION;
         }
         QJMS_SetModuleImportMeta(ctx, obj, JS_UNDEFINED);
     }
-    result = JS_EvalFunction(ctx, obj);
+    /* JS_EvalFunction frees its argument, and this_val is the bound
+       function's reference */
+    result = JS_EvalFunction(ctx, JS_DupValue(ctx, obj));
     return result;
 }
 
@@ -245,6 +246,7 @@ static JSValue js_bytecode_toValue(JSContext *ctx, JSValueConst this_val,
             return JS_EXCEPTION;
         }
 
+        JS_FreeValue(ctx, obj);
         obj = bound_callfunc;
         JS_FreeValue(ctx, callfunc);
         JS_FreeValue(ctx, Function_proto_bind);

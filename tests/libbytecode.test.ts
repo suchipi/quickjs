@@ -199,6 +199,101 @@ test("bytecode - toValue with invalid bytecode throws", async () => {
   `);
 });
 
+// =========== toValue: lifetime of the revived function ===========
+
+test("bytecode - a revived function that is never called is released at exit", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+
+        bytecode.toValue(bytecode.fromFile("tests/fixtures/log-four.js"));
+        bytecode.toValue(
+          bytecode.fromFile("tests/fixtures/exports-five.js", { sourceType: "module" })
+        );
+        console.log("neither was called");
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "neither was called
+    ",
+    }
+  `);
+});
+
+test("bytecode - a revived script runs each time it is called", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+
+        const revived = bytecode.toValue(bytecode.fromFile("tests/fixtures/log-four.js"));
+        revived();
+        revived();
+        revived();
+        console.log("called three times");
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "4
+    4
+    4
+    called three times
+    ",
+    }
+  `);
+});
+
+test("bytecode - a revived module is evaluated once however often it is called", async () => {
+  const run = spawn(
+    binDir("qjs"),
+    [
+      "-e",
+      `
+        const bytecode = require("quickjs:bytecode");
+
+        const revived = bytecode.toValue(
+          bytecode.fromFile("tests/fixtures/exports-five.js", { sourceType: "module" })
+        );
+        revived();
+        revived();
+        revived();
+        console.log("called three times");
+      `,
+    ],
+    { cwd: rootDir() }
+  );
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "exporting 5
+    called three times
+    ",
+    }
+  `);
+});
+
 // =========== fromValue with various types ===========
 
 test("bytecode - fromValue with string", async () => {
