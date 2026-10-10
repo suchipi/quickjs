@@ -2740,8 +2740,12 @@ static void js_free_modules(JSContext *ctx, JSFreeModuleEnum flag)
     struct list_head *el, *el1;
     list_for_each_safe(el, el1, &ctx->loaded_modules) {
         JSModuleDef *m = list_entry(el, JSModuleDef, link);
+        /* an unresolved module that something besides this list still
+           references stays: its owner can resolve it later, and once it
+           runs, js_import_meta() finds it by looking here */
         if (flag == JS_FREE_MODULE_ALL ||
-            (flag == JS_FREE_MODULE_NOT_RESOLVED && !m->resolved)) {
+            (flag == JS_FREE_MODULE_NOT_RESOLVED && !m->resolved &&
+             js_rc(m)->ref_count == 1)) {
             /* warning: the module may be referenced elsewhere. It
                could be simpler to use an array instead of a list for
                'ctx->loaded_modules' */
@@ -31769,14 +31773,20 @@ static int js_resolve_module(JSContext *ctx, JSModuleDef *m)
                                                   rme->module_name, 0,
                                                   rme->attributes);
         if (!m1)
-            return -1;
+            goto fail;
         rme->module = m1;
         /* already done in js_host_resolve_imported_module() except if
            the module was loaded with JS_EvalBinary() */
         if (js_resolve_module(ctx, m1) < 0)
-            return -1;
+            goto fail;
     }
     return 0;
+ fail:
+    /* a module read from bytecode outlives a failed load, and with the
+       flag left set it would later be linked through a NULL
+       rme->module instead of loading its imports again */
+    m->resolved = FALSE;
+    return -1;
 }
 
 /* Create the <eval> function associated with the module */

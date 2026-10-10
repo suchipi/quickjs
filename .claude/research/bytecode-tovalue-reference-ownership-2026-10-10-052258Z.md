@@ -37,14 +37,17 @@ paths:
 
 `bytecode.fromFile` on a module throws if one of its imports is missing or does not parse. `__JS_EvalInternal` calls `js_resolve_module` right after compiling a module, and `JS_EVAL_FLAG_COMPILE_ONLY` does not skip that. The bytecode only contains the one module. Its imports are resolved again, by `JS_ResolveModule` in the wrapper, each time the revived function is called.
 
-## Open hazard: a second call after a failed import resolution segfaults
+## A failed import resolution is retried
 
-Compile a module that has an import to a bytecode file, then revive it in another process where that import cannot be loaded. The first call throws the resolution error, as it should. A second call crashes with SIGSEGV. This is a separate bug from the reference counting above, and builds from before that fix crash the same way.
+Compile a module that has an import to a bytecode file, then revive it in another process where that import cannot be loaded. Calling the revived function throws the resolution error. Calling it again tries to load the imports again: the same error while the import is still unavailable, a normal run once it is. An ordinary `import()` of a file whose own import is missing already behaved this way, because the engine frees a source module whose resolution failed and compiles it afresh next time. A module read from bytecode is not freed, since the bound function still holds it, so the engine has to leave it in a state that can be resolved again. Two things in [quickjs.c](../../src/quickjs/quickjs.c) make that work, and neither is in upstream:
 
-The mechanism, read from the code and matched against the backtrace in the macOS crash report (`js_create_module_function` <- `js_create_module_function` <- `JS_EvalFunctionInternal` <- `js_call_bytecode_func`):
+- `js_resolve_module` sets `m->resolved = TRUE` before it resolves the imports, and clears it again at its `fail` label. Upstream leaves it set. A second `JS_ResolveModule` then reports success, and `JS_EvalFunction` reaches `js_create_module_function`, which recurses into every `rme->module` without a NULL check. That was a SIGSEGV; the backtrace in the macOS crash report read `js_create_module_function` <- `js_create_module_function` <- `JS_EvalFunctionInternal` <- `js_call_bytecode_func`.
+- `js_free_modules(ctx, JS_FREE_MODULE_NOT_RESOLVED)` only drops an unresolved module that nothing but `ctx->loaded_modules` references (`ref_count == 1`). It runs after a failed resolve in `JS_ResolveModule`, `JS_LoadModuleInternal`, `js_dynamic_import_run` and `JS_RunModule`, and upstream's version drops every unresolved module, which includes every revived module that has not been called yet.
 
-1. `js_resolve_module` sets `m->resolved = TRUE` before it resolves the imports and does not clear it when one fails, which leaves that import's `rme->module` NULL.
-2. On the next call, `JS_ResolveModule` sees `resolved` and reports success.
-3. `JS_EvalFunction` reaches `js_create_module_function`, which recurses into every `rme->module` without a NULL check.
+The second point matters because `js_import_meta` finds the running module by looking its filename up in `ctx->loaded_modules`. With only the flag fix in place, a revived module that had been dropped from the list still ran on a later call, but `import.meta` threw "import.meta not supported in this context", and an `import` of its path loaded a second instance from the source file.
 
-The only other caller of `JS_ResolveModule` in this repo, in [quickjs-modulesys.c](../../src/quickjs-modulesys/quickjs-modulesys.c), frees the module value when resolution fails and never evaluates it. The bound function is what keeps a failed module callable.
+The same two changes cover the other routes to a revived module whose import failed: being imported by another revived module, being called directly after that, and `import()` of its path. All of those used to segfault, and `tests/libbytecode-failed-import.test.ts` covers them. An `import()` of the path after the bound function has been garbage collected also used to segfault and now works; that case was only checked by hand.
+
+## Only the wrapper and the loaders fill in `import.meta`
+
+`QJMS_SetModuleImportMeta` is called from `js_call_bytecode_func`, `QJMS_ModuleLoader`, `qjms_eval_buf_impl` and `qjms_eval_binary_impl`. A revived module that is first reached some other way, as an import of another module or through `import()` of its path, goes through none of them, so its `import.meta` object exists but is empty and `import.meta.url` is `undefined`. This does not depend on any load failing, and a build from September 2026 behaves the same. Calling the module's own revived function first avoids it.
