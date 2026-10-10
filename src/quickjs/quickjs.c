@@ -59894,12 +59894,13 @@ static JSValue js_array_buffer_resize(JSContext *ctx, JSValueConst this_val,
     abuf = JS_GetOpaque2(ctx, this_val, class_id);
     if (!abuf)
         return JS_EXCEPTION;
+    /* the spec rejects a fixed-length buffer before it converts the length */
+    if (!array_buffer_is_resizable(abuf))
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "array buffer is not resizable");
     if (JS_ToIndex(ctx, &len, argv[0]))
         return JS_EXCEPTION;
     if (abuf->detached)
         return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
-    if (!array_buffer_is_resizable(abuf))
-        return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "array buffer is not resizable");
     // TODO(bnoordhuis) support externally managed RABs
     if (abuf->free_func != js_array_buffer_free)
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "external array buffer is not resizable");
