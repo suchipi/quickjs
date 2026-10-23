@@ -613,6 +613,35 @@ static JSValue js_evalScript(JSContext *ctx, JSValue this_val,
     return ret;
 }
 
+/* use JS_ToString() so that Test262Errors are correctly displayed */
+static void js_dump_obj(JSContext *ctx, FILE *f, JSValueConst val)
+{
+    const char *str;
+
+    str = JS_ToCString(ctx, val);
+    if (str) {
+        fprintf(f, "%s\n", str);
+        JS_FreeCString(ctx, str);
+    } else {
+        fprintf(f, "[exception]\n");
+    }
+}
+
+static void test262_dump_error(JSContext *ctx)
+{
+    JSValue exception_val;
+
+    exception_val = JS_GetException(ctx);
+    if (JS_IsError(ctx, exception_val)) {
+        JS_PrintValue(ctx, js_print_value_write, stderr, exception_val, NULL);
+        fputc('\n', stderr);
+    } else {
+        js_dump_obj(ctx, stderr, exception_val);
+    }
+    JS_FreeValue(ctx, exception_val);
+}
+
+
 static JSValue add_helpers1(JSContext *ctx);
 static void add_helpers(JSContext *ctx);
 
@@ -647,13 +676,13 @@ static void *agent_start(void *arg)
     free(agent->script);
     agent->script = NULL;
     if (JS_IsException(ret_val))
-        QJU_PrintException(ctx, stderr);
+        test262_dump_error(ctx);
     JS_FreeValue(ctx, ret_val);
 
     for(;;) {
         ret = JS_ExecutePendingJob(JS_GetRuntime(ctx), NULL);
         if (ret < 0) {
-            QJU_PrintException(ctx, stderr);
+            test262_dump_error(ctx);
             break;
         } else if (ret == 0) {
             if (JS_IsUndefined(agent->broadcast_func)) {
@@ -680,7 +709,7 @@ static void *agent_start(void *arg)
                 JS_FreeValue(ctx, args[0]);
                 JS_FreeValue(ctx, args[1]);
                 if (JS_IsException(ret_val))
-                    QJU_PrintException(ctx, stderr);
+                    test262_dump_error(ctx);
                 JS_FreeValue(ctx, ret_val);
                 JS_FreeValue(ctx, agent->broadcast_func);
                 agent->broadcast_func = JS_UNDEFINED;
@@ -1574,10 +1603,13 @@ static int eval_buf(JSContext *ctx, const char *buf, size_t buf_len,
         is_error = JS_IsError(ctx, exception_val);
         /* XXX: should get the filename and line number */
         if (outfile) {
-            if (!is_error)
+            if (!is_error) {
                 fprintf(outfile, "%sThrow: ", (eval_flags & JS_EVAL_FLAG_STRICT) ?
                         "strict mode: " : "");
-            js_print(ctx, JS_NULL, 1, &exception_val);
+                js_dump_obj(ctx, outfile, exception_val);
+            } else {
+                js_print(ctx, JS_NULL, 1, &exception_val);
+            }
         }
         if (is_error) {
             JSValue name, stack;
@@ -2216,7 +2248,7 @@ int run_test262_harness_test(ThreadLocalStorage *tls,
     res_val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
     ret_code = 0;
     if (JS_IsException(res_val)) {
-       QJU_PrintException(ctx, stderr);
+       test262_dump_error(ctx);
        ret_code = 1;
     } else {
         JSValue promise = JS_UNDEFINED;
@@ -2228,7 +2260,7 @@ int run_test262_harness_test(ThreadLocalStorage *tls,
         for(;;) {
             ret = JS_ExecutePendingJob(JS_GetRuntime(ctx), NULL);
             if (ret < 0) {
-                QJU_PrintException(ctx, stderr);
+                test262_dump_error(ctx);
                 ret_code = 1;
             } else if (ret == 0) {
                 break;
@@ -2239,7 +2271,7 @@ int run_test262_harness_test(ThreadLocalStorage *tls,
             JSPromiseStateEnum state = JS_PromiseState(ctx, promise);
             if (state == JS_PROMISE_REJECTED) {
                 JS_Throw(ctx, JS_PromiseResult(ctx, promise));
-                QJU_PrintException(ctx, stderr);
+                test262_dump_error(ctx);
                 ret_code = 1;
             }
         }
