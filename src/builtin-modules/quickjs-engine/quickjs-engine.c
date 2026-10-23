@@ -338,6 +338,7 @@ static int js_userdefined_module_init(JSContext *ctx, JSModuleDef *m)
     }
 
     JS_SetModuleExport(ctx, m, key_str, JS_DupValue(ctx, foreach->val));
+    JS_FreeCString(ctx, key_str);
   }
 
 end:
@@ -406,6 +407,7 @@ static JSValue js_engine_defineBuiltinModule(JSContext *ctx, JSValueConst this_v
     }
 
     JS_AddModuleExport(ctx, m, key_str);
+    JS_FreeCString(ctx, key_str);
   }
 
   // force module instantiation to happen now while &obj is still a valid
