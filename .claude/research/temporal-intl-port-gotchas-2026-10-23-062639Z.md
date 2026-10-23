@@ -4,7 +4,7 @@ paths:
   - "src/lib/temporal/**"
   - "src/quickjs/quickjs.c"
   - "src/quickjs/quickjs.h"
-  - "upstream-merge-status.md"
+  - ".claude/upstream-merge/status.md"
   - "tests/oldtests/**"
 ---
 

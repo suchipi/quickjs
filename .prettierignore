@@ -14,4 +14,4 @@ meta/compat/compat-table/
 tests/fixtures/
 
 # prettier table formatting makes this unreadable
-upstream-merge-status.md
+.claude/upstream-merge/status.md

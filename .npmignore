@@ -2,7 +2,6 @@
 .gitmodules
 .nvmrc
 .claude
-upstream-merge-status.md
 compile_commands.json
 examples
 meta

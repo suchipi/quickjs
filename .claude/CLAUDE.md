@@ -138,7 +138,7 @@ Ninja configs for building static library archives: `full` (complete engine with
 
 ## Upstream Catch-Up
 
-The fork is being brought up to date with `bellard/quickjs` one upstream commit at a time. `upstream-merge-status.md` in the repo root is the canonical tracker: one row per upstream commit with a status (PENDING / PORT / SKIP-NA / SKIP-DONE / SKIP-BAD) and porting notes. The protocol itself, including the upstream-path-to-fork-path map and the ancestry-marker merge convention, is in [.claude/upstream-merge/plan.md](.claude/upstream-merge/plan.md); it carries the narrow git-mutation exemption described in `.claude/rules/no-git-mutations.md`.
+The fork is being brought up to date with `bellard/quickjs` one upstream commit at a time. `.claude/upstream-merge/status.md` is the canonical tracker: one row per upstream commit with a status (PENDING / PORT / SKIP-NA / SKIP-DONE / SKIP-BAD) and porting notes. The protocol itself, including the upstream-path-to-fork-path map and the ancestry-marker merge convention, is in [.claude/upstream-merge/plan.md](.claude/upstream-merge/plan.md); it carries the narrow git-mutation exemption described in `.claude/rules/no-git-mutations.md`.
 
 ## Research Tasks
 
