@@ -136,7 +136,7 @@ test("globals", async () => {
     WeakRef: function (CW)
     FinalizationRegistry: function (CW)
     Temporal: object (CW)
-    Intl: object (CWE)
+    Intl: object (CW)
     inspect: function (CWE)
     print: function (CWE)
     console: object (CWE)

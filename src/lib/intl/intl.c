@@ -1721,7 +1721,8 @@ int JS_AddIntrinsicIntl(JSContext *ctx)
     }
 
     /* set Intl on global object */
-    ret = JS_SetPropertyStr(ctx, global_obj, "Intl", intl_obj);
+    ret = JS_DefinePropertyValueStr(ctx, global_obj, "Intl", intl_obj,
+                                    JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
     JS_FreeValue(ctx, global_obj);
     if (ret < 0)
         return -1;
