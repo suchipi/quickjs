@@ -25551,9 +25551,8 @@ static int __exception js_parse_property_name(JSParseState *s,
         /* if allow_private is true (for class field parsing) and
            get/set is following by ';' (or LF with ASI), then it
            is a field name */
-        if ((token_is_pseudo_keyword(s, JS_ATOM_get) ||
-             token_is_pseudo_keyword(s, JS_ATOM_set)) &&
-            (!allow_private || peek_token(s, TRUE) != '\n')) {
+        if (token_is_pseudo_keyword(s, JS_ATOM_get) ||
+            token_is_pseudo_keyword(s, JS_ATOM_set)) {
             /* get x(), set x() */
             name = JS_DupAtom(s->ctx, s->token.u.ident.atom);
             if (next_token(s))
@@ -25561,7 +25560,8 @@ static int __exception js_parse_property_name(JSParseState *s,
             if (s->token.val == ':' || s->token.val == ',' ||
                 s->token.val == '}' || s->token.val == '(' ||
                 s->token.val == '=' ||
-                (s->token.val == ';' && allow_private)) {
+                ((s->token.val == ';' || s->token.val == '*') &&
+                 allow_private)) {
                 is_non_reserved_ident = TRUE;
                 goto ident_found;
             }
@@ -26299,7 +26299,7 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
         }
         is_static = FALSE;
         if (s->token.val == TOK_STATIC) {
-            int next = peek_token(s, TRUE);
+            int next = peek_token(s, FALSE);
             if (!(next == ';' || next == '}' || next == '(' || next == '='))
                 is_static = TRUE;
         }
