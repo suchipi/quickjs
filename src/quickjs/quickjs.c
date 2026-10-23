@@ -21511,8 +21511,8 @@ static JSContext *JS_GetFunctionRealm(JSContext *ctx, JSValueConst func_obj)
     return realm;
 }
 
-static JSValue js_create_from_ctor(JSContext *ctx, JSValueConst ctor,
-                                   int class_id)
+JSValue JS_CreateFromConstructor(JSContext *ctx, JSValueConst ctor,
+                                 int class_id)
 {
     JSValue proto, obj;
     JSContext *realm;
@@ -21570,7 +21570,7 @@ static JSValue JS_CallConstructorInternal(JSContext *ctx,
     } else {
         JSValue obj, ret;
         /* legacy constructor behavior */
-        obj = js_create_from_ctor(ctx, new_target, JS_CLASS_OBJECT);
+        obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_OBJECT);
         if (JS_IsException(obj))
             return JS_EXCEPTION;
         ret = JS_CallInternal(ctx, func_obj, obj, new_target, argc, argv, flags);
@@ -21911,7 +21911,7 @@ static JSValue js_generator_function_call(JSContext *ctx, JSValueConst func_obj,
         goto fail;
     JS_FreeValue(ctx, func_ret);
 
-    obj = js_create_from_ctor(ctx, func_obj, JS_CLASS_GENERATOR);
+    obj = JS_CreateFromConstructor(ctx, func_obj, JS_CLASS_GENERATOR);
     if (JS_IsException(obj))
         goto fail;
     JS_SetOpaque(obj, s);
@@ -22518,7 +22518,7 @@ static JSValue js_async_generator_function_call(JSContext *ctx, JSValueConst fun
         goto fail;
     JS_FreeValue(ctx, func_ret);
 
-    obj = js_create_from_ctor(ctx, func_obj, JS_CLASS_ASYNC_GENERATOR);
+    obj = JS_CreateFromConstructor(ctx, func_obj, JS_CLASS_ASYNC_GENERATOR);
     if (JS_IsException(obj))
         goto fail;
     s->generator = JS_VALUE_GET_OBJ(obj);
@@ -42444,7 +42444,7 @@ static JSValue js_object_constructor(JSContext *ctx, JSValueConst new_target,
     if (!JS_IsUndefined(new_target) &&
         JS_VALUE_GET_OBJ(new_target) !=
         JS_VALUE_GET_OBJ(JS_GetActiveFunction(ctx))) {
-        ret = js_create_from_ctor(ctx, new_target, JS_CLASS_OBJECT);
+        ret = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_OBJECT);
     } else {
         int tag = JS_VALUE_GET_NORM_TAG(argv[0]);
         switch(tag) {
@@ -44210,7 +44210,7 @@ static JSValue js_array_constructor(JSContext *ctx, JSValueConst new_target,
     JSValue obj;
     int i;
 
-    obj = js_create_from_ctor(ctx, new_target, JS_CLASS_ARRAY);
+    obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_ARRAY);
     if (JS_IsException(obj))
         return obj;
     if (argc == 1 && JS_IsNumber(argv[0])) {
@@ -46331,7 +46331,7 @@ static JSValue js_iterator_constructor(JSContext *ctx, JSValueConst new_target,
         p->u.cfunc.c_function.generic == js_iterator_constructor) {
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "abstract class not constructable");
     }
-    return js_create_from_ctor(ctx, new_target, JS_CLASS_ITERATOR);
+    return JS_CreateFromConstructor(ctx, new_target, JS_CLASS_ITERATOR);
 }
 
 // note: deliberately doesn't use space-saving bit fields for
@@ -47340,7 +47340,7 @@ static JSValue js_number_constructor(JSContext *ctx, JSValueConst new_target,
         }
     }
     if (!JS_IsUndefined(new_target)) {
-        obj = js_create_from_ctor(ctx, new_target, JS_CLASS_NUMBER);
+        obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_NUMBER);
         if (!JS_IsException(obj))
             JS_SetObjectData(ctx, obj, val);
         return obj;
@@ -47626,7 +47626,7 @@ static JSValue js_boolean_constructor(JSContext *ctx, JSValueConst new_target,
     JSValue val, obj;
     val = JS_NewBool(ctx, JS_ToBool(ctx, argv[0]));
     if (!JS_IsUndefined(new_target)) {
-        obj = js_create_from_ctor(ctx, new_target, JS_CLASS_BOOLEAN);
+        obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_BOOLEAN);
         if (!JS_IsException(obj))
             JS_SetObjectData(ctx, obj, val);
         return obj;
@@ -47781,7 +47781,7 @@ static JSValue js_string_constructor(JSContext *ctx, JSValueConst new_target,
     if (!JS_IsUndefined(new_target)) {
         JSString *p1 = JS_VALUE_GET_STRING(val);
 
-        obj = js_create_from_ctor(ctx, new_target, JS_CLASS_STRING);
+        obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_STRING);
         if (JS_IsException(obj)) {
             JS_FreeValue(ctx, val);
         } else {
@@ -50329,7 +50329,7 @@ static JSValue js_regexp_constructor(JSContext *ctx, JSValueConst new_target,
         pattern = JS_DupValue(ctx, JS_MKPTR(JS_TAG_STRING, re->pattern));
         if (JS_IsUndefined(flags1)) {
             bc = JS_DupValue(ctx, JS_MKPTR(JS_TAG_STRING, re->bytecode));
-            obj = js_create_from_ctor(ctx, new_target, JS_CLASS_REGEXP);
+            obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_REGEXP);
             if (JS_IsException(obj))
                 goto fail;
             goto no_compilation;
@@ -50362,7 +50362,7 @@ static JSValue js_regexp_constructor(JSContext *ctx, JSValueConst new_target,
                 goto fail;
         }
     }
-    obj = js_create_from_ctor(ctx, new_target, JS_CLASS_REGEXP);
+    obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_REGEXP);
     if (JS_IsException(obj))
         goto fail;
     bc = js_compile_regexp(ctx, pattern, flags);
@@ -54366,7 +54366,7 @@ static JSValue js_map_constructor(JSContext *ctx, JSValueConst new_target,
 
     is_set = magic & MAGIC_SET;
     is_weak = ((magic & MAGIC_WEAK) != 0);
-    obj = js_create_from_ctor(ctx, new_target, JS_CLASS_MAP + magic);
+    obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_MAP + magic);
     if (JS_IsException(obj))
         return JS_EXCEPTION;
     s = js_mallocz(ctx, sizeof(*s));
@@ -56316,7 +56316,7 @@ static JSValue js_promise_constructor(JSContext *ctx, JSValueConst new_target,
     if (check_function(ctx, executor)) {
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "first argument passed to Promise constructor wasn't a function");
     }
-    obj = js_create_from_ctor(ctx, new_target, JS_CLASS_PROMISE);
+    obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_PROMISE);
     if (JS_IsException(obj))
         return JS_EXCEPTION;
     s = js_mallocz(ctx, sizeof(*s));
@@ -58116,7 +58116,7 @@ has_val:
     args[2] = JS_NewFloat64(ctx, val);
     rv = js___date_create(ctx, JS_UNDEFINED, 3, args);
 #else
-    rv = js_create_from_ctor(ctx, new_target, JS_CLASS_DATE);
+    rv = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_DATE);
     if (!JS_IsException(rv))
         JS_SetObjectData(ctx, rv, JS_NewFloat64(ctx, val));
 #endif
@@ -58804,7 +58804,7 @@ static const JSCFunctionListEntry js_date_proto_funcs[] = {
 
 JSValue JS_NewDate(JSContext *ctx, double epoch_ms)
 {
-    JSValue obj = js_create_from_ctor(ctx, JS_UNDEFINED, JS_CLASS_DATE);
+    JSValue obj = JS_CreateFromConstructor(ctx, JS_UNDEFINED, JS_CLASS_DATE);
     if (JS_IsException(obj))
         return JS_EXCEPTION;
     JS_SetObjectData(ctx, obj, __JS_NewFloat64(ctx, time_clip(epoch_ms)));
@@ -59445,7 +59445,7 @@ static JSValue js_array_buffer_constructor3(JSContext *ctx,
                                      "resizable ArrayBuffers not supported "
                                      "for externally managed buffers");
     }
-    obj = js_create_from_ctor(ctx, new_target, class_id);
+    obj = JS_CreateFromConstructor(ctx, new_target, class_id);
     if (JS_IsException(obj))
         return obj;
     /* XXX: we are currently limited to 2 GB */
@@ -62019,7 +62019,7 @@ static JSValue JS_NewUint8ArrayCopy(JSContext *ctx, const uint8_t *buf, size_t l
                                           TRUE);
     if (JS_IsException(buffer))
         return JS_EXCEPTION;
-    obj = js_create_from_ctor(ctx, JS_UNDEFINED, JS_CLASS_UINT8_ARRAY);
+    obj = JS_CreateFromConstructor(ctx, JS_UNDEFINED, JS_CLASS_UINT8_ARRAY);
     if (JS_IsException(obj)) {
         JS_FreeValue(ctx, buffer);
         return JS_EXCEPTION;
@@ -62609,7 +62609,7 @@ static JSValue js_typed_array_constructor_obj(JSContext *ctx,
     int64_t len;
 
     size_log2 = typed_array_size_log2(classid);
-    ret = js_create_from_ctor(ctx, new_target, classid);
+    ret = JS_CreateFromConstructor(ctx, new_target, classid);
     if (JS_IsException(ret))
         return JS_EXCEPTION;
 
@@ -62664,7 +62664,7 @@ static JSValue js_typed_array_constructor_ta(JSContext *ctx,
     int size_log2;
     JSArrayBuffer *src_abuf, *abuf;
 
-    obj = js_create_from_ctor(ctx, new_target, classid);
+    obj = JS_CreateFromConstructor(ctx, new_target, classid);
     if (JS_IsException(obj))
         return obj;
     p = JS_VALUE_GET_OBJ(src_obj);
@@ -62725,7 +62725,7 @@ static JSValue js_typed_array_constructor(JSContext *ctx,
     if (JS_VALUE_GET_TAG(argv[0]) != JS_TAG_OBJECT) {
         if (JS_ToIndex(ctx, &len, argv[0]))
             return JS_EXCEPTION;
-        obj = js_create_from_ctor(ctx, new_target, classid);
+        obj = JS_CreateFromConstructor(ctx, new_target, classid);
         if (JS_IsException(obj))
             return JS_EXCEPTION;
         buffer = js_array_buffer_constructor1(ctx, JS_UNDEFINED,
@@ -62738,7 +62738,7 @@ static JSValue js_typed_array_constructor(JSContext *ctx,
         JSObject *p = JS_VALUE_GET_OBJ(argv[0]);
         if (p->class_id == JS_CLASS_ARRAY_BUFFER ||
             p->class_id == JS_CLASS_SHARED_ARRAY_BUFFER) {
-            obj = js_create_from_ctor(ctx, new_target, classid);
+            obj = JS_CreateFromConstructor(ctx, new_target, classid);
             if (JS_IsException(obj))
                 return JS_EXCEPTION;
             if (JS_ToIndex(ctx, &offset, argv[1]))
@@ -62859,15 +62859,15 @@ static JSValue js_dataview_constructor(JSContext *ctx,
         track_rab = array_buffer_is_resizable(abuf);
     }
 
-    obj = js_create_from_ctor(ctx, new_target, JS_CLASS_DATAVIEW);
+    obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_DATAVIEW);
     if (JS_IsException(obj))
         return JS_EXCEPTION;
     if (abuf->detached) {
-        /* could have been detached in js_create_from_ctor() */
+        /* could have been detached in JS_CreateFromConstructor() */
         JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
         goto fail;
     }
-    // RAB could have been resized in js_create_from_ctor()
+    // RAB could have been resized in JS_CreateFromConstructor()
     if (offset > abuf->byte_length) {
         goto out_of_bound;
     } else if (recompute_len) {
@@ -63868,7 +63868,7 @@ static JSValue js_weakref_constructor(JSContext *ctx, JSValueConst new_target,
     arg = argv[0];
     if (!js_weakref_is_target(arg))
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid target");
-    obj = js_create_from_ctor(ctx, new_target, JS_CLASS_WEAK_REF);
+    obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_WEAK_REF);
     if (JS_IsException(obj))
         return JS_EXCEPTION;
     JSWeakRefData *wrd = js_mallocz(ctx, sizeof(*wrd));
@@ -63999,7 +63999,7 @@ static JSValue js_finrec_constructor(JSContext *ctx, JSValueConst new_target,
     if (!JS_IsFunction(ctx, cb))
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "argument must be a function");
 
-    obj = js_create_from_ctor(ctx, new_target, JS_CLASS_FINALIZATION_REGISTRY);
+    obj = JS_CreateFromConstructor(ctx, new_target, JS_CLASS_FINALIZATION_REGISTRY);
     if (JS_IsException(obj))
         return JS_EXCEPTION;
     frd = js_mallocz(ctx, sizeof(*frd));
