@@ -21,6 +21,8 @@ declare module "quickjs:context" {
      * - URIError
      * - InternalError
      * - AggregateError
+     * - SuppressedError
+     * - DisposableStack
      * - Array
      * - parseInt
      * - parseFloat
@@ -99,6 +101,7 @@ declare module "quickjs:context" {
        * - async functions
        * - async iterators
        * - async generators
+       * - AsyncDisposableStack
        *
        * Defaults to `true`.
        */

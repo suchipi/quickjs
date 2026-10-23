@@ -95,6 +95,8 @@ The following globals are always present, regardless of options:
 - URIError
 - InternalError
 - AggregateError
+- SuppressedError
+- DisposableStack
 - Array
 - parseInt
 - parseFloat

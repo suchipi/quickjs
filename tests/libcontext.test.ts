@@ -36,6 +36,7 @@ test("quickjs:context - example", async () => {
     	URIError: Function "URIError" {…}
     	InternalError: Function "InternalError" {…}
     	AggregateError: Function "AggregateError" {…}
+    	SuppressedError: Function "SuppressedError" {…}
     	Array: Function "Array" {…}
     	Object: Function "Object" {…}
     	Function: Function "Function" {…}
@@ -60,6 +61,7 @@ test("quickjs:context - example", async () => {
     	Math: Object {…}
     	Reflect: Object {…}
     	Symbol: Function "Symbol" {…}
+    	DisposableStack: Function "DisposableStack" {…}
     	globalThis: -> {root}
     	BigInt: Function "BigInt" {…}
     	@@toStringTag: "global"

@@ -148,6 +148,7 @@ enum {
     JS_CLASS_STRING_ITERATOR,   /* u.array_iterator_data */
     JS_CLASS_REGEXP_STRING_ITERATOR,   /* u.regexp_string_iterator_data */
     JS_CLASS_GENERATOR,         /* u.generator_data */
+    JS_CLASS_DISPOSABLE_STACK,
     JS_CLASS_GLOBAL_OBJECT,     /* u.global_object */
     JS_CLASS_RAWJSON,
     JS_CLASS_PROXY,             /* u.proxy_data */
@@ -160,6 +161,7 @@ enum {
     JS_CLASS_ASYNC_FROM_SYNC_ITERATOR,  /* u.async_from_sync_iterator_data */
     JS_CLASS_ASYNC_GENERATOR_FUNCTION,  /* u.func */
     JS_CLASS_ASYNC_GENERATOR,   /* u.async_generator_data */
+    JS_CLASS_ASYNC_DISPOSABLE_STACK,
     JS_CLASS_WEAK_REF,
     JS_CLASS_FINALIZATION_REGISTRY,
 

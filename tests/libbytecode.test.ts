@@ -33,7 +33,7 @@ test("bytecode - normal values", async () => {
     }
     back toValue 7
     fromValue { a: 5 } ArrayBuffer {
-    	│0x00000000│ 09 01 02 61 08 01 EA 03 05 0A
+    	│0x00000000│ 09 01 02 61 08 01 F8 03 05 0A
     }
     back toValue {
     	a: 5
@@ -71,10 +71,10 @@ test("bytecode - script file", async () => {
       "stdout": "fromFile ArrayBuffer {
     	│0x00000000│ 09 03 0E 63 6F 6E 73 6F 6C 65 06 6C 6F 67 34 74
     	│0x00000010│ 65 73 74 73 2F 66 69 78 74 75 72 65 73 2F 6C 6F
-    	│0x00000020│ 67 2D 66 6F 75 72 2E 6A 73 0C 00 06 00 A8 01 00
-    	│0x00000030│ 01 00 04 00 01 00 10 01 AA 01 00 00 00 EA 03 00
-    	│0x00000040│ 05 00 38 00 00 3E F6 00 00 00 B7 B7 9B 24 01 00
-    	│0x00000050│ CD 28 EE 03 08 00 00 11 0E 25 0E 07 05 00
+    	│0x00000020│ 67 2D 66 6F 75 72 2E 6A 73 0C 00 06 00 AC 01 00
+    	│0x00000030│ 01 00 04 00 01 00 10 01 AE 01 00 00 00 F8 03 00
+    	│0x00000040│ 05 00 38 00 00 3E FD 00 00 00 B7 B7 9B 24 01 00
+    	│0x00000050│ CD 28 FC 03 08 00 00 11 0E 25 0E 07 05 00
     }
     toValue Function "bound bytecode" {
     	│1│ function bound bytecode() {
@@ -117,11 +117,11 @@ test("bytecode - module file", async () => {
     	│0x00000000│ 09 05 3C 74 65 73 74 73 2F 66 69 78 74 75 72 65
     	│0x00000010│ 73 2F 65 78 70 6F 72 74 73 2D 66 69 76 65 2E 6A
     	│0x00000020│ 73 08 66 69 76 65 0E 63 6F 6E 73 6F 6C 65 06 6C
-    	│0x00000030│ 6F 67 16 65 78 70 6F 72 74 69 6E 67 20 35 0D EA
-    	│0x00000040│ 03 00 01 00 00 EC 03 00 00 00 0C 20 06 01 A8 01
-    	│0x00000050│ 00 00 00 03 00 02 00 19 00 EC 03 00 1E 00 EE 03
-    	│0x00000060│ 00 05 00 08 EA 02 29 38 01 00 3E F8 00 00 00 04
-    	│0x00000070│ F9 00 00 00 24 01 00 0E BA E1 06 2F EA 03 08 00
+    	│0x00000030│ 6F 67 16 65 78 70 6F 72 74 69 6E 67 20 35 0D F8
+    	│0x00000040│ 03 00 01 00 00 FA 03 00 00 00 0C 20 06 01 AC 01
+    	│0x00000050│ 00 00 00 03 00 02 00 19 00 FA 03 00 1E 00 FC 03
+    	│0x00000060│ 00 05 00 08 EA 02 29 38 01 00 3E FF 00 00 00 04
+    	│0x00000070│ 00 01 00 00 24 01 00 0E BA E1 06 2F F8 03 08 00
     	│0x00000080│ 00 25 0E 34 08 1C 0E 00
     }
     toValue Function "bound bytecode" {
@@ -518,7 +518,7 @@ test("bytecode - AggregateError round-trips with nested Error instances preserve
   `);
 });
 
-test("bytecode - all 9 recognized Error classes reify to their exact class", async () => {
+test("bytecode - all 10 recognized Error classes reify to their exact class", async () => {
   const run = spawn(
     binDir("qjs"),
     [
@@ -527,13 +527,20 @@ test("bytecode - all 9 recognized Error classes reify to their exact class", asy
         const bytecode = require("quickjs:bytecode");
         const classes = [
           Error, TypeError, RangeError, SyntaxError, ReferenceError,
-          URIError, EvalError, AggregateError, InternalError,
+          URIError, EvalError, AggregateError, InternalError, SuppressedError,
         ];
-        for (const C of classes) {
-          const src = C === AggregateError ? new C([], "m") : new C("m");
+        for (const ErrorClass of classes) {
+          let src;
+          if (ErrorClass === AggregateError) {
+            src = new ErrorClass([], "m");
+          } else if (ErrorClass === SuppressedError) {
+            src = new ErrorClass(1, 2, "m");
+          } else {
+            src = new ErrorClass("m");
+          }
           const buf = bytecode.fromValue(src, { serializeErrors: true });
           const r = bytecode.toValue(buf, { serializeErrors: true });
-          console.log(C.name, "instanceof", C.name + ":", r instanceof C);
+          console.log(ErrorClass.name, "instanceof", ErrorClass.name + ":", r instanceof ErrorClass);
         }
       `,
     ],
@@ -554,6 +561,7 @@ test("bytecode - all 9 recognized Error classes reify to their exact class", asy
     EvalError instanceof EvalError: true
     AggregateError instanceof AggregateError: true
     InternalError instanceof InternalError: true
+    SuppressedError instanceof SuppressedError: true
     ",
     }
   `);

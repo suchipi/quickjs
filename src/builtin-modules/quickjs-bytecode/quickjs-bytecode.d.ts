@@ -42,7 +42,8 @@ declare module "quickjs:bytecode" {
    *
    * To serialize Error instances (including `TypeError`, `RangeError`,
    * `SyntaxError`, `ReferenceError`, `URIError`, `EvalError`,
-   * `AggregateError`, and `InternalError`), pass `serializeErrors: true`.
+   * `AggregateError`, `SuppressedError`, and `InternalError`), pass
+   * `serializeErrors: true`.
    * Without it, attempting to serialize any Error instance throws.
    */
   export function fromValue(
