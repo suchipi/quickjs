@@ -1235,10 +1235,7 @@ static void js_promise_resolve_function_finalizer(JSRuntime *rt, JSValue val);
 static void js_promise_resolve_function_mark(JSRuntime *rt, JSValueConst val,
                                 JS_MarkFunc *mark_func);
 
-#define HINT_STRING  0
-#define HINT_NUMBER  1
-#define HINT_NONE    2
-#define HINT_FORCE_ORDINARY (1 << 4) // don't try Symbol.toPrimitive
+#define JS_HINT_FORCE_ORDINARY (1 << 4) // don't try Symbol.toPrimitive
 static JSValue JS_ToPrimitiveFree(JSContext *ctx, JSValue val, int hint);
 static JSValue JS_ToStringFree(JSContext *ctx, JSValue val);
 static int JS_ToBoolFree(JSContext *ctx, JSValue val);
@@ -1264,7 +1261,6 @@ static BOOL js_strict_eq2(JSContext *ctx, JSValueConst op1, JSValueConst op2,
 static BOOL js_strict_eq(JSContext *ctx, JSValueConst op1, JSValueConst op2);
 static BOOL js_same_value(JSContext *ctx, JSValueConst op1, JSValueConst op2);
 static BOOL js_same_value_zero(JSContext *ctx, JSValueConst op1, JSValueConst op2);
-static JSValue JS_ToObject(JSContext *ctx, JSValueConst val);
 static JSValue JS_ToObjectFree(JSContext *ctx, JSValue val);
 static JSProperty *add_property(JSContext *ctx,
                                 JSObject *p, JSAtom prop, int prop_flags);
@@ -11551,8 +11547,8 @@ static JSValue JS_ToPrimitiveFree(JSContext *ctx, JSValue val, int hint)
     JSValue method, ret;
     if (JS_VALUE_GET_TAG(val) != JS_TAG_OBJECT)
         return val;
-    force_ordinary = hint & HINT_FORCE_ORDINARY;
-    hint &= ~HINT_FORCE_ORDINARY;
+    force_ordinary = hint & JS_HINT_FORCE_ORDINARY;
+    hint &= ~JS_HINT_FORCE_ORDINARY;
     if (!force_ordinary) {
         method = JS_GetProperty(ctx, val, JS_ATOM_Symbol_toPrimitive);
         if (JS_IsException(method))
@@ -11563,14 +11559,14 @@ static JSValue JS_ToPrimitiveFree(JSContext *ctx, JSValue val, int hint)
             JSAtom atom;
             JSValue arg;
             switch(hint) {
-            case HINT_STRING:
+            case JS_HINT_STRING:
                 atom = JS_ATOM_string;
                 break;
-            case HINT_NUMBER:
+            case JS_HINT_NUMBER:
                 atom = JS_ATOM_number;
                 break;
             default:
-            case HINT_NONE:
+            case JS_HINT_NONE:
                 atom = JS_ATOM_default;
                 break;
             }
@@ -11588,8 +11584,8 @@ static JSValue JS_ToPrimitiveFree(JSContext *ctx, JSValue val, int hint)
             goto type_error;
         }
     }
-    if (hint != HINT_STRING)
-        hint = HINT_NUMBER;
+    if (hint != JS_HINT_STRING)
+        hint = JS_HINT_NUMBER;
     for(i = 0; i < 2; i++) {
         if ((i ^ hint) == 0) {
             method_name = JS_ATOM_toString;
@@ -11619,7 +11615,7 @@ exception:
     return JS_EXCEPTION;
 }
 
-static JSValue JS_ToPrimitive(JSContext *ctx, JSValueConst val, int hint)
+JSValue JS_ToPrimitive(JSContext *ctx, JSValueConst val, int hint)
 {
     return JS_ToPrimitiveFree(ctx, JS_DupValue(ctx, val), hint);
 }
@@ -13460,7 +13456,7 @@ static JSValue JS_ToNumberHintFree(JSContext *ctx, JSValue val,
         ret = JS_NAN;
         break;
     case JS_TAG_OBJECT:
-        val = JS_ToPrimitiveFree(ctx, val, HINT_NUMBER);
+        val = JS_ToPrimitiveFree(ctx, val, JS_HINT_NUMBER);
         if (JS_IsException(val))
             return JS_EXCEPTION;
         goto redo;
@@ -13658,8 +13654,8 @@ int JS_ToInt32Sat(JSContext *ctx, int *pres, JSValueConst val)
     return JS_ToInt32SatFree(ctx, pres, JS_DupValue(ctx, val));
 }
 
-int JS_ToInt32Clamp(JSContext *ctx, int *pres, JSValueConst val,
-                    int min, int max, int min_offset)
+static int JS_ToInt32Clamp(JSContext *ctx, int *pres, JSValueConst val,
+                           int min, int max, int min_offset)
 {
     int res = JS_ToInt32SatFree(ctx, pres, JS_DupValue(ctx, val));
     if (res == 0) {
@@ -14129,7 +14125,7 @@ static JSValue JS_ToStringInternal(JSContext *ctx, JSValueConst val, BOOL is_ToP
     case JS_TAG_OBJECT:
         {
             JSValue val1, ret;
-            val1 = JS_ToPrimitive(ctx, val, HINT_STRING);
+            val1 = JS_ToPrimitive(ctx, val, JS_HINT_STRING);
             if (JS_IsException(val1))
                 return val1;
             ret = JS_ToStringInternal(ctx, val1, is_ToPropertyKey);
@@ -15215,7 +15211,7 @@ static JSValue JS_ToBigIntFree(JSContext *ctx, JSValue val)
             return val;
         goto redo;
     case JS_TAG_OBJECT:
-        val = JS_ToPrimitiveFree(ctx, val, HINT_NUMBER);
+        val = JS_ToPrimitiveFree(ctx, val, JS_HINT_NUMBER);
         if (JS_IsException(val))
             return val;
         goto redo;
@@ -15782,13 +15778,13 @@ static no_inline __exception int js_add_slow(JSContext *ctx, JSValue *sp)
     }
 
     if (tag1 == JS_TAG_OBJECT || tag2 == JS_TAG_OBJECT) {
-        op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NONE);
+        op1 = JS_ToPrimitiveFree(ctx, op1, JS_HINT_NONE);
         if (JS_IsException(op1)) {
             JS_FreeValue(ctx, op2);
             goto exception;
         }
 
-        op2 = JS_ToPrimitiveFree(ctx, op2, HINT_NONE);
+        op2 = JS_ToPrimitiveFree(ctx, op2, JS_HINT_NONE);
         if (JS_IsException(op2)) {
             JS_FreeValue(ctx, op1);
             goto exception;
@@ -16128,12 +16124,12 @@ static no_inline int js_relational_slow(JSContext *ctx, JSValue *sp,
     op2 = sp[-1];
     tag1 = JS_VALUE_GET_NORM_TAG(op1);
     tag2 = JS_VALUE_GET_NORM_TAG(op2);
-    op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NUMBER);
+    op1 = JS_ToPrimitiveFree(ctx, op1, JS_HINT_NUMBER);
     if (JS_IsException(op1)) {
         JS_FreeValue(ctx, op2);
         goto exception;
     }
-    op2 = JS_ToPrimitiveFree(ctx, op2, HINT_NUMBER);
+    op2 = JS_ToPrimitiveFree(ctx, op2, JS_HINT_NUMBER);
     if (JS_IsException(op2)) {
         JS_FreeValue(ctx, op1);
         goto exception;
@@ -16351,12 +16347,12 @@ static no_inline __exception int js_eq_slow(JSContext *ctx, JSValue *sp,
                 (tag_is_number(tag2) || tag_is_string(tag2) || tag2 == JS_TAG_SYMBOL)) ||
                (tag2 == JS_TAG_OBJECT &&
                 (tag_is_number(tag1) || tag_is_string(tag1) || tag1 == JS_TAG_SYMBOL))) {
-        op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NONE);
+        op1 = JS_ToPrimitiveFree(ctx, op1, JS_HINT_NONE);
         if (JS_IsException(op1)) {
             JS_FreeValue(ctx, op2);
             goto exception;
         }
-        op2 = JS_ToPrimitiveFree(ctx, op2, HINT_NONE);
+        op2 = JS_ToPrimitiveFree(ctx, op2, JS_HINT_NONE);
         if (JS_IsException(op2)) {
             JS_FreeValue(ctx, op1);
             goto exception;
@@ -42201,7 +42197,7 @@ static JSValue js_global_isFinite(JSContext *ctx, JSValueConst this_val,
 
 /* Object class */
 
-static JSValue JS_ToObject(JSContext *ctx, JSValueConst val)
+JSValue JS_ToObject(JSContext *ctx, JSValueConst val)
 {
     int tag = JS_VALUE_GET_NORM_TAG(val);
     JSValue obj;
@@ -42916,7 +42912,7 @@ static JSValue js_object_toPrimitive(JSContext *ctx, JSValueConst this_val,
     }
 
     input = argv[0];
-    hint = HINT_NONE;
+    hint = JS_HINT_NONE;
 
     if (argc > 1) {
         JSValueConst hint_val;
@@ -42929,11 +42925,11 @@ static JSValue js_object_toPrimitive(JSContext *ctx, JSValueConst this_val,
         }
 
         if (hint_atom == JS_ATOM_string) {
-            hint = HINT_STRING;
+            hint = JS_HINT_STRING;
         } else if (hint_atom == JS_ATOM_number) {
-            hint = HINT_NUMBER;
+            hint = JS_HINT_NUMBER;
         } else if (hint_atom == JS_ATOM_default) {
-            hint = HINT_NONE;
+            hint = JS_HINT_NONE;
         } else {
             JS_FreeAtom(ctx, hint_atom);
             return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid hint passed to toPrimitive.");
@@ -58076,7 +58072,7 @@ static JSValue js_date_constructor(JSContext *ctx, JSValueConst new_target,
                 goto has_val;
             }
         }
-        v = JS_ToPrimitive(ctx, argv[0], HINT_NONE);
+        v = JS_ToPrimitive(ctx, argv[0], JS_HINT_NONE);
         if (JS_IsString(v)) {
             dv = js_Date_parse(ctx, JS_UNDEFINED, 1, (JSValueConst *)&v);
             JS_FreeValue(ctx, v);
@@ -58631,16 +58627,16 @@ static JSValue js_date_Symbol_toPrimitive(JSContext *ctx, JSValueConst this_val,
     switch (hint) {
     case JS_ATOM_number:
     case JS_ATOM_integer:
-        hint_num = HINT_NUMBER;
+        hint_num = JS_HINT_NUMBER;
         break;
     case JS_ATOM_string:
     case JS_ATOM_default:
-        hint_num = HINT_STRING;
+        hint_num = JS_HINT_STRING;
         break;
     default:
         return JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "invalid hint");
     }
-    return JS_ToPrimitive(ctx, obj, hint_num | HINT_FORCE_ORDINARY);
+    return JS_ToPrimitive(ctx, obj, hint_num | JS_HINT_FORCE_ORDINARY);
 }
 
 static JSValue js_date_getTimezoneOffset(JSContext *ctx, JSValueConst this_val,
@@ -58710,7 +58706,7 @@ static JSValue js_date_toJSON(JSContext *ctx, JSValueConst this_val,
     tv = JS_UNDEFINED;
 
     obj = JS_ToObject(ctx, this_val);
-    tv = JS_ToPrimitive(ctx, obj, HINT_NUMBER);
+    tv = JS_ToPrimitive(ctx, obj, JS_HINT_NUMBER);
     if (JS_IsException(tv))
         goto exception;
     if (JS_IsNumber(tv)) {
@@ -58868,7 +58864,7 @@ static JSValue JS_ToBigIntCtorFree(JSContext *ctx, JSValue val)
         val = JS_StringToBigIntErr(ctx, val);
         break;
     case JS_TAG_OBJECT:
-        val = JS_ToPrimitiveFree(ctx, val, HINT_NUMBER);
+        val = JS_ToPrimitiveFree(ctx, val, JS_HINT_NUMBER);
         if (JS_IsException(val))
             break;
         goto redo;
@@ -60345,7 +60341,7 @@ static JSValue js_typed_array_with(JSContext *ctx, JSValueConst this_val,
     if (idx < 0)
         idx = len + idx;
 
-    val = JS_ToPrimitive(ctx, argv[1], HINT_NUMBER);
+    val = JS_ToPrimitive(ctx, argv[1], JS_HINT_NUMBER);
     if (JS_IsException(val))
         return JS_EXCEPTION;
 

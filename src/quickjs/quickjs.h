@@ -825,6 +825,11 @@ JS_BOOL JS_StrictEq(JSContext *ctx, JSValueConst op1, JSValueConst op2);
 JS_BOOL JS_SameValue(JSContext *ctx, JSValueConst op1, JSValueConst op2);
 JS_BOOL JS_SameValueZero(JSContext *ctx, JSValueConst op1, JSValueConst op2);
 
+JSValue JS_ToObject(JSContext *ctx, JSValueConst val);
+#define JS_HINT_STRING  0
+#define JS_HINT_NUMBER  1
+#define JS_HINT_NONE    2
+JSValue JS_ToPrimitive(JSContext *ctx, JSValueConst val, int hint);
 /* returns -1 when exception has been thrown, 0 or 1 when ok */
 int JS_ToBool(JSContext *ctx, JSValueConst val);
 /* returns -1 when exception has been thrown, 0 when ok */
@@ -834,6 +839,7 @@ static inline int JS_ToUint32(JSContext *ctx, uint32_t *pres, JSValueConst val)
 {
     return JS_ToInt32(ctx, (int32_t*)pres, val);
 }
+int JS_ToInt32Sat(JSContext *ctx, int *pres, JSValueConst val);
 /* returns -1 when exception has been thrown, 0 when ok */
 int JS_ToInt64(JSContext *ctx, int64_t *pres, JSValueConst val);
 /* returns -1 when exception has been thrown, 0 when ok */
