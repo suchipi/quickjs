@@ -13,6 +13,8 @@ declare module "quickjs:context" {
       mapSet?: boolean;
       typedArrays?: boolean;
       promise?: boolean;
+      temporal?: boolean;
+      intl?: boolean;
       inspect?: boolean;
       console?: boolean;
       print?: boolean;
@@ -51,6 +53,8 @@ class Context {
     mapSet?: boolean;
     typedArrays?: boolean;
     promise?: boolean;
+    temporal?: boolean;
+    intl?: boolean;
     inspect?: boolean;
     console?: boolean;
     print?: boolean;
@@ -129,6 +133,8 @@ constructor(options?: {
   mapSet?: boolean;
   typedArrays?: boolean;
   promise?: boolean;
+  temporal?: boolean;
+  intl?: boolean;
   inspect?: boolean;
   console?: boolean;
   print?: boolean;

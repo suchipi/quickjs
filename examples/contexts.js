@@ -27,6 +27,8 @@ const c3 = new Context({
   mapSet: false,
   typedArrays: false,
   promise: false,
+  temporal: false,
+  intl: false,
   bigint: false,
   bigfloat: false,
   bigdecimal: false,

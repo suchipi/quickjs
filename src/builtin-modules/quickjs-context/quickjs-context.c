@@ -77,7 +77,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     JSValue ret, options, global;
     JSContext *target_ctx;
     BOOL date, eval, stringNormalize, regExp, json, proxy, mapSet, typedArrays,
-        promise, inspect,
+        promise, temporal, intl, inspect,
         console, print, moduleGlobals, timers;
     BOOL module_bytecode, module_cmdline, module_context, module_encoding,
         module_engine, module_os, module_std, module_timers;
@@ -108,6 +108,12 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "promise", &promise, TRUE)) {
+        return JS_EXCEPTION;
+    }
+    if (get_option_bool(ctx, options, "temporal", &temporal, TRUE)) {
+        return JS_EXCEPTION;
+    }
+    if (get_option_bool(ctx, options, "intl", &intl, TRUE)) {
         return JS_EXCEPTION;
     }
     if (get_option_bool(ctx, options, "inspect", &inspect, TRUE)) {
@@ -220,6 +226,14 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     if (promise) {
         JS_AddIntrinsicPromise(target_ctx);
     }
+#ifdef CONFIG_TEMPORAL_INTL
+    if (temporal) {
+        JS_AddIntrinsicTemporal(target_ctx);
+    }
+    if (intl) {
+        JS_AddIntrinsicIntl(target_ctx);
+    }
+#endif
     if (module_std) {
         js_init_module_std(target_ctx, "quickjs:std");
     }

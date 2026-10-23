@@ -874,6 +874,50 @@ test("quickjs:context - promise: false disables Promise", async () => {
   `);
 });
 
+test("quickjs:context - temporal: false disables Temporal", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ temporal: false });
+      console.log(ctx.eval("typeof Temporal"), ctx.eval("typeof Intl"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "undefined object
+    ",
+    }
+  `);
+});
+
+test("quickjs:context - intl: false disables Intl", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+      import { Context } from "quickjs:context";
+      const ctx = new Context({ intl: false });
+      console.log(ctx.eval("typeof Intl"), ctx.eval("typeof Temporal"));
+      console.log(ctx.eval("new Temporal.PlainDate(2026, 1, 2).toLocaleString()"));
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "undefined object
+    2026-01-02
+    ",
+    }
+  `);
+});
+
 test("quickjs:context - inspect: false disables inspect", async () => {
   const run = spawn(binDir("qjs"), [
     "-e",
@@ -1025,6 +1069,8 @@ test("quickjs:context - ctx.eval with all options enabled (default)", async () =
         ctx.eval("typeof Promise"),
         ctx.eval("typeof BigInt"),
         ctx.eval("typeof ArrayBuffer"),
+        ctx.eval("typeof Temporal"),
+        ctx.eval("typeof Intl"),
       ];
       console.log(checks.join(" "));
     `,
@@ -1035,7 +1081,7 @@ test("quickjs:context - ctx.eval with all options enabled (default)", async () =
       "code": 0,
       "error": null,
       "stderr": "",
-      "stdout": "function function object function function function function function
+      "stdout": "function function object function function function function function object object
     ",
     }
   `);

@@ -1,5 +1,33 @@
 const core = require("./core.ninja");
 
+const temporal_intl_objects = [
+  "intl-collator",
+  "intl-datetimeformat",
+  "intl-displaynames",
+  "intl-durationformat",
+  "intl-intl",
+  "intl-listformat",
+  "intl-locale-data",
+  "intl-locale",
+  "intl-numberformat",
+  "intl-pluralrules",
+  "intl-relativetimeformat",
+  "intl-segmenter",
+  "temporal-calendar",
+  "temporal-duration",
+  "temporal-instant",
+  "temporal-now",
+  "temporal-plaindate",
+  "temporal-plaindatetime",
+  "temporal-plainmonthday",
+  "temporal-plaintime",
+  "temporal-plainyearmonth",
+  "temporal-temporal",
+  "temporal-timezone",
+  "temporal-tzdata_generated",
+  "temporal-zoneddatetime",
+];
+
 const quickjs_full_init_target_o = build({
   output: builddir("intermediate/quickjs-full-init.target.o"),
   rule: "cc_target",
@@ -50,6 +78,11 @@ if (process.env.CONFIG_EUCJP !== "0") {
 if (process.env.CONFIG_GB18030 !== "0") {
   deps_target.push(builddir("intermediate/libgb18030.target.o"));
 }
+if (process.env.CONFIG_TEMPORAL_INTL !== "0") {
+  for (const object of temporal_intl_objects) {
+    deps_target.push(builddir(`intermediate/${object}.target.o`));
+  }
+}
 
 const full_target = build({
   output: builddir("intermediate/quickjs-full.target.a"),
@@ -94,6 +127,11 @@ if (process.env.CONFIG_EUCJP !== "0") {
 }
 if (process.env.CONFIG_GB18030 !== "0") {
   deps_host.push(builddir("intermediate/libgb18030.host.o"));
+}
+if (process.env.CONFIG_TEMPORAL_INTL !== "0") {
+  for (const object of temporal_intl_objects) {
+    deps_host.push(builddir(`intermediate/${object}.host.o`));
+  }
 }
 
 const full_host = build({

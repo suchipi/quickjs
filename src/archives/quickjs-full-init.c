@@ -33,6 +33,15 @@ static int quickjs_full_init_modules(JSContext *ctx)
 
 static int quickjs_full_init_globals(JSContext *ctx)
 {
+#ifdef CONFIG_TEMPORAL_INTL
+    if (JS_AddIntrinsicTemporal(ctx)) {
+        return -1;
+    }
+    if (JS_AddIntrinsicIntl(ctx)) {
+        return -1;
+    }
+#endif
+
     if (js_inspect_add_inspect_global(ctx)) {
         return -1;
     }

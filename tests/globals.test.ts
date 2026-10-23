@@ -132,6 +132,8 @@ test("globals", async () => {
     Promise: function (CW)
     WeakRef: function (CW)
     FinalizationRegistry: function (CW)
+    Temporal: object (CW)
+    Intl: object (CWE)
     inspect: function (CWE)
     print: function (CWE)
     console: object (CWE)

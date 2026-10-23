@@ -104,6 +104,24 @@ declare module "quickjs:context" {
        */
       promise?: boolean;
 
+      /**
+       * Enables `Temporal`. Defaults to `true`.
+       *
+       * Has no effect if QuickJS was built with `CONFIG_TEMPORAL_INTL=0`, in
+       * which case `Temporal` is never available.
+       */
+      temporal?: boolean;
+
+      /**
+       * Enables `Intl`, and makes `toLocaleString` and related methods (such as
+       * `Number.prototype.toLocaleString`, `Date.prototype.toLocaleString`, and
+       * `String.prototype.localeCompare`) use it. Defaults to `true`.
+       *
+       * Has no effect if QuickJS was built with `CONFIG_TEMPORAL_INTL=0`, in
+       * which case `Intl` is never available.
+       */
+      intl?: boolean;
+
       /** Enables `inspect`. Defaults to `true`. */
       inspect?: boolean;
       /** Enables `console`. Defaults to `true`. */

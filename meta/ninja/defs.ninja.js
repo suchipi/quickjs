@@ -88,6 +88,11 @@ for (const suffix of ["HOST", "TARGET"]) {
     declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_GB18030=0");
   }
 
+  // Temporal and Intl - disabled if CONFIG_TEMPORAL_INTL=0
+  if (process.env.CONFIG_TEMPORAL_INTL !== "0") {
+    declareOrAppend(`DEFINES_${suffix}`, "-DCONFIG_TEMPORAL_INTL");
+  }
+
   // always treat chars as unsigned for consistent bytecode
   declareOrAppend(`CFLAGS_${suffix}`, "-funsigned-char");
 
