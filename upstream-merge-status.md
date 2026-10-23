@@ -507,7 +507,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | bf81c10 | PORT | exported JS_CreateFromConstructor() | Applied to src/quickjs/. Renames the static `js_create_from_ctor()` to the public `JS_CreateFromConstructor()` and declares it in quickjs.h. Two quickjs.c conflicts (Promise and WeakRef constructors) were the fork's own error messages next to the renamed call; kept the fork's messages with the new name. C API only. test262 unchanged. |
 | d81806f | PORT | export JS_ThisDateValue() | Clean `git apply --3way` to src/quickjs/. Renames the static `JS_ThisTimeValue()` to the public `JS_ThisDateValue()` and declares it in quickjs.h. C API only. test262 unchanged. |
 | c28c623 | PORT | export JS_OrdinaryIsInstanceOf() | Clean `git apply --3way` to src/quickjs/. Makes `JS_OrdinaryIsInstanceOf()` non-static and declares it in quickjs.h. C API only. test262 unchanged. |
-| c2a11b8 | PENDING | added JS_CFUNC_constructor_or_func_flags |  |
+| c2a11b8 | PORT | added JS_CFUNC_constructor_or_func_flags | Clean `git apply --3way` to src/quickjs/. Adds the `JS_CFUNC_constructor_or_func_flags` C function prototype, whose callback receives `func_obj` and the call flags, with its dispatch case in js_call_c_function. C API only. test262 unchanged. |
 | 7cf7315 | PENDING | exported iterator helpers |  |
 | 7b1b755 | PENDING | exported JS_NewCConstructor() |  |
 | 97f64ef | PENDING | added experimental AI coded Temporal and Intl support. There is no external dependency. Intl includes its own locale data (can be manually updated from the CLDR) and Temporal includes the calendar algorithms and a timezone database (can be manually updated from the system TZif files) |  |
