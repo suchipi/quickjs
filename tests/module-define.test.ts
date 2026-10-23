@@ -100,3 +100,33 @@ test("defineBuiltinModule - bypasses toplevel module resolution", async () => {
     }
   `);
 });
+
+test("defineBuiltinModule - export defined by a getter", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-m",
+    "-e",
+    `
+      import { defineBuiltinModule, gc } from "quickjs:engine";
+
+      defineBuiltinModule("mymodule", {
+        get something() {
+          return { greeting: "hello" };
+        },
+      });
+
+      gc();
+      const mod = require("mymodule");
+      console.log(mod.something.greeting);
+    `,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "hello
+    ",
+    }
+  `);
+});

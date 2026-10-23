@@ -39,6 +39,7 @@ QJUForEachPropertyState *QJU_NewForEachPropertyState(JSContext *ctx, JSValue obj
 
 JSValue QJU_ForEachProperty_Read(JSContext *ctx, JSValue obj, QJUForEachPropertyState *state)
 {
+  JS_FreeValue(ctx, state->val);
   state->key = JS_ATOM_NULL;
   state->val = JS_NULL;
 
@@ -48,10 +49,6 @@ JSValue QJU_ForEachProperty_Read(JSContext *ctx, JSValue obj, QJUForEachProperty
     return JS_EXCEPTION;
   }
 
-  // GetPropertyInternal dups this, but we don't want to increase the refcount,
-  // so we call free to bring it back down to what it was. If you want to keep
-  // this value, dup it yourself.
-  JS_FreeValue(ctx, state->val);
   return JS_UNDEFINED;
 }
 
@@ -60,6 +57,8 @@ void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state
   if (state == NULL) {
     return;
   }
+
+  JS_FreeValue(ctx, state->val);
 
   /* NOTE: state->key is borrowed from state->tab[state->i].atom (not duped),
      so we must NOT free it here — the tab loop below frees all tab atoms. */

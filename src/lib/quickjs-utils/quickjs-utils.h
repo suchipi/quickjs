@@ -21,7 +21,8 @@ QJUForEachPropertyState *QJU_NewForEachPropertyState(JSContext *ctx, JSValue obj
 
 // fills in `state` with data for the current property.
 // return value will be JS_EXCEPTION if an exception was thrown, or JS_UNDEFINED otherwise.
-// you must JS_DupValue `state->val` if you wanna keep it around.
+// `state->val` is freed by the next read or by QJU_FreeForEachPropertyState,
+// so you must JS_DupValue it if you wanna keep it around.
 JSValue QJU_ForEachProperty_Read(JSContext *ctx, JSValue obj, QJUForEachPropertyState *state);
 
 void QJU_FreeForEachPropertyState(JSContext *ctx, QJUForEachPropertyState *state);
