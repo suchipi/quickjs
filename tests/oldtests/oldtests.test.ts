@@ -12,8 +12,16 @@ if (shouldRunWineTests) {
   setupWineHooks();
 }
 
-async function qjs(args: Array<string>, debug?: boolean) {
-  const run = spawn(binDir("qjs"), args, { cwd: __dirname, debug });
+async function qjs(
+  args: Array<string>,
+  debug?: boolean,
+  env?: { [varName: string]: string }
+) {
+  const run = spawn(binDir("qjs"), args, {
+    cwd: __dirname,
+    debug,
+    env: env && { ...process.env, ...env },
+  });
   await Promise.race([
     run.completion,
     sleep.async(4500).then(() => {
@@ -59,6 +67,20 @@ describe("oldtests", () => {
 
   test("test_closure.js", async () => {
     expect(await qjs(["./test_closure.js"])).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "",
+      }
+    `);
+  });
+
+  test("test_intl.js", async () => {
+    // It formats dates built in local time and checks the wall-clock output.
+    expect(
+      await qjs(["./test_intl.js"], false, { TZ: "Europe/Paris" })
+    ).toMatchInlineSnapshot(`
       {
         "code": 0,
         "error": null,
