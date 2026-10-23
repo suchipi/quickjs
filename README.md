@@ -188,7 +188,7 @@ Timer functions extracted from quickjs-libc into their own module. Exports `setT
 
 ### New module: "quickjs:net"
 
-Networking functions, moved out of the `std` module. Exports `urlGet` (formerly `std.urlGet`), which downloads a URL using libcurl, loaded at runtime via `dlopen`.
+Networking functions, moved out of the `std` module. Exports `urlGet` (formerly `std.urlGet`), which downloads a URL using libcurl, loaded at runtime via `dlopen`. Also exports the new `urlRequest`, which works like `urlGet` but accepts a request method and body, and always returns the status code, response headers, and response body instead of throwing on non-2xx status codes.
 
 ### Changes to the module loader
 

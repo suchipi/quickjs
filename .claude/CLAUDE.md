@@ -92,7 +92,7 @@ JS modules compiled to C bytecode and embedded in the engine. Each exposes a `"q
 - `quickjs-bytecode` → `"quickjs:bytecode"` - Bytecode serialization
 - `quickjs-context` → `"quickjs:context"` - Realm/Context creation
 - `quickjs-encoding` → `"quickjs:encoding"` - Text encoding/decoding
-- `quickjs-net` → `"quickjs:net"` - Networking (`urlGet`, via libcurl loaded with `dlopen`)
+- `quickjs-net` → `"quickjs:net"` - Networking, implemented with libcurl (loaded at runtime via `dlopen`)
 
 ### Event Loop (`src/quickjs-eventloop/`)
 

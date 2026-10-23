@@ -82,8 +82,64 @@ declare module "quickjs:net" {
         full?: false;
       },
     ): string;
+    (
+      url: string,
+      options: UrlGetOptions,
+    ):
+      | string
+      | ArrayBuffer
+      | {
+          status: number;
+          response: string | ArrayBuffer;
+          responseHeaders: string;
+        };
   }
   export var urlGet: UrlGet;
+  export interface UrlRequestOptions extends Omit<UrlGetOptions, "full"> {
+    body?: string | ArrayBuffer;
+  }
+  export interface UrlRequest {
+    (
+      method: string,
+      url: string,
+    ): {
+      status: number;
+      response: string;
+      responseHeaders: string;
+    };
+    (
+      method: string,
+      url: string,
+      options: UrlRequestOptions & {
+        binary: true;
+      },
+    ): {
+      status: number;
+      response: ArrayBuffer;
+      responseHeaders: string;
+    };
+    (
+      method: string,
+      url: string,
+      options: UrlRequestOptions & {
+        binary?: false;
+      },
+    ): {
+      status: number;
+      response: string;
+      responseHeaders: string;
+    };
+    (
+      method: string,
+      url: string,
+      options: UrlRequestOptions,
+    ): {
+      status: number;
+      response: string | ArrayBuffer;
+      responseHeaders: string;
+    };
+  }
+  export var urlRequest: UrlRequest;
 }
 ```
 
@@ -209,6 +265,17 @@ interface UrlGet {
       full?: false;
     },
   ): string;
+  (
+    url: string,
+    options: UrlGetOptions,
+  ):
+    | string
+    | ArrayBuffer
+    | {
+        status: number;
+        response: string | ArrayBuffer;
+        responseHeaders: string;
+      };
 }
 ```
 
@@ -379,8 +446,234 @@ headers and status code. See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-n
 }): string;
 ```
 
+### UrlGet(...) (call signature)
+
+Download `url` using libcurl (dynamically loaded).
+
+When the `full` option is true, returns an object with three
+properties:
+
+- `response`: response body content (ArrayBuffer when the `binary`
+  option is true, string otherwise)
+- `responseHeaders`: headers separated by CRLF (string)
+- `status`: status code (number)
+
+Otherwise, returns the response body (ArrayBuffer when the `binary`
+option is true, string otherwise) when the http status code is between
+200 and 299, and throws otherwise.
+
+See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+
+```ts
+(url: string, options: UrlGetOptions): string | ArrayBuffer | {
+  status: number;
+  response: string | ArrayBuffer;
+  responseHeaders: string;
+};
+```
+
 ## "quickjs:net".urlGet (exported UrlGet)
 
 ```ts
 var urlGet: UrlGet;
+```
+
+## "quickjs:net".UrlRequestOptions (exported interface)
+
+Options for [urlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-urlrequest).
+
+```ts
+interface UrlRequestOptions extends Omit<UrlGetOptions, "full"> {
+  body?: string | ArrayBuffer;
+}
+```
+
+### UrlRequestOptions.body (property)
+
+The request body. Strings are sent as UTF-8.
+
+When omitted, the request has no body, except that a POST request sends
+an empty one.
+
+When a body is sent, libcurl adds the header
+`Content-Type: application/x-www-form-urlencoded`, unless you specify a
+`Content-Type` in `headers`.
+
+Passing a body with the HEAD method throws a TypeError.
+
+```ts
+body?: string | ArrayBuffer;
+```
+
+## "quickjs:net".UrlRequest (exported interface)
+
+The type of [urlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-urlrequest).
+
+`urlRequest` follows redirects, which affect the request like this:
+
+- After a 301, 302, or 303 redirect, a POST becomes a GET without a
+  body, like in browsers.
+- A 303 redirect also drops the body of any other method, but keeps the
+  method.
+- Otherwise, the method and body are both kept.
+
+```ts
+interface UrlRequest {
+  (
+    method: string,
+    url: string,
+  ): {
+    status: number;
+    response: string;
+    responseHeaders: string;
+  };
+  (
+    method: string,
+    url: string,
+    options: UrlRequestOptions & {
+      binary: true;
+    },
+  ): {
+    status: number;
+    response: ArrayBuffer;
+    responseHeaders: string;
+  };
+  (
+    method: string,
+    url: string,
+    options: UrlRequestOptions & {
+      binary?: false;
+    },
+  ): {
+    status: number;
+    response: string;
+    responseHeaders: string;
+  };
+  (
+    method: string,
+    url: string,
+    options: UrlRequestOptions,
+  ): {
+    status: number;
+    response: string | ArrayBuffer;
+    responseHeaders: string;
+  };
+}
+```
+
+### UrlRequest(...) (call signature)
+
+Send a request to `url` using libcurl (dynamically loaded).
+
+Returns an object with three properties:
+
+- `response`: response body content (string)
+- `responseHeaders`: headers separated by CRLF (string)
+- `status`: status code (number)
+
+Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
+outside 200-299. Redirects are followed; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how
+they affect the method and body.
+
+Pass an options object as the third argument to send a body or set
+headers. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+
+- `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
+- `@param` _url_ — The URL to send the request to.
+
+```ts
+(method: string, url: string): {
+  status: number;
+  response: string;
+  responseHeaders: string;
+};
+```
+
+### UrlRequest(...) (call signature)
+
+Send a request to `url` using libcurl (dynamically loaded).
+
+Returns an object with three properties:
+
+- `response`: response body content (ArrayBuffer)
+- `responseHeaders`: headers separated by CRLF (string)
+- `status`: status code (number)
+
+Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
+outside 200-299. Redirects are followed; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how
+they affect the method and body.
+
+- `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
+- `@param` _url_ — The URL to send the request to.
+- `@param` _options_ — The request body, headers, and response format. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+
+```ts
+(method: string, url: string, options: UrlRequestOptions & {
+  binary: true;
+}): {
+  status: number;
+  response: ArrayBuffer;
+  responseHeaders: string;
+};
+```
+
+### UrlRequest(...) (call signature)
+
+Send a request to `url` using libcurl (dynamically loaded).
+
+Returns an object with three properties:
+
+- `response`: response body content (string)
+- `responseHeaders`: headers separated by CRLF (string)
+- `status`: status code (number)
+
+Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
+outside 200-299. Redirects are followed; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how
+they affect the method and body.
+
+- `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
+- `@param` _url_ — The URL to send the request to.
+- `@param` _options_ — The request body, headers, and response format. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+
+```ts
+(method: string, url: string, options: UrlRequestOptions & {
+  binary?: false;
+}): {
+  status: number;
+  response: string;
+  responseHeaders: string;
+};
+```
+
+### UrlRequest(...) (call signature)
+
+Send a request to `url` using libcurl (dynamically loaded).
+
+Returns an object with three properties:
+
+- `response`: response body content (ArrayBuffer when the `binary`
+  option is true, string otherwise)
+- `responseHeaders`: headers separated by CRLF (string)
+- `status`: status code (number)
+
+Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
+outside 200-299. Redirects are followed; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how
+they affect the method and body.
+
+- `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
+- `@param` _url_ — The URL to send the request to.
+- `@param` _options_ — The request body, headers, and response format. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+
+```ts
+(method: string, url: string, options: UrlRequestOptions): {
+  status: number;
+  response: string | ArrayBuffer;
+  responseHeaders: string;
+};
+```
+
+## "quickjs:net".urlRequest (exported UrlRequest)
+
+```ts
+var urlRequest: UrlRequest;
 ```

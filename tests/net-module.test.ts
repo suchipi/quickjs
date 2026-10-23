@@ -3,7 +3,7 @@ import { spawn } from "first-base";
 import { binDir } from "./_utils";
 import http from "http";
 
-describe("net.urlGet", () => {
+describe("quickjs:net", () => {
   let server: http.Server;
   let port: number;
 
@@ -27,6 +27,32 @@ describe("net.urlGet", () => {
       } else if (req.url === "/echo-headers") {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(req.headers));
+      } else if (req.url === "/echo-request") {
+        const chunks: Array<Buffer> = [];
+        req.on("data", (chunk) => chunks.push(chunk));
+        req.on("end", () => {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              method: req.method,
+              contentType: req.headers["content-type"],
+              contentLength: req.headers["content-length"],
+              bodyHex: Buffer.concat(chunks).toString("hex"),
+            })
+          );
+        });
+      } else if (req.url?.startsWith("/redirect/")) {
+        res.writeHead(Number(req.url.slice("/redirect/".length)), {
+          Location: "/echo-request",
+        });
+        res.end();
+      } else if (req.url === "/text-with-length") {
+        // Without a real HEAD request, libcurl waits for these 17 bytes
+        res.writeHead(200, {
+          "Content-Type": "text/plain",
+          "Content-Length": "17",
+        });
+        res.end("hello from server");
       } else {
         res.writeHead(200);
         res.end("ok");
@@ -203,6 +229,31 @@ describe("net.urlGet", () => {
     `);
   });
 
+  test("urlGet - error status throws without leaking a binary response", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        try {
+          net.urlGet("http://127.0.0.1:${port}/error", { binary: true });
+          console.log("ERROR: should have thrown");
+        } catch (error) {
+          console.log("caught error");
+        }
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "caught error
+      ",
+      }
+    `);
+  });
+
   test("urlGet - headers option sends request headers", async () => {
     const run = spawn(binDir("qjs"), [
       "-e",
@@ -286,6 +337,294 @@ describe("net.urlGet", () => {
         "error": null,
         "stderr": "",
         "stdout": "TypeError: 'headers' option must be an object
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - returns status, headers, and response", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const result = net.urlRequest("GET", "http://127.0.0.1:${port}/echo-request");
+        console.log("keys:", Object.keys(result).join(", "));
+        console.log("status:", result.status);
+        console.log("has content-type header:", result.responseHeaders.toLowerCase().includes("content-type: application/json"));
+        console.log("response:", result.response);
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "keys: response, responseHeaders, status
+      status: 200
+      has content-type header: true
+      response: {"method":"GET","bodyHex":""}
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - string body is sent as UTF-8", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const result = net.urlRequest("POST", "http://127.0.0.1:${port}/echo-request", {
+          body: "h\\u00e9llo \\u2713",
+        });
+        console.log(result.response);
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "{"method":"POST","contentType":"application/x-www-form-urlencoded","contentLength":"10","bodyHex":"68c3a96c6c6f20e29c93"}
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - ArrayBuffer body with a custom method and Content-Type", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const result = net.urlRequest("PUT", "http://127.0.0.1:${port}/echo-request", {
+          body: new Uint8Array([0x00, 0x01, 0x02, 0xff]).buffer,
+          headers: { "Content-Type": "application/octet-stream" },
+        });
+        console.log(result.response);
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "{"method":"PUT","contentType":"application/octet-stream","contentLength":"4","bodyHex":"000102ff"}
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - methods with and without a body", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const requests = [
+          ["DELETE", {}],
+          ["POST", {}],
+          ["GET", { body: "x" }],
+          ["POST", { body: "" }],
+        ];
+        for (const [method, options] of requests) {
+          const result = net.urlRequest(method, "http://127.0.0.1:${port}/echo-request", options);
+          console.log(method, JSON.stringify(options), "->", result.response);
+        }
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "DELETE {} -> {"method":"DELETE","bodyHex":""}
+      POST {} -> {"method":"POST","contentType":"application/x-www-form-urlencoded","contentLength":"0","bodyHex":""}
+      GET {"body":"x"} -> {"method":"GET","contentType":"application/x-www-form-urlencoded","contentLength":"1","bodyHex":"78"}
+      POST {"body":""} -> {"method":"POST","contentType":"application/x-www-form-urlencoded","contentLength":"0","bodyHex":""}
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - HEAD returns without waiting for a body", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const result = net.urlRequest("HEAD", "http://127.0.0.1:${port}/text-with-length");
+        console.log("status:", result.status);
+        console.log("response:", JSON.stringify(result.response));
+        const contentLength = result.responseHeaders
+          .split("\\r\\n")
+          .find((line) => line.toLowerCase().startsWith("content-length:"));
+        console.log("header:", contentLength);
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "status: 200
+      response: ""
+      header: Content-Length: 17
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - non-2xx status doesn't throw", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const result = net.urlRequest("POST", "http://127.0.0.1:${port}/error", { body: "x" });
+        console.log("status:", result.status);
+        console.log("response:", result.response);
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "status: 404
+      response: not found
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - binary returns ArrayBuffer", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const result = net.urlRequest("GET", "http://127.0.0.1:${port}/binary", { binary: true });
+        console.log("status:", result.status);
+        console.log("response type:", result.response.constructor.name);
+        const view = new Uint8Array(result.response);
+        console.log("data:", Array.from(view).map((byte) => byte.toString(16)).join(" "));
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "status: 200
+      response type: ArrayBuffer
+      data: de ad be ef
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - redirects", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const requests = [
+          ["POST", 303],
+          ["POST", 307],
+          ["PUT", 301],
+          ["PUT", 302],
+          ["PUT", 303],
+          ["PUT", 308],
+        ];
+        for (const [method, statusCode] of requests) {
+          const result = net.urlRequest(method, "http://127.0.0.1:${port}/redirect/" + statusCode, { body: "x" });
+          const echoed = JSON.parse(result.response);
+          console.log(method, statusCode, "->", echoed.method, "bodyHex:", JSON.stringify(echoed.bodyHex));
+        }
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "POST 303 -> GET bodyHex: ""
+      POST 307 -> POST bodyHex: "78"
+      PUT 301 -> PUT bodyHex: "78"
+      PUT 302 -> PUT bodyHex: "78"
+      PUT 303 -> PUT bodyHex: ""
+      PUT 308 -> PUT bodyHex: "78"
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - invalid options throw", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const attempts = [
+          [5, {}],
+          ["POST", { body: 5 }],
+          ["POST", { body: new Uint8Array(2) }],
+          ["HEAD", { body: "x" }],
+        ];
+        for (const [method, options] of attempts) {
+          try {
+            net.urlRequest(method, "http://127.0.0.1:${port}/echo-request", options);
+            console.log("ERROR: should have thrown");
+          } catch (error) {
+            console.log(error.name + ": " + error.message);
+          }
+        }
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "TypeError: method must be a string
+      TypeError: 'body' option must be a string or ArrayBuffer
+      TypeError: 'body' option must be a string or ArrayBuffer
+      TypeError: 'body' option cannot be used with the HEAD method
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - ArrayBuffer body detached by an option getter throws", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const body = new ArrayBuffer(4);
+        try {
+          net.urlRequest("PUT", "http://127.0.0.1:${port}/echo-request", {
+            body,
+            get headers() {
+              body.transfer();
+              return {};
+            },
+          });
+          console.log("ERROR: should have thrown");
+        } catch (error) {
+          console.log(error.name + ": " + error.message);
+        }
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "TypeError: ArrayBuffer is detached
       ",
       }
     `);
