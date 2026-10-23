@@ -325,6 +325,7 @@ static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
   JSValue base_name_val, name_val;
   JSValue result_val;
   const char *result;
+  char *normalized;
   JSValue argv[3];
   int argc = 3;
 
@@ -402,7 +403,10 @@ static char *QJMS_NormalizeModuleName(JSContext *ctx, const char *base_name,
     return NULL;
   }
 
-  return js_strdup(ctx, result);
+  normalized = js_strdup(ctx, result);
+  JS_FreeCString(ctx, result);
+  JS_FreeValue(ctx, result_val);
+  return normalized;
 }
 
 typedef JSModuleDef *(JSInitModuleFunc)(JSContext *ctx,
