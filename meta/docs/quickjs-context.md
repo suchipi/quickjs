@@ -26,6 +26,7 @@ declare module "quickjs:context" {
         "quickjs:context"?: boolean;
         "quickjs:encoding"?: boolean;
         "quickjs:engine"?: boolean;
+        "quickjs:net"?: boolean;
         "quickjs:os"?: boolean;
         "quickjs:std"?: boolean;
         "quickjs:timers"?: boolean;
@@ -66,6 +67,7 @@ class Context {
       "quickjs:context"?: boolean;
       "quickjs:encoding"?: boolean;
       "quickjs:engine"?: boolean;
+      "quickjs:net"?: boolean;
       "quickjs:os"?: boolean;
       "quickjs:std"?: boolean;
       "quickjs:timers"?: boolean;
@@ -148,6 +150,7 @@ constructor(options?: {
     "quickjs:context"?: boolean;
     "quickjs:encoding"?: boolean;
     "quickjs:engine"?: boolean;
+    "quickjs:net"?: boolean;
     "quickjs:os"?: boolean;
     "quickjs:std"?: boolean;
     "quickjs:timers"?: boolean;

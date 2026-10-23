@@ -151,6 +151,8 @@ declare module "quickjs:context" {
         "quickjs:encoding"?: boolean;
         /** Enables the "quickjs:engine" module. Defaults to `true`. */
         "quickjs:engine"?: boolean;
+        /** Enables the "quickjs:net" module. Defaults to `true`. */
+        "quickjs:net"?: boolean;
         /** Enables the "quickjs:os" module. Defaults to `true`. */
         "quickjs:os"?: boolean;
         /** Enables the "quickjs:std" module. Defaults to `true`. */

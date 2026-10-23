@@ -39,6 +39,7 @@ import * as cmdline from "quickjs:cmdline";
   g.encoding = require("quickjs:encoding");
   g.context = require("quickjs:context");
   g.timers = require("quickjs:timers");
+  g.net = require("quickjs:net");
 
   /* close global objects */
   var Object = g.Object;

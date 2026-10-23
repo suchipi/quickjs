@@ -9,6 +9,7 @@
 #include "quickjs-context.h"
 #include "quickjs-encoding.h"
 #include "quickjs-engine.h"
+#include "quickjs-net.h"
 #include "quickjs-os.h"
 #include "quickjs-std.h"
 #include "quickjs-timers.h"
@@ -80,7 +81,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         promise, temporal, intl, inspect,
         console, print, moduleGlobals, timers;
     BOOL module_bytecode, module_cmdline, module_context, module_encoding,
-        module_engine, module_os, module_std, module_timers;
+        module_engine, module_net, module_os, module_std, module_timers;
 
     options = argv[0];
     if (get_option_bool(ctx, options, "date", &date, TRUE)) {
@@ -138,6 +139,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
         BOOL module_context_default = TRUE;
         BOOL module_encoding_default = TRUE;
         BOOL module_engine_default = TRUE;
+        BOOL module_net_default = TRUE;
         BOOL module_os_default = TRUE;
         BOOL module_std_default = TRUE;
         BOOL module_timers_default = TRUE;
@@ -167,6 +169,10 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
             }
+            if (get_option_bool(ctx, options_modules, "quickjs:net", &module_net, module_net_default)) {
+                JS_FreeValue(ctx, options_modules);
+                return JS_EXCEPTION;
+            }
             if (get_option_bool(ctx, options_modules, "quickjs:os", &module_os, module_os_default)) {
                 JS_FreeValue(ctx, options_modules);
                 return JS_EXCEPTION;
@@ -187,6 +193,7 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
             module_context = module_context_default;
             module_encoding = module_encoding_default;
             module_engine = module_engine_default;
+            module_net = module_net_default;
             module_os = module_os_default;
             module_std = module_std_default;
             module_timers = module_timers_default;
@@ -258,6 +265,9 @@ static JSValue js_context_ctor(JSContext *ctx, JSValueConst this_val,
     }
     if (module_engine) {
         js_init_module_engine(target_ctx, "quickjs:engine");
+    }
+    if (module_net) {
+        js_init_module_net(target_ctx, "quickjs:net");
     }
 
     if (inspect) {

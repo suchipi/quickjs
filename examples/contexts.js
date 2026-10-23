@@ -45,6 +45,7 @@ const c3 = new Context({
     "quickjs:context": false,
     "quickjs:encoding": false,
     "quickjs:engine": false,
+    "quickjs:net": false,
     "quickjs:os": false,
     "quickjs:std": false,
     "quickjs:timers": false,

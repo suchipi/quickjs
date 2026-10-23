@@ -7,6 +7,7 @@
     "./src/builtin-modules/quickjs-context/quickjs-context.d.ts",
     "./src/builtin-modules/quickjs-encoding/quickjs-encoding.d.ts",
     "./src/builtin-modules/quickjs-engine/quickjs-engine.d.ts",
+    "./src/builtin-modules/quickjs-net/quickjs-net.d.ts",
     "./src/builtin-modules/quickjs-os/quickjs-os.d.ts",
     "./src/builtin-modules/quickjs-std/quickjs-std.d.ts",
     "./src/builtin-modules/quickjs-timers/quickjs-timers.d.ts"

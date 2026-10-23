@@ -27,6 +27,9 @@ static int quickjs_full_init_modules(JSContext *ctx)
     if (js_init_module_encoding(ctx, "quickjs:encoding") == NULL) {
         return -1;
     }
+    if (js_init_module_net(ctx, "quickjs:net") == NULL) {
+        return -1;
+    }
 
     return 0;
 }
