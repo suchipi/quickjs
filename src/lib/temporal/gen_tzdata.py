@@ -281,7 +281,7 @@ def collect_zone_names():
     i.e. every canonical zone name and every link found in zoneinfo."""
     excluded = {"localtime", "posixrules", "leapseconds", "leap-seconds.list",
                 "tzdata.zi", "zone.tab", "zone1970.tab", "iso3166.tab",
-                "SECURITY", "README"}
+                "SECURITY", "README", "+VERSION"}
     names = set()
     for root, dirs, files in os.walk(ZONEINFO_DIR):
         # do not descend into the posix/ and right/ trees
@@ -313,17 +313,34 @@ def collect_region_zones():
     return regions
 
 
+def collect_tzdata_zi():
+    """Return the zone names and the link -> target map of tzdata.zi."""
+    zones = set()
+    links = {}
+    with open(os.path.join(ZONEINFO_DIR, 'tzdata.zi'), encoding='utf-8') as fp:
+        for line in fp:
+            fields = line.split()
+            if len(fields) >= 2 and fields[0] == 'Z':
+                zones.add(fields[1])
+            elif len(fields) >= 3 and fields[0] == 'L':
+                links[fields[2]] = fields[1]
+    return zones, links
+
+
 def collect_all_zones():
-    """Return set of canonical zones plus aliases."""
-    zones = set(NEEDED_ZONES)
-    # Only include aliases that are needed or point to needed zones
-    relevant_aliases = {}
-    for alias, target in HARDCODED_ALIASES.items():
-        if alias in NEEDED_ZONES or target in NEEDED_ZONES:
-            relevant_aliases[alias] = target
-            zones.add(alias)
-            zones.add(target)
-    return zones, relevant_aliases
+    """Return every zone and link of tzdata.zi plus the hardcoded ones, and
+    the alias -> target map."""
+    zi_zones, zi_links = collect_tzdata_zi()
+    # IANA's placeholder zone, not a real time zone
+    zi_zones.discard("Factory")
+    # names that the hardcoded table keeps canonical, such as UTC and GMT,
+    # must not become links of their Etc/ equivalents
+    canonical_names = set(NEEDED_ZONES) | set(HARDCODED_ALIASES.values())
+    aliases = {link: target for link, target in zi_links.items()
+               if link not in canonical_names}
+    aliases.update(HARDCODED_ALIASES)
+    zones = zi_zones | set(NEEDED_ZONES) | set(aliases) | set(aliases.values())
+    return zones, aliases
 
 def main():
     zones, aliases = collect_all_zones()
