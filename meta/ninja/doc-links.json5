@@ -5,6 +5,8 @@
   "FILE.seek": "/meta/docs/quickjs-std.md#file-seek-method",
   "FILE.setvbuf": "/meta/docs/quickjs-std.md#file-setvbuf-method",
   getpwuid: "/meta/docs/quickjs-std.md#quickjs-std-getpwuid-exported-function",
+  urlGet: "/meta/docs/quickjs-std.md#quickjs-std-urlget-exported-urlget",
+  UrlGetOptions: "/meta/docs/quickjs-std.md#quickjs-std-urlgetoptions-interface",
   open: "/meta/docs/quickjs-os.md#quickjs-os-open-exported-function",
   CreateProcess: "/meta/docs/quickjs-os.md#quickjs-createprocess-open-exported-value",
   require: "/meta/docs/quickjs-modulesys.md#requirefunction-call-signature",

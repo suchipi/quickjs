@@ -1392,6 +1392,7 @@ static JSValue js_std_file_setvbuf(JSContext *ctx, JSValueConst this_val,
 #define QJS_CURLOPT_WRITEFUNCTION   20011
 #define QJS_CURLOPT_HEADERDATA      10029
 #define QJS_CURLOPT_HEADERFUNCTION  20079
+#define QJS_CURLOPT_HTTPHEADER      10023
 #define QJS_CURLOPT_FOLLOWLOCATION  52
 #define QJS_CURLINFO_RESPONSE_CODE  0x200002
 #define QJS_CURLE_OK                0
@@ -1404,6 +1405,8 @@ typedef int (*qjs_curl_easy_perform_fn)(void *handle);
 typedef int (*qjs_curl_easy_getinfo_fn)(void *handle, int info, ...);
 typedef void (*qjs_curl_easy_cleanup_fn)(void *handle);
 typedef const char *(*qjs_curl_easy_strerror_fn)(int code);
+typedef void *(*qjs_curl_slist_append_fn)(void *list, const char *data);
+typedef void (*qjs_curl_slist_free_all_fn)(void *list);
 
 #define QJS_CURL_GLOBAL_DEFAULT 3L
 
@@ -1418,6 +1421,8 @@ static struct {
     qjs_curl_easy_getinfo_fn easy_getinfo;
     qjs_curl_easy_cleanup_fn easy_cleanup;
     qjs_curl_easy_strerror_fn easy_strerror;
+    qjs_curl_slist_append_fn slist_append;
+    qjs_curl_slist_free_all_fn slist_free_all;
 } qjs_libcurl;
 
 /* Try to load libcurl. Returns 0 on success, -1 on failure with message in errbuf. */
@@ -1487,6 +1492,8 @@ static int ensure_libcurl_loaded(char *errbuf, size_t errbuf_size)
     LOAD_SYM(easy_getinfo, "curl_easy_getinfo");
     LOAD_SYM(easy_cleanup, "curl_easy_cleanup");
     LOAD_SYM(easy_strerror, "curl_easy_strerror");
+    LOAD_SYM(slist_append, "curl_slist_append");
+    LOAD_SYM(slist_free_all, "curl_slist_free_all");
 
 #undef LOAD_SYM
 
@@ -1540,6 +1547,88 @@ static size_t urlget_header_cb(char *ptr, size_t size, size_t nmemb, void *userd
     return total;
 }
 
+static int get_header_list_option(JSContext *ctx, void **plist,
+                                  JSValueConst obj,
+                                  const char *option)
+{
+    JSValue val;
+    QJUForEachPropertyState *foreach;
+    void *list = NULL, *new_list;
+    const char *key_str, *val_str;
+    DynBuf entry_buf;
+
+    val = JS_GetPropertyStr(ctx, obj, option);
+    if (JS_IsException(val))
+        return -1;
+    if (JS_IsUndefined(val))
+        return 0;
+    if (!JS_IsObject(val)) {
+        JS_ThrowTypeError(ctx, "<internal>/quickjs-std.c", __LINE__, "'%s' option must be an object", option);
+        JS_FreeValue(ctx, val);
+        return -1;
+    }
+
+    foreach = QJU_NewForEachPropertyState(ctx, val, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
+    if (foreach == NULL) {
+        JS_FreeValue(ctx, val);
+        return -1;
+    }
+    QJU_ForEachProperty(ctx, foreach) {
+        if (JS_IsException(QJU_ForEachProperty_Read(ctx, val, foreach)))
+            goto fail;
+
+        key_str = JS_AtomToCString(ctx, foreach->key);
+        if (key_str == NULL)
+            goto fail;
+        if (!JS_IsString(foreach->val) && !JS_IsNumber(foreach->val) &&
+            !JS_IsBigInt(ctx, foreach->val)) {
+            JS_ThrowTypeError(ctx, "<internal>/quickjs-std.c", __LINE__, "'%s' option value for '%s' must be a string, number, or bigint", option, key_str);
+            JS_FreeCString(ctx, key_str);
+            goto fail;
+        }
+        val_str = JS_ToCString(ctx, foreach->val);
+        if (val_str == NULL) {
+            JS_FreeCString(ctx, key_str);
+            goto fail;
+        }
+
+        js_std_dbuf_init(ctx, &entry_buf);
+        dbuf_putstr(&entry_buf, key_str);
+        /* libcurl treats "Name:" as "remove this header"; "Name;" sends it with an empty value */
+        if (val_str[0] == '\0') {
+            dbuf_putc(&entry_buf, ';');
+        } else {
+            dbuf_putstr(&entry_buf, ": ");
+            dbuf_putstr(&entry_buf, val_str);
+        }
+        dbuf_putc(&entry_buf, '\0');
+        JS_FreeCString(ctx, key_str);
+        JS_FreeCString(ctx, val_str);
+        if (dbuf_error(&entry_buf)) {
+            dbuf_free(&entry_buf);
+            JS_ThrowOutOfMemory(ctx);
+            goto fail;
+        }
+
+        new_list = qjs_libcurl.slist_append(list, (const char *)entry_buf.buf);
+        dbuf_free(&entry_buf);
+        if (new_list == NULL) {
+            JS_ThrowOutOfMemory(ctx);
+            goto fail;
+        }
+        list = new_list;
+    }
+    QJU_FreeForEachPropertyState(ctx, foreach);
+    JS_FreeValue(ctx, val);
+    *plist = list;
+    return 0;
+ fail:
+    QJU_FreeForEachPropertyState(ctx, foreach);
+    JS_FreeValue(ctx, val);
+    qjs_libcurl.slist_free_all(list);
+    return -1;
+}
+
 #endif /* !__wasi__ && !__EMSCRIPTEN__ && !__COSMO__ */
 
 static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
@@ -1556,6 +1645,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
     JSValue response = JS_UNDEFINED, ret_obj;
     JSValueConst options_obj;
     void *curl = NULL;
+    void *header_list = NULL;
     BOOL binary_flag, full_flag;
     char errbuf[256];
 
@@ -1577,7 +1667,10 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
         if (get_bool_option(ctx, &binary_flag, options_obj, "binary"))
             goto fail_obj;
 
-        if (get_bool_option(ctx, &full_flag, options_obj, "full")) {
+        if (get_bool_option(ctx, &full_flag, options_obj, "full"))
+            goto fail_obj;
+
+        if (get_header_list_option(ctx, &header_list, options_obj, "headers")) {
         fail_obj:
             JS_FreeCString(ctx, url);
             return JS_EXCEPTION;
@@ -1635,6 +1728,13 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
     }
+    curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HTTPHEADER, header_list);
+    if (curl_err != QJS_CURLE_OK) {
+        JS_ThrowError(ctx, "<internal>/quickjs-std.c", __LINE__,
+                      "curl_easy_setopt(CURLOPT_HTTPHEADER) failed: %s",
+                      qjs_libcurl.easy_strerror(curl_err));
+        goto fail;
+    }
 
     debugprint("urlGet: fetching %s\n", url);
 
@@ -1658,6 +1758,8 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
 
     qjs_libcurl.easy_cleanup(curl);
     curl = NULL;
+    qjs_libcurl.slist_free_all(header_list);
+    header_list = NULL;
 
     if (dbuf_error(data_buf))
         goto fail;
@@ -1710,6 +1812,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
  fail:
     if (curl)
         qjs_libcurl.easy_cleanup(curl);
+    qjs_libcurl.slist_free_all(header_list);
     JS_FreeCString(ctx, url);
     if (data_buf)
         dbuf_free(data_buf);

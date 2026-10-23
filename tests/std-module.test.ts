@@ -1255,6 +1255,9 @@ describe("std.urlGet", () => {
       } else if (req.url === "/error") {
         res.writeHead(404, { "Content-Type": "text/plain" });
         res.end("not found");
+      } else if (req.url === "/echo-headers") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(req.headers));
       } else {
         res.writeHead(200);
         res.end("ok");
@@ -1426,6 +1429,94 @@ describe("std.urlGet", () => {
         "stderr": "",
         "stdout": "status: 404
       response: not found
+      ",
+      }
+    `);
+  });
+
+  test("urlGet - headers option sends request headers", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const std = require("quickjs:std");
+        const result = std.urlGet("http://127.0.0.1:${port}/echo-headers", {
+          headers: {
+            "X-Custom": "hello",
+            "X-Empty": "",
+            "X-Number": 1.5,
+            "X-BigInt": 12345678901234567890n,
+            Accept: "text/plain",
+          },
+        });
+        const echoed = JSON.parse(result);
+        console.log("x-custom:", echoed["x-custom"]);
+        console.log("x-empty present:", "x-empty" in echoed, "length:", echoed["x-empty"].length);
+        console.log("x-number:", echoed["x-number"]);
+        console.log("x-bigint:", echoed["x-bigint"]);
+        console.log("accept:", echoed.accept);
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "x-custom: hello
+      x-empty present: true length: 0
+      x-number: 1.5
+      x-bigint: 12345678901234567890
+      accept: text/plain
+      ",
+      }
+    `);
+  });
+
+  test("urlGet - headers option rejects other value types", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const std = require("quickjs:std");
+        try {
+          std.urlGet("http://127.0.0.1:${port}/echo-headers", { headers: { "X-Bool": true } });
+          console.log("ERROR: should have thrown");
+        } catch (error) {
+          console.log(error.name + ": " + error.message);
+        }
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "TypeError: 'headers' option value for 'X-Bool' must be a string, number, or bigint
+      ",
+      }
+    `);
+  });
+
+  test("urlGet - non-object headers option throws", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const std = require("quickjs:std");
+        try {
+          std.urlGet("http://127.0.0.1:${port}/echo-headers", { headers: "X-Custom: hello" });
+          console.log("ERROR: should have thrown");
+        } catch (error) {
+          console.log(error.name + ": " + error.message);
+        }
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "TypeError: 'headers' option must be an object
       ",
       }
     `);

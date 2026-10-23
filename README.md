@@ -85,6 +85,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
 - The manual garbage collection function `std.gc()` was moved to `"quickjs:engine"`.
 - `std.urlGet` now uses libcurl (via `dlopen`) instead of shelling out to `curl`.
+- `std.urlGet` now has a "headers" option for setting request headers.
 
 ### Changes to the `qjs` binary:
 
