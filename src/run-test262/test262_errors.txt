@@ -1,6 +1,3 @@
-test262/test/built-ins/Temporal/Duration/large-number.js:11: Test262Error: Expected a RangeError to be thrown but no exception was thrown at all
-test262/test/built-ins/Temporal/Duration/prototype/total/precision-exact-mathematical-values-6.js:132: Test262Error: hours=7825, nanoseconds=1865665040770 Expected SameValue(«7825.518240289102», «7825.518240289103») to be true
-test262/test/built-ins/Temporal/Duration/prototype/total/precision-exact-mathematical-values-7.js:109: Test262Error: milliseconds=9007199254740992, microseconds=1999 Expected SameValue(«9007199254740992», «9007199254740994») to be true
 test262/test/built-ins/Temporal/Duration/prototype/total/relativeto-total-of-each-unit.js:10: Test262Error: Duration.total results for months relative to 1972-01-01T00:00:00+00:00[UTC] Expected SameValue(«66.32941495109206», «66.32941495109208») to be true
 test262/test/built-ins/Temporal/Instant/prototype/toString/timezone-string-unknown.js:10: Test262Error: Mars/Olympus_Mons is not an available named time zone Expected a RangeError to be thrown but no exception was thrown at all
 test262/test/built-ins/Temporal/Instant/prototype/toZonedDateTimeISO/timezone-string-unknown.js:10: Test262Error: Mars/Olympus_Mons is not an available named time zone Expected a RangeError to be thrown but no exception was thrown at all
