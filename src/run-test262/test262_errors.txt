@@ -1,4 +1,3 @@
-test262/test/built-ins/Temporal/Duration/prototype/total/relativeto-total-of-each-unit.js:10: Test262Error: Duration.total results for months relative to 1972-01-01T00:00:00+00:00[UTC] Expected SameValue(«66.32941495109206», «66.32941495109208») to be true
 test262/test/built-ins/Temporal/Instant/prototype/toString/timezone-string-unknown.js:10: Test262Error: Mars/Olympus_Mons is not an available named time zone Expected a RangeError to be thrown but no exception was thrown at all
 test262/test/built-ins/Temporal/Instant/prototype/toZonedDateTimeISO/timezone-string-unknown.js:10: Test262Error: Mars/Olympus_Mons is not an available named time zone Expected a RangeError to be thrown but no exception was thrown at all
 test262/test/intl402/DateTimeFormat/prototype/format/german-weekday-no-year.js:10: Test262Error: German weekday without year Expected SameValue(«false», «true») to be true
