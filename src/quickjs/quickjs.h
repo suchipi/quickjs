@@ -1007,6 +1007,8 @@ JSValue JS_EvalThis_Privileged(JSContext *ctx, JSValueConst this_obj,
                                const char *filename, int eval_flags);
 /* NOTE: you must free it! */
 JSValue JS_GetGlobalObject(JSContext *ctx);
+int JS_OrdinaryIsInstanceOf(JSContext *ctx, JSValueConst val,
+                            JSValueConst obj);
 int JS_IsInstanceOf(JSContext *ctx, JSValueConst val, JSValueConst obj);
 int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
                       JSAtom prop, JSValueConst val,

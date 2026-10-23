@@ -506,7 +506,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | a98785d | PORT | added JS_ToCStringNZ() and exported JS_ToUTF32String() | Clean `git apply --3way` to src/quickjs/. Adds `JS_ToCStringNZ()`, which throws a RangeError if the string contains an embedded null, and makes `JS_ToUTF32String()` public. The new RangeError call was adapted to the fork's `(ctx, "<internal>/quickjs.c", __LINE__, fmt)` signature. C API only, no .d.ts change. test262 unchanged. |
 | bf81c10 | PORT | exported JS_CreateFromConstructor() | Applied to src/quickjs/. Renames the static `js_create_from_ctor()` to the public `JS_CreateFromConstructor()` and declares it in quickjs.h. Two quickjs.c conflicts (Promise and WeakRef constructors) were the fork's own error messages next to the renamed call; kept the fork's messages with the new name. C API only. test262 unchanged. |
 | d81806f | PORT | export JS_ThisDateValue() | Clean `git apply --3way` to src/quickjs/. Renames the static `JS_ThisTimeValue()` to the public `JS_ThisDateValue()` and declares it in quickjs.h. C API only. test262 unchanged. |
-| c28c623 | PENDING | export JS_OrdinaryIsInstanceOf() |  |
+| c28c623 | PORT | export JS_OrdinaryIsInstanceOf() | Clean `git apply --3way` to src/quickjs/. Makes `JS_OrdinaryIsInstanceOf()` non-static and declares it in quickjs.h. C API only. test262 unchanged. |
 | c2a11b8 | PENDING | added JS_CFUNC_constructor_or_func_flags |  |
 | 7cf7315 | PENDING | exported iterator helpers |  |
 | 7b1b755 | PENDING | exported JS_NewCConstructor() |  |
