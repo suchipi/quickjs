@@ -17262,13 +17262,12 @@ static JSValue JS_IteratorNext2(JSContext *ctx, JSValueConst enum_obj,
 
 /* Note: always return JS_UNDEFINED when *pdone = TRUE. */
 static JSValue JS_IteratorNext(JSContext *ctx, JSValueConst enum_obj,
-                               JSValueConst method,
-                               int argc, JSValueConst *argv, BOOL *pdone)
+                               JSValueConst method, BOOL *pdone)
 {
     JSValue obj, value, done_val;
     int done;
 
-    obj = JS_IteratorNext2(ctx, enum_obj, method, argc, argv, &done);
+    obj = JS_IteratorNext2(ctx, enum_obj, method, 0, NULL, &done);
     if (JS_IsException(obj))
         goto fail;
     if (likely(done == 0)) {
@@ -17364,7 +17363,7 @@ static __exception int js_for_of_next(JSContext *ctx, JSValue *sp, int offset)
     int done = 1;
 
     if (likely(!JS_IsUndefined(sp[offset]))) {
-        value = JS_IteratorNext(ctx, sp[offset], sp[offset + 1], 0, NULL, &done);
+        value = JS_IteratorNext(ctx, sp[offset], sp[offset + 1], &done);
         if (JS_IsException(value))
             done = -1;
         if (done) {
@@ -17545,7 +17544,7 @@ static __exception int js_append_enumerate(JSContext *ctx, JSValue *sp)
     general_case:
         for (;;) {
             BOOL done;
-            value = JS_IteratorNext(ctx, enumobj, method, 0, NULL, &done);
+            value = JS_IteratorNext(ctx, enumobj, method, &done);
             if (JS_IsException(value))
                 goto exception;
             if (done) {
@@ -43186,7 +43185,7 @@ static JSValue js_object_fromEntries(JSContext *ctx, JSValueConst this_val,
 
     for(;;) {
         JSValue key, value, item;
-        item = JS_IteratorNext(ctx, iter, next_method, 0, NULL, &done);
+        item = JS_IteratorNext(ctx, iter, next_method, &done);
         if (JS_IsException(item))
             goto fail;
         if (done)
@@ -43881,7 +43880,7 @@ static JSValue iterator_to_array(JSContext *ctx, JSValueConst items)
     if (JS_IsException(r))
         goto exception;
     for (k = 0;; k++) {
-        v = JS_IteratorNext(ctx, iter, next_method, 0, NULL, &done);
+        v = JS_IteratorNext(ctx, iter, next_method, &done);
         if (JS_IsException(v))
             goto exception_close;
         if (done)
@@ -44275,7 +44274,7 @@ static JSValue js_array_from(JSContext *ctx, JSValueConst this_val,
         if (JS_IsException(next_method))
             goto exception;
         for (k = 0;; k++) {
-            v = JS_IteratorNext(ctx, enum_obj, next_method, 0, NULL, &done);
+            v = JS_IteratorNext(ctx, enum_obj, next_method, &done);
             if (JS_IsException(v))
                 goto exception;
             if (done)
@@ -46267,7 +46266,7 @@ static JSValue js_iterator_wrap_next(JSContext *ctx, JSValueConst this_val,
     if (!it)
         return JS_EXCEPTION;
     if (magic == GEN_MAGIC_NEXT) {
-        return JS_IteratorNext(ctx, it->wrapped_iter, it->wrapped_next, 0, NULL, pdone);
+        return JS_IteratorNext(ctx, it->wrapped_iter, it->wrapped_next, pdone);
     } else {
         method = JS_GetProperty(ctx, it->wrapped_iter, JS_ATOM_return);
         if (JS_IsException(method))
@@ -46699,7 +46698,7 @@ static JSValue js_iterator_proto_func(JSContext *ctx, JSValueConst this_val,
         {
             r = JS_TRUE;
             for (idx = 0; /*empty*/; idx++) {
-                item = JS_IteratorNext(ctx, this_val, method, 0, NULL, &done);
+                item = JS_IteratorNext(ctx, this_val, method, &done);
                 if (JS_IsException(item))
                     goto fail_no_close;
                 if (done)
@@ -46728,7 +46727,7 @@ static JSValue js_iterator_proto_func(JSContext *ctx, JSValueConst this_val,
     case JS_ITERATOR_HELPER_KIND_FIND:
         {
             for (idx = 0; /*empty*/; idx++) {
-                item = JS_IteratorNext(ctx, this_val, method, 0, NULL, &done);
+                item = JS_IteratorNext(ctx, this_val, method, &done);
                 if (JS_IsException(item))
                     goto fail_no_close;
                 if (done)
@@ -46761,7 +46760,7 @@ static JSValue js_iterator_proto_func(JSContext *ctx, JSValueConst this_val,
     case JS_ITERATOR_HELPER_KIND_FOR_EACH:
         {
             for (idx = 0; /*empty*/; idx++) {
-                item = JS_IteratorNext(ctx, this_val, method, 0, NULL, &done);
+                item = JS_IteratorNext(ctx, this_val, method, &done);
                 if (JS_IsException(item))
                     goto fail_no_close;
                 if (done)
@@ -46785,7 +46784,7 @@ static JSValue js_iterator_proto_func(JSContext *ctx, JSValueConst this_val,
         {
             r = JS_FALSE;
             for (idx = 0; /*empty*/; idx++) {
-                item = JS_IteratorNext(ctx, this_val, method, 0, NULL, &done);
+                item = JS_IteratorNext(ctx, this_val, method, &done);
                 if (JS_IsException(item))
                     goto fail_no_close;
                 if (done)
@@ -46850,7 +46849,7 @@ static JSValue js_iterator_proto_reduce(JSContext *ctx, JSValueConst this_val,
         acc = JS_DupValue(ctx, argv[1]);
         idx = 0;
     } else {
-        acc = JS_IteratorNext(ctx, this_val, method, 0, NULL, &done);
+        acc = JS_IteratorNext(ctx, this_val, method, &done);
         if (JS_IsException(acc))
             goto exception_no_close;
         if (done) {
@@ -46860,7 +46859,7 @@ static JSValue js_iterator_proto_reduce(JSContext *ctx, JSValueConst this_val,
         idx = 1;
     }
     for (/* empty */; /*empty*/; idx++) {
-        item = JS_IteratorNext(ctx, this_val, method, 0, NULL, &done);
+        item = JS_IteratorNext(ctx, this_val, method, &done);
         if (JS_IsException(item))
             goto exception_no_close;
         if (done)
@@ -46909,7 +46908,7 @@ static JSValue js_iterator_proto_toArray(JSContext *ctx, JSValueConst this_val,
     if (JS_IsException(result))
         goto exception;
     for (idx = 0; /*empty*/; idx++) {
-        item = JS_IteratorNext(ctx, this_val, method, 0, NULL, &done);
+        item = JS_IteratorNext(ctx, this_val, method, &done);
         if (JS_IsException(item))
             goto exception;
         if (done)
@@ -47034,7 +47033,7 @@ static JSValue js_iterator_helper_next(JSContext *ctx, JSValueConst this_val,
             JSValue item;
             while (it->count > 0) {
                 it->count--;
-                item = JS_IteratorNext(ctx, it->obj, it->next, 0, NULL, pdone);
+                item = JS_IteratorNext(ctx, it->obj, it->next, pdone);
                 if (JS_IsException(item))
                     goto fail_no_close;
                 JS_FreeValue(ctx, item);
@@ -47044,7 +47043,7 @@ static JSValue js_iterator_helper_next(JSContext *ctx, JSValueConst this_val,
                 }
             }
 
-            item = JS_IteratorNext(ctx, it->obj, it->next, 0, NULL, pdone);
+            item = JS_IteratorNext(ctx, it->obj, it->next, pdone);
             if (JS_IsException(item))
                 goto fail_no_close;
             ret = item;
@@ -47055,7 +47054,7 @@ static JSValue js_iterator_helper_next(JSContext *ctx, JSValueConst this_val,
             JSValue item, selected, index_val;
             JSValueConst args[2];
             for(;;) {
-                item = JS_IteratorNext(ctx, it->obj, it->next, 0, NULL, pdone);
+                item = JS_IteratorNext(ctx, it->obj, it->next, pdone);
                 if (JS_IsException(item))
                     goto fail_no_close;
                 if (*pdone) {
@@ -47085,7 +47084,7 @@ static JSValue js_iterator_helper_next(JSContext *ctx, JSValueConst this_val,
             JSValueConst args[2];
             for(;;) {
                 if (JS_IsUndefined(it->inner)) {
-                    item = JS_IteratorNext(ctx, it->obj, it->next, 0, NULL, pdone);
+                    item = JS_IteratorNext(ctx, it->obj, it->next, pdone);
                     if (JS_IsException(item))
                         goto fail_no_close;
                     if (*pdone) {
@@ -47128,7 +47127,7 @@ static JSValue js_iterator_helper_next(JSContext *ctx, JSValueConst this_val,
                     it->inner_next = method;
                 }
 
-                item = JS_IteratorNext(ctx, it->inner, it->inner_next, 0, NULL, pdone);
+                item = JS_IteratorNext(ctx, it->inner, it->inner_next, pdone);
                 if (JS_IsException(item)) {
                 inner_fail:
                     JS_IteratorClose(ctx, it->inner, FALSE);
@@ -47155,7 +47154,7 @@ static JSValue js_iterator_helper_next(JSContext *ctx, JSValueConst this_val,
         {
             JSValue item, index_val;
             JSValueConst args[2];
-            item = JS_IteratorNext(ctx, it->obj, it->next, 0, NULL, pdone);
+            item = JS_IteratorNext(ctx, it->obj, it->next, pdone);
             if (JS_IsException(item))
                 goto fail_no_close;
             if (*pdone) {
@@ -47177,7 +47176,7 @@ static JSValue js_iterator_helper_next(JSContext *ctx, JSValueConst this_val,
             JSValue item;
             if (it->count > 0) {
                 it->count--;
-                item = JS_IteratorNext(ctx, it->obj, it->next, 0, NULL, pdone);
+                item = JS_IteratorNext(ctx, it->obj, it->next, pdone);
                 if (JS_IsException(item))
                     goto fail_no_close;
                 ret = item;
@@ -49895,7 +49894,7 @@ static JSValue js_math_sumPrecise(JSContext *ctx, JSValueConst this_val,
         goto fail;
     sum_precise_init(s);
     for (;;) {
-        item = JS_IteratorNext(ctx, iter, next, 0, NULL, &done);
+        item = JS_IteratorNext(ctx, iter, next, &done);
         if (JS_IsException(item))
             goto fail;
         if (done)
@@ -54401,7 +54400,7 @@ static JSValue js_map_constructor(JSContext *ctx, JSValueConst new_target,
             goto fail;
 
         for(;;) {
-            item = JS_IteratorNext(ctx, iter, next_method, 0, NULL, &done);
+            item = JS_IteratorNext(ctx, iter, next_method, &done);
             if (JS_IsException(item))
                 goto fail;
             if (done)
@@ -54970,7 +54969,7 @@ static JSValue js_object_groupBy(JSContext *ctx, JSValueConst this_val,
             JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "too many elements");
             goto iterator_close_exception;
         }
-        v = JS_IteratorNext(ctx, iter, next, 0, NULL, &done);
+        v = JS_IteratorNext(ctx, iter, next, &done);
         if (JS_IsException(v))
             goto exception;
         if (done)
@@ -55377,7 +55376,7 @@ static JSValue js_set_isDisjointFrom(JSContext *ctx, JSValueConst this_val,
             goto exception;
         found = FALSE;
         for(;;) {
-            item = JS_IteratorNext(ctx, iter, next, 0, NULL, &done);
+            item = JS_IteratorNext(ctx, iter, next, &done);
             if (JS_IsException(item))
                 goto exception;
             if (done) // item is JS_UNDEFINED
@@ -55475,7 +55474,7 @@ static JSValue js_set_isSupersetOf(JSContext *ctx, JSValueConst this_val,
         goto exception;
     found = TRUE;
     for(;;) {
-        item = JS_IteratorNext(ctx, iter, next, 0, NULL, &done);
+        item = JS_IteratorNext(ctx, iter, next, &done);
         if (JS_IsException(item))
             goto exception;
         if (done) // item is JS_UNDEFINED
@@ -55527,7 +55526,7 @@ static JSValue js_set_intersection(JSContext *ctx, JSValueConst this_val,
             goto exception;
         t = JS_GetOpaque(newset, JS_CLASS_SET);
         for (;;) {
-            item = JS_IteratorNext(ctx, iter, next, 0, NULL, &done);
+            item = JS_IteratorNext(ctx, iter, next, &done);
             if (JS_IsException(item))
                 goto exception;
             if (done) // item is JS_UNDEFINED
@@ -55641,7 +55640,7 @@ static JSValue js_set_difference(JSContext *ctx, JSValueConst this_val,
         if (JS_IsException(next))
             goto exception;
         for (;;) {
-            item = JS_IteratorNext(ctx, iter, next, 0, NULL, &done);
+            item = JS_IteratorNext(ctx, iter, next, &done);
             if (JS_IsException(item))
                 goto exception;
             if (done) // item is JS_UNDEFINED
@@ -55692,7 +55691,7 @@ static JSValue js_set_symmetricDifference(JSContext *ctx, JSValueConst this_val,
         goto exception;
     t = JS_GetOpaque(newset, JS_CLASS_SET);
     for (;;) {
-        item = JS_IteratorNext(ctx, iter, next, 0, NULL, &done);
+        item = JS_IteratorNext(ctx, iter, next, &done);
         if (JS_IsException(item))
             goto exception;
         if (done) // item is JS_UNDEFINED
@@ -55760,7 +55759,7 @@ static JSValue js_set_union(JSContext *ctx, JSValueConst this_val,
         goto exception;
 
     for (;;) {
-        item = JS_IteratorNext(ctx, iter, next, 0, NULL, &done);
+        item = JS_IteratorNext(ctx, iter, next, &done);
         if (JS_IsException(item))
             goto exception;
         if (done) // item is JS_UNDEFINED
@@ -56650,7 +56649,7 @@ static JSValue js_promise_all(JSContext *ctx, JSValueConst this_val,
         for(;;) {
             /* XXX: conformance: should close the iterator if error on 'done'
                access, but not on 'value' access */
-            item = JS_IteratorNext(ctx, iter, next_method, 0, NULL, &done);
+            item = JS_IteratorNext(ctx, iter, next_method, &done);
             if (JS_IsException(item))
                 goto fail_reject;
             if (done)
@@ -56784,7 +56783,7 @@ static JSValue js_promise_race(JSContext *ctx, JSValueConst this_val,
         for(;;) {
             /* XXX: conformance: should close the iterator if error on 'done'
                access, but not on 'value' access */
-            item = JS_IteratorNext(ctx, iter, next_method, 0, NULL, &done);
+            item = JS_IteratorNext(ctx, iter, next_method, &done);
             if (JS_IsException(item))
                 goto fail_reject;
             if (done)
@@ -62570,7 +62569,7 @@ static JSValue js_array_from_iterator(JSContext *ctx, uint32_t *plen,
         goto fail;
     k = 0;
     for(;;) {
-        val = JS_IteratorNext(ctx, iter, next_method, 0, NULL, &done);
+        val = JS_IteratorNext(ctx, iter, next_method, &done);
         if (JS_IsException(val))
             goto fail;
         if (done)
