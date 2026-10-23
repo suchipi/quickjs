@@ -509,7 +509,7 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | c28c623 | PORT | export JS_OrdinaryIsInstanceOf() | Clean `git apply --3way` to src/quickjs/. Makes `JS_OrdinaryIsInstanceOf()` non-static and declares it in quickjs.h. C API only. test262 unchanged. |
 | c2a11b8 | PORT | added JS_CFUNC_constructor_or_func_flags | Clean `git apply --3way` to src/quickjs/. Adds the `JS_CFUNC_constructor_or_func_flags` C function prototype, whose callback receives `func_obj` and the call flags, with its dispatch case in js_call_c_function. C API only. test262 unchanged. |
 | 7cf7315 | PORT | exported iterator helpers | Clean `git apply --3way` to src/quickjs/. Makes `JS_GetIterator()`, `JS_IteratorNext()` and `JS_IteratorClose()` non-static and declares them in quickjs.h. C API only. test262 unchanged. |
-| 7b1b755 | PENDING | exported JS_NewCConstructor() |  |
+| 7b1b755 | PORT | exported JS_NewCConstructor() | Clean `git apply --3way` to src/quickjs/. Makes `JS_NewCConstructor()` public and moves its `JS_NEW_CTOR_*` flag definitions from quickjs.c to quickjs.h. C API only. test262 unchanged. |
 | 97f64ef | PENDING | added experimental AI coded Temporal and Intl support. There is no external dependency. Intl includes its own locale data (can be manually updated from the CLDR) and Temporal includes the calendar algorithms and a timezone database (can be manually updated from the system TZif files) |  |
 | 9c4f6af | PENDING | added missing file |  |
 | 7377176 | PENDING | undo Makefile change |  |
