@@ -499,3 +499,38 @@ Merge base: `2788d71` ("updated to Unicode 14.0.0"). Target tip at seed time: `d
 | 27e2503 | PORT | exclude more tests we don't need to fix | Clean `git apply --3way` to src/run-test262/test262.conf: excludes the 13 language/expressions/assignment and compound-assignment S11.13.1_A6 / S11.13.2_A6 tests, with upstream's comment that fixing them would slow down non-strict functions that call eval() and that V8 fails them too. These are the failures the fork took on with the e015918 port ("Much faster destructuring at the expense of a slight incompatibility with the spec when direct evals are present"), so this moves 13 known, accepted failures from the baseline to the exclude list, as upstream did. test262: 16/43709 -> 3/43696 errors, 3264 -> 3277 excluded. The three that remain are fork-known: staging/sm/Function/function-bind.js, staging/sm/lexical-environment/block-scoped-functions-annex-b-arguments.js and staging/sm/regress/regress-602621.js. |
 | ce0dbb7 | PORT | fix Proxy getOwnPropertyDescriptor invariant check for values and accessors | The fork had already fixed this (staging/sm/regress/regress-1383630.js) in commit a71a28b ("check descriptor values in the proxy getOwnPropertyDescriptor invariant") by inlining the value/getter/setter comparison into js_proxy_get_own_property and restructuring its cleanup around `done` / `fail` / `exception` labels. Per user decision, swapped that for upstream's implementation so both proxy functions match upstream again; behavior is the same either way. `git apply --3way` left three conflicts inside js_proxy_get_own_property, all resolved to upstream's side, and I removed the fork's `target_desc_ret = FALSE` initializer and label block that the merge had kept. Upstream factors the comparison into a new `check_define_prop_desc(ctx, desc, val, getter, setter, flags)` helper, uses it from both js_proxy_get_own_property and js_proxy_define_own_property (replacing the block that was open-coded there), and frees the target descriptor explicitly on each exit path. Also takes upstream's comment typo fix above JS_GetOwnPropertyInternal. The helper and both proxy functions are now identical to upstream's apart from the fork's throw signature. Verified the swap changes nothing: a 26-case invariant probe is identical before and after, and a loop over all 19 exit paths (14 getOwnPropertyDescriptor, 5 defineProperty) with heap-allocated descriptor values, 30,000 rounds under `--memory-limit 48M`, gives the same outcome tally before, after, and on upstream's binary. No new compiler warnings on any target. test262 unchanged at 3/43696. |
 | 535a7c2 | SKIP-DONE | repect the spec operation order in Object.defineProperties | Already implemented by fork commit ffed4f7 ("fix Object.defineProperties property access order"), and staging/sm/object/defineProperties-order.js already passes. Kept the fork's implementation because it follows the spec more closely than upstream's. Both walk the own keys once doing [[GetOwnProperty]] then Get per key, and both define nothing until every key has been read. The fork also runs ToPropertyDescriptor on each value during that first pass, as ObjectDefineProperties specifies; upstream stores the raw values and converts each one just before defining it. That is observable: with getters on the descriptor objects the fork logs `a.value, b.value, define:a, define:b` where upstream logs `a.value, define:a, b.value, define:b`, and when a later descriptor is invalid (`{get: 1}`) the fork throws with nothing defined while upstream has already defined the earlier properties. Those two lines are the only differences on a 12-case probe. No code change. This is the last upstream commit of the batch; its marker brings the fork to 0 commits behind bellard/quickjs@master (535a7c2). |
+| 55c5f0b | PENDING | fixed class elements parsing after a line terminator following get, set or static (#567) |  |
+| 4b0addb | PENDING | removed unused arguments of JS_IteratorNext() |  |
+| 7693ca9 | PENDING | libunicode: added lre_is_soft_dotted() and exported unicode_get_cc() |  |
+| 52c9b6e | PENDING | exported JS_ToPrimitive(), JS_ToObject() and JS_ToInt32Sat() |  |
+| a98785d | PENDING | added JS_ToCStringNZ() and exported JS_ToUTF32String() |  |
+| bf81c10 | PENDING | exported JS_CreateFromConstructor() |  |
+| d81806f | PENDING | export JS_ThisDateValue() |  |
+| c28c623 | PENDING | export JS_OrdinaryIsInstanceOf() |  |
+| c2a11b8 | PENDING | added JS_CFUNC_constructor_or_func_flags |  |
+| 7cf7315 | PENDING | exported iterator helpers |  |
+| 7b1b755 | PENDING | exported JS_NewCConstructor() |  |
+| 97f64ef | PENDING | added experimental AI coded Temporal and Intl support. There is no external dependency. Intl includes its own locale data (can be manually updated from the CLDR) and Temporal includes the calendar algorithms and a timezone database (can be manually updated from the system TZif files) |  |
+| 9c4f6af | PENDING | added missing file |  |
+| 7377176 | PENDING | undo Makefile change |  |
+| 9d01a96 | PENDING | removed some warnings - fixed win32 compilation |  |
+| bcb9ad1 | PENDING | disable Temporal and Intl on 32 bit hosts because int128 is not always supported in this case - avoid depending on float128 for duration division - simplified some int128 code |  |
+| ea3deb1 | PENDING | fixed bad rounding in duration computation |  |
+| a37f62a | PENDING | fixed bad rounding in duration computation |  |
+| c2eaa5f | PENDING | CI: disable CONFIG_TEMPORAL_INTL on linux/arm/v6 and linux/arm/v7 |  |
+| 4d56487 | PENDING | removed memory leak |  |
+| 0684981 | PENDING | added Iterator.zip and Iterator.zipKeyed - factorized js_get_iterator_flattenable() |  |
+| ba41893 | PENDING | use correct helper for Iterator.concat |  |
+| ec87e1a | PENDING | added Array.fromAsync |  |
+| 3e7f88c | PENDING | added Iterator.prototype.join (saghul) |  |
+| 7bb3e9e | PENDING | added Iterator.prototype.includes (saghul) |  |
+| 40dd0a9 | PENDING | added iterator chunking (initial patch by saghul) |  |
+| 3ad6280 | PENDING | added Promise.allKeyed and Promise.allSettledKeyed) |  |
+| 84e723f | PENDING | compilation fixes |  |
+| 0709d6b | PENDING | added explicit resource management objects (bnoordhuis, saghul) - fixed null method check in js_iterator_proto_dispose() and js_async_iterator_proto_dispose() |  |
+| c4f63e1 | PENDING | explicit resource management: added 'using' variable declarations (initial patch by bnoordhuis and saghul) - simplified the code by removing 'OP_dispose_scope' as the disposal code can be generated on the fly - avoid declaring 'using' as a keyword - use peek_token() to efficiently test the presence of a 'using' declaration - added DECL_MASK_USING to identify the statements where 'using' declarations are allowed |  |
+| c1b906c | PENDING | fixed 6 test262 errors: unknown named time zones are now rejected by ToTemporalTimeZoneIdentifier, PlainMonthDay.from(string) now stores the calendar reference date, ToRawPrecision now drops the digit added by a rounding carry and trims the trailing zeros not needed by minimumSignificantDigits, and the short (abbreviated) weekday names are now available in the locale data |  |
+| adc9db3 | PENDING | fixed 6 test262 errors: Intl.Locale now recognizes u-extension keys starting with a digit and applies CanonicalizeUValue to option values |  |
+| e2dc3eb | PENDING | implemented the Intl.Locale info methods and added the full UTS 35 likely subtags data |  |
+| b763a91 | PENDING | Fix CI (#573) |  |
+| 7d1c13c | PENDING | run-test262: use JS_ToString() to display thrown exceptions when they are not Error instances so that Test262Error exceptions are correctly displayed |  |
