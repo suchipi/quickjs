@@ -141,6 +141,7 @@ enum {
     JS_CLASS_ITERATOR_HELPER,   /* u.iterator_helper_data */
     JS_CLASS_ITERATOR_WRAP,     /* u.iterator_wrap_data */
     JS_CLASS_ITERATOR_ZIP,      /* u.iterator_zip_data */
+    JS_CLASS_ARRAY_FROM_ASYNC,  /* u.array_from_async_data */
     JS_CLASS_MAP_ITERATOR,      /* u.map_iterator_data */
     JS_CLASS_SET_ITERATOR,      /* u.map_iterator_data */
     JS_CLASS_ARRAY_ITERATOR,    /* u.array_iterator_data */
