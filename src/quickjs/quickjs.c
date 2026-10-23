@@ -613,6 +613,9 @@ typedef enum {
     JS_VAR_PRIVATE_SETTER, /* must come after JS_VAR_PRIVATE_GETTER */
     JS_VAR_PRIVATE_GETTER_SETTER, /* must come after JS_VAR_PRIVATE_SETTER */
     JS_VAR_GLOBAL_FUNCTION_DECL, /* global function definition, only in JSVarDef */
+    JS_VAR_USING, /* using declaration variable */
+    JS_VAR_USING_METHOD, /* hidden local holding the cached dispose method
+                            for a JS_VAR_USING var */
 } JSVarKindEnum;
 
 typedef struct JSBytecodeVarDef {
@@ -1169,6 +1172,8 @@ static JSValue JS_EvalObject(JSContext *ctx, JSValueConst this_obj,
 struct JSPrintValueState;
 typedef struct JSPrintValueState JSPrintValueState;
 static void js_print_atom(JSPrintValueState *s, JSAtom atom);
+static JSValue js_new_suppressed_error(JSContext *ctx, JSValueConst error,
+                                       JSValueConst suppressed);
 static __maybe_unused void JS_DumpAtoms(JSRuntime *rt);
 static __maybe_unused void JS_DumpString(JSRuntime *rt,
                                                   const JSString *p);
@@ -17497,6 +17502,63 @@ static JSValue JS_IteratorGetCompleteValue(JSContext *ctx, JSValueConst obj,
     return JS_EXCEPTION;
 }
 
+static JSValue js_sync_dispose_wrapper(JSContext *ctx, JSValueConst this_val,
+                                       int argc, JSValueConst *argv,
+                                       int magic, JSValue *func_data);
+
+static __exception int js_op_using_check(JSContext *ctx, JSValueConst val,
+                                         int hint, JSValue *pmethod)
+{
+    JSValue method;
+    BOOL is_sync_fallback = FALSE;
+
+    *pmethod = JS_UNDEFINED;
+    if (JS_IsNull(val) || JS_IsUndefined(val))
+        return 0;
+    if (!JS_IsObject(val)) {
+        JS_ThrowTypeErrorNotAnObject(ctx);
+        return -1;
+    }
+    if (hint == 1) {
+        method = JS_GetProperty(ctx, val, JS_ATOM_Symbol_asyncDispose);
+        if (JS_IsException(method))
+            return -1;
+        if (JS_IsUndefined(method) || JS_IsNull(method)) {
+            JS_FreeValue(ctx, method);
+            method = JS_GetProperty(ctx, val, JS_ATOM_Symbol_dispose);
+            if (JS_IsException(method))
+                return -1;
+            is_sync_fallback = TRUE;
+        }
+    } else {
+        method = JS_GetProperty(ctx, val, JS_ATOM_Symbol_dispose);
+        if (JS_IsException(method))
+            return -1;
+    }
+    if (JS_IsUndefined(method) || JS_IsNull(method)) {
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "value is not disposable");
+        return -1;
+    }
+    if (!JS_IsFunction(ctx, method)) {
+        JS_FreeValue(ctx, method);
+        JS_ThrowTypeError(ctx, "<internal>/quickjs.c", __LINE__, "dispose method is not a function");
+        return -1;
+    }
+    if (is_sync_fallback) {
+        JSValueConst data[1];
+        JSValue wrapped;
+        data[0] = method;
+        wrapped = JS_NewCFunctionData(ctx, js_sync_dispose_wrapper, 0, 0,
+                                      1, data);
+        JS_FreeValue(ctx, method);
+        if (JS_IsException(wrapped))
+            return -1;
+        method = wrapped;
+    }
+    *pmethod = method;
+    return 0;
+}
+
 static __exception int js_iterator_get_value_done(JSContext *ctx, JSValue *sp)
 {
     JSValue obj, value;
@@ -19822,6 +19884,124 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     goto exception;
                 }
                 sp[-1] = ret_val;
+            }
+            BREAK;
+
+        CASE(OP_using_dispose_init):
+            sp[0] = JS_UNINITIALIZED;
+            sp++;
+            BREAK;
+
+        CASE(OP_using_dispose):
+            {
+                int idx;
+                JSValueConst val, method;
+                JSValue ret, error_state;
+
+                idx = get_u16(pc);
+                pc += 2;
+                val = var_buf[idx];
+                method = var_buf[idx + 1];
+                error_state = sp[-1];
+
+                if (JS_IsNull(val) || JS_IsUndefined(val) ||
+                    JS_IsUninitialized(val)) {
+                    /* null/undefined (spec-permitted) or uninitialized
+                       (declaration threw before assignment). */
+                } else {
+                    sf->cur_pc = pc;
+                    ret = JS_Call(ctx, method, val, 0, NULL);
+                    if (JS_IsException(ret)) {
+                        JSValue new_error = JS_GetException(ctx);
+                        if (!JS_IsUninitialized(error_state)) {
+                            JSValue se;
+                            se = js_new_suppressed_error(ctx, new_error,
+                                                         error_state);
+                            JS_FreeValue(ctx, new_error);
+                            JS_FreeValue(ctx, error_state);
+                            if (JS_IsException(se)) {
+                                sp[-1] = JS_GetException(ctx);
+                            } else {
+                                sp[-1] = se;
+                            }
+                        } else {
+                            sp[-1] = new_error;
+                        }
+                    } else {
+                        JS_FreeValue(ctx, ret);
+                    }
+                }
+            }
+            BREAK;
+
+        CASE(OP_using_dispose_async):
+            {
+                int idx;
+                JSValueConst val, method;
+                JSValue ret;
+
+                idx = get_u16(pc);
+                pc += 2;
+                val = var_buf[idx];
+                method = var_buf[idx + 1];
+
+                if (JS_IsNull(val) || JS_IsUndefined(val) ||
+                    JS_IsUninitialized(val)) {
+                    sp[0] = JS_UNDEFINED;
+                    sp++;
+                } else {
+                    sf->cur_pc = pc;
+                    ret = JS_Call(ctx, method, val, 0, NULL);
+                    if (JS_IsException(ret))
+                        goto exception;
+                    sp[0] = ret;
+                    sp++;
+                }
+            }
+            BREAK;
+
+        CASE(OP_using_dispose_merge):
+            {
+                JSValue new_error = sp[-1];
+                JSValue error_state = sp[-2];
+                sp--;
+                if (!JS_IsUninitialized(error_state)) {
+                    JSValue se = js_new_suppressed_error(ctx, new_error,
+                                                         error_state);
+                    JS_FreeValue(ctx, new_error);
+                    JS_FreeValue(ctx, error_state);
+                    if (JS_IsException(se)) {
+                        sp[-1] = JS_GetException(ctx);
+                    } else {
+                        sp[-1] = se;
+                    }
+                } else {
+                    sp[-1] = new_error;
+                }
+            }
+            BREAK;
+
+        CASE(OP_using_dispose_end):
+            {
+                JSValue error_state = sp[-1];
+                sp--;
+                if (!JS_IsUninitialized(error_state)) {
+                    JS_Throw(ctx, error_state);
+                    goto exception;
+                }
+            }
+            BREAK;
+
+        CASE(OP_using_check):
+            {
+                int hint = pc[0];
+                JSValue method;
+                pc += 1;
+                sf->cur_pc = pc;
+                if (js_op_using_check(ctx, sp[-1], hint, &method))
+                    goto exception;
+                sp[0] = method;
+                sp++;
             }
             BREAK;
 
@@ -22700,6 +22880,7 @@ enum {
     TOK_YIELD,
     TOK_AWAIT, /* must be last */
     TOK_OF,     /* only used for js_parse_skip_parens_token() */
+    TOK_USING,  /* does not correspond to a keyword, just to ease parsing */
 };
 
 #define TOK_FIRST_KEYWORD   TOK_NULL
@@ -22720,13 +22901,17 @@ typedef struct BlockEnv {
     int drop_count; /* number of stack elements to drop */
     int label_finally; /* -1 if none */
     int scope_level;
+    int using_label_catch;
+    int using_label_end;
     uint8_t has_iterator : 1;
     uint8_t is_regular_stmt : 1; /* i.e. not a loop statement */
+    uint8_t has_using : 1; /* the block contains a using declaration */
+    uint8_t is_await_using : 1; /* the block has await using declarations */
 } BlockEnv;
 
 typedef struct JSGlobalVar {
     int cpool_idx; /* if >= 0, index in the constant pool for hoisted
-                      function defintion*/
+                      function definition */
     uint8_t force_init : 1; /* force initialization to undefined */
     uint8_t is_lexical : 1; /* global let/const definition */
     uint8_t is_const   : 1; /* const definition */
@@ -25250,6 +25435,7 @@ typedef enum {
     JS_VAR_DEF_NEW_FUNCTION_DECL, /* async/generator function declaration */
     JS_VAR_DEF_CATCH,
     JS_VAR_DEF_VAR,
+    JS_VAR_DEF_USING,
 } JSVarDefEnum;
 
 static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
@@ -25266,6 +25452,7 @@ static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
 
     case JS_VAR_DEF_LET:
     case JS_VAR_DEF_CONST:
+    case JS_VAR_DEF_USING:
     case JS_VAR_DEF_FUNCTION_DECL:
     case JS_VAR_DEF_NEW_FUNCTION_DECL:
         idx = find_lexical_decl(ctx, fd, name, fd->scope_first, TRUE);
@@ -25314,8 +25501,10 @@ static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
         if (fd->is_eval &&
             (fd->eval_type == JS_EVAL_TYPE_GLOBAL ||
              fd->eval_type == JS_EVAL_TYPE_MODULE) &&
-            fd->scope_level == fd->body_scope) {
+            fd->scope_level == fd->body_scope &&
+            var_def_type != JS_VAR_DEF_USING) {
             JSGlobalVar *hf;
+            /* XXX: 'using' variables are currently not exported in modules */
             hf = add_global_var(s->ctx, fd, name);
             if (!hf)
                 return -1;
@@ -25328,13 +25517,16 @@ static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
                 var_kind = JS_VAR_FUNCTION_DECL;
             else if (var_def_type == JS_VAR_DEF_NEW_FUNCTION_DECL)
                 var_kind = JS_VAR_NEW_FUNCTION_DECL;
+            else if (var_def_type == JS_VAR_DEF_USING)
+                var_kind = JS_VAR_USING;
             else
                 var_kind = JS_VAR_NORMAL;
             idx = add_scope_var(ctx, fd, name, var_kind);
             if (idx >= 0) {
                 vd = &fd->vars[idx];
                 vd->is_lexical = 1;
-                vd->is_const = (var_def_type == JS_VAR_DEF_CONST);
+                vd->is_const = (var_def_type == JS_VAR_DEF_CONST ||
+                                var_def_type == JS_VAR_DEF_USING);
             }
         }
         break;
@@ -25423,7 +25615,7 @@ static void push_break_entry(JSFunctionDef *fd, BlockEnv *be,
                              JSAtom label_name,
                              int label_break, int label_cont,
                              int drop_count);
-static void pop_break_entry(JSFunctionDef *fd);
+static void pop_break_entry(JSParseState *s);
 static JSExportEntry *add_export_entry(JSParseState *s, JSModuleDef *m,
                                        JSAtom local_name, JSAtom export_name,
                                        JSExportTypeEnum export_type);
@@ -27279,6 +27471,9 @@ static __exception int js_define_var(JSParseState *s, JSAtom name, int tok)
     case TOK_CATCH:
         var_def_type = JS_VAR_DEF_CATCH;
         break;
+    case TOK_USING:
+        var_def_type = JS_VAR_DEF_USING;
+        break;
     default:
         abort();
     }
@@ -27803,7 +27998,7 @@ static int js_parse_destructuring_element(JSParseState *s, int tok, int is_arg,
         /* close iterator object:
            if completed, enum_obj has been replaced by undefined */
         emit_op(s, OP_iterator_close);
-        pop_break_entry(s->cur_func);
+        pop_break_entry(s);
         if (next_token(s))
             return -1;
     } else {
@@ -29392,12 +29587,72 @@ static void push_break_entry(JSFunctionDef *fd, BlockEnv *be,
     be->scope_level = fd->scope_level;
     be->has_iterator = FALSE;
     be->is_regular_stmt = FALSE;
+    be->has_using = FALSE;
+    be->is_await_using = FALSE;
+    be->using_label_catch = -1;
+    be->using_label_end = -1;
 }
 
-static void pop_break_entry(JSFunctionDef *fd)
+static void js_emit_dispose_scope(JSParseState *s, int scope,
+                                  BOOL is_await_using)
 {
+    JSFunctionDef *fd = s->cur_func;
+    int scope_idx;
+
+    for(scope_idx = fd->scopes[scope].first; scope_idx >= 0;) {
+        JSVarDef *vd = &fd->vars[scope_idx];
+        if (vd->scope_level != scope)
+            break;
+        if (vd->var_kind == JS_VAR_USING) {
+            if (is_await_using) {
+                int label_catch, label_end;
+
+                label_catch = emit_goto(s, OP_catch, -1);
+
+                emit_op(s, OP_using_dispose_async);
+                emit_u16(s, scope_idx);
+
+                emit_op(s, OP_await);
+                emit_op(s, OP_drop);
+                emit_op(s, OP_drop);
+
+                label_end = emit_goto(s, OP_goto, -1);
+
+                emit_label(s, label_catch);
+                emit_op(s, OP_using_dispose_merge);
+
+                emit_label(s, label_end);
+            } else {
+                emit_op(s, OP_using_dispose);
+                emit_u16(s, scope_idx);
+            }
+        }
+        scope_idx = vd->scope_next;
+    }
+}
+
+static void pop_break_entry(JSParseState *s)
+{
+    JSFunctionDef *fd = s->cur_func;
     BlockEnv *be;
+
     be = fd->top_break;
+    if (be->has_using) {
+        /* Normal exit: drop catch_offset, dispose */
+        if (js_is_live_code(s)) {
+            emit_op(s, OP_drop);
+            emit_op(s, OP_using_dispose_init);
+            js_emit_dispose_scope(s, fd->scope_level, be->is_await_using);
+            emit_op(s, OP_using_dispose_end);
+            emit_goto(s, OP_goto, be->using_label_end);
+        }
+        /* Catch handler: exception on stack */
+        emit_label(s, be->using_label_catch);
+        js_emit_dispose_scope(s, fd->scope_level, be->is_await_using);
+        emit_op(s, OP_throw);
+        emit_label(s, be->using_label_end);
+    }
+
     fd->top_break = be->prev;
 }
 
@@ -29432,6 +29687,11 @@ static __exception int emit_break(JSParseState *s, JSAtom name, int is_cont)
         }
         for(; i < top->drop_count; i++)
             emit_op(s, OP_drop);
+        if (top->has_using) {
+            emit_op(s, OP_using_dispose_init);
+            js_emit_dispose_scope(s, top->scope_level, top->is_await_using);
+            emit_op(s, OP_using_dispose_end);
+        }
         if (top->label_finally != -1) {
             /* must push dummy value to keep same stack depth */
             emit_op(s, OP_undefined);
@@ -29469,7 +29729,8 @@ static void emit_return(JSParseState *s, BOOL hasval)
 
     top = s->cur_func->top_break;
     while (top != NULL) {
-        if (top->has_iterator || top->label_finally != -1) {
+        if (top->has_iterator || top->label_finally != -1 ||
+            top->has_using) {
             if (!hasval) {
                 emit_op(s, OP_undefined);
                 hasval = TRUE;
@@ -29505,6 +29766,13 @@ static void emit_return(JSParseState *s, BOOL hasval)
                     emit_op(s, OP_undefined); /* dummy catch offset */
                     emit_op(s, OP_iterator_close);
                 }
+            } else if (top->has_using) {
+                /* Dispose using variables. The return value is on TOS.
+                   stack: ret_val */
+                emit_op(s, OP_using_dispose_init);  /* initial error_state */
+                js_emit_dispose_scope(s, top->scope_level, top->is_await_using);
+                emit_op(s, OP_using_dispose_end);
+                /* stack: ret_val */
             } else {
                 /* execute the "finally" block */
                 emit_goto(s, OP_gosub, top->label_finally);
@@ -29543,8 +29811,9 @@ static void emit_return(JSParseState *s, BOOL hasval)
 #define DECL_MASK_FUNC  (1 << 0) /* allow normal function declaration */
 /* ored with DECL_MASK_FUNC if function declarations are allowed with a label */
 #define DECL_MASK_FUNC_WITH_LABEL (1 << 1)
-#define DECL_MASK_OTHER (1 << 2) /* all other declarations */
-#define DECL_MASK_ALL   (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | DECL_MASK_OTHER)
+#define DECL_MASK_USING (1 << 2) /* using or await using declarations */
+#define DECL_MASK_OTHER (1 << 3) /* all other declarations */
+#define DECL_MASK_ALL   (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | DECL_MASK_USING | DECL_MASK_OTHER)
 
 static __exception int js_parse_statement_or_decl(JSParseState *s,
                                                   int decl_mask);
@@ -29576,13 +29845,18 @@ static __exception int js_parse_block(JSParseState *s)
     if (js_parse_expect(s, '{'))
         return -1;
     if (s->token.val != '}') {
+        BlockEnv using_be;
         push_scope(s);
+        /* new BlockEnv for potential 'using' declarations */
+        push_break_entry(s->cur_func, &using_be,
+                         JS_ATOM_NULL, -1, -1, 0);
         for(;;) {
             if (js_parse_statement_or_decl(s, DECL_MASK_ALL))
                 return -1;
             if (s->token.val == '}')
                 break;
         }
+        pop_break_entry(s);
         pop_scope(s);
     }
     if (next_token(s))
@@ -29590,13 +29864,69 @@ static __exception int js_parse_block(JSParseState *s)
     return 0;
 }
 
+/* compute the name of the hidden variable which stores the 'using' method */
+static JSAtom js_get_using_method_name(JSContext *ctx, JSAtom name)
+{
+    JSValue v = JS_AtomToString(ctx, name);
+    JSAtom ret;
+    v = JS_ConcatString(ctx, JS_NewString(ctx, "<dispose>"), v);
+    if (JS_IsException(v))
+        return JS_ATOM_NULL;
+    ret = JS_ValueToAtom(ctx, v);
+    JS_FreeValue(ctx, v);
+    return ret;
+}
+
+static __exception int js_add_using_method_var(JSParseState *s, JSAtom name)
+{
+    JSContext *ctx = s->ctx;
+    JSFunctionDef *fd = s->cur_func;
+    JSAtom using_method_name;
+    int using_method_idx;
+
+    /* Allocate a paired hidden local for the cached dispose
+       method. Must be allocated immediately after the value
+       var so OP_using_dispose can locate it at value_idx + 1.
+    */
+    /* XXX: could relax the constraint by using the
+       func_pool_idx field or by looking up the variable name */
+    using_method_name = js_get_using_method_name(ctx, name);
+    if (using_method_name == JS_ATOM_NULL)
+        return -1;
+    using_method_idx = add_scope_var(ctx, fd, using_method_name,
+                                     JS_VAR_USING_METHOD);
+    JS_FreeAtom(ctx, using_method_name);
+    if (using_method_idx < 0)
+        return -1;
+    fd->vars[using_method_idx].is_lexical = 1;
+    fd->vars[using_method_idx].is_const = 1;
+    return using_method_idx;
+}
+
+static void js_add_using_catch(JSParseState *s, BOOL is_await_using)
+{
+    JSFunctionDef *fd = s->cur_func;
+    BlockEnv *be = fd->top_break;
+    assert(be != NULL); /* must be in a blockenv */
+    if (!be->has_using) {
+        be->using_label_catch = new_label(s);
+        be->using_label_end = new_label(s);
+        emit_goto(s, OP_catch, be->using_label_catch);
+        be->has_using = TRUE;
+        be->drop_count++;
+    }
+    if (is_await_using)
+        be->is_await_using = TRUE;
+}
+
 /* allowed parse_flags: PF_IN_ACCEPTED */
 static __exception int js_parse_var(JSParseState *s, int parse_flags, int tok,
-                                    BOOL export_flag)
+                                    BOOL export_flag, BOOL is_await_using)
 {
     JSContext *ctx = s->ctx;
     JSFunctionDef *fd = s->cur_func;
     JSAtom name = JS_ATOM_NULL;
+    int using_method_idx = -1; /* avoid warning */
 
     for (;;) {
         if (s->token.val == TOK_IDENT) {
@@ -29604,7 +29934,7 @@ static __exception int js_parse_var(JSParseState *s, int parse_flags, int tok,
                 return js_parse_error_reserved_identifier(s);
             }
             name = JS_DupAtom(ctx, s->token.u.ident.atom);
-            if (name == JS_ATOM_let && (tok == TOK_LET || tok == TOK_CONST)) {
+            if (name == JS_ATOM_let && (tok == TOK_LET || tok == TOK_CONST || tok == TOK_USING)) {
                 js_parse_error(s, "'let' is not a valid lexical identifier");
                 goto var_error;
             }
@@ -29612,6 +29942,11 @@ static __exception int js_parse_var(JSParseState *s, int parse_flags, int tok,
                 goto var_error;
             if (js_define_var(s, name, tok))
                 goto var_error;
+            if (tok == TOK_USING) {
+                using_method_idx = js_add_using_method_var(s, name);
+                if (using_method_idx < 0)
+                    goto var_error;
+            }
             if (export_flag) {
                 if (!add_export_entry(s, s->cur_func->module, name, name,
                                       JS_EXPORT_TYPE_LOCAL))
@@ -29641,17 +29976,28 @@ static __exception int js_parse_var(JSParseState *s, int parse_flags, int tok,
                     put_lvalue(s, opcode, scope, name1, label,
                                PUT_LVALUE_NOKEEP, FALSE);
                 } else {
+                    if (tok == TOK_USING) {
+                        js_add_using_catch(s, is_await_using);
+                    }
                     if (js_parse_assign_expr2(s, parse_flags))
                         goto var_error;
                     set_object_name(s, name);
+
+                    if (tok == TOK_USING) {
+                        emit_op(s, OP_using_check);
+                        emit_u8(s, is_await_using);
+                        emit_op(s, OP_put_loc);
+                        emit_u16(s, using_method_idx);
+                    }
+
                     emit_source_pos(s, source_ptr);
-                    emit_op(s, (tok == TOK_CONST || tok == TOK_LET) ?
+                    emit_op(s, (tok == TOK_CONST || tok == TOK_LET || tok == TOK_USING) ?
                         OP_scope_put_var_init : OP_scope_put_var);
                     emit_atom(s, name);
                     emit_u16(s, fd->scope_level);
                 }
             } else {
-                if (tok == TOK_CONST) {
+                if (tok == TOK_CONST || tok == TOK_USING) {
                     js_parse_error(s, "missing initializer for const variable");
                     goto var_error;
                 }
@@ -29668,6 +30014,10 @@ static __exception int js_parse_var(JSParseState *s, int parse_flags, int tok,
             int skip_bits;
             if ((s->token.val == '[' || s->token.val == '{')
             &&  js_parse_skip_parens_token(s, &skip_bits, FALSE) == '=') {
+                /* using declarations do not allow binding patterns */
+                if (tok == TOK_USING) {
+                    return js_parse_error(s, "binding patterns are not allowed in using declarations");
+                }
                 emit_op(s, OP_undefined);
                 if (js_parse_destructuring_element(s, tok, 0, TRUE, skip_bits & SKIP_HAS_ELLIPSIS, TRUE, export_flag) < 0)
                     return -1;
@@ -29739,6 +30089,36 @@ static int is_let(JSParseState *s, int decl_mask)
     return res;
 }
 
+/* check the presence of 'using <binding>' */
+static BOOL is_using(JSParseState *s)
+{
+    if (token_is_pseudo_keyword(s, JS_ATOM_using)) {
+        int tok1 = peek_token(s, TRUE);
+        if (tok1 == TOK_IDENT || tok1 == TOK_OF)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+/* Return -1, 0, or 1. The next token is 'using' */
+static int check_await_using(JSParseState *s)
+{
+    JSParsePos pos;
+    if (!(s->cur_func->func_kind & JS_FUNC_ASYNC))
+        return 0;
+    js_parse_get_pos(s, &pos);
+    if (next_token(s)) /* skip 'await' */
+        return -1;
+    if (is_using(s)) {
+        return 1;
+    } else {
+        /* Not 'await using': restore to parse as expression */
+        if (js_parse_seek_token(s, &pos))
+            return -1;
+        return 0;
+    }
+}
+
 /* XXX: handle IteratorClose when exiting the loop before the
    enumeration is done */
 static __exception int js_parse_for_in_of(JSParseState *s, int label_name,
@@ -29752,6 +30132,7 @@ static __exception int js_parse_for_in_of(JSParseState *s, int label_name,
     int label_next, label_expr, label_cont, label_body, label_break;
     int pos_next, pos_expr;
     BlockEnv break_entry;
+    BOOL is_await_using = FALSE;
 
     has_initializer = FALSE;
     has_destructuring = FALSE;
@@ -29788,7 +30169,25 @@ static __exception int js_parse_for_in_of(JSParseState *s, int label_name,
     default:
         return -1;
     }
-    if (tok == TOK_VAR || tok == TOK_LET || tok == TOK_CONST) {
+
+    if (tok == TOK_AWAIT && (s->cur_func->func_kind & JS_FUNC_ASYNC)) {
+        if (next_token(s))
+            return -1;
+        if (is_using(s)) {
+            tok = TOK_USING;
+            is_await_using = TRUE;
+            s->cur_func->has_await = TRUE;
+        } else {
+            return js_parse_error(s, "'using' expected");
+        }
+    } else if (tok == TOK_IDENT && token_is_pseudo_keyword(s, JS_ATOM_using)) {
+        int tok1 = peek_token(s, TRUE);
+        if (tok1 != '\n' && tok1 != TOK_OF) {
+            tok = TOK_USING;
+        }
+    }
+
+    if (tok == TOK_VAR || tok == TOK_LET || tok == TOK_CONST || tok == TOK_USING) {
         if (next_token(s))
             return -1;
 
@@ -29803,6 +30202,11 @@ static __exception int js_parse_for_in_of(JSParseState *s, int label_name,
             var_name = JS_ATOM_NULL;
         } else {
             var_name = JS_DupAtom(ctx, s->token.u.ident.atom);
+            if (var_name == JS_ATOM_let &&
+                (tok == TOK_LET || tok == TOK_CONST || tok == TOK_USING)) {
+                JS_FreeAtom(s->ctx, var_name);
+                return js_parse_error(s, "'let' is not a valid lexical identifier");
+            }
             if (next_token(s)) {
                 JS_FreeAtom(s->ctx, var_name);
                 return -1;
@@ -29811,7 +30215,18 @@ static __exception int js_parse_for_in_of(JSParseState *s, int label_name,
                 JS_FreeAtom(s->ctx, var_name);
                 return -1;
             }
-            emit_op(s, (tok == TOK_CONST || tok == TOK_LET) ?
+            if (tok == TOK_USING) {
+                int using_method_idx = js_add_using_method_var(s, var_name);
+                if (using_method_idx < 0) {
+                    JS_FreeAtom(s->ctx, var_name);
+                    return -1;
+                }
+                emit_op(s, OP_using_check);
+                emit_u8(s, is_await_using);
+                emit_op(s, OP_put_loc);
+                emit_u16(s, using_method_idx);
+            }
+            emit_op(s, (tok == TOK_CONST || tok == TOK_LET || tok == TOK_USING) ?
                     OP_scope_put_var_init : OP_scope_put_var);
             emit_atom(s, var_name);
             emit_u16(s, fd->scope_level);
@@ -29869,6 +30284,8 @@ static __exception int js_parse_for_in_of(JSParseState *s, int label_name,
     } else if (s->token.val == TOK_IN) {
         if (is_async)
             return js_parse_error(s, "'for await' loop should be used with 'of'");
+        if (tok == TOK_USING)
+            return js_parse_error(s, "using declaration not allowed in for-in");
         if (has_initializer &&
             (tok != TOK_VAR || (fd->js_mode & JS_MODE_STRICT) ||
              has_destructuring)) {
@@ -29932,8 +30349,22 @@ static __exception int js_parse_for_in_of(JSParseState *s, int label_name,
     }
 
     emit_label(s, label_body);
-    if (js_parse_statement(s))
-        return -1;
+
+    {
+        BlockEnv using_be;
+
+        if (tok == TOK_USING) {
+            push_break_entry(fd, &using_be, JS_ATOM_NULL, -1, -1, 0);
+            js_add_using_catch(s, is_await_using);
+        }
+
+        if (js_parse_statement(s))
+            return -1;
+
+        if (tok == TOK_USING) {
+            pop_break_entry(s);
+        }
+    }
 
     close_scopes(s, s->cur_func->scope_level, block_scope_level);
 
@@ -29966,7 +30397,7 @@ static __exception int js_parse_for_in_of(JSParseState *s, int label_name,
     } else {
         emit_op(s, OP_drop);
     }
-    pop_break_entry(s->cur_func);
+    pop_break_entry(s);
     pop_scope(s);
     return 0;
 }
@@ -30026,7 +30457,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
             if (js_parse_statement_or_decl(s, mask))
                 goto fail;
             emit_label(s, label_break);
-            pop_break_entry(s->cur_func);
+            pop_break_entry(s);
             goto done;
         }
     }
@@ -30081,6 +30512,28 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
                 goto fail;
         }
         break;
+    case TOK_AWAIT:
+        /* Check for 'await using' declaration */
+        {
+            int ret = check_await_using(s);
+            if (ret < 0)
+                goto fail;
+            if (ret) {
+                if (!(decl_mask & DECL_MASK_USING)) {
+                    js_parse_error(s, "using declaration is not allowed in this context");
+                    goto fail;
+                }
+                s->cur_func->has_await = TRUE;
+                if (next_token(s)) /* skip 'using' */
+                    goto fail;
+                if (js_parse_var(s, PF_IN_ACCEPTED, TOK_USING, /*export_flag*/FALSE, TRUE))
+                    goto fail;
+                if (js_parse_expect_semi(s))
+                    goto fail;
+                break;
+            }
+        }
+        goto hasexpr;
     case TOK_LET:
     case TOK_CONST:
     haslet:
@@ -30092,7 +30545,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
     case TOK_VAR:
         if (next_token(s))
             goto fail;
-        if (js_parse_var(s, TRUE, tok, FALSE))
+        if (js_parse_var(s, TRUE, tok, FALSE, FALSE))
             goto fail;
         if (js_parse_expect_semi(s))
             goto fail;
@@ -30158,7 +30611,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
 
             emit_label(s, label_break);
 
-            pop_break_entry(s->cur_func);
+            pop_break_entry(s);
         }
         break;
     case TOK_DO:
@@ -30197,13 +30650,13 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
 
             emit_label(s, label_break);
 
-            pop_break_entry(s->cur_func);
+            pop_break_entry(s);
         }
         break;
     case TOK_FOR:
         {
             int label_cont, label_break, label_body, label_test;
-            int pos_cont, pos_body, block_scope_level;
+            int pos_cont, pos_body, block_scope_level, is_await_using = FALSE;
             BlockEnv break_entry;
             int tok, bits;
             BOOL is_async;
@@ -30240,6 +30693,12 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
             /* create scope for the lexical variables declared in the initial,
                test and increment expressions */
             push_scope(s);
+
+            label_cont = new_label(s);
+            label_break = new_label(s);
+            push_break_entry(s->cur_func, &break_entry,
+                             label_name, label_break, label_cont, 0);
+
             /* initial expression */
             tok = s->token.val;
             if (tok != ';') {
@@ -30252,10 +30711,23 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
                 default:
                     goto fail;
                 }
-                if (tok == TOK_VAR || tok == TOK_LET || tok == TOK_CONST) {
+                if (tok == TOK_AWAIT) {
+                    int ret = check_await_using(s);
+                    if (ret < 0)
+                        goto fail;
+                    if (ret) {
+                        tok = TOK_USING;
+                        is_await_using = TRUE;
+                        s->cur_func->has_await = TRUE;
+                    }
+                } else if (tok == TOK_IDENT && is_using(s)) {
+                    tok = TOK_USING;
+                }
+
+                if (tok == TOK_VAR || tok == TOK_LET || tok == TOK_CONST || tok == TOK_USING) {
                     if (next_token(s))
                         goto fail;
-                    if (js_parse_var(s, FALSE, tok, FALSE))
+                    if (js_parse_var(s, FALSE, tok, FALSE, is_await_using))
                         goto fail;
                 } else {
                     if (js_parse_expr2(s, FALSE))
@@ -30270,12 +30742,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
                 goto fail;
 
             label_test = new_label(s);
-            label_cont = new_label(s);
             label_body = new_label(s);
-            label_break = new_label(s);
-
-            push_break_entry(s->cur_func, &break_entry,
-                             label_name, label_break, label_cont, 0);
 
             /* test expression */
             if (s->token.val == ';') {
@@ -30342,7 +30809,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
 
             emit_label(s, label_break);
 
-            pop_break_entry(s->cur_func);
+            pop_break_entry(s);
             pop_scope(s);
         }
         break;
@@ -30445,7 +30912,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
                         js_parse_error(s, "invalid switch statement");
                         goto fail;
                     }
-                    if (js_parse_statement_or_decl(s, DECL_MASK_ALL))
+                    if (js_parse_statement_or_decl(s, DECL_MASK_ALL & ~DECL_MASK_USING))
                         goto fail;
                 }
             }
@@ -30462,7 +30929,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
             emit_label(s, label_break);
             emit_op(s, OP_drop); /* drop the switch expression */
 
-            pop_break_entry(s->cur_func);
+            pop_break_entry(s);
             pop_scope(s);
         }
         break;
@@ -30489,7 +30956,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
             if (js_parse_block(s))
                 goto fail;
 
-            pop_break_entry(s->cur_func);
+            pop_break_entry(s);
 
             if (js_is_live_code(s)) {
                 /* drop the catch offset */
@@ -30551,7 +31018,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
                 if (js_parse_block(s))
                     goto fail;
 
-                pop_break_entry(s->cur_func);
+                pop_break_entry(s);
                 pop_scope(s);  /* catch block */
                 pop_scope(s);  /* catch variable */
 
@@ -30616,7 +31083,7 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
                     emit_op(s, OP_put_loc);
                     emit_u16(s, s->cur_func->eval_ret_idx);
                 }
-                pop_break_entry(s->cur_func);
+                pop_break_entry(s);
             }
             emit_op(s, OP_ret);
             emit_label(s, label_end);
@@ -30690,6 +31157,27 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
             if (js_parse_function_decl(s, JS_PARSE_FUNC_VAR,
                                        JS_FUNC_NORMAL, JS_ATOM_NULL,
                                        s->token.ptr))
+                goto fail;
+            break;
+        } else if (is_using(s)) {
+            JSFunctionDef *fd = s->cur_func;
+            if (!(decl_mask & DECL_MASK_USING)) {
+                js_parse_error(s, "using declaration is not allowed in this context");
+                goto fail;
+            }
+            if (fd->is_eval &&
+                (fd->eval_type == JS_EVAL_TYPE_GLOBAL ||
+                 fd->eval_type == JS_EVAL_TYPE_DIRECT ||
+                 fd->eval_type == JS_EVAL_TYPE_INDIRECT) &&
+                fd->scope_level == fd->body_scope) {
+                js_parse_error(s, "using declaration is not allowed at the top level of a script");
+                goto fail;
+            }
+            if (next_token(s))
+                goto fail;
+            if (js_parse_var(s, PF_IN_ACCEPTED, TOK_USING, /*export_flag*/FALSE, FALSE))
+                goto fail;
+            if (js_parse_expect_semi(s))
                 goto fail;
             break;
         }
@@ -33621,7 +34109,7 @@ static __exception int js_parse_export(JSParseState *s)
     case TOK_VAR:
     case TOK_LET:
     case TOK_CONST:
-        return js_parse_var(s, TRUE, tok, TRUE);
+        return js_parse_var(s, TRUE, tok, TRUE, FALSE);
     default:
         return js_parse_error(s, "invalid export syntax");
     }
@@ -38784,10 +39272,19 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     if (js_parse_function_check_names(s, fd, func_name))
         goto fail;
 
-    while (s->token.val != '}') {
-        if (js_parse_source_element(s))
-            goto fail;
+    {
+        BlockEnv using_be;
+
+        /* new BlockEnv for potential 'using' declarations */
+        push_break_entry(s->cur_func, &using_be,
+                         JS_ATOM_NULL, -1, -1, 0);
+        while (s->token.val != '}') {
+            if (js_parse_source_element(s))
+                goto fail;
+        }
+        pop_break_entry(s);
     }
+
     if (!fd->strip_source) {
         /* save the function source code */
         fd->source_len = s->buf_ptr - ptr;
@@ -38961,6 +39458,7 @@ static __exception int js_parse_arrow_decl(JSParseState *s,
 static __exception int js_parse_program(JSParseState *s)
 {
     JSFunctionDef *fd = s->cur_func;
+    BlockEnv using_be;
     int idx;
 
     if (next_token(s))
@@ -38980,10 +39478,15 @@ static __exception int js_parse_program(JSParseState *s)
             return -1;
     }
 
+    /* new BlockEnv for potential 'using' declarations */
+    push_break_entry(s->cur_func, &using_be,
+                     JS_ATOM_NULL, -1, -1, 0);
     while (s->token.val != TOK_EOF) {
         if (js_parse_source_element(s))
             return -1;
     }
+
+    pop_break_entry(s);
 
     if (!s->is_module) {
         /* return the value of the hidden variable eval_ret_idx  */
