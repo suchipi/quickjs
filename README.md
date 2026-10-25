@@ -48,7 +48,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 
 ### Changes to `quickjs-libc`:
 
-- quickjs-libc.c was split apart into quickjs-std.c, quickjs-os.c, quickjs-timers.c, quickjs-cmdline.c, and quickjs-eventloop.c
+- quickjs-libc.c was split apart into quickjs-std.c, quickjs-os.c, quickjs-timers.c, quickjs-cmdline.c, quickjs-eventloop.c, and quickjs-curl.c.
 - `std` and `os` builtin modules are now namespaced under "quickjs:". In other words, you have to import them as "quickjs:std" and "quickjs:os".
 - APIs in `std` and `os` no longer return errno anywhere; instead, Error objects are thrown. `errno` is available as a property on the thrown Error objects.
 - In places where APIs in `std` or `os` would return null on failure, now an error will be thrown instead.
