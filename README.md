@@ -241,7 +241,7 @@ The refusal happens up front, before any module body runs - the sync evaluator w
 - Ninja is used instead of make. Ninja build config is generated via `.ninja.js` files which get loaded into [@suchipi/shinobi](https://github.com/suchipi/shinobi).
 - Line endings have been made consistent and trailing whitespace has been removed
 - The tests are authored in a new format which leverages vitest snapshot testing.
-- quickjs-libc.c was split into separate files: quickjs-std.c, quickjs-os.c, quickjs-timers.c, quickjs-cmdline.c, and quickjs-eventloop.c.
+- quickjs-libc.c was split into separate files: quickjs-std.c, quickjs-os.c, quickjs-timers.c, quickjs-cmdline.c, quickjs-eventloop.c, and quickjs-curl.c.
 - The `eval_*` functions that were duplicated in each of the programs (`eval_buf`, `eval_file`, and `eval_binary`) were deduplicated and moved into `quickjs-modulesys`.
 
 ### More target OSes/runtimes
