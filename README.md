@@ -227,13 +227,7 @@ Top-level await (TLA) is supported, but only on entry paths that are inherently 
 - The main module passed to `qjs` / `quickjs-run` / `qjsbootstrap` / `qjsbootstrap-bytecode`
 - Dynamic `import()` expressions
 
-Synchronous module-loading APIs - `require`, `import.meta.require`, `engine.importModule`, and the underlying `JS_RunModule` C API - **refuse** to load any module whose body (or whose transitive imports) uses top-level await. Attempting to do so throws a `TypeError`:
-
-```
-TypeError: cannot synchronously load module '<path>' because it uses top-level await
-```
-
-The refusal happens up front, before any module body runs - the sync evaluator walks the target module's import graph looking for any module that uses top-level await, and bails before evaluation if it finds one.
+Synchronous module-loading APIs (`require`, `import.meta.require`, `engine.importModule`, `JS_RunModule`) refuse to load any module whose body (or whose transitive imports) uses top-level await. Attempting to do so throws a `TypeError`, without executing any modules in the import tree.
 
 ### Changes to project organization
 
