@@ -33,8 +33,6 @@ declare module "quickjs:net" {
   }
 
   export interface UrlGet {
-    // Keep the most specific overloads first: UrlGetOptions admits every option, so an earlier looser overload would capture calls meant for a later one.
-
     /**
      * Download `url` using libcurl (dynamically loaded). Returns string when
      * the http status code is between 200 and 299, and throws otherwise.
@@ -218,15 +216,13 @@ declare module "quickjs:net" {
    * - Otherwise, the method and body are both kept.
    */
   export interface UrlRequest {
-    // Keep the most specific overloads first: UrlRequestOptions admits every option, so an earlier looser overload would capture calls meant for a later one.
-
     /**
      * Send a request to `url` using libcurl (dynamically loaded).
      *
      * Returns an object with three properties:
      *
      * - `response`: response body content (string)
-     * - `responseHeaders`: headers separated by CRLF (string)
+     * - `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
      * - `status`: status code (number)
      *
      * Unlike {@link urlGet}, this doesn't throw when the http status code is
@@ -242,7 +238,7 @@ declare module "quickjs:net" {
     (method: string, url: string): {
       status: number;
       response: string;
-      responseHeaders: string;
+      responseHeaders: { [name: string]: Array<string> | undefined };
     };
 
     /**
@@ -251,7 +247,7 @@ declare module "quickjs:net" {
      * Returns an object with three properties:
      *
      * - `response`: response body content (ArrayBuffer)
-     * - `responseHeaders`: headers separated by CRLF (string)
+     * - `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
      * - `status`: status code (number)
      *
      * Unlike {@link urlGet}, this doesn't throw when the http status code is
@@ -269,7 +265,7 @@ declare module "quickjs:net" {
     ): {
       status: number;
       response: ArrayBuffer;
-      responseHeaders: string;
+      responseHeaders: { [name: string]: Array<string> | undefined };
     };
 
     /**
@@ -278,7 +274,7 @@ declare module "quickjs:net" {
      * Returns an object with three properties:
      *
      * - `response`: response body content (string)
-     * - `responseHeaders`: headers separated by CRLF (string)
+     * - `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
      * - `status`: status code (number)
      *
      * Unlike {@link urlGet}, this doesn't throw when the http status code is
@@ -296,7 +292,7 @@ declare module "quickjs:net" {
     ): {
       status: number;
       response: string;
-      responseHeaders: string;
+      responseHeaders: { [name: string]: Array<string> | undefined };
     };
 
     /**
@@ -306,7 +302,7 @@ declare module "quickjs:net" {
      *
      * - `response`: response body content (ArrayBuffer when the `binary`
      *   option is true, string otherwise)
-     * - `responseHeaders`: headers separated by CRLF (string)
+     * - `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
      * - `status`: status code (number)
      *
      * Unlike {@link urlGet}, this doesn't throw when the http status code is
@@ -320,7 +316,7 @@ declare module "quickjs:net" {
     (method: string, url: string, options: UrlRequestOptions): {
       status: number;
       response: string | ArrayBuffer;
-      responseHeaders: string;
+      responseHeaders: { [name: string]: Array<string> | undefined };
     };
   }
 

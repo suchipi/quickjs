@@ -105,7 +105,9 @@ declare module "quickjs:net" {
     ): {
       status: number;
       response: string;
-      responseHeaders: string;
+      responseHeaders: {
+        [name: string]: Array<string> | undefined;
+      };
     };
     (
       method: string,
@@ -116,7 +118,9 @@ declare module "quickjs:net" {
     ): {
       status: number;
       response: ArrayBuffer;
-      responseHeaders: string;
+      responseHeaders: {
+        [name: string]: Array<string> | undefined;
+      };
     };
     (
       method: string,
@@ -127,7 +131,9 @@ declare module "quickjs:net" {
     ): {
       status: number;
       response: string;
-      responseHeaders: string;
+      responseHeaders: {
+        [name: string]: Array<string> | undefined;
+      };
     };
     (
       method: string,
@@ -136,7 +142,9 @@ declare module "quickjs:net" {
     ): {
       status: number;
       response: string | ArrayBuffer;
-      responseHeaders: string;
+      responseHeaders: {
+        [name: string]: Array<string> | undefined;
+      };
     };
   }
   export var urlRequest: UrlRequest;
@@ -525,7 +533,9 @@ interface UrlRequest {
   ): {
     status: number;
     response: string;
-    responseHeaders: string;
+    responseHeaders: {
+      [name: string]: Array<string> | undefined;
+    };
   };
   (
     method: string,
@@ -536,7 +546,9 @@ interface UrlRequest {
   ): {
     status: number;
     response: ArrayBuffer;
-    responseHeaders: string;
+    responseHeaders: {
+      [name: string]: Array<string> | undefined;
+    };
   };
   (
     method: string,
@@ -547,7 +559,9 @@ interface UrlRequest {
   ): {
     status: number;
     response: string;
-    responseHeaders: string;
+    responseHeaders: {
+      [name: string]: Array<string> | undefined;
+    };
   };
   (
     method: string,
@@ -556,7 +570,9 @@ interface UrlRequest {
   ): {
     status: number;
     response: string | ArrayBuffer;
-    responseHeaders: string;
+    responseHeaders: {
+      [name: string]: Array<string> | undefined;
+    };
   };
 }
 ```
@@ -568,7 +584,7 @@ Send a request to `url` using libcurl (dynamically loaded).
 Returns an object with three properties:
 
 - `response`: response body content (string)
-- `responseHeaders`: headers separated by CRLF (string)
+- `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
 - `status`: status code (number)
 
 Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
@@ -585,7 +601,9 @@ headers. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlreques
 (method: string, url: string): {
   status: number;
   response: string;
-  responseHeaders: string;
+  responseHeaders: {
+    [name: string]: Array<string> | undefined;
+  };
 };
 ```
 
@@ -596,7 +614,7 @@ Send a request to `url` using libcurl (dynamically loaded).
 Returns an object with three properties:
 
 - `response`: response body content (ArrayBuffer)
-- `responseHeaders`: headers separated by CRLF (string)
+- `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
 - `status`: status code (number)
 
 Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
@@ -613,7 +631,9 @@ they affect the method and body.
 }): {
   status: number;
   response: ArrayBuffer;
-  responseHeaders: string;
+  responseHeaders: {
+    [name: string]: Array<string> | undefined;
+  };
 };
 ```
 
@@ -624,7 +644,7 @@ Send a request to `url` using libcurl (dynamically loaded).
 Returns an object with three properties:
 
 - `response`: response body content (string)
-- `responseHeaders`: headers separated by CRLF (string)
+- `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
 - `status`: status code (number)
 
 Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
@@ -641,7 +661,9 @@ they affect the method and body.
 }): {
   status: number;
   response: string;
-  responseHeaders: string;
+  responseHeaders: {
+    [name: string]: Array<string> | undefined;
+  };
 };
 ```
 
@@ -653,7 +675,7 @@ Returns an object with three properties:
 
 - `response`: response body content (ArrayBuffer when the `binary`
   option is true, string otherwise)
-- `responseHeaders`: headers separated by CRLF (string)
+- `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
 - `status`: status code (number)
 
 Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
@@ -668,7 +690,9 @@ they affect the method and body.
 (method: string, url: string, options: UrlRequestOptions): {
   status: number;
   response: string | ArrayBuffer;
-  responseHeaders: string;
+  responseHeaders: {
+    [name: string]: Array<string> | undefined;
+  };
 };
 ```
 

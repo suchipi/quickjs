@@ -319,17 +319,164 @@ static int get_header_list_option(JSContext *ctx, void **plist,
     return -1;
 }
 
+static BOOL is_header_whitespace(uint8_t c)
+{
+    return c == ' ' || c == '\t';
+}
+
+static uint8_t *find_header_line_end(uint8_t *p, uint8_t *end, uint8_t **pnext)
+{
+    uint8_t *line_end = memchr(p, '\n', end - p);
+
+    if (line_end) {
+        *pnext = line_end + 1;
+    } else {
+        line_end = end;
+        *pnext = end;
+    }
+    if (line_end > p && line_end[-1] == '\r')
+        line_end--;
+    return line_end;
+}
+
+/* RFC 9112 section 2.2 says a recipient must either reject a bare CR or replace it with a space. */
+static void replace_bare_crs(uint8_t *p, uint8_t *line_end)
+{
+    for (; p < line_end; p++) {
+        if (*p == '\r')
+            *p = ' ';
+    }
+}
+
+static void trim_header_whitespace(uint8_t **pstart, uint8_t **pend)
+{
+    while (*pstart < *pend && is_header_whitespace(**pstart))
+        (*pstart)++;
+    while (*pend > *pstart && is_header_whitespace((*pend)[-1]))
+        (*pend)--;
+}
+
+static int append_header_value(JSContext *ctx, JSValueConst headers,
+                               uint8_t *name, size_t name_len,
+                               const uint8_t *value, size_t value_len)
+{
+    JSPropertyDescriptor desc;
+    JSAtom name_atom;
+    JSValue values, length_val, value_str;
+    uint32_t length = 0;
+    size_t i;
+    int found, ret = -1;
+
+    for (i = 0; i < name_len; i++) {
+        if (name[i] >= 'A' && name[i] <= 'Z')
+            name[i] += 'a' - 'A';
+    }
+    name_atom = JS_NewAtomLen(ctx, (const char *)name, name_len);
+    if (name_atom == JS_ATOM_NULL)
+        return -1;
+
+    found = JS_GetOwnProperty(ctx, &desc, headers, name_atom);
+    if (found < 0)
+        goto done;
+    if (found) {
+        values = desc.value;
+        length_val = JS_GetPropertyStr(ctx, values, "length");
+        if (JS_ToUint32(ctx, &length, length_val)) {
+            JS_FreeValue(ctx, length_val);
+            JS_FreeValue(ctx, values);
+            goto done;
+        }
+        JS_FreeValue(ctx, length_val);
+    } else {
+        values = JS_NewArray(ctx);
+        if (JS_IsException(values))
+            goto done;
+        if (JS_DefinePropertyValue(ctx, headers, name_atom,
+                                   JS_DupValue(ctx, values), JS_PROP_C_W_E) < 0) {
+            JS_FreeValue(ctx, values);
+            goto done;
+        }
+    }
+
+    value_str = JS_NewStringLen(ctx, (const char *)value, value_len);
+    if (JS_IsException(value_str)) {
+        JS_FreeValue(ctx, values);
+        goto done;
+    }
+    ret = JS_DefinePropertyValueUint32(ctx, values, length, value_str, JS_PROP_C_W_E);
+    JS_FreeValue(ctx, values);
+ done:
+    JS_FreeAtom(ctx, name_atom);
+    return ret < 0 ? -1 : 0;
+}
+
+static JSValue js_net_new_headers_object(JSContext *ctx, DynBuf *header_buf)
+{
+    uint8_t *p, *end, *next, *line_end, *colon, *name, *name_end, *value, *value_end;
+    uint8_t *fold, *fold_end;
+    JSValue headers;
+
+    headers = JS_NewObject(ctx);
+    /* We don't compute buf + size for an empty header_buf because its buf is NULL, and NULL + 0 is undefined behavior in C. */
+    if (JS_IsException(headers) || header_buf->size == 0)
+        return headers;
+    p = header_buf->buf;
+    end = p + header_buf->size;
+
+    while (p < end) {
+        line_end = find_header_line_end(p, end, &next);
+        replace_bare_crs(p, line_end);
+        colon = memchr(p, ':', line_end - p);
+        if (!colon || colon == p || is_header_whitespace(*p)) {
+            p = next;
+            continue;
+        }
+        name = p;
+        name_end = colon;
+        trim_header_whitespace(&name, &name_end);
+        value = colon + 1;
+        value_end = line_end;
+        trim_header_whitespace(&value, &value_end);
+        p = next;
+
+        /* RFC 9112 section 5.2 says a user agent must replace each [obs-fold](https://www.rfc-editor.org/info/rfc9112/#section-5.2)
+           with a space. Folding into header_buf in place is safe because each
+           fold drops at least a LF and a whitespace byte. */
+        while (p < end && is_header_whitespace(*p)) {
+            fold_end = find_header_line_end(p, end, &next);
+            replace_bare_crs(p, fold_end);
+            fold = p;
+            trim_header_whitespace(&fold, &fold_end);
+            if (fold < fold_end) {
+                if (value < value_end)
+                    *value_end++ = ' ';
+                memmove(value_end, fold, fold_end - fold);
+                value_end += fold_end - fold;
+            }
+            p = next;
+        }
+
+        if (append_header_value(ctx, headers, name, name_end - name,
+                                value, value_end - value)) {
+            JS_FreeValue(ctx, headers);
+            return JS_EXCEPTION;
+        }
+    }
+    return headers;
+}
+
 static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
                                       const char *method, const char *url,
                                       JSValueConst body_val, void *header_list,
-                                      BOOL binary_flag, int *pstatus)
+                                      BOOL binary_flag, BOOL structured_headers,
+                                      int *pstatus)
 {
     const char *body_str = NULL;
     DynBuf data_buf_s, *data_buf = &data_buf_s;
     DynBuf header_buf_s, *header_buf = &header_buf_s;
     int status = 0, curl_err;
     long response_code;
-    JSValue response = JS_UNDEFINED, ret_obj;
+    JSValue response = JS_UNDEFINED, headers = JS_UNDEFINED, ret_obj;
     void *curl = NULL;
 
     js_net_dbuf_init(ctx, data_buf);
@@ -500,6 +647,14 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
     dbuf_free(data_buf);
     data_buf = NULL;
 
+    if (structured_headers) {
+        headers = js_net_new_headers_object(ctx, header_buf);
+    } else {
+        headers = JS_NewStringLen(ctx, (char *)header_buf->buf, header_buf->size);
+    }
+    if (JS_IsException(headers))
+        goto fail;
+
     ret_obj = JS_NewObject(ctx);
     if (JS_IsException(ret_obj))
         goto fail;
@@ -509,9 +664,8 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
                               JS_PROP_C_W_E);
 
     JS_DefinePropertyValueStr(ctx, ret_obj, "responseHeaders",
-                                  JS_NewStringLen(ctx, (char *)header_buf->buf,
-                                                  header_buf->size),
-                                  JS_PROP_C_W_E);
+                              headers,
+                              JS_PROP_C_W_E);
 
     JS_DefinePropertyValueStr(ctx, ret_obj, "status",
                                 JS_NewInt32(ctx, status),
@@ -531,6 +685,7 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
     if (header_buf)
         dbuf_free(header_buf);
     JS_FreeValue(ctx, response);
+    JS_FreeValue(ctx, headers);
     return JS_EXCEPTION;
 }
 
@@ -578,7 +733,7 @@ static JSValue js_net_urlGet(JSContext *ctx, JSValueConst this_val,
     }
 
     result = js_net_perform_request(ctx, "urlGet", "GET", url, JS_UNDEFINED,
-                                    header_list, binary_flag, &status);
+                                    header_list, binary_flag, FALSE, &status);
     qjs_libcurl.slist_free_all(header_list);
 
     if (JS_IsException(result) || full_flag) {
@@ -656,7 +811,7 @@ static JSValue js_net_urlRequest(JSContext *ctx, JSValueConst this_val,
     }
 
     ret = js_net_perform_request(ctx, "urlRequest", method, url, body_val,
-                                 header_list, binary_flag, NULL);
+                                 header_list, binary_flag, TRUE, NULL);
     qjs_libcurl.slist_free_all(header_list);
     JS_FreeCString(ctx, method);
     JS_FreeCString(ctx, url);

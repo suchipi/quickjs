@@ -53,6 +53,32 @@ describe("quickjs:net", () => {
           "Content-Length": "17",
         });
         res.end("hello from server");
+      } else if (req.url === "/raw-headers") {
+        req.socket.end(
+          "HTTP/1.1 200 OK\r\n" +
+            "Set-Cookie: a=1; Expires=Wed, 21 Oct 2026 07:28:00 GMT\r\n" +
+            "X-Padded:   padded value   \r\n" +
+            "set-cookie: b=2\r\n" +
+            "X-Folded: first\r\n" +
+            "   second\r\n" +
+            "\tthird\r\n" +
+            "X-Bare-LF: yes\n" +
+            "X-Fold-After-Empty:\r\n" +
+            "   value\r\n" +
+            "X-Blank-Continuation: a\r\n" +
+            "   \r\n" +
+            "   b\r\n" +
+            "X-Bare-LF-Fold: d\n" +
+            "   folded\n" +
+            "X-Bare-CR: a\rb\r\n" +
+            "X-Space-Before-Colon : value\r\n" +
+            "X-Empty:\r\n" +
+            "Constructor: not-a-function\r\n" +
+            "Content-Length: 2\r\n" +
+            "Connection: close\r\n" +
+            "\r\n" +
+            "ok"
+        );
       } else {
         res.writeHead(200);
         res.end("ok");
@@ -350,7 +376,7 @@ describe("quickjs:net", () => {
         const result = net.urlRequest("GET", "http://127.0.0.1:${port}/echo-request");
         console.log("keys:", Object.keys(result).join(", "));
         console.log("status:", result.status);
-        console.log("has content-type header:", result.responseHeaders.toLowerCase().includes("content-type: application/json"));
+        console.log("content-type:", JSON.stringify(result.responseHeaders["content-type"]));
         console.log("response:", result.response);
       `,
     ]);
@@ -362,8 +388,70 @@ describe("quickjs:net", () => {
         "stderr": "",
         "stdout": "keys: response, responseHeaders, status
       status: 200
-      has content-type header: true
+      content-type: ["application/json"]
       response: {"method":"GET","bodyHex":""}
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - responseHeaders groups values by lowercased name", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const result = net.urlRequest("GET", "http://127.0.0.1:${port}/raw-headers");
+        console.log(JSON.stringify(result.responseHeaders, null, 2));
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "{
+        "set-cookie": [
+          "a=1; Expires=Wed, 21 Oct 2026 07:28:00 GMT",
+          "b=2"
+        ],
+        "x-padded": [
+          "padded value"
+        ],
+        "x-folded": [
+          "first second third"
+        ],
+        "x-bare-lf": [
+          "yes"
+        ],
+        "x-fold-after-empty": [
+          "value"
+        ],
+        "x-blank-continuation": [
+          "a b"
+        ],
+        "x-bare-lf-fold": [
+          "d folded"
+        ],
+        "x-bare-cr": [
+          "a b"
+        ],
+        "x-space-before-colon": [
+          "value"
+        ],
+        "x-empty": [
+          ""
+        ],
+        "constructor": [
+          "not-a-function"
+        ],
+        "content-length": [
+          "2"
+        ],
+        "connection": [
+          "close"
+        ]
+      }
       ",
       }
     `);
@@ -456,10 +544,7 @@ describe("quickjs:net", () => {
         const result = net.urlRequest("HEAD", "http://127.0.0.1:${port}/text-with-length");
         console.log("status:", result.status);
         console.log("response:", JSON.stringify(result.response));
-        const contentLength = result.responseHeaders
-          .split("\\r\\n")
-          .find((line) => line.toLowerCase().startsWith("content-length:"));
-        console.log("header:", contentLength);
+        console.log("content-length:", JSON.stringify(result.responseHeaders["content-length"]));
       `,
     ]);
     await run.completion;
@@ -470,7 +555,7 @@ describe("quickjs:net", () => {
         "stderr": "",
         "stdout": "status: 200
       response: ""
-      header: Content-Length: 17
+      content-length: ["17"]
       ",
       }
     `);
@@ -541,7 +626,7 @@ describe("quickjs:net", () => {
         for (const [method, statusCode] of requests) {
           const result = net.urlRequest(method, "http://127.0.0.1:${port}/redirect/" + statusCode, { body: "x" });
           const echoed = JSON.parse(result.response);
-          console.log(method, statusCode, "->", echoed.method, "bodyHex:", JSON.stringify(echoed.bodyHex));
+          console.log(method, statusCode, "->", echoed.method, "bodyHex:", JSON.stringify(echoed.bodyHex), "location:", "location" in result.responseHeaders);
         }
       `,
     ]);
@@ -551,12 +636,12 @@ describe("quickjs:net", () => {
         "code": 0,
         "error": null,
         "stderr": "",
-        "stdout": "POST 303 -> GET bodyHex: ""
-      POST 307 -> POST bodyHex: "78"
-      PUT 301 -> PUT bodyHex: "78"
-      PUT 302 -> PUT bodyHex: "78"
-      PUT 303 -> PUT bodyHex: ""
-      PUT 308 -> PUT bodyHex: "78"
+        "stdout": "POST 303 -> GET bodyHex: "" location: false
+      POST 307 -> POST bodyHex: "78" location: false
+      PUT 301 -> PUT bodyHex: "78" location: false
+      PUT 302 -> PUT bodyHex: "78" location: false
+      PUT 303 -> PUT bodyHex: "" location: false
+      PUT 308 -> PUT bodyHex: "78" location: false
       ",
       }
     `);
