@@ -839,6 +839,8 @@ static JSValue js_curl_urlRequest(JSContext *ctx, JSValueConst this_val,
 
     if (!JS_IsString(argv[0]))
         return JS_ThrowTypeError(ctx, "<internal>/quickjs-curl.c", __LINE__, "method must be a string");
+    if (!JS_IsString(argv[1]))
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-curl.c", __LINE__, "url must be a string");
     method = JS_ToCString(ctx, argv[0]);
     if (!method)
         return JS_EXCEPTION;

@@ -728,18 +728,21 @@ describe("quickjs:curl", () => {
       "-e",
       `
         const curl = require("quickjs:curl");
+        const url = "http://127.0.0.1:${port}/echo-request";
         const attempts = [
-          [5, {}],
-          ["POST", { body: 5 }],
-          ["POST", { body: new Uint8Array(2) }],
-          ["HEAD", { body: "x" }],
-          ["GET", { redirect: "FOLLOW" }],
-          ["GET", { redirect: "manual\\u0000" }],
-          ["GET", { redirect: null }],
+          [5, url, {}],
+          ["GET"],
+          ["GET", 5, {}],
+          ["POST", url, { body: 5 }],
+          ["POST", url, { body: new Uint8Array(2) }],
+          ["HEAD", url, { body: "x" }],
+          ["GET", url, { redirect: "FOLLOW" }],
+          ["GET", url, { redirect: "manual\\u0000" }],
+          ["GET", url, { redirect: null }],
         ];
-        for (const [method, options] of attempts) {
+        for (const args of attempts) {
           try {
-            curl.urlRequest(method, "http://127.0.0.1:${port}/echo-request", options);
+            curl.urlRequest(...args);
             console.log("ERROR: should have thrown");
           } catch (error) {
             console.log(error.name + ": " + error.message);
@@ -754,6 +757,8 @@ describe("quickjs:curl", () => {
         "error": null,
         "stderr": "",
         "stdout": "TypeError: method must be a string
+      TypeError: url must be a string
+      TypeError: url must be a string
       TypeError: 'body' option must be a string or ArrayBuffer
       TypeError: 'body' option must be a string or ArrayBuffer
       TypeError: 'body' option cannot be used with the HEAD method
