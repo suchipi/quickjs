@@ -1,5 +1,5 @@
 /*
- * QuickJS Networking Module
+ * QuickJS libcurl http module
  *
  * Copyright (c) 2017-2021 Fabrice Bellard
  * Copyright (c) 2017-2021 Charlie Gordon
@@ -34,13 +34,13 @@
 #endif
 
 #include "cutils.h"
-#include "quickjs-net.h"
+#include "quickjs-curl.h"
 #include "quickjs-utils.h"
 #include "debugprint.h"
 
 #if !defined(__wasi__) && !defined(__EMSCRIPTEN__) && !defined(__COSMO__)
 
-static void js_net_dbuf_init(JSContext *ctx, DynBuf *s)
+static void js_curl_dbuf_init(JSContext *ctx, DynBuf *s)
 {
     dbuf_init2(s, JS_GetRuntime(ctx), (DynBufReallocFunc *)js_realloc_rt);
 }
@@ -61,18 +61,18 @@ static int get_bool_option(JSContext *ctx, BOOL *pbool,
 }
 
 typedef enum {
-    JS_NET_REDIRECT_FOLLOW,
-    JS_NET_REDIRECT_ERROR,
-    JS_NET_REDIRECT_MANUAL,
-} JSNetRedirectMode;
+    JS_CURL_REDIRECT_FOLLOW,
+    JS_CURL_REDIRECT_ERROR,
+    JS_CURL_REDIRECT_MANUAL,
+} JSCurlRedirectMode;
 
-static const char *const js_net_redirect_mode_names[] = {
-    [JS_NET_REDIRECT_FOLLOW] = "follow",
-    [JS_NET_REDIRECT_ERROR] = "error",
-    [JS_NET_REDIRECT_MANUAL] = "manual",
+static const char *const js_curl_redirect_mode_names[] = {
+    [JS_CURL_REDIRECT_FOLLOW] = "follow",
+    [JS_CURL_REDIRECT_ERROR] = "error",
+    [JS_CURL_REDIRECT_MANUAL] = "manual",
 };
 
-static int get_redirect_option(JSContext *ctx, JSNetRedirectMode *pmode,
+static int get_redirect_option(JSContext *ctx, JSCurlRedirectMode *pmode,
                                JSValueConst obj)
 {
     JSValue val;
@@ -92,17 +92,17 @@ static int get_redirect_option(JSContext *ctx, JSNetRedirectMode *pmode,
     JS_FreeValue(ctx, val);
     if (!str)
         return -1;
-    for (i = 0; i < countof(js_net_redirect_mode_names); i++) {
-        if (len == strlen(js_net_redirect_mode_names[i]) &&
-            memcmp(str, js_net_redirect_mode_names[i], len) == 0) {
+    for (i = 0; i < countof(js_curl_redirect_mode_names); i++) {
+        if (len == strlen(js_curl_redirect_mode_names[i]) &&
+            memcmp(str, js_curl_redirect_mode_names[i], len) == 0) {
             JS_FreeCString(ctx, str);
-            *pmode = (JSNetRedirectMode)i;
+            *pmode = (JSCurlRedirectMode)i;
             return 0;
         }
     }
     JS_FreeCString(ctx, str);
  invalid:
-    JS_ThrowTypeError(ctx, "<internal>/quickjs-net.c", __LINE__, "'redirect' option must be \"follow\", \"error\", or \"manual\"");
+    JS_ThrowTypeError(ctx, "<internal>/quickjs-curl.c", __LINE__, "'redirect' option must be \"follow\", \"error\", or \"manual\"");
     return -1;
 }
 
@@ -300,7 +300,7 @@ static int get_header_list_option(JSContext *ctx, void **plist,
     if (JS_IsUndefined(val))
         return 0;
     if (!JS_IsObject(val)) {
-        JS_ThrowTypeError(ctx, "<internal>/quickjs-net.c", __LINE__, "'%s' option must be an object", option);
+        JS_ThrowTypeError(ctx, "<internal>/quickjs-curl.c", __LINE__, "'%s' option must be an object", option);
         JS_FreeValue(ctx, val);
         return -1;
     }
@@ -319,7 +319,7 @@ static int get_header_list_option(JSContext *ctx, void **plist,
             goto fail;
         if (!JS_IsString(foreach->val) && !JS_IsNumber(foreach->val) &&
             !JS_IsBigInt(ctx, foreach->val)) {
-            JS_ThrowTypeError(ctx, "<internal>/quickjs-net.c", __LINE__, "'%s' option value for '%s' must be a string, number, or bigint", option, key_str);
+            JS_ThrowTypeError(ctx, "<internal>/quickjs-curl.c", __LINE__, "'%s' option value for '%s' must be a string, number, or bigint", option, key_str);
             JS_FreeCString(ctx, key_str);
             goto fail;
         }
@@ -329,7 +329,7 @@ static int get_header_list_option(JSContext *ctx, void **plist,
             goto fail;
         }
 
-        js_net_dbuf_init(ctx, &entry_buf);
+        js_curl_dbuf_init(ctx, &entry_buf);
         dbuf_putstr(&entry_buf, key_str);
         /* libcurl treats "Name:" as "remove this header"; "Name;" sends it with an empty value */
         if (val_str[0] == '\0') {
@@ -457,7 +457,7 @@ static int append_header_value(JSContext *ctx, JSValueConst headers,
     return ret < 0 ? -1 : 0;
 }
 
-static JSValue js_net_new_headers_object(JSContext *ctx, DynBuf *header_buf)
+static JSValue js_curl_new_headers_object(JSContext *ctx, DynBuf *header_buf)
 {
     uint8_t *p, *end, *next, *line_end, *colon, *name, *name_end, *value, *value_end;
     uint8_t *fold, *fold_end;
@@ -512,11 +512,11 @@ static JSValue js_net_new_headers_object(JSContext *ctx, DynBuf *header_buf)
     return headers;
 }
 
-static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
+static JSValue js_curl_perform_request(JSContext *ctx, const char *func_name,
                                       const char *method, const char *url,
                                       JSValueConst body_val, void *header_list,
                                       BOOL binary_flag, BOOL structured_headers,
-                                      JSNetRedirectMode redirect_mode,
+                                      JSCurlRedirectMode redirect_mode,
                                       int *pstatus)
 {
     const char *body_str = NULL;
@@ -527,61 +527,61 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
     JSValue response = JS_UNDEFINED, headers = JS_UNDEFINED, ret_obj;
     void *curl = NULL;
 
-    js_net_dbuf_init(ctx, data_buf);
-    js_net_dbuf_init(ctx, header_buf);
+    js_curl_dbuf_init(ctx, data_buf);
+    js_curl_dbuf_init(ctx, header_buf);
 
     curl = qjs_libcurl.easy_init();
     if (!curl) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__, "curl_easy_init failed");
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__, "curl_easy_init failed");
         goto fail;
     }
 
     curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_URL, url);
     if (curl_err != QJS_CURLE_OK) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                       "curl_easy_setopt(CURLOPT_URL) failed: %s",
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
     }
     curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_FOLLOWLOCATION,
-                                       redirect_mode == JS_NET_REDIRECT_FOLLOW ? 1L : 0L);
+                                       redirect_mode == JS_CURL_REDIRECT_FOLLOW ? 1L : 0L);
     if (curl_err != QJS_CURLE_OK) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                       "curl_easy_setopt(CURLOPT_FOLLOWLOCATION) failed: %s",
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
     }
     curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_WRITEFUNCTION, perform_request_write_callback);
     if (curl_err != QJS_CURLE_OK) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                       "curl_easy_setopt(CURLOPT_WRITEFUNCTION) failed: %s",
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
     }
     curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_WRITEDATA, data_buf);
     if (curl_err != QJS_CURLE_OK) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                       "curl_easy_setopt(CURLOPT_WRITEDATA) failed: %s",
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
     }
     curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HEADERFUNCTION, perform_request_header_callback);
     if (curl_err != QJS_CURLE_OK) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                       "curl_easy_setopt(CURLOPT_HEADERFUNCTION) failed: %s",
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
     }
     curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HEADERDATA, header_buf);
     if (curl_err != QJS_CURLE_OK) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                       "curl_easy_setopt(CURLOPT_HEADERDATA) failed: %s",
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
     }
     curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_HTTPHEADER, header_list);
     if (curl_err != QJS_CURLE_OK) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                       "curl_easy_setopt(CURLOPT_HTTPHEADER) failed: %s",
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
@@ -590,7 +590,7 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
     if (strcmp(method, "HEAD") == 0) {
         curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_NOBODY, 1L);
         if (curl_err != QJS_CURLE_OK) {
-            JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+            JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                           "curl_easy_setopt(CURLOPT_NOBODY) failed: %s",
                           qjs_libcurl.easy_strerror(curl_err));
             goto fail;
@@ -616,14 +616,14 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
         if (body) {
             curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_POSTFIELDSIZE_LARGE, (int64_t)body_len);
             if (curl_err != QJS_CURLE_OK) {
-                JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+                JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                               "curl_easy_setopt(CURLOPT_POSTFIELDSIZE_LARGE) failed: %s",
                               qjs_libcurl.easy_strerror(curl_err));
                 goto fail;
             }
             curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_POSTFIELDS, body);
             if (curl_err != QJS_CURLE_OK) {
-                JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+                JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                               "curl_easy_setopt(CURLOPT_POSTFIELDS) failed: %s",
                               qjs_libcurl.easy_strerror(curl_err));
                 goto fail;
@@ -633,7 +633,7 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
         if (strcmp(method, body ? "POST" : "GET") != 0) {
             curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_CUSTOMREQUEST, method);
             if (curl_err != QJS_CURLE_OK) {
-                JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+                JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                               "curl_easy_setopt(CURLOPT_CUSTOMREQUEST) failed: %s",
                               qjs_libcurl.easy_strerror(curl_err));
                 goto fail;
@@ -643,7 +643,7 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
                 curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_POSTREDIR,
                                                    QJS_CURL_REDIR_POST_301 | QJS_CURL_REDIR_POST_302);
                 if (curl_err != QJS_CURLE_OK) {
-                    JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+                    JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                                   "curl_easy_setopt(CURLOPT_POSTREDIR) failed: %s",
                                   qjs_libcurl.easy_strerror(curl_err));
                     goto fail;
@@ -656,7 +656,7 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
 
     curl_err = qjs_libcurl.easy_perform(curl);
     if (curl_err != QJS_CURLE_OK) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                       "%s request failed: %s", func_name,
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
@@ -665,26 +665,26 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
     response_code = 0;
     curl_err = qjs_libcurl.easy_getinfo(curl, QJS_CURLINFO_RESPONSE_CODE, &response_code);
     if (curl_err != QJS_CURLE_OK) {
-        JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+        JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                       "curl_easy_getinfo(CURLINFO_RESPONSE_CODE) failed: %s",
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
     }
     status = (int)response_code;
 
-    if (redirect_mode == JS_NET_REDIRECT_ERROR) {
+    if (redirect_mode == JS_CURL_REDIRECT_ERROR) {
         const char *redirect_url = NULL;
 
         curl_err = qjs_libcurl.easy_getinfo(curl, QJS_CURLINFO_REDIRECT_URL, &redirect_url);
         if (curl_err != QJS_CURLE_OK) {
-            JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+            JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                           "curl_easy_getinfo(CURLINFO_REDIRECT_URL) failed: %s",
                           qjs_libcurl.easy_strerror(curl_err));
             goto fail;
         }
         /* libcurl sets CURLINFO_REDIRECT_URL for exactly the responses that it would follow if CURLOPT_FOLLOWLOCATION were on. */
         if (redirect_url) {
-            JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+            JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__,
                           "%s request failed: server responded with redirect status %d, and the 'redirect' option is \"error\"",
                           func_name, status);
             goto fail;
@@ -716,7 +716,7 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
     data_buf = NULL;
 
     if (structured_headers) {
-        headers = js_net_new_headers_object(ctx, header_buf);
+        headers = js_curl_new_headers_object(ctx, header_buf);
     } else {
         headers = JS_NewStringLen(ctx, (char *)header_buf->buf, header_buf->size);
     }
@@ -759,11 +759,11 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
 
 #endif /* !__wasi__ && !__EMSCRIPTEN__ && !__COSMO__ */
 
-static JSValue js_net_urlGet(JSContext *ctx, JSValueConst this_val,
+static JSValue js_curl_urlGet(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
 #if defined(__wasi__) || defined(__EMSCRIPTEN__) || defined(__COSMO__)
-    return JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__, "urlGet is not supported on this platform");
+    return JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__, "urlGet is not supported on this platform");
 #else
     const char *url;
     int status;
@@ -774,7 +774,7 @@ static JSValue js_net_urlGet(JSContext *ctx, JSValueConst this_val,
     char errbuf[256];
 
     if (ensure_libcurl_loaded(errbuf, sizeof(errbuf))) {
-        return JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__, "%s", errbuf);
+        return JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__, "%s", errbuf);
     }
 
     url = JS_ToCString(ctx, argv[0]);
@@ -800,9 +800,9 @@ static JSValue js_net_urlGet(JSContext *ctx, JSValueConst this_val,
         }
     }
 
-    result = js_net_perform_request(ctx, "urlGet", "GET", url, JS_UNDEFINED,
+    result = js_curl_perform_request(ctx, "urlGet", "GET", url, JS_UNDEFINED,
                                     header_list, binary_flag, FALSE,
-                                    JS_NET_REDIRECT_FOLLOW, &status);
+                                    JS_CURL_REDIRECT_FOLLOW, &status);
     qjs_libcurl.slist_free_all(header_list);
 
     if (JS_IsException(result) || full_flag) {
@@ -812,33 +812,33 @@ static JSValue js_net_urlGet(JSContext *ctx, JSValueConst this_val,
         JS_FreeValue(ctx, result);
     } else {
         JS_FreeValue(ctx, result);
-        ret = JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__, "HTTP response status code was %d. Url was: '%s'. To allow non-2xx status codes, pass the 'full' option to urlGet.", status, url);
+        ret = JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__, "HTTP response status code was %d. Url was: '%s'. To allow non-2xx status codes, pass the 'full' option to urlGet.", status, url);
     }
     JS_FreeCString(ctx, url);
     return ret;
 #endif /* !__wasi__ && !__EMSCRIPTEN__ && !__COSMO__ */
 }
 
-static JSValue js_net_urlRequest(JSContext *ctx, JSValueConst this_val,
+static JSValue js_curl_urlRequest(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
 #if defined(__wasi__) || defined(__EMSCRIPTEN__) || defined(__COSMO__)
-    return JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__, "urlRequest is not supported on this platform");
+    return JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__, "urlRequest is not supported on this platform");
 #else
     const char *method, *url;
     JSValue body_val = JS_UNDEFINED, ret;
     JSValueConst options_obj;
     void *header_list = NULL;
     BOOL binary_flag;
-    JSNetRedirectMode redirect_mode = JS_NET_REDIRECT_FOLLOW;
+    JSCurlRedirectMode redirect_mode = JS_CURL_REDIRECT_FOLLOW;
     char errbuf[256];
 
     if (ensure_libcurl_loaded(errbuf, sizeof(errbuf))) {
-        return JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__, "%s", errbuf);
+        return JS_ThrowError(ctx, "<internal>/quickjs-curl.c", __LINE__, "%s", errbuf);
     }
 
     if (!JS_IsString(argv[0]))
-        return JS_ThrowTypeError(ctx, "<internal>/quickjs-net.c", __LINE__, "method must be a string");
+        return JS_ThrowTypeError(ctx, "<internal>/quickjs-curl.c", __LINE__, "method must be a string");
     method = JS_ToCString(ctx, argv[0]);
     if (!method)
         return JS_EXCEPTION;
@@ -862,12 +862,12 @@ static JSValue js_net_urlRequest(JSContext *ctx, JSValueConst this_val,
             goto fail_obj;
         if (!JS_IsUndefined(body_val) && !JS_IsString(body_val) &&
             JS_GetClassID(body_val) != JS_CLASS_ARRAY_BUFFER) {
-            JS_ThrowTypeError(ctx, "<internal>/quickjs-net.c", __LINE__, "'body' option must be a string or ArrayBuffer");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs-curl.c", __LINE__, "'body' option must be a string or ArrayBuffer");
             goto fail_obj;
         }
 
         if (strcmp(method, "HEAD") == 0 && !JS_IsUndefined(body_val)) {
-            JS_ThrowTypeError(ctx, "<internal>/quickjs-net.c", __LINE__, "'body' option cannot be used with the HEAD method");
+            JS_ThrowTypeError(ctx, "<internal>/quickjs-curl.c", __LINE__, "'body' option cannot be used with the HEAD method");
             goto fail_obj;
         }
 
@@ -883,7 +883,7 @@ static JSValue js_net_urlRequest(JSContext *ctx, JSValueConst this_val,
         }
     }
 
-    ret = js_net_perform_request(ctx, "urlRequest", method, url, body_val,
+    ret = js_curl_perform_request(ctx, "urlRequest", method, url, body_val,
                                  header_list, binary_flag, TRUE,
                                  redirect_mode, NULL);
     qjs_libcurl.slist_free_all(header_list);
@@ -894,25 +894,25 @@ static JSValue js_net_urlRequest(JSContext *ctx, JSValueConst this_val,
 #endif /* !__wasi__ && !__EMSCRIPTEN__ && !__COSMO__ */
 }
 
-static const JSCFunctionListEntry js_net_funcs[] = {
-    JS_CFUNC_DEF("urlGet", 1, js_net_urlGet ),
-    JS_CFUNC_DEF("urlRequest", 2, js_net_urlRequest ),
+static const JSCFunctionListEntry js_curl_funcs[] = {
+    JS_CFUNC_DEF("urlGet", 1, js_curl_urlGet ),
+    JS_CFUNC_DEF("urlRequest", 2, js_curl_urlRequest ),
 };
 
-static int js_net_init(JSContext *ctx, JSModuleDef *m)
+static int js_curl_init(JSContext *ctx, JSModuleDef *m)
 {
-    return JS_SetModuleExportList(ctx, m, js_net_funcs,
-                                  countof(js_net_funcs));
+    return JS_SetModuleExportList(ctx, m, js_curl_funcs,
+                                  countof(js_curl_funcs));
 }
 
-JSModuleDef *js_init_module_net(JSContext *ctx, const char *module_name)
+JSModuleDef *js_init_module_curl(JSContext *ctx, const char *module_name)
 {
     JSModuleDef *m;
 
-    m = JS_NewCModule(ctx, module_name, js_net_init, NULL);
+    m = JS_NewCModule(ctx, module_name, js_curl_init, NULL);
     if (!m)
         return NULL;
-    JS_AddModuleExportList(ctx, m, js_net_funcs,
-                           countof(js_net_funcs));
+    JS_AddModuleExportList(ctx, m, js_curl_funcs,
+                           countof(js_curl_funcs));
     return m;
 }

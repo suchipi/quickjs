@@ -22,8 +22,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef QUICKJS_NET_H
-#define QUICKJS_NET_H
+#ifndef QUICKJS_CURL_H
+#define QUICKJS_CURL_H
 
 #include "quickjs.h"
 
@@ -31,10 +31,10 @@
 extern "C" {
 #endif
 
-JSModuleDef *js_init_module_net(JSContext *ctx, const char *module_name);
+JSModuleDef *js_init_module_curl(JSContext *ctx, const char *module_name);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* QUICKJS_NET_H */
+#endif /* QUICKJS_CURL_H */

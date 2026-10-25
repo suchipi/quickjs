@@ -3,7 +3,7 @@ import { spawn } from "first-base";
 import { binDir } from "./_utils";
 import http from "http";
 
-describe("quickjs:net", () => {
+describe("quickjs:curl", () => {
   let server: http.Server;
   let port: number;
 
@@ -111,8 +111,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlGet("http://127.0.0.1:${port}/text");
+        const curl = require("quickjs:curl");
+        const result = curl.urlGet("http://127.0.0.1:${port}/text");
         console.log("type:", typeof result);
         console.log("value:", result);
       `,
@@ -134,8 +134,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlGet("http://127.0.0.1:${port}/binary", { binary: true });
+        const curl = require("quickjs:curl");
+        const result = curl.urlGet("http://127.0.0.1:${port}/binary", { binary: true });
         console.log("type:", result.constructor.name);
         console.log("length:", result.byteLength);
         const view = new Uint8Array(result);
@@ -160,8 +160,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlGet("http://127.0.0.1:${port}/text", { full: true });
+        const curl = require("quickjs:curl");
+        const result = curl.urlGet("http://127.0.0.1:${port}/text", { full: true });
         console.log("type:", typeof result);
         console.log("status:", result.status);
         console.log("response type:", typeof result.response);
@@ -191,8 +191,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlGet("http://127.0.0.1:${port}/binary", { full: true, binary: true });
+        const curl = require("quickjs:curl");
+        const result = curl.urlGet("http://127.0.0.1:${port}/binary", { full: true, binary: true });
         console.log("status:", result.status);
         console.log("response type:", result.response.constructor.name);
         console.log("length:", result.response.byteLength);
@@ -216,9 +216,9 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         try {
-          net.urlGet("http://127.0.0.1:${port}/error");
+          curl.urlGet("http://127.0.0.1:${port}/error");
           console.log("ERROR: should have thrown");
         } catch(e) {
           console.log("caught error");
@@ -241,8 +241,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlGet("http://127.0.0.1:${port}/error", { full: true });
+        const curl = require("quickjs:curl");
+        const result = curl.urlGet("http://127.0.0.1:${port}/error", { full: true });
         console.log("status:", result.status);
         console.log("response:", result.response);
       `,
@@ -264,9 +264,9 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         try {
-          net.urlGet("http://127.0.0.1:${port}/error", { binary: true });
+          curl.urlGet("http://127.0.0.1:${port}/error", { binary: true });
           console.log("ERROR: should have thrown");
         } catch (error) {
           console.log("caught error");
@@ -289,8 +289,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlGet("http://127.0.0.1:${port}/echo-headers", {
+        const curl = require("quickjs:curl");
+        const result = curl.urlGet("http://127.0.0.1:${port}/echo-headers", {
           headers: {
             "X-Custom": "hello",
             "X-Empty": "",
@@ -327,9 +327,9 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         try {
-          net.urlGet("http://127.0.0.1:${port}/echo-headers", { headers: { "X-Bool": true } });
+          curl.urlGet("http://127.0.0.1:${port}/echo-headers", { headers: { "X-Bool": true } });
           console.log("ERROR: should have thrown");
         } catch (error) {
           console.log(error.name + ": " + error.message);
@@ -352,9 +352,9 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         try {
-          net.urlGet("http://127.0.0.1:${port}/echo-headers", { headers: "X-Custom: hello" });
+          curl.urlGet("http://127.0.0.1:${port}/echo-headers", { headers: "X-Custom: hello" });
           console.log("ERROR: should have thrown");
         } catch (error) {
           console.log(error.name + ": " + error.message);
@@ -377,8 +377,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlRequest("GET", "http://127.0.0.1:${port}/echo-request");
+        const curl = require("quickjs:curl");
+        const result = curl.urlRequest("GET", "http://127.0.0.1:${port}/echo-request");
         console.log("keys:", Object.keys(result).join(", "));
         console.log("status:", result.status);
         console.log("content-type:", JSON.stringify(result.responseHeaders["content-type"]));
@@ -404,8 +404,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlRequest("GET", "http://127.0.0.1:${port}/raw-headers");
+        const curl = require("quickjs:curl");
+        const result = curl.urlRequest("GET", "http://127.0.0.1:${port}/raw-headers");
         console.log(JSON.stringify(result.responseHeaders, null, 2));
       `,
     ]);
@@ -466,8 +466,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlRequest("POST", "http://127.0.0.1:${port}/echo-request", {
+        const curl = require("quickjs:curl");
+        const result = curl.urlRequest("POST", "http://127.0.0.1:${port}/echo-request", {
           body: "h\\u00e9llo \\u2713",
         });
         console.log(result.response);
@@ -489,8 +489,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlRequest("PUT", "http://127.0.0.1:${port}/echo-request", {
+        const curl = require("quickjs:curl");
+        const result = curl.urlRequest("PUT", "http://127.0.0.1:${port}/echo-request", {
           body: new Uint8Array([0x00, 0x01, 0x02, 0xff]).buffer,
           headers: { "Content-Type": "application/octet-stream" },
         });
@@ -513,7 +513,7 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         const requests = [
           ["DELETE", {}],
           ["POST", {}],
@@ -521,7 +521,7 @@ describe("quickjs:net", () => {
           ["POST", { body: "" }],
         ];
         for (const [method, options] of requests) {
-          const result = net.urlRequest(method, "http://127.0.0.1:${port}/echo-request", options);
+          const result = curl.urlRequest(method, "http://127.0.0.1:${port}/echo-request", options);
           console.log(method, JSON.stringify(options), "->", result.response);
         }
       `,
@@ -545,8 +545,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlRequest("HEAD", "http://127.0.0.1:${port}/text-with-length");
+        const curl = require("quickjs:curl");
+        const result = curl.urlRequest("HEAD", "http://127.0.0.1:${port}/text-with-length");
         console.log("status:", result.status);
         console.log("response:", JSON.stringify(result.response));
         console.log("content-length:", JSON.stringify(result.responseHeaders["content-length"]));
@@ -570,8 +570,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlRequest("POST", "http://127.0.0.1:${port}/error", { body: "x" });
+        const curl = require("quickjs:curl");
+        const result = curl.urlRequest("POST", "http://127.0.0.1:${port}/error", { body: "x" });
         console.log("status:", result.status);
         console.log("response:", result.response);
       `,
@@ -593,8 +593,8 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
-        const result = net.urlRequest("GET", "http://127.0.0.1:${port}/binary", { binary: true });
+        const curl = require("quickjs:curl");
+        const result = curl.urlRequest("GET", "http://127.0.0.1:${port}/binary", { binary: true });
         console.log("status:", result.status);
         console.log("response type:", result.response.constructor.name);
         const view = new Uint8Array(result.response);
@@ -619,7 +619,7 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         const requests = [
           ["POST", 303],
           ["POST", 307],
@@ -629,7 +629,7 @@ describe("quickjs:net", () => {
           ["PUT", 308],
         ];
         for (const [method, statusCode] of requests) {
-          const result = net.urlRequest(method, "http://127.0.0.1:${port}/redirect/" + statusCode, { body: "x" });
+          const result = curl.urlRequest(method, "http://127.0.0.1:${port}/redirect/" + statusCode, { body: "x" });
           const echoed = JSON.parse(result.response);
           console.log(method, statusCode, "->", echoed.method, "bodyHex:", JSON.stringify(echoed.bodyHex), "location:", "location" in result.responseHeaders);
         }
@@ -656,9 +656,9 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         for (const redirect of ["follow", undefined, "manual"]) {
-          const result = net.urlRequest("POST", "http://127.0.0.1:${port}/redirect/307", { body: "x", redirect });
+          const result = curl.urlRequest("POST", "http://127.0.0.1:${port}/redirect/307", { body: "x", redirect });
           console.log(redirect, "->", result.status, JSON.stringify(result.responseHeaders.location), result.response);
         }
       `,
@@ -681,7 +681,7 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         const paths = [
           "/redirect/300",
           "/redirect/301",
@@ -695,7 +695,7 @@ describe("quickjs:net", () => {
         ];
         for (const path of paths) {
           try {
-            const result = net.urlRequest("GET", "http://127.0.0.1:${port}" + path, { redirect: "error" });
+            const result = curl.urlRequest("GET", "http://127.0.0.1:${port}" + path, { redirect: "error" });
             console.log(path, "->", result.status, JSON.stringify(result.responseHeaders.location), result.response);
           } catch (error) {
             console.log(path, "->", error.name + ": " + error.message);
@@ -727,7 +727,7 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         const attempts = [
           [5, {}],
           ["POST", { body: 5 }],
@@ -739,7 +739,7 @@ describe("quickjs:net", () => {
         ];
         for (const [method, options] of attempts) {
           try {
-            net.urlRequest(method, "http://127.0.0.1:${port}/echo-request", options);
+            curl.urlRequest(method, "http://127.0.0.1:${port}/echo-request", options);
             console.log("ERROR: should have thrown");
           } catch (error) {
             console.log(error.name + ": " + error.message);
@@ -769,10 +769,10 @@ describe("quickjs:net", () => {
     const run = spawn(binDir("qjs"), [
       "-e",
       `
-        const net = require("quickjs:net");
+        const curl = require("quickjs:curl");
         const body = new ArrayBuffer(4);
         try {
-          net.urlRequest("PUT", "http://127.0.0.1:${port}/echo-request", {
+          curl.urlRequest("PUT", "http://127.0.0.1:${port}/echo-request", {
             body,
             get headers() {
               body.transfer();

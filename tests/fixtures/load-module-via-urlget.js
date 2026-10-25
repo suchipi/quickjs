@@ -1,4 +1,4 @@
-import * as net from "quickjs:net";
+import * as curl from "quickjs:curl";
 import { ModuleDelegate } from "quickjs:engine";
 
 const HTTP_RE = /^https?:\/\//;
@@ -14,7 +14,7 @@ ModuleDelegate.resolve = (name, fromFile) => {
 const defaultRead = ModuleDelegate.read;
 ModuleDelegate.read = (moduleName) => {
   if (HTTP_RE.test(moduleName)) {
-    return net.urlGet(moduleName);
+    return curl.urlGet(moduleName);
   }
   return defaultRead(moduleName);
 };

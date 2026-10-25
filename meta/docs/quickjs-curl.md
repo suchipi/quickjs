@@ -1,9 +1,10 @@
-# "quickjs:net" (namespace)
+# "quickjs:curl" (namespace)
 
-The `"quickjs:net"` module provides networking functions.
+The `"quickjs:curl"` module provides networking functions implemented with
+libcurl, which is loaded dynamically at runtime.
 
 ```ts
-declare module "quickjs:net" {
+declare module "quickjs:curl" {
   export interface UrlGetOptions {
     binary?: boolean;
     full?: boolean;
@@ -152,9 +153,9 @@ declare module "quickjs:net" {
 }
 ```
 
-## "quickjs:net".UrlGetOptions (exported interface)
+## "quickjs:curl".UrlGetOptions (exported interface)
 
-Options for [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget).
+Options for [urlGet](/meta/docs/quickjs-curl.md#quickjs-curl-urlget-exported-urlget).
 
 ```ts
 interface UrlGetOptions {
@@ -198,7 +199,7 @@ over values added by libcurl.
 headers?: Record<string, string | number | bigint>;
 ```
 
-## "quickjs:net".UrlGet (exported interface)
+## "quickjs:curl".UrlGet (exported interface)
 
 ```ts
 interface UrlGet {
@@ -294,7 +295,7 @@ Download `url` using libcurl (dynamically loaded). Returns string when
 the http status code is between 200 and 299, and throws otherwise.
 
 Pass an object with { full: true } as the second argument to get response
-headers and status code. See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+headers and status code. See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string): string;
@@ -310,7 +311,7 @@ Returns an object with three properties:
 - `responseHeaders`: headers separated by CRLF (string)
 - `status`: status code (number)
 
-See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions & {
@@ -333,7 +334,7 @@ Returns an object with three properties:
 - `responseHeaders`: headers separated by CRLF (string)
 - `status`: status code (number)
 
-See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions & {
@@ -355,7 +356,7 @@ Returns an object with three properties:
 - `responseHeaders`: headers separated by CRLF (string)
 - `status`: status code (number)
 
-See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions & {
@@ -374,7 +375,7 @@ Download `url` using libcurl (dynamically loaded). Returns ArrayBuffer
 when the http status code is between 200 and 299, and throws otherwise.
 
 Pass an object with { full: true } as the second argument to get response
-headers and status code. See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+headers and status code. See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions & {
@@ -388,7 +389,7 @@ Download `url` using libcurl (dynamically loaded). Returns ArrayBuffer
 when the http status code is between 200 and 299, and throws otherwise.
 
 Pass an object with { full: true } as the second argument to get response
-headers and status code. See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+headers and status code. See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions & {
@@ -403,7 +404,7 @@ Download `url` using libcurl (dynamically loaded). Returns string when
 the http status code is between 200 and 299, and throws otherwise.
 
 Pass an object with { full: true } as the second argument to get response
-headers and status code. See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+headers and status code. See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions & {
@@ -417,7 +418,7 @@ Download `url` using libcurl (dynamically loaded). Returns string when
 the http status code is between 200 and 299, and throws otherwise.
 
 Pass an object with { full: true } as the second argument to get response
-headers and status code. See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+headers and status code. See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions & {
@@ -431,7 +432,7 @@ Download `url` using libcurl (dynamically loaded). Returns string when
 the http status code is between 200 and 299, and throws otherwise.
 
 Pass an object with { full: true } as the second argument to get response
-headers and status code. See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+headers and status code. See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions & {
@@ -446,7 +447,7 @@ Download `url` using libcurl (dynamically loaded). Returns string when
 the http status code is between 200 and 299, and throws otherwise.
 
 Pass an object with { full: true } as the second argument to get response
-headers and status code. See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+headers and status code. See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions & {
@@ -471,7 +472,7 @@ Otherwise, returns the response body (ArrayBuffer when the `binary`
 option is true, string otherwise) when the http status code is between
 200 and 299, and throws otherwise.
 
-See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported-interface) for all options.
+See [UrlGetOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlgetoptions-exported-interface) for all options.
 
 ```ts
 (url: string, options: UrlGetOptions): string | ArrayBuffer | {
@@ -481,15 +482,15 @@ See [UrlGetOptions](/meta/docs/quickjs-net.md#quickjs-net-urlgetoptions-exported
 };
 ```
 
-## "quickjs:net".urlGet (exported UrlGet)
+## "quickjs:curl".urlGet (exported UrlGet)
 
 ```ts
 var urlGet: UrlGet;
 ```
 
-## "quickjs:net".UrlRequestOptions (exported interface)
+## "quickjs:curl".UrlRequestOptions (exported interface)
 
-Options for [urlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-urlrequest).
+Options for [urlRequest](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequest-exported-urlrequest).
 
 ```ts
 interface UrlRequestOptions extends Omit<UrlGetOptions, "full"> {
@@ -519,7 +520,7 @@ body?: string | ArrayBuffer;
 
 What to do when the server responds with a redirect. Defaults to `"follow"`.
 
-- `"follow"`: Follow any 3xx response that has a `Location` header. See [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how redirects affect the method and body.
+- `"follow"`: Follow any 3xx response that has a `Location` header. See [UrlRequest](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequest-exported-interface) for how redirects affect the method and body.
 - `"error"`: Throw an Error for any response that `"follow"` would follow, which is any 3xx response that has a `Location` header. A 3xx response without a `Location` header is returned as-is.
 - `"manual"`: Don't follow the redirect. `urlRequest` returns the redirect response itself, with its status, headers (including `location`), and body.
 
@@ -527,9 +528,9 @@ What to do when the server responds with a redirect. Defaults to `"follow"`.
 redirect?: "follow" | "error" | "manual";
 ```
 
-## "quickjs:net".UrlRequest (exported interface)
+## "quickjs:curl".UrlRequest (exported interface)
 
-The type of [urlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-urlrequest).
+The type of [urlRequest](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequest-exported-urlrequest).
 
 By default, `urlRequest` follows redirects, which affect the request like
 this:
@@ -541,7 +542,7 @@ this:
 - Otherwise, the method and body are both kept.
 
 Use the `redirect` option to throw on redirects or to get the redirect
-response instead. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface).
+response instead. See [UrlRequestOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequestoptions-exported-interface).
 
 ```ts
 interface UrlRequest {
@@ -605,9 +606,9 @@ Returns an object with three properties:
 - `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
 - `status`: status code (number)
 
-Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
+Unlike [urlGet](/meta/docs/quickjs-curl.md#quickjs-curl-urlget-exported-urlget), this doesn't throw when the http status code is
 outside 200-299. Redirects are followed unless the `redirect` option
-says otherwise; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how they affect the method
+says otherwise; see [UrlRequest](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequest-exported-interface) for how they affect the method
 and body.
 
 - `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
@@ -633,14 +634,14 @@ Returns an object with three properties:
 - `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
 - `status`: status code (number)
 
-Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
+Unlike [urlGet](/meta/docs/quickjs-curl.md#quickjs-curl-urlget-exported-urlget), this doesn't throw when the http status code is
 outside 200-299. Redirects are followed unless the `redirect` option
-says otherwise; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how they affect the method
+says otherwise; see [UrlRequest](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequest-exported-interface) for how they affect the method
 and body.
 
 - `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
 - `@param` _url_ — The URL to send the request to.
-- `@param` _options_ — Options pertaining to the request. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+- `@param` _options_ — Options pertaining to the request. See [UrlRequestOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequestoptions-exported-interface) for all options.
 
 ```ts
 (method: string, url: string, options: UrlRequestOptions & {
@@ -664,14 +665,14 @@ Returns an object with three properties:
 - `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
 - `status`: status code (number)
 
-Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
+Unlike [urlGet](/meta/docs/quickjs-curl.md#quickjs-curl-urlget-exported-urlget), this doesn't throw when the http status code is
 outside 200-299. Redirects are followed unless the `redirect` option
-says otherwise; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how they affect the method
+says otherwise; see [UrlRequest](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequest-exported-interface) for how they affect the method
 and body.
 
 - `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
 - `@param` _url_ — The URL to send the request to.
-- `@param` _options_ — Options pertaining to the request. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+- `@param` _options_ — Options pertaining to the request. See [UrlRequestOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequestoptions-exported-interface) for all options.
 
 ```ts
 (method: string, url: string, options: UrlRequestOptions & {
@@ -696,14 +697,14 @@ Returns an object with three properties:
 - `responseHeaders`: an object whose keys are lowercased header names and whose values are arrays of header values (it's an array in case the header is specified more than once)
 - `status`: status code (number)
 
-Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
+Unlike [urlGet](/meta/docs/quickjs-curl.md#quickjs-curl-urlget-exported-urlget), this doesn't throw when the http status code is
 outside 200-299. Redirects are followed unless the `redirect` option
-says otherwise; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how they affect the method
+says otherwise; see [UrlRequest](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequest-exported-interface) for how they affect the method
 and body.
 
 - `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
 - `@param` _url_ — The URL to send the request to.
-- `@param` _options_ — Options pertaining to the request. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+- `@param` _options_ — Options pertaining to the request. See [UrlRequestOptions](/meta/docs/quickjs-curl.md#quickjs-curl-urlrequestoptions-exported-interface) for all options.
 
 ```ts
 (method: string, url: string, options: UrlRequestOptions): {
@@ -715,7 +716,7 @@ and body.
 };
 ```
 
-## "quickjs:net".urlRequest (exported UrlRequest)
+## "quickjs:curl".urlRequest (exported UrlRequest)
 
 ```ts
 var urlRequest: UrlRequest;

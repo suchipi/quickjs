@@ -696,7 +696,7 @@ int main(int argc, char **argv)
     namelist_add(&cmodule_list, "quickjs:context", "context", 0);
     namelist_add(&cmodule_list, "quickjs:engine", "engine", 0);
     namelist_add(&cmodule_list, "quickjs:encoding", "encoding", 0);
-    namelist_add(&cmodule_list, "quickjs:net", "net", 0);
+    namelist_add(&cmodule_list, "quickjs:curl", "curl", 0);
 #endif
 
     optind = 1;

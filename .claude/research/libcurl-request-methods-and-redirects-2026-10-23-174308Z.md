@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/builtin-modules/quickjs-net/**"
-  - "tests/net-module.test.ts"
+  - "src/builtin-modules/quickjs-curl/**"
+  - "tests/curl-module.test.ts"
 ---
 
-# libcurl request methods, bodies, and redirects (quickjs:net urlRequest)
+# libcurl request methods, bodies, and redirects (quickjs:curl urlRequest)
 
-Gotchas found while adding `urlRequest` to `quickjs:net`. Observations marked "observed" were checked against a Node `http` server; the same results came from system libcurl 8.7.1 (`/usr/lib/libcurl.4.dylib`, what `dlopen("libcurl.dylib")` loads on macOS) and MacPorts libcurl 8.13.0 (loaded by setting `DYLD_LIBRARY_PATH=/opt/local/lib` on the child process; `DYLD_PRINT_LIBRARIES=1` shows which one was picked).
+Gotchas found while adding `urlRequest` to `quickjs:curl`. Observations marked "observed" were checked against a Node `http` server; the same results came from system libcurl 8.7.1 (`/usr/lib/libcurl.4.dylib`, what `dlopen("libcurl.dylib")` loads on macOS) and MacPorts libcurl 8.13.0 (loaded by setting `DYLD_LIBRARY_PATH=/opt/local/lib` on the child process; `DYLD_PRINT_LIBRARIES=1` shows which one was picked).
 
 ## CURLOPT_CUSTOMREQUEST only renames the method
 
@@ -36,4 +36,4 @@ The second row means a PUT that hits an http-to-https 301 would arrive as a PUT 
 
 ## ArrayBuffer bodies must be read after every option getter runs
 
-Option getters (and Proxy traps on the headers object) run arbitrary JS, which can detach (`ArrayBuffer.prototype.transfer`) or resize the body's ArrayBuffer. `urlRequest` only type-checks the body while parsing options and calls `JS_GetArrayBuffer` right before `curl_easy_perform`, when no more JS can run. `tests/net-module.test.ts` covers this with a `headers` getter that detaches the body, which must throw `TypeError: ArrayBuffer is detached`.
+Option getters (and Proxy traps on the headers object) run arbitrary JS, which can detach (`ArrayBuffer.prototype.transfer`) or resize the body's ArrayBuffer. `urlRequest` only type-checks the body while parsing options and calls `JS_GetArrayBuffer` right before `curl_easy_perform`, when no more JS can run. `tests/curl-module.test.ts` covers this with a `headers` getter that detaches the body, which must throw `TypeError: ArrayBuffer is detached`.

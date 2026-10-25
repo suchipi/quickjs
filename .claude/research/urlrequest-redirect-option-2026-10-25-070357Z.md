@@ -1,7 +1,7 @@
 ---
 paths:
-  - "src/builtin-modules/quickjs-net/**"
-  - "tests/net-module.test.ts"
+  - "src/builtin-modules/quickjs-curl/**"
+  - "tests/curl-module.test.ts"
 ---
 
 # urlRequest's `redirect` option vs WHATWG fetch

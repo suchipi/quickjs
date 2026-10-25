@@ -14,7 +14,7 @@
 #include "quickjs-modulesys.h"
 #include "quickjs-engine.h"
 #include "quickjs-encoding.h"
-#include "quickjs-net.h"
+#include "quickjs-curl.h"
 
 /* returns 0 on success, nonzero on failure */
 int quickjs_full_init(JSContext *ctx);

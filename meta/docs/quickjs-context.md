@@ -24,9 +24,9 @@ declare module "quickjs:context" {
         "quickjs:bytecode"?: boolean;
         "quickjs:cmdline"?: boolean;
         "quickjs:context"?: boolean;
+        "quickjs:curl"?: boolean;
         "quickjs:encoding"?: boolean;
         "quickjs:engine"?: boolean;
-        "quickjs:net"?: boolean;
         "quickjs:os"?: boolean;
         "quickjs:std"?: boolean;
         "quickjs:timers"?: boolean;
@@ -65,9 +65,9 @@ class Context {
       "quickjs:bytecode"?: boolean;
       "quickjs:cmdline"?: boolean;
       "quickjs:context"?: boolean;
+      "quickjs:curl"?: boolean;
       "quickjs:encoding"?: boolean;
       "quickjs:engine"?: boolean;
-      "quickjs:net"?: boolean;
       "quickjs:os"?: boolean;
       "quickjs:std"?: boolean;
       "quickjs:timers"?: boolean;
@@ -148,9 +148,9 @@ constructor(options?: {
     "quickjs:bytecode"?: boolean;
     "quickjs:cmdline"?: boolean;
     "quickjs:context"?: boolean;
+    "quickjs:curl"?: boolean;
     "quickjs:encoding"?: boolean;
     "quickjs:engine"?: boolean;
-    "quickjs:net"?: boolean;
     "quickjs:os"?: boolean;
     "quickjs:std"?: boolean;
     "quickjs:timers"?: boolean;

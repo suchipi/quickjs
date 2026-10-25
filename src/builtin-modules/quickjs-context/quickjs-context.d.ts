@@ -147,12 +147,12 @@ declare module "quickjs:context" {
         "quickjs:cmdline"?: boolean;
         /** Enables the "quickjs:context" module. Defaults to `true`. */
         "quickjs:context"?: boolean;
+        /** Enables the "quickjs:curl" module. Defaults to `true`. */
+        "quickjs:curl"?: boolean;
         /** Enables the "quickjs:encoding" module. Defaults to `true`. */
         "quickjs:encoding"?: boolean;
         /** Enables the "quickjs:engine" module. Defaults to `true`. */
         "quickjs:engine"?: boolean;
-        /** Enables the "quickjs:net" module. Defaults to `true`. */
-        "quickjs:net"?: boolean;
         /** Enables the "quickjs:os" module. Defaults to `true`. */
         "quickjs:os"?: boolean;
         /** Enables the "quickjs:std" module. Defaults to `true`. */

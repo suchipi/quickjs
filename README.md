@@ -84,7 +84,7 @@ Fork of the fantastic QuickJS engine by Fabrice Bellard, with many changes.
 - Several C-side helper functions previously in quickjs-libc were moved into quickjs-utils.
 - Most module-related code (setting import.meta, etc) was moved into quickjs-modulesys.
 - The manual garbage collection function `std.gc()` was moved to `"quickjs:engine"`.
-- `std.urlGet` was moved to the new module `"quickjs:net"`.
+- `std.urlGet` was moved to the new module `"quickjs:curl"`.
 - `urlGet` now uses libcurl (via `dlopen`) instead of shelling out to `curl`.
 - `urlGet` now has a "headers" option for setting request headers.
 
@@ -140,7 +140,7 @@ The options accepted by `fromFile`/`fromValue` include a `strip` mode for droppi
 
 A Module that allows JS code to create new JS Contexts (Realms). You can create new Contexts and run code inside them. Contexts can have certain features disabled (like eval) for security purposes. You can share values between Contexts. Contexts are destroyed when they get garbage-collected.
 
-The `Context` class constructor accepts an options object to enable/disable specific features: `date`, `eval`, `stringNormalize`, `regExp`, `json`, `proxy`, `mapSet`, `typedArrays`, `promise`, `inspect`, `console`, `print`, `moduleGlobals`, `timers`, and a `modules` object to enable/disable specific builtin modules (`quickjs:bytecode`, `quickjs:cmdline`, `quickjs:context`, `quickjs:encoding`, `quickjs:engine`, `quickjs:net`, `quickjs:os`, `quickjs:std`, `quickjs:timers`).
+The `Context` class constructor accepts an options object to enable/disable specific features: `date`, `eval`, `stringNormalize`, `regExp`, `json`, `proxy`, `mapSet`, `typedArrays`, `promise`, `inspect`, `console`, `print`, `moduleGlobals`, `timers`, and a `modules` object to enable/disable specific builtin modules (`quickjs:bytecode`, `quickjs:cmdline`, `quickjs:context`, `quickjs:curl`, `quickjs:encoding`, `quickjs:engine`, `quickjs:os`, `quickjs:std`, `quickjs:timers`).
 
 Each `Context` instance has a mutable `globalThis` property (you can add to it or remove from it to change what's visible in the context) and an `eval(code)` method.
 
@@ -186,9 +186,9 @@ A newly-added Error stack frame generation hook `setStackFrameMapper` is exposed
 
 Timer functions extracted from quickjs-libc into their own module. Exports `setTimeout`/`clearTimeout`/`setInterval`/`clearInterval` (also available as globals), plus `sleepAsync(ms)` which returns a Promise that resolves after the delay.
 
-### New module: "quickjs:net"
+### New module: "quickjs:curl"
 
-Networking functions, moved out of the `std` module. Exports `urlGet` (formerly `std.urlGet`), which downloads a URL using libcurl, loaded at runtime via `dlopen`. Also exports the new `urlRequest`, which works like `urlGet` but accepts a request method and body, and always returns the status code, response headers, and response body instead of throwing on non-2xx status codes.
+Networking functions built on libcurl, which is loaded at runtime via `dlopen`. Exports `urlGet` (moved here from `std.urlGet`), which downloads a resource from a URL. Also exports the new `urlRequest`, which works like `urlGet` but accepts a request method and body, and always returns the status code, response headers, and response body instead of throwing on non-2xx status codes. `urlRequest` also returns the response headers as a structured object, instead of the string `urlGet` returns.
 
 ### Changes to the module loader
 

@@ -1,7 +1,8 @@
 /**
- * The `"quickjs:net"` module provides networking functions.
+ * The `"quickjs:curl"` module provides networking functions implemented with
+ * libcurl, which is loaded dynamically at runtime.
  */
-declare module "quickjs:net" {
+declare module "quickjs:curl" {
   /**
    * Options for {@link urlGet}.
    */

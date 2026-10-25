@@ -300,6 +300,82 @@ test("quickjs:context - quickjs:context option (false)", async () => {
   `);
 });
 
+test("quickjs:context - quickjs:curl option (default value)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context();
+		ctx.globalThis.require("quickjs:curl");
+	`,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:curl option (true)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:curl": true,
+			},
+		});
+		ctx.globalThis.require("quickjs:curl");
+	`,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 0,
+      "error": null,
+      "stderr": "",
+      "stdout": "",
+    }
+  `);
+});
+
+test("quickjs:context - quickjs:curl option (false)", async () => {
+  const run = spawn(binDir("qjs"), [
+    "-e",
+    `
+		import { Context } from "quickjs:context";
+
+		const ctx = new Context({
+      moduleGlobals: true,
+		  modules: {
+			  "quickjs:curl": false,
+			},
+		});
+		ctx.globalThis.require("quickjs:curl");
+	`,
+  ]);
+  await run.completion;
+  expect(run.cleanResult()).toMatchInlineSnapshot(`
+    {
+      "code": 1,
+      "error": null,
+      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:curl)
+        at somewhere
+
+    ",
+      "stdout": "",
+    }
+  `);
+});
+
 test("quickjs:context - quickjs:encoding option (default value)", async () => {
   const run = spawn(binDir("qjs"), [
     "-e",
@@ -444,82 +520,6 @@ test("quickjs:context - quickjs:engine option (false)", async () => {
       "code": 1,
       "error": null,
       "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:engine)
-        at somewhere
-
-    ",
-      "stdout": "",
-    }
-  `);
-});
-
-test("quickjs:context - quickjs:net option (default value)", async () => {
-  const run = spawn(binDir("qjs"), [
-    "-e",
-    `
-		import { Context } from "quickjs:context";
-
-		const ctx = new Context();
-		ctx.globalThis.require("quickjs:net");
-	`,
-  ]);
-  await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
-    {
-      "code": 0,
-      "error": null,
-      "stderr": "",
-      "stdout": "",
-    }
-  `);
-});
-
-test("quickjs:context - quickjs:net option (true)", async () => {
-  const run = spawn(binDir("qjs"), [
-    "-e",
-    `
-		import { Context } from "quickjs:context";
-
-		const ctx = new Context({
-      moduleGlobals: true,
-		  modules: {
-			  "quickjs:net": true,
-			},
-		});
-		ctx.globalThis.require("quickjs:net");
-	`,
-  ]);
-  await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
-    {
-      "code": 0,
-      "error": null,
-      "stderr": "",
-      "stdout": "",
-    }
-  `);
-});
-
-test("quickjs:context - quickjs:net option (false)", async () => {
-  const run = spawn(binDir("qjs"), [
-    "-e",
-    `
-		import { Context } from "quickjs:context";
-
-		const ctx = new Context({
-      moduleGlobals: true,
-		  modules: {
-			  "quickjs:net": false,
-			},
-		});
-		ctx.globalThis.require("quickjs:net");
-	`,
-  ]);
-  await run.completion;
-  expect(run.cleanResult()).toMatchInlineSnapshot(`
-    {
-      "code": 1,
-      "error": null,
-      "stderr": "Error: Failed to load module: No such file or directory (errno = 2, filename = quickjs:net)
         at somewhere
 
     ",

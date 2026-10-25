@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/builtin-modules/quickjs-net/**"
-  - "tests/net-module.test.ts"
+  - "src/builtin-modules/quickjs-curl/**"
+  - "tests/curl-module.test.ts"
 ---
 
 # urlRequest vs WHATWG fetch: verified gaps
 
-Gaps in `quickjs:net` `urlRequest` compared to [WHATWG Fetch](https://fetch.spec.whatwg.org/), excluding async and streamed response reading. "Observed" means checked on 2026-10-25 against a raw `node:net` server with `build/bin/qjs` and macOS system libcurl 8.7.1 (probe scripts were in `.tmp/fetch-gap-probe/`, which is not tracked).
+Gaps in `quickjs:curl` `urlRequest` compared to [WHATWG Fetch](https://fetch.spec.whatwg.org/), excluding async and streamed response reading. "Observed" means checked on 2026-10-25 against a raw `node:net` server with `build/bin/qjs` and macOS system libcurl 8.7.1 (probe scripts were in `.tmp/fetch-gap-probe/`, which is not tracked).
 
 ## Input validation that fetch does and urlRequest doesn't
 
