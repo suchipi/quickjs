@@ -97,6 +97,7 @@ declare module "quickjs:net" {
   export var urlGet: UrlGet;
   export interface UrlRequestOptions extends Omit<UrlGetOptions, "full"> {
     body?: string | ArrayBuffer;
+    redirect?: "follow" | "error" | "manual";
   }
   export interface UrlRequest {
     (
@@ -493,6 +494,7 @@ Options for [urlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-export
 ```ts
 interface UrlRequestOptions extends Omit<UrlGetOptions, "full"> {
   body?: string | ArrayBuffer;
+  redirect?: "follow" | "error" | "manual";
 }
 ```
 
@@ -513,17 +515,33 @@ Passing a body with the HEAD method throws a TypeError.
 body?: string | ArrayBuffer;
 ```
 
+### UrlRequestOptions.redirect (property)
+
+What to do when the server responds with a redirect. Defaults to `"follow"`.
+
+- `"follow"`: Follow any 3xx response that has a `Location` header. See [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how redirects affect the method and body.
+- `"error"`: Throw an Error for any response that `"follow"` would follow, which is any 3xx response that has a `Location` header. A 3xx response without a `Location` header is returned as-is.
+- `"manual"`: Don't follow the redirect. `urlRequest` returns the redirect response itself, with its status, headers (including `location`), and body.
+
+```ts
+redirect?: "follow" | "error" | "manual";
+```
+
 ## "quickjs:net".UrlRequest (exported interface)
 
 The type of [urlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-urlrequest).
 
-`urlRequest` follows redirects, which affect the request like this:
+By default, `urlRequest` follows redirects, which affect the request like
+this:
 
-- After a 301, 302, or 303 redirect, a POST becomes a GET without a
-  body, like in browsers.
+- After a 301, 302, or 303 redirect, a POST becomes a GET without a body,
+  like in browsers.
 - A 303 redirect also drops the body of any other method, but keeps the
   method.
 - Otherwise, the method and body are both kept.
+
+Use the `redirect` option to throw on redirects or to get the redirect
+response instead. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface).
 
 ```ts
 interface UrlRequest {
@@ -588,11 +606,9 @@ Returns an object with three properties:
 - `status`: status code (number)
 
 Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
-outside 200-299. Redirects are followed; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how
-they affect the method and body.
-
-Pass an options object as the third argument to send a body or set
-headers. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+outside 200-299. Redirects are followed unless the `redirect` option
+says otherwise; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how they affect the method
+and body.
 
 - `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
 - `@param` _url_ — The URL to send the request to.
@@ -618,12 +634,13 @@ Returns an object with three properties:
 - `status`: status code (number)
 
 Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
-outside 200-299. Redirects are followed; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how
-they affect the method and body.
+outside 200-299. Redirects are followed unless the `redirect` option
+says otherwise; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how they affect the method
+and body.
 
 - `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
 - `@param` _url_ — The URL to send the request to.
-- `@param` _options_ — The request body, headers, and response format. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+- `@param` _options_ — Options pertaining to the request. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
 
 ```ts
 (method: string, url: string, options: UrlRequestOptions & {
@@ -648,12 +665,13 @@ Returns an object with three properties:
 - `status`: status code (number)
 
 Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
-outside 200-299. Redirects are followed; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how
-they affect the method and body.
+outside 200-299. Redirects are followed unless the `redirect` option
+says otherwise; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how they affect the method
+and body.
 
 - `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
 - `@param` _url_ — The URL to send the request to.
-- `@param` _options_ — The request body, headers, and response format. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+- `@param` _options_ — Options pertaining to the request. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
 
 ```ts
 (method: string, url: string, options: UrlRequestOptions & {
@@ -679,12 +697,13 @@ Returns an object with three properties:
 - `status`: status code (number)
 
 Unlike [urlGet](/meta/docs/quickjs-net.md#quickjs-net-urlget-exported-urlget), this doesn't throw when the http status code is
-outside 200-299. Redirects are followed; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how
-they affect the method and body.
+outside 200-299. Redirects are followed unless the `redirect` option
+says otherwise; see [UrlRequest](/meta/docs/quickjs-net.md#quickjs-net-urlrequest-exported-interface) for how they affect the method
+and body.
 
 - `@param` _method_ — The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
 - `@param` _url_ — The URL to send the request to.
-- `@param` _options_ — The request body, headers, and response format. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
+- `@param` _options_ — Options pertaining to the request. See [UrlRequestOptions](/meta/docs/quickjs-net.md#quickjs-net-urlrequestoptions-exported-interface) for all options.
 
 ```ts
 (method: string, url: string, options: UrlRequestOptions): {

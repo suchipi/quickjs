@@ -60,6 +60,52 @@ static int get_bool_option(JSContext *ctx, BOOL *pbool,
     return 0;
 }
 
+typedef enum {
+    JS_NET_REDIRECT_FOLLOW,
+    JS_NET_REDIRECT_ERROR,
+    JS_NET_REDIRECT_MANUAL,
+} JSNetRedirectMode;
+
+static const char *const js_net_redirect_mode_names[] = {
+    [JS_NET_REDIRECT_FOLLOW] = "follow",
+    [JS_NET_REDIRECT_ERROR] = "error",
+    [JS_NET_REDIRECT_MANUAL] = "manual",
+};
+
+static int get_redirect_option(JSContext *ctx, JSNetRedirectMode *pmode,
+                               JSValueConst obj)
+{
+    JSValue val;
+    const char *str;
+    size_t len, i;
+
+    val = JS_GetPropertyStr(ctx, obj, "redirect");
+    if (JS_IsException(val))
+        return -1;
+    if (JS_IsUndefined(val))
+        return 0;
+    if (!JS_IsString(val)) {
+        JS_FreeValue(ctx, val);
+        goto invalid;
+    }
+    str = JS_ToCStringLen(ctx, &len, val);
+    JS_FreeValue(ctx, val);
+    if (!str)
+        return -1;
+    for (i = 0; i < countof(js_net_redirect_mode_names); i++) {
+        if (len == strlen(js_net_redirect_mode_names[i]) &&
+            memcmp(str, js_net_redirect_mode_names[i], len) == 0) {
+            JS_FreeCString(ctx, str);
+            *pmode = (JSNetRedirectMode)i;
+            return 0;
+        }
+    }
+    JS_FreeCString(ctx, str);
+ invalid:
+    JS_ThrowTypeError(ctx, "<internal>/quickjs-net.c", __LINE__, "'redirect' option must be \"follow\", \"error\", or \"manual\"");
+    return -1;
+}
+
 #if defined(_WIN32)
 #define URLGET_DLOPEN(name) ((void *)LoadLibraryA(name))
 #define URLGET_DLSYM(handle, name) ((void *)GetProcAddress((HMODULE)(handle), name))
@@ -84,6 +130,7 @@ static int get_bool_option(JSContext *ctx, BOOL *pbool,
 #define QJS_CURLOPT_POSTFIELDSIZE_LARGE 30120
 #define QJS_CURLOPT_POSTREDIR       161
 #define QJS_CURLINFO_RESPONSE_CODE  0x200002
+#define QJS_CURLINFO_REDIRECT_URL   0x10001F
 #define QJS_CURLE_OK                0
 
 /* libcurl function pointer types */
@@ -469,6 +516,7 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
                                       const char *method, const char *url,
                                       JSValueConst body_val, void *header_list,
                                       BOOL binary_flag, BOOL structured_headers,
+                                      JSNetRedirectMode redirect_mode,
                                       int *pstatus)
 {
     const char *body_str = NULL;
@@ -495,7 +543,8 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
                       qjs_libcurl.easy_strerror(curl_err));
         goto fail;
     }
-    curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_FOLLOWLOCATION, 1L);
+    curl_err = qjs_libcurl.easy_setopt(curl, QJS_CURLOPT_FOLLOWLOCATION,
+                                       redirect_mode == JS_NET_REDIRECT_FOLLOW ? 1L : 0L);
     if (curl_err != QJS_CURLE_OK) {
         JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
                       "curl_easy_setopt(CURLOPT_FOLLOWLOCATION) failed: %s",
@@ -623,6 +672,25 @@ static JSValue js_net_perform_request(JSContext *ctx, const char *func_name,
     }
     status = (int)response_code;
 
+    if (redirect_mode == JS_NET_REDIRECT_ERROR) {
+        const char *redirect_url = NULL;
+
+        curl_err = qjs_libcurl.easy_getinfo(curl, QJS_CURLINFO_REDIRECT_URL, &redirect_url);
+        if (curl_err != QJS_CURLE_OK) {
+            JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+                          "curl_easy_getinfo(CURLINFO_REDIRECT_URL) failed: %s",
+                          qjs_libcurl.easy_strerror(curl_err));
+            goto fail;
+        }
+        /* libcurl sets CURLINFO_REDIRECT_URL for exactly the responses that it would follow if CURLOPT_FOLLOWLOCATION were on. */
+        if (redirect_url) {
+            JS_ThrowError(ctx, "<internal>/quickjs-net.c", __LINE__,
+                          "%s request failed: server responded with redirect status %d, and the 'redirect' option is \"error\"",
+                          func_name, status);
+            goto fail;
+        }
+    }
+
     qjs_libcurl.easy_cleanup(curl);
     curl = NULL;
 
@@ -733,7 +801,8 @@ static JSValue js_net_urlGet(JSContext *ctx, JSValueConst this_val,
     }
 
     result = js_net_perform_request(ctx, "urlGet", "GET", url, JS_UNDEFINED,
-                                    header_list, binary_flag, FALSE, &status);
+                                    header_list, binary_flag, FALSE,
+                                    JS_NET_REDIRECT_FOLLOW, &status);
     qjs_libcurl.slist_free_all(header_list);
 
     if (JS_IsException(result) || full_flag) {
@@ -761,6 +830,7 @@ static JSValue js_net_urlRequest(JSContext *ctx, JSValueConst this_val,
     JSValueConst options_obj;
     void *header_list = NULL;
     BOOL binary_flag;
+    JSNetRedirectMode redirect_mode = JS_NET_REDIRECT_FOLLOW;
     char errbuf[256];
 
     if (ensure_libcurl_loaded(errbuf, sizeof(errbuf))) {
@@ -801,6 +871,9 @@ static JSValue js_net_urlRequest(JSContext *ctx, JSValueConst this_val,
             goto fail_obj;
         }
 
+        if (get_redirect_option(ctx, &redirect_mode, options_obj))
+            goto fail_obj;
+
         if (get_header_list_option(ctx, &header_list, options_obj, "headers")) {
         fail_obj:
             JS_FreeCString(ctx, method);
@@ -811,7 +884,8 @@ static JSValue js_net_urlRequest(JSContext *ctx, JSValueConst this_val,
     }
 
     ret = js_net_perform_request(ctx, "urlRequest", method, url, body_val,
-                                 header_list, binary_flag, TRUE, NULL);
+                                 header_list, binary_flag, TRUE,
+                                 redirect_mode, NULL);
     qjs_libcurl.slist_free_all(header_list);
     JS_FreeCString(ctx, method);
     JS_FreeCString(ctx, url);

@@ -202,18 +202,31 @@ declare module "quickjs:net" {
      * Passing a body with the HEAD method throws a TypeError.
      */
     body?: string | ArrayBuffer;
+
+    /**
+     * What to do when the server responds with a redirect. Defaults to `"follow"`.
+     *
+     * - `"follow"`: Follow any 3xx response that has a `Location` header. See {@link UrlRequest} for how redirects affect the method and body.
+     * - `"error"`: Throw an Error for any response that `"follow"` would follow, which is any 3xx response that has a `Location` header. A 3xx response without a `Location` header is returned as-is.
+     * - `"manual"`: Don't follow the redirect. `urlRequest` returns the redirect response itself, with its status, headers (including `location`), and body.
+     */
+    redirect?: "follow" | "error" | "manual";
   }
 
   /**
    * The type of {@link urlRequest}.
    *
-   * `urlRequest` follows redirects, which affect the request like this:
+   * By default, `urlRequest` follows redirects, which affect the request like
+   * this:
    *
-   * - After a 301, 302, or 303 redirect, a POST becomes a GET without a
-   *   body, like in browsers.
+   * - After a 301, 302, or 303 redirect, a POST becomes a GET without a body,
+   *   like in browsers.
    * - A 303 redirect also drops the body of any other method, but keeps the
    *   method.
    * - Otherwise, the method and body are both kept.
+   *
+   * Use the `redirect` option to throw on redirects or to get the redirect
+   * response instead. See {@link UrlRequestOptions}.
    */
   export interface UrlRequest {
     /**
@@ -226,11 +239,9 @@ declare module "quickjs:net" {
      * - `status`: status code (number)
      *
      * Unlike {@link urlGet}, this doesn't throw when the http status code is
-     * outside 200-299. Redirects are followed; see {@link UrlRequest} for how
-     * they affect the method and body.
-     *
-     * Pass an options object as the third argument to send a body or set
-     * headers. See {@link UrlRequestOptions} for all options.
+     * outside 200-299. Redirects are followed unless the `redirect` option
+     * says otherwise; see {@link UrlRequest} for how they affect the method
+     * and body.
      *
      * @param method - The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
      * @param url - The URL to send the request to.
@@ -251,12 +262,13 @@ declare module "quickjs:net" {
      * - `status`: status code (number)
      *
      * Unlike {@link urlGet}, this doesn't throw when the http status code is
-     * outside 200-299. Redirects are followed; see {@link UrlRequest} for how
-     * they affect the method and body.
+     * outside 200-299. Redirects are followed unless the `redirect` option
+     * says otherwise; see {@link UrlRequest} for how they affect the method
+     * and body.
      *
      * @param method - The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
      * @param url - The URL to send the request to.
-     * @param options - The request body, headers, and response format. See {@link UrlRequestOptions} for all options.
+     * @param options - Options pertaining to the request. See {@link UrlRequestOptions} for all options.
      */
     (
       method: string,
@@ -278,12 +290,13 @@ declare module "quickjs:net" {
      * - `status`: status code (number)
      *
      * Unlike {@link urlGet}, this doesn't throw when the http status code is
-     * outside 200-299. Redirects are followed; see {@link UrlRequest} for how
-     * they affect the method and body.
+     * outside 200-299. Redirects are followed unless the `redirect` option
+     * says otherwise; see {@link UrlRequest} for how they affect the method
+     * and body.
      *
      * @param method - The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
      * @param url - The URL to send the request to.
-     * @param options - The request body, headers, and response format. See {@link UrlRequestOptions} for all options.
+     * @param options - Options pertaining to the request. See {@link UrlRequestOptions} for all options.
      */
     (
       method: string,
@@ -306,12 +319,13 @@ declare module "quickjs:net" {
      * - `status`: status code (number)
      *
      * Unlike {@link urlGet}, this doesn't throw when the http status code is
-     * outside 200-299. Redirects are followed; see {@link UrlRequest} for how
-     * they affect the method and body.
+     * outside 200-299. Redirects are followed unless the `redirect` option
+     * says otherwise; see {@link UrlRequest} for how they affect the method
+     * and body.
      *
      * @param method - The request method, such as `"GET"`, `"POST"`, `"PUT"`, or `"DELETE"`. It's sent exactly as written, so it's case-sensitive.
      * @param url - The URL to send the request to.
-     * @param options - The request body, headers, and response format. See {@link UrlRequestOptions} for all options.
+     * @param options - Options pertaining to the request. See {@link UrlRequestOptions} for all options.
      */
     (method: string, url: string, options: UrlRequestOptions): {
       status: number;

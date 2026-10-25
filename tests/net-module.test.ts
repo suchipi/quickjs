@@ -45,7 +45,12 @@ describe("quickjs:net", () => {
         res.writeHead(Number(req.url.slice("/redirect/".length)), {
           Location: "/echo-request",
         });
-        res.end();
+        res.end("redirecting");
+      } else if (req.url?.startsWith("/redirect-without-location/")) {
+        res.writeHead(
+          Number(req.url.slice("/redirect-without-location/".length))
+        );
+        res.end("no location");
       } else if (req.url === "/text-with-length") {
         // Without a real HEAD request, libcurl waits for these 17 bytes
         res.writeHead(200, {
@@ -647,6 +652,77 @@ describe("quickjs:net", () => {
     `);
   });
 
+  test("urlRequest - redirect option 'follow' and 'manual'", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        for (const redirect of ["follow", undefined, "manual"]) {
+          const result = net.urlRequest("POST", "http://127.0.0.1:${port}/redirect/307", { body: "x", redirect });
+          console.log(redirect, "->", result.status, JSON.stringify(result.responseHeaders.location), result.response);
+        }
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "follow -> 200 undefined {"method":"POST","contentType":"application/x-www-form-urlencoded","contentLength":"1","bodyHex":"78"}
+      undefined -> 200 undefined {"method":"POST","contentType":"application/x-www-form-urlencoded","contentLength":"1","bodyHex":"78"}
+      manual -> 307 ["/echo-request"] redirecting
+      ",
+      }
+    `);
+  });
+
+  test("urlRequest - redirect option 'error' throws for 3xx responses with a Location header", async () => {
+    const run = spawn(binDir("qjs"), [
+      "-e",
+      `
+        const net = require("quickjs:net");
+        const paths = [
+          "/redirect/300",
+          "/redirect/301",
+          "/redirect/302",
+          "/redirect/303",
+          "/redirect/304",
+          "/redirect/307",
+          "/redirect/308",
+          "/redirect/399",
+          "/redirect-without-location/302",
+        ];
+        for (const path of paths) {
+          try {
+            const result = net.urlRequest("GET", "http://127.0.0.1:${port}" + path, { redirect: "error" });
+            console.log(path, "->", result.status, JSON.stringify(result.responseHeaders.location), result.response);
+          } catch (error) {
+            console.log(path, "->", error.name + ": " + error.message);
+          }
+        }
+      `,
+    ]);
+    await run.completion;
+    expect(run.cleanResult()).toMatchInlineSnapshot(`
+      {
+        "code": 0,
+        "error": null,
+        "stderr": "",
+        "stdout": "/redirect/300 -> Error: urlRequest request failed: server responded with redirect status 300, and the 'redirect' option is "error"
+      /redirect/301 -> Error: urlRequest request failed: server responded with redirect status 301, and the 'redirect' option is "error"
+      /redirect/302 -> Error: urlRequest request failed: server responded with redirect status 302, and the 'redirect' option is "error"
+      /redirect/303 -> Error: urlRequest request failed: server responded with redirect status 303, and the 'redirect' option is "error"
+      /redirect/304 -> Error: urlRequest request failed: server responded with redirect status 304, and the 'redirect' option is "error"
+      /redirect/307 -> Error: urlRequest request failed: server responded with redirect status 307, and the 'redirect' option is "error"
+      /redirect/308 -> Error: urlRequest request failed: server responded with redirect status 308, and the 'redirect' option is "error"
+      /redirect/399 -> Error: urlRequest request failed: server responded with redirect status 399, and the 'redirect' option is "error"
+      /redirect-without-location/302 -> 302 undefined no location
+      ",
+      }
+    `);
+  });
+
   test("urlRequest - invalid options throw", async () => {
     const run = spawn(binDir("qjs"), [
       "-e",
@@ -657,6 +733,9 @@ describe("quickjs:net", () => {
           ["POST", { body: 5 }],
           ["POST", { body: new Uint8Array(2) }],
           ["HEAD", { body: "x" }],
+          ["GET", { redirect: "FOLLOW" }],
+          ["GET", { redirect: "manual\\u0000" }],
+          ["GET", { redirect: null }],
         ];
         for (const [method, options] of attempts) {
           try {
@@ -678,6 +757,9 @@ describe("quickjs:net", () => {
       TypeError: 'body' option must be a string or ArrayBuffer
       TypeError: 'body' option must be a string or ArrayBuffer
       TypeError: 'body' option cannot be used with the HEAD method
+      TypeError: 'redirect' option must be "follow", "error", or "manual"
+      TypeError: 'redirect' option must be "follow", "error", or "manual"
+      TypeError: 'redirect' option must be "follow", "error", or "manual"
       ",
       }
     `);
